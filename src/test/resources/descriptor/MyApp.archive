@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Repository:repository xmlns:Repository="http://www.tibco.com/xmlns/repo/types/2002">
+    <enterpriseArchive>
+        <name>MyApp</name>
+        <processArchive name="MyApp Archive">
+            <resourceType>process.archive.resource</resourceType>
+            <processProperty>/com/example/Receiver.process,/com/example/SubProcess.process</processProperty>
+        </processArchive>
+        <sharedArchive name="MyShared Archive">
+            <resourceType>shared.archive.resource</resourceType>
+        </sharedArchive>
+        <versionProperty>1</versionProperty>
+        <fileLocationProperty>C:\temp\MyApp.ear</fileLocationProperty>
+    </enterpriseArchive>
+</Repository:repository>

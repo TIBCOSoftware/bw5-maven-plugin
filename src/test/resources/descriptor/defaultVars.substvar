@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<repository xmlns="http://www.tibco.com/xmlns/repo/types/2002">
+    <globalVariables>
+        <globalVariable>
+            <name>ServerHost</name>
+            <value>localhost</value>
+            <deploymentSettable>true</deploymentSettable>
+            <description>Target server hostname</description>
+            <type>String</type>
+        </globalVariable>
+        <globalVariable>
+            <name>ServerPort</name>
+            <value>8080</value>
+            <deploymentSettable>true</deploymentSettable>
+            <type>String</type>
+        </globalVariable>
+        <globalVariable>
+            <name>DbPassword</name>
+            <value></value>
+            <deploymentSettable>false</deploymentSettable>
+            <type>password</type>
+        </globalVariable>
+        <globalVariable>
+            <name>DebugEnabled</name>
+            <value>false</value>
+            <deploymentSettable>false</deploymentSettable>
+            <type>Boolean</type>
+        </globalVariable>
+    </globalVariables>
+</repository>
