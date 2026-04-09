@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component-set>
+    <components>
+
+        <!-- ============================================================ -->
+        <!--  Artifact Handlers                                           -->
+        <!-- ============================================================ -->
+
+        <!-- bwear: EAR packaging for BW5 applications (same naming as BW6 for consistency) -->
+        <component>
+            <role>org.apache.maven.artifact.handler.ArtifactHandler</role>
+            <role-hint>bwear</role-hint>
+            <implementation>org.apache.maven.artifact.handler.DefaultArtifactHandler</implementation>
+            <configuration>
+                <type>bwear</type>
+                <extension>ear</extension>
+                <language>java</language>
+                <packaging>bwear</packaging>
+            </configuration>
+        </component>
+
+        <!-- projlib: projlib packaging for BW5 libraries (same naming as BW6 for consistency) -->
+        <component>
+            <role>org.apache.maven.artifact.handler.ArtifactHandler</role>
+            <role-hint>projlib</role-hint>
+            <implementation>org.apache.maven.artifact.handler.DefaultArtifactHandler</implementation>
+            <configuration>
+                <type>projlib</type>
+                <extension>projlib</extension>
+                <language>java</language>
+                <packaging>projlib</packaging>
+            </configuration>
+        </component>
+
+        <!-- ============================================================ -->
+        <!--  Lifecycle Mappings                                          -->
+        <!-- ============================================================ -->
+
+        <!-- bwear lifecycle -->
+        <component>
+            <role>org.apache.maven.lifecycle.mapping.LifecycleMapping</role>
+            <role-hint>bwear</role-hint>
+            <implementation>org.apache.maven.lifecycle.mapping.DefaultLifecycleMapping</implementation>
+            <configuration>
+                <phases>
+                    <initialize>com.tibco.bw:bw5-maven-plugin:initialize</initialize>
+                    <generate-sources>com.tibco.bw:bw5-maven-plugin:copy-bw-sources,com.tibco.bw:bw5-maven-plugin:extract-java-sources</generate-sources>
+                    <process-resources>com.tibco.bw:bw5-maven-plugin:resolve-dependencies</process-resources>
+                    <compile>org.apache.maven.plugins:maven-compiler-plugin:compile</compile>
+                    <package>com.tibco.bw:bw5-maven-plugin:bwear</package>
+                    <install>org.apache.maven.plugins:maven-install-plugin:install</install>
+                    <deploy>org.apache.maven.plugins:maven-deploy-plugin:deploy</deploy>
+                </phases>
+            </configuration>
+        </component>
+
+        <!-- projlib lifecycle -->
+        <component>
+            <role>org.apache.maven.lifecycle.mapping.LifecycleMapping</role>
+            <role-hint>projlib</role-hint>
+            <implementation>org.apache.maven.lifecycle.mapping.DefaultLifecycleMapping</implementation>
+            <configuration>
+                <phases>
+                    <initialize>com.tibco.bw:bw5-maven-plugin:initialize</initialize>
+                    <generate-sources>com.tibco.bw:bw5-maven-plugin:copy-bw-sources,com.tibco.bw:bw5-maven-plugin:extract-java-sources</generate-sources>
+                    <process-resources>com.tibco.bw:bw5-maven-plugin:resolve-dependencies</process-resources>
+                    <compile>org.apache.maven.plugins:maven-compiler-plugin:compile</compile>
+                    <package>com.tibco.bw:bw5-maven-plugin:bw5module</package>
+                    <install>org.apache.maven.plugins:maven-install-plugin:install</install>
+                    <deploy>org.apache.maven.plugins:maven-deploy-plugin:deploy</deploy>
+                </phases>
+            </configuration>
+        </component>
+
+    </components>
+</component-set>

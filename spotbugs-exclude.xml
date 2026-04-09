@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+
+    <!--
+        Maven plugins use @Parameter fields that are injected by the Maven container.
+        SpotBugs sees these as "unread" or "uninitialized" fields, which is a false positive.
+    -->
+    <Match>
+        <Bug pattern="UWF_UNWRITTEN_FIELD,UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD,URF_UNREAD_FIELD,UUF_UNUSED_FIELD"/>
+        <Class name="~com\.tibco\.bw\.maven\.plugin\.packaging\..*Mojo"/>
+    </Match>
+
+    <!--
+        SAXBuilder parsing local project files (not untrusted network input).
+        XXE is not a realistic threat for a Maven build plugin reading local files.
+    -->
+    <Match>
+        <Bug pattern="XXE_SAXPARSER,XXE_XMLREADER,XXE_DOCUMENT"/>
+    </Match>
+
+    <!--
+        DateFormat used in single-threaded Mojo execute() — not shared across threads.
+    -->
+    <Match>
+        <Bug pattern="STCAL_INVOKE_ON_STATIC_DATE_FORMAT_INSTANCE,STCAL_STATIC_SIMPLE_DATE_FORMAT_INSTANCE"/>
+    </Match>
+
+</FindBugsFilter>

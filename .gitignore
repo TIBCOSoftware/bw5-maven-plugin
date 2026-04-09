@@ -1,0 +1,18 @@
+# Maven build output
+target/
+
+# Compiled class files
+*.class
+
+# JAR/WAR/EAR/ZIP artifacts
+*.jar
+*.war
+*.ear
+*.zip
+*.nar
+
+# Native binaries
+*.so
+*.dll
+*.dylib
+*.exe
