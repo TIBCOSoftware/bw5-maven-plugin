@@ -1,0 +1,1748 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pfx="http://www.bbva.com/EAIFramework" xmlns:pfx2="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:pfx3="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns0="http://www.tibco.com/pe/SignalInActivitySchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:ns12="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:UUID="java://Framework.CommonResources.CustomFunctions.UUIDGenerator.UUIDGenerator">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC_GTWY/ARC_GW_Main.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="AdapterParameters">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="Parameters">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="ProcessName" type="xsd:string"/>
+                                <xsd:element name="JMSReplyTo" type="xsd:string"/>
+                                <xsd:element name="JMSCorrelationId" type="xsd:string"/>
+                                <xsd:element name="IsE2EControl" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="OrchestrationService" minOccurs="0">
+                                    <xsd:complexType>
+                                        <xsd:sequence>
+                                            <xsd:element name="OrchestrationServiceId" type="xsd:string"/>
+                                            <xsd:element name="JMSInputOrchestrationDestination" type="xsd:string" minOccurs="0"/>
+                                        </xsd:sequence>
+                                    </xsd:complexType>
+                                </xsd:element>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element ref="pfx:Message"/>
+                    <xsd:element ref="pfx:TraceLevel" minOccurs="0"/>
+                    <xsd:element ref="pfx:ECSConfig" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>39</pd:startX>
+    <pd:startY>218</pd:startY>
+    <pd:returnBindings/>
+    <pd:endName>End</pd:endName>
+    <pd:endX>1293</pd:endX>
+    <pd:endY>229</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1380098109578</pd:targetNamespace>
+    <pd:activity name="ARC_GW_PostGoingAction">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>1167</pd:x>
+        <pd:y>231</pd:y>
+        <config>
+            <processName>/Common/ARC_GTWY/PostActions/ARC_GW_PostGoingAction.process</processName>
+        </config>
+        <pd:inputBindings>
+            <CDMMessage>
+                <pfx:Message>
+                    <pfx:ArchitectureHeader>
+                        <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:AuditHeader"/>
+                        <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:ECSHeader"/>
+                        <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:RequestHeader"/>
+                        <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:ErrorHeader"/>
+                        <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:ReprocessingHeader"/>
+                        <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:SecurityHeader"/>
+                        <xsl:choose>
+                            <xsl:when test="$ARC_ORC_Basic">
+                                <xsl:copy-of select="$ARC_ORC_Basic/OUT_Process/pfx:Message/pfx:ArchitectureHeader/pfx:RoutingHeader"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:RoutingHeader"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:FunctionalData"/>
+                    </pfx:ArchitectureHeader>
+                    <xsl:choose>
+                        <xsl:when test="count($ARC_GW_SendMessegeToServiceList/OUT_SendMessage/pfx:Message/pfx:Body)>0">
+                            <xsl:copy-of select="$ARC_GW_SendMessegeToServiceList/OUT_SendMessage/pfx:Message/pfx:Body"/>
+                        </xsl:when>
+                        <xsl:when test="count($ARC_GW_SendToOrchestratorService/OUTPUT_SendMessage/pfx:Message/pfx:Body)>0">
+                            <xsl:copy-of select="$ARC_GW_SendToOrchestratorService/OUTPUT_SendMessage/pfx:Message/pfx:Body"/>
+                        </xsl:when>
+                        <xsl:when test="count($ARC_ORC_Basic/OUT_Process/pfx:Message/pfx:Body)>0">
+                            <xsl:copy-of select="$ARC_ORC_Basic/OUT_Process/pfx:Message/pfx:Body"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:copy-of select="$Start/AdapterParameters/pfx:Message/pfx:Body"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </pfx:Message>
+                <xsl:choose>
+                    <xsl:when test="$Start/AdapterParameters/pfx:TraceLevel">
+                        <xsl:if test="$Start/AdapterParameters/pfx:TraceLevel">
+                            <pfx:TraceLevel>
+                                <xsl:value-of select="$Start/AdapterParameters/pfx:TraceLevel"/>
+                            </pfx:TraceLevel>
+                        </xsl:if>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <pfx:TraceLevel>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit"/>
+                        </pfx:TraceLevel>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </CDMMessage>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_GetServiceId">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>126</pd:x>
+        <pd:y>222</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_ServiceIdManagement/ARC_GetServiceId.process</processName>
+        </config>
+        <pd:inputBindings>
+            <pathGetCurrentProcess>
+                <xsl:value-of select="$Start/AdapterParameters/Parameters/ProcessName"/>
+            </pathGetCurrentProcess>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_GW_PreGoingAction">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>257</pd:x>
+        <pd:y>220</pd:y>
+        <config>
+            <processName>/Common/ARC_GTWY/PreActions/ARC_GW_PreGoingAction.process</processName>
+            <processNameXPath/>
+        </config>
+        <pd:inputBindings>
+            <group>
+                <CDMMessage>
+                    <pfx:ArchitectureHeader>
+                        <pfx:AuditHeader>
+                            <pfx:E2EId>
+                                <xsl:value-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:E2EId"/>
+                            </pfx:E2EId>
+                            <pfx:ParentInstanceId>
+                                <xsl:value-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:ParentInstanceId"/>
+                            </pfx:ParentInstanceId>
+                            <pfx:InstanceId>
+                                <xsl:value-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:InstanceId"/>
+                            </pfx:InstanceId>
+                            <pfx:Deepness>
+                                <xsl:value-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:Deepness"/>
+                            </pfx:Deepness>
+                            <pfx:ServiceId>
+                                <xsl:value-of select="$ARC_GetServiceId/GetServiceIdParams/ServiceId"/>
+                            </pfx:ServiceId>
+                            <pfx:ServiceType>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_RoutingGatewayAdapter"/>
+                            </pfx:ServiceType>
+                            <xsl:choose>
+                                <xsl:when test="string-length($Start/AdapterParameters/Parameters/IsE2EControl)>0">
+                                    <pfx:E2EControl>
+                                        <xsl:value-of select="$Start/AdapterParameters/Parameters/IsE2EControl"/>
+                                    </pfx:E2EControl>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <pfx:E2EControl>
+                                        <xsl:value-of select="false()"/>
+                                    </pfx:E2EControl>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                            <xsl:choose>
+                                <xsl:when test="string-length($Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:ParentE2EControl)>0">
+                                    <pfx:ParentE2EControl>
+                                        <xsl:value-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:ParentE2EControl"/>
+                                    </pfx:ParentE2EControl>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <pfx:ParentE2EControl>
+                                        <xsl:value-of select="false()"/>
+                                    </pfx:ParentE2EControl>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </pfx:AuditHeader>
+                        <xsl:copy-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:ECSHeader"/>
+                        <xsl:copy-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:RequestHeader"/>
+                        <xsl:copy-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:ErrorHeader"/>
+                        <xsl:copy-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:ReprocessingHeader"/>
+                        <xsl:copy-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:SecurityHeader"/>
+                        <pfx:RoutingHeader>
+                            <pfx:Origin>
+                                <pfx:Services>
+                                    <xsl:copy-of select="$Start/AdapterParameters/pfx:Message[last()]/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Origin/pfx:Services/pfx:Service"/>
+                                    <xsl:choose>
+                                        <xsl:when test="$Start/AdapterParameters/pfx:Message[last()]/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:ServiceType=$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_ChannelAdapter">
+                                            <pfx:Service>
+                                                <pfx:ServiceId>
+                                                    <xsl:value-of select="$Start/AdapterParameters/pfx:Message[last()]/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:ServiceId"/>
+                                                </pfx:ServiceId>
+                                                <pfx:JMSInputDestinationName>
+                                                    <xsl:value-of select="$Start/AdapterParameters/Parameters/JMSReplyTo"/>
+                                                </pfx:JMSInputDestinationName>
+                                                <pfx:JMSInputDestinationType>
+                                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_Generic_Queue_Key"/>
+                                                </pfx:JMSInputDestinationType>
+                                                <pfx:ServiceType>
+                                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_ChannelAdapter"/>
+                                                </pfx:ServiceType>
+                                            </pfx:Service>
+                                        </xsl:when>
+                                        <xsl:otherwise>
+                                            <pfx:Service>
+                                                <pfx:ServiceId>
+                                                    <xsl:value-of select="$Start/AdapterParameters/pfx:Message[last()]/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:ServiceId"/>
+                                                </pfx:ServiceId>
+                                                <pfx:ServiceType>
+                                                    <xsl:value-of select="$Start/AdapterParameters/pfx:Message[last()]/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:ServiceType"/>
+                                                </pfx:ServiceType>
+                                            </pfx:Service>
+                                        </xsl:otherwise>
+                                    </xsl:choose>
+                                    <pfx:Service>
+                                        <pfx:ServiceId>
+                                            <xsl:value-of select="$ARC_GetServiceId/GetServiceIdParams/ServiceId"/>
+                                        </pfx:ServiceId>
+                                        <pfx:ServiceType>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_RoutingGatewayAdapter"/>
+                                        </pfx:ServiceType>
+                                    </pfx:Service>
+                                </pfx:Services>
+                            </pfx:Origin>
+                            <xsl:copy-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Target"/>
+                        </pfx:RoutingHeader>
+                        <xsl:copy-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:FunctionalData"/>
+                    </pfx:ArchitectureHeader>
+                    <Body>
+                        <xsl:copy-of select="$Start/AdapterParameters/pfx:Message/pfx:Body/*"/>
+                    </Body>
+                </CDMMessage>
+                <ServiceId>
+                    <xsl:value-of select="$ARC_GetServiceId/GetServiceIdParams/ServiceId"/>
+                </ServiceId>
+                <xsl:choose>
+                    <xsl:when test="$Start/AdapterParameters/pfx:TraceLevel">
+                        <xsl:if test="$Start/AdapterParameters/pfx:TraceLevel">
+                            <pfx:TraceLevel>
+                                <xsl:value-of select="$Start/AdapterParameters/pfx:TraceLevel"/>
+                            </pfx:TraceLevel>
+                        </xsl:if>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <pfx:TraceLevel>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit"/>
+                        </pfx:TraceLevel>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <xsl:copy-of select="$Start/AdapterParameters/pfx:ECSConfig"/>
+            </group>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:group name="Group">
+        <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>440</pd:x>
+        <pd:y>1</pd:y>
+        <pd:width>661</pd:width>
+        <pd:height>440</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>simpleGroup</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>ARC_GW_SendMessegeToServiceList</pd:to>
+            <pd:xpathDescription>publish</pd:xpathDescription>
+            <pd:lineType>Multiple Bends</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>xpath</pd:conditionType>
+            <pd:xpath>count($Start/AdapterParameters/pfx:Message[last()]/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Target)&gt;0</pd:xpath>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>Null</pd:to>
+            <pd:lineType>Multiple Bends</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>otherwise</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>ARC_GW_SendMessegeToServiceList</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Multiple Bends</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>ARC_GW_SendToOrchestratorService</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>ARC_ORC_Basic</pd:from>
+            <pd:to>end</pd:to>
+            <pd:xpathDescription>no TargetServices from embebed</pd:xpathDescription>
+            <pd:lineType>Multiple Bends</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>xpath</pd:conditionType>
+            <pd:xpath>count($ARC_ORC_Basic/OUT_Process/pfx:Message/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Target/pfx:Services/pfx:Service)=0</pd:xpath>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Null</pd:from>
+            <pd:to>ARC_GW_SendToOrchestratorService</pd:to>
+            <pd:xpathDescription>to_gw</pd:xpathDescription>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>xpath</pd:conditionType>
+            <pd:xpath>count($Start/AdapterParameters/Parameters/OrchestrationService/OrchestrationServiceId) &gt;0 and $Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:ServiceType!=$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_OrchestrationAdapter</pd:xpath>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Null</pd:from>
+            <pd:to>ARC_ORC_Basic</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>otherwise</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>ARC_ORC_Basic</pd:from>
+            <pd:to>ARC_GW_SendMessegeToServiceList</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>otherwise</pd:conditionType>
+        </pd:transition>
+        <pd:activity name="ARC_GW_SendMessegeToServiceList">
+            <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+            <pd:resourceType>ae.process.subprocess</pd:resourceType>
+            <pd:x>628</pd:x>
+            <pd:y>360</pd:y>
+            <config>
+                <spawn>false</spawn>
+                <customId/>
+                <processNameXPath/>
+                <processName>/Common/ARC/ARC_QueueOrTopic/ARC_SendMessageToServiceSync.process</processName>
+            </config>
+            <pd:inputBindings>
+                <IN_SendMessage>
+                    <ServicesType>
+                        <ServiceType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_SimpleService"/>
+                        </ServiceType>
+                        <ServiceType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_ComposedService"/>
+                        </ServiceType>
+                    </ServicesType>
+                    <xsl:choose>
+                        <xsl:when test="count($Start/AdapterParameters/Parameters/OrchestrationService/OrchestrationServiceId)>0">
+                            <OrchestrationService>
+                                <OrchestrationServiceId>
+                                    <xsl:value-of select="$Start/AdapterParameters/Parameters/OrchestrationService/OrchestrationServiceId"/>
+                                </OrchestrationServiceId>
+                                <xsl:if test="count($Start/AdapterParameters/Parameters/OrchestrationService/JMSInputOrchestrationDestination)>0">
+                                    <xsl:if test="$Start/AdapterParameters/Parameters/OrchestrationService/JMSInputOrchestrationDestination">
+                                        <JMSInputDestinationId>
+                                            <xsl:value-of select="$Start/AdapterParameters/Parameters/OrchestrationService/JMSInputOrchestrationDestination"/>
+                                        </JMSInputDestinationId>
+                                    </xsl:if>
+                                </xsl:if>
+                            </OrchestrationService>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <OrchestrationService>
+                                <OrchestrationServiceId>
+                                    <xsl:value-of select="$ARC_GetServiceId/GetServiceIdParams/ServiceId"/>
+                                </OrchestrationServiceId>
+                                <JMSInputDestinationId>
+                                    <xsl:value-of select="$GetGWQueue/pfx:Destination"/>
+                                </JMSInputDestinationId>
+                            </OrchestrationService>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <Body>
+                        <xsl:copy-of select="$Start/AdapterParameters/pfx:Message/pfx:Body/*"/>
+                    </Body>
+                    <xsl:choose>
+                        <xsl:when test="count($Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Target/pfx:Services/pfx:Service)>0">
+                            <TargetServices>
+                                <xsl:for-each select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Target/pfx:Services/pfx:Service">
+                                    <pfx:RoutingService>
+                                        <pfx:ServiceId>
+                                            <xsl:value-of select="current()/pfx:ServiceId"/>
+                                        </pfx:ServiceId>
+                                        <xsl:if test="count(pfx:JMSInputDestinationName)>0">
+                                            <xsl:if test="pfx:JMSInputDestinationName">
+                                                <pfx:JMSInputDestinationName>
+                                                    <xsl:value-of select="pfx:JMSInputDestinationName"/>
+                                                </pfx:JMSInputDestinationName>
+                                            </xsl:if>
+                                        </xsl:if>
+                                        <xsl:if test="count(pfx:JMSInputDestinationType)>0">
+                                            <xsl:if test="pfx:JMSInputDestinationType">
+                                                <pfx:JMSInputDestinationType>
+                                                    <xsl:value-of select="pfx:JMSInputDestinationType"/>
+                                                </pfx:JMSInputDestinationType>
+                                            </xsl:if>
+                                        </xsl:if>
+                                        <pfx:ServiceType>
+                                            <xsl:value-of select="current()/pfx:ServiceType"/>
+                                        </pfx:ServiceType>
+                                    </pfx:RoutingService>
+                                </xsl:for-each>
+                            </TargetServices>
+                        </xsl:when>
+                        <xsl:when test="count($ARC_ORC_Basic/OUT_Process/pfx:Message/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Target/pfx:Services/pfx:Service)>0">
+                            <TargetServices>
+                                <xsl:for-each select="$ARC_ORC_Basic/OUT_Process/pfx:Message/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Target/pfx:Services/pfx:Service">
+                                    <pfx:RoutingService>
+                                        <pfx:ServiceId>
+                                            <xsl:value-of select="current()/pfx:ServiceId"/>
+                                        </pfx:ServiceId>
+                                        <xsl:if test="count(pfx:JMSInputDestinationName)>0">
+                                            <xsl:if test="pfx:JMSInputDestinationName">
+                                                <pfx:JMSInputDestinationName>
+                                                    <xsl:value-of select="pfx:JMSInputDestinationName"/>
+                                                </pfx:JMSInputDestinationName>
+                                            </xsl:if>
+                                        </xsl:if>
+                                        <xsl:if test="count(pfx:JMSInputDestinationType)>0">
+                                            <xsl:if test="pfx:JMSInputDestinationType">
+                                                <pfx:JMSInputDestinationType>
+                                                    <xsl:value-of select="pfx:JMSInputDestinationType"/>
+                                                </pfx:JMSInputDestinationType>
+                                            </xsl:if>
+                                        </xsl:if>
+                                        <pfx:ServiceType>
+                                            <xsl:value-of select="current()/pfx:ServiceType"/>
+                                        </pfx:ServiceType>
+                                    </pfx:RoutingService>
+                                </xsl:for-each>
+                            </TargetServices>
+                        </xsl:when>
+                    </xsl:choose>
+                    <xsl:if test="count($Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:E2EControl)>0 or string-length($Start/AdapterParameters/Parameters/JMSCorrelationId) >0">
+                        <UpdateHeaderParameters>
+                            <xsl:if test="string-length($Start/AdapterParameters/Parameters/IsE2EControl)>0">
+                                <xsl:if test="$Start/AdapterParameters/Parameters/IsE2EControl">
+                                    <ControlE2E>
+                                        <xsl:value-of select="$Start/AdapterParameters/Parameters/IsE2EControl"/>
+                                    </ControlE2E>
+                                </xsl:if>
+                            </xsl:if>
+                            <JMSGWReplyTo>
+                                <xsl:value-of select="$GetGWQueue/pfx:Destination"/>
+                            </JMSGWReplyTo>
+                            <JMSHeadersParameters>
+                                <xsl:if test="string-length($Start/AdapterParameters/Parameters/JMSCorrelationId) >0">
+                                    <JMSCorrelationID>
+                                        <xsl:value-of select="$Start/AdapterParameters/Parameters/JMSCorrelationId"/>
+                                    </JMSCorrelationID>
+                                </xsl:if>
+                            </JMSHeadersParameters>
+                        </UpdateHeaderParameters>
+                    </xsl:if>
+                </IN_SendMessage>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="ARC_GW_SendToOrchestratorService">
+            <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+            <pd:resourceType>ae.process.subprocess</pd:resourceType>
+            <pd:x>966</pd:x>
+            <pd:y>67</pd:y>
+            <config>
+                <processName>/Common/ARC/ARC_QueueOrTopic/ARC_SendMessageHeaderCount.process</processName>
+                <spawn>false</spawn>
+                <customId/>
+                <processNameXPath/>
+            </config>
+            <pd:inputBindings>
+                <ARC_REQS_Main_IN>
+                    <Body>
+                        <xsl:copy-of select="$Start/AdapterParameters/pfx:Message/pfx:Body/*"/>
+                    </Body>
+                    <xsl:if test="$GetGWQueue/pfx:Destination">
+                        <JMsReplyTo>
+                            <xsl:value-of select="$GetGWQueue/pfx:Destination"/>
+                        </JMsReplyTo>
+                    </xsl:if>
+                    <JMSCorrelationId>
+                        <xsl:value-of select="$Start/AdapterParameters/Parameters/JMSCorrelationId"/>
+                    </JMSCorrelationId>
+                    <Service>
+                        <xsl:choose>
+                            <xsl:when test="count($Start/AdapterParameters/Parameters/OrchestrationService/JMSInputOrchestrationDestination)>0">
+                                <JMSDestination>
+                                    <xsl:value-of select="$Start/AdapterParameters/Parameters/OrchestrationService/JMSInputOrchestrationDestination"/>
+                                </JMSDestination>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <ServiceId>
+                                    <xsl:value-of select="$Start/AdapterParameters/Parameters/OrchestrationService/OrchestrationServiceId"/>
+                                </ServiceId>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <ServiceType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_OrchestrationAdapter"/>
+                        </ServiceType>
+                    </Service>
+                    <TimeOut>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/TIMEOUT/CFG_Timeout"/>
+                    </TimeOut>
+                    <Sync>
+                        <xsl:value-of select="false()"/>
+                    </Sync>
+                    <UpdateHeaderParameters>
+                        <xsl:if test="string-length($Start/AdapterParameters/Parameters/IsE2EControl)>0">
+                            <xsl:if test="$Start/AdapterParameters/Parameters/IsE2EControl">
+                                <ControlE2E>
+                                    <xsl:value-of select="$Start/AdapterParameters/Parameters/IsE2EControl"/>
+                                </ControlE2E>
+                            </xsl:if>
+                        </xsl:if>
+                        <ActiveHeaderNonCompatibility>
+                            <xsl:value-of select="true()"/>
+                        </ActiveHeaderNonCompatibility>
+                    </UpdateHeaderParameters>
+                </ARC_REQS_Main_IN>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Null">
+            <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+            <pd:resourceType>ae.activities.null</pd:resourceType>
+            <pd:x>631</pd:x>
+            <pd:y>66</pd:y>
+            <config/>
+            <pd:inputBindings/>
+        </pd:activity>
+        <pd:activity name="ARC_ORC_Basic">
+            <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+            <pd:resourceType>ae.process.subprocess</pd:resourceType>
+            <pd:x>631</pd:x>
+            <pd:y>228</pd:y>
+            <config>
+                <spawn>false</spawn>
+                <customId/>
+                <processNameXPath/>
+                <processName>/Common/ARC/ARC_RoutingHelper/ARC_RoutingBasicProcessSelection.process</processName>
+            </config>
+            <pd:inputBindings>
+                <IN_Basic>
+                    <pfx:Messages>
+                        <pfx:Message>
+                            <pfx:ArchitectureHeader>
+                                <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:AuditHeader"/>
+                                <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:ECSHeader"/>
+                                <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:RequestHeader"/>
+                                <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:ErrorHeader"/>
+                                <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:ReprocessingHeader"/>
+                                <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:SecurityHeader"/>
+                                <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:RoutingHeader"/>
+                                <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:FunctionalData"/>
+                            </pfx:ArchitectureHeader>
+                            <xsl:copy-of select="$Start/AdapterParameters/pfx:Message/pfx:Body"/>
+                        </pfx:Message>
+                    </pfx:Messages>
+                    <DynamicInvocationRoot>
+                        <xsl:value-of select="$ARC_GetServiceId/GetServiceIdParams/DynamicInvocationRoot"/>
+                    </DynamicInvocationRoot>
+                    <ServiceId>
+                        <xsl:value-of select="$ARC_GetServiceId/GetServiceIdParams/ServiceId"/>
+                    </ServiceId>
+                </IN_Basic>
+            </pd:inputBindings>
+        </pd:activity>
+    </pd:group>
+    <pd:activity name="Catch Other Errors">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>59</pd:x>
+        <pd:y>491</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Generate by ARC_IMPA 1">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>792</pd:x>
+        <pd:y>790</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns12:ActivityInput>
+                <data>
+                    <pfx:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_StartError"/>
+                        </ErrorCode>
+                        <xsl:if test="$Catch-Error-Message/pfx:ErrorMessage/ErrorDescription">
+                            <ErrorDescription>
+                                <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/ErrorDescription"/>
+                            </ErrorDescription>
+                        </xsl:if>
+                        <xsl:if test="$Catch-Error-Message/pfx:ErrorMessage/StackTrace">
+                            <StackTrace>
+                                <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/StackTrace"/>
+                            </StackTrace>
+                        </xsl:if>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <OriginalMessage>
+                            <xsl:value-of select="tib:render-xml($Start/AdapterParameters)"/>
+                        </OriginalMessage>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/AdapterParameters)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </pfx:ErrorMessage>
+                </data>
+            </ns12:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch Error Message">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>58</pd:x>
+        <pd:y>679</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <fault>localname=ErrorMessage namespace=http://www.bbva.com/EAIFramework</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Generate by ARC_IMPA">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>818</pd:x>
+        <pd:y>500</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns12:ActivityInput>
+                <data>
+                    <xsl:choose xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+                        <xsl:when test="string-length($Catch-Error-Message/pfx:ErrorMessage/ErrorCode)>0">
+                            <pfx:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/ErrorCode"/>
+                                </ErrorCode>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/ErrorDescription"/>
+                                </ErrorDescription>
+                                <NativeErrorCode>
+                                    <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/NativeErrorCode"/>
+                                </NativeErrorCode>
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/NativeErrorDescription"/>
+                                </NativeErrorDescription>
+                                <StackTrace>
+                                    <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/StackTrace"/>
+                                </StackTrace>
+                                <ErrorDate>
+                                    <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/ErrorDate"/>
+                                </ErrorDate>
+                                <StackProcess>
+                                    <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/StackProcess"/>
+                                </StackProcess>
+                                <Severity>
+                                    <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/Severity"/>
+                                </Severity>
+                                <OriginalMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/AdapterParameters/pfx:Message)"/>
+                                </OriginalMessage>
+                                <Category>
+                                    <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/Category"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/ProcessInputMessage"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/IsResponse"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/MessageType"/>
+                                </MessageType>
+                                <xsl:copy-of select="$Catch-Error-Message/pfx:ErrorMessage/PreviousErrorMessage"/>
+                                <xsl:copy-of select="$Catch-Error-Message/pfx:ErrorMessage/FunctionalErrorData"/>
+                            </pfx:ErrorMessage>
+                        </xsl:when>
+                        <xsl:when test="string-length($Catch-group-Message/group/pfx:ErrorMessage/ErrorCode)>0">
+                            <pfx:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/ErrorCode"/>
+                                </ErrorCode>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/ErrorDescription"/>
+                                </ErrorDescription>
+                                <NativeErrorCode>
+                                    <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/NativeErrorCode"/>
+                                </NativeErrorCode>
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/NativeErrorDescription"/>
+                                </NativeErrorDescription>
+                                <StackTrace>
+                                    <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/StackTrace"/>
+                                </StackTrace>
+                                <ErrorDate>
+                                    <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/ErrorDate"/>
+                                </ErrorDate>
+                                <StackProcess>
+                                    <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/StackProcess"/>
+                                </StackProcess>
+                                <Severity>
+                                    <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/Severity"/>
+                                </Severity>
+                                <OriginalMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/AdapterParameters/pfx:Message)"/>
+                                </OriginalMessage>
+                                <Category>
+                                    <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/Category"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/ProcessInputMessage"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/IsResponse"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/MessageType"/>
+                                </MessageType>
+                                <xsl:copy-of select="$Catch-group-Message/group/pfx:ErrorMessage/PreviousErrorMessage"/>
+                                <xsl:copy-of select="$Catch-group-Message/group/pfx:ErrorMessage/FunctionalErrorData"/>
+                            </pfx:ErrorMessage>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <pfx:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                </ErrorCode>
+                                <xsl:if test="string-length($_error/ns:ErrorReport/Msg)>0">
+                                    <ErrorDescription>
+                                        <xsl:value-of select="$_error/ns:ErrorReport/Msg"/>
+                                    </ErrorDescription>
+                                </xsl:if>
+                                <xsl:if test="string-length($_error/ns:ErrorReport/MsgCode)>0">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error/ns:ErrorReport/MsgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                                <xsl:if test="string-length($_error/ns:ErrorReport/Msg)>0">
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$_error/ns:ErrorReport/Msg"/>
+                                    </NativeErrorDescription>
+                                </xsl:if>
+                                <xsl:if test="string-length($_error/ns:ErrorReport/StackTrace)>0">
+                                    <StackTrace>
+                                        <xsl:value-of select="$_error/ns:ErrorReport/StackTrace"/>
+                                    </StackTrace>
+                                </xsl:if>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <xsl:if test="string-length($_error/ns:ErrorReport/ProcessStack)>0">
+                                    <StackProcess>
+                                        <xsl:value-of select="$_error/ns:ErrorReport/ProcessStack"/>
+                                    </StackProcess>
+                                </xsl:if>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                </Severity>
+                                <OriginalMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/AdapterParameters/pfx:Message)"/>
+                                </OriginalMessage>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/AdapterParameters)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx:ErrorMessage>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </data>
+            </ns12:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_CLESenderAPI">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>658</pd:x>
+        <pd:y>490</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CLEManagement/ARC_TraceAuditSenderAPI.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_TraceSenderAPI>
+                <CLETraceData>
+                    <xsl:choose>
+                        <xsl:when test="string-length($Catch-Error-Message/pfx:ErrorMessage/ErrorCode)>0">
+                            <EventCode>
+                                <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/ErrorCode"/>
+                            </EventCode>
+                        </xsl:when>
+                        <xsl:when test="string-length($Catch-group-Message/group/pfx:ErrorMessage/ErrorCode)>0">
+                            <EventCode>
+                                <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/ErrorCode"/>
+                            </EventCode>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <EventCode>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                            </EventCode>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <EventType>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Error"/>
+                    </EventType>
+                    <MessageType>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                    </MessageType>
+                    <isResponse>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/AuditParameters/IsResponse"/>
+                    </isResponse>
+                    <xsl:if test="$_globalVariables/ns1:GlobalVariables/GeneralConstants/TraceLevels/GLB_Trace">
+                        <TraceLevel>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/TraceLevels/GLB_Trace"/>
+                        </TraceLevel>
+                    </xsl:if>
+                </CLETraceData>
+                <xsl:choose>
+                    <xsl:when test="string-length($Catch-Error-Message/pfx:ErrorMessage/ErrorCode)>0">
+                        <pfx:ErrorMessage>
+                            <ErrorCode>
+                                <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/ErrorCode"/>
+                            </ErrorCode>
+                            <xsl:if test="$Catch-Error-Message/pfx:ErrorMessage/ErrorDescription">
+                                <ErrorDescription>
+                                    <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/ErrorDescription"/>
+                                </ErrorDescription>
+                            </xsl:if>
+                            <xsl:if test="$Catch-Error-Message/pfx:ErrorMessage/NativeErrorCode">
+                                <NativeErrorCode>
+                                    <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/NativeErrorCode"/>
+                                </NativeErrorCode>
+                            </xsl:if>
+                            <xsl:if test="$Catch-Error-Message/pfx:ErrorMessage/NativeErrorDescription">
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/NativeErrorDescription"/>
+                                </NativeErrorDescription>
+                            </xsl:if>
+                            <xsl:if test="$Catch-Error-Message/pfx:ErrorMessage/StackTrace">
+                                <StackTrace>
+                                    <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/StackTrace"/>
+                                </StackTrace>
+                            </xsl:if>
+                            <ErrorDate>
+                                <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/ErrorDate"/>
+                            </ErrorDate>
+                            <xsl:if test="$Catch-Error-Message/pfx:ErrorMessage/StackProcess">
+                                <StackProcess>
+                                    <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/StackProcess"/>
+                                </StackProcess>
+                            </xsl:if>
+                            <Severity>
+                                <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/Severity"/>
+                            </Severity>
+                            <OriginalMessage>
+                                <xsl:value-of select="tib:render-xml($Start/AdapterParameters/pfx:Message)"/>
+                            </OriginalMessage>
+                            <Category>
+                                <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/Category"/>
+                            </Category>
+                            <ProcessInputMessage>
+                                <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/ProcessInputMessage"/>
+                            </ProcessInputMessage>
+                            <IsResponse>
+                                <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/IsResponse"/>
+                            </IsResponse>
+                            <MessageType>
+                                <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/MessageType"/>
+                            </MessageType>
+                            <PreviousErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                </ErrorCode>
+                                <xsl:if test="string-length($_error/ns:ErrorReport/Msg)>0">
+                                    <xsl:if test="$_error/ns:ErrorReport/Msg">
+                                        <ErrorDescription>
+                                            <xsl:value-of select="$_error/ns:ErrorReport/Msg"/>
+                                        </ErrorDescription>
+                                    </xsl:if>
+                                </xsl:if>
+                                <xsl:if test="string-length($_error/ns:ErrorReport/MsgCode)>0">
+                                    <xsl:if test="$_error/ns:ErrorReport/MsgCode">
+                                        <NativeErrorCode>
+                                            <xsl:value-of select="$_error/ns:ErrorReport/MsgCode"/>
+                                        </NativeErrorCode>
+                                    </xsl:if>
+                                </xsl:if>
+                                <xsl:if test="string-length($_error/ns:ErrorReport/Msg)>0">
+                                    <xsl:if test="$_error/ns:ErrorReport/Msg">
+                                        <NativeErrorDescription>
+                                            <xsl:value-of select="$_error/ns:ErrorReport/Msg"/>
+                                        </NativeErrorDescription>
+                                    </xsl:if>
+                                </xsl:if>
+                                <xsl:if test="string-length($_error/ns:ErrorReport/StackTrace)>0">
+                                    <xsl:if test="$_error/ns:ErrorReport/StackTrace">
+                                        <StackTrace>
+                                            <xsl:value-of select="$_error/ns:ErrorReport/StackTrace"/>
+                                        </StackTrace>
+                                    </xsl:if>
+                                </xsl:if>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <xsl:if test="string-length($_error/ns:ErrorReport/ProcessStack)>0">
+                                    <xsl:if test="$_error/ns:ErrorReport/ProcessStack">
+                                        <StackProcess>
+                                            <xsl:value-of select="$_error/ns:ErrorReport/ProcessStack"/>
+                                        </StackProcess>
+                                    </xsl:if>
+                                </xsl:if>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                </Severity>
+                                <OriginalMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/AdapterParameters/pfx:Message)"/>
+                                </OriginalMessage>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/AdapterParameters)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </PreviousErrorMessage>
+                        </pfx:ErrorMessage>
+                    </xsl:when>
+                    <xsl:when test="string-length($Catch-group-Message/group/pfx:ErrorMessage/ErrorCode)>0">
+                        <pfx:ErrorMessage>
+                            <ErrorCode>
+                                <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/ErrorCode"/>
+                            </ErrorCode>
+                            <ErrorDescription>
+                                <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/ErrorDescription"/>
+                            </ErrorDescription>
+                            <NativeErrorCode>
+                                <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/NativeErrorCode"/>
+                            </NativeErrorCode>
+                            <NativeErrorDescription>
+                                <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/NativeErrorDescription"/>
+                            </NativeErrorDescription>
+                            <StackTrace>
+                                <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/StackTrace"/>
+                            </StackTrace>
+                            <ErrorDate>
+                                <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/ErrorDate"/>
+                            </ErrorDate>
+                            <StackProcess>
+                                <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/StackProcess"/>
+                            </StackProcess>
+                            <Severity>
+                                <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/Severity"/>
+                            </Severity>
+                            <OriginalMessage>
+                                <xsl:value-of select="tib:render-xml($Start/AdapterParameters/pfx:Message)"/>
+                            </OriginalMessage>
+                            <Category>
+                                <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/Category"/>
+                            </Category>
+                            <ProcessInputMessage>
+                                <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/ProcessInputMessage"/>
+                            </ProcessInputMessage>
+                            <IsResponse>
+                                <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/IsResponse"/>
+                            </IsResponse>
+                            <MessageType>
+                                <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/MessageType"/>
+                            </MessageType>
+                            <PreviousErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                </ErrorCode>
+                                <xsl:if test="string-length($_error/ns:ErrorReport/Msg)>0">
+                                    <xsl:if test="$_error/ns:ErrorReport/Msg">
+                                        <ErrorDescription>
+                                            <xsl:value-of select="$_error/ns:ErrorReport/Msg"/>
+                                        </ErrorDescription>
+                                    </xsl:if>
+                                </xsl:if>
+                                <xsl:if test="string-length($_error/ns:ErrorReport/MsgCode)>0">
+                                    <xsl:if test="$_error/ns:ErrorReport/MsgCode">
+                                        <NativeErrorCode>
+                                            <xsl:value-of select="$_error/ns:ErrorReport/MsgCode"/>
+                                        </NativeErrorCode>
+                                    </xsl:if>
+                                </xsl:if>
+                                <xsl:if test="string-length($_error/ns:ErrorReport/Msg)>0">
+                                    <xsl:if test="$_error/ns:ErrorReport/Msg">
+                                        <NativeErrorDescription>
+                                            <xsl:value-of select="$_error/ns:ErrorReport/Msg"/>
+                                        </NativeErrorDescription>
+                                    </xsl:if>
+                                </xsl:if>
+                                <xsl:if test="string-length($_error/ns:ErrorReport/StackTrace)>0">
+                                    <xsl:if test="$_error/ns:ErrorReport/StackTrace">
+                                        <StackTrace>
+                                            <xsl:value-of select="$_error/ns:ErrorReport/StackTrace"/>
+                                        </StackTrace>
+                                    </xsl:if>
+                                </xsl:if>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <xsl:if test="string-length($_error/ns:ErrorReport/ProcessStack)>0">
+                                    <xsl:if test="$_error/ns:ErrorReport/ProcessStack">
+                                        <StackProcess>
+                                            <xsl:value-of select="$_error/ns:ErrorReport/ProcessStack"/>
+                                        </StackProcess>
+                                    </xsl:if>
+                                </xsl:if>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                </Severity>
+                                <OriginalMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/AdapterParameters/pfx:Message)"/>
+                                </OriginalMessage>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/AdapterParameters)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </PreviousErrorMessage>
+                        </pfx:ErrorMessage>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <pfx:ErrorMessage>
+                            <ErrorCode>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                            </ErrorCode>
+                            <ErrorDate>
+                                <xsl:value-of select="current-dateTime()"/>
+                            </ErrorDate>
+                            <Severity>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/TraceLevels/GLB_Critical"/>
+                            </Severity>
+                            <Category>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                            </Category>
+                            <ProcessInputMessage>
+                                <xsl:value-of select="tib:render-xml($Start/AdapterParameters)"/>
+                            </ProcessInputMessage>
+                            <IsResponse>
+                                <xsl:value-of select="0"/>
+                            </IsResponse>
+                            <MessageType>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                            </MessageType>
+                        </pfx:ErrorMessage>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </ARC_TraceSenderAPI>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_TrackingErrorManagement">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>242</pd:x>
+        <pd:y>785</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_TrackingManagement/ARC_TrackingErrorManagement.process</processName>
+        </config>
+        <pd:inputBindings>
+            <pfx:CLEMessage>
+                <CLEHeader>
+                    <E2EId>
+                        <xsl:value-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:E2EId"/>
+                    </E2EId>
+                    <E2EDeepness>
+                        <xsl:value-of select="1"/>
+                    </E2EDeepness>
+                    <InvocationUser>
+                        <xsl:value-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:BBVAUser"/>
+                    </InvocationUser>
+                    <xsl:if test="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:BatchId">
+                        <BatchId>
+                            <xsl:value-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:BatchId"/>
+                        </BatchId>
+                    </xsl:if>
+                    <EventCode>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_StartError"/>
+                    </EventCode>
+                    <EventType>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Trace"/>
+                    </EventType>
+                    <Timestamp>
+                        <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                    </Timestamp>
+                    <xsl:choose>
+                        <xsl:when test="string-length($ARC_GetServiceId/GetServiceIdParams/ServiceId)>0">
+                            <ServiceId>
+                                <xsl:value-of select="$ARC_GetServiceId/GetServiceIdParams/ServiceId"/>
+                            </ServiceId>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <ServiceId>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_Generic_User"/>
+                            </ServiceId>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <InstanceId>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_InstancedIdNoInitialized"/>
+                    </InstanceId>
+                    <ProjectName>
+                        <xsl:value-of select="$_processContext/ns:ProcessContext/ProjectName"/>
+                    </ProjectName>
+                    <ProcessName>
+                        <xsl:value-of select="BW:getCurrentProcessName($_processContext/ns:ProcessContext/ProcessId)"/>
+                    </ProcessName>
+                    <EngineName>
+                        <xsl:value-of select="$_processContext/ns:ProcessContext/EngineName"/>
+                    </EngineName>
+                    <MachineName>
+                        <xsl:value-of select="BW:getHostName()"/>
+                    </MachineName>
+                    <MessageHeader>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                        <BusinessObject>
+                            <xsl:value-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:BusinessObject"/>
+                        </BusinessObject>
+                    </MessageHeader>
+                    <AuditHeader>
+                        <xsl:if test="string-length($Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:ParentInstanceId)>0">
+                            <xsl:if test="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:ParentInstanceId">
+                                <ParentInstanceId>
+                                    <xsl:value-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:ParentInstanceId"/>
+                                </ParentInstanceId>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:ReprocessingHeader">
+                            <xsl:if test="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:ReprocessingHeader/pfx:RetriesNumber">
+                                <RetriesNumber>
+                                    <xsl:value-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:ReprocessingHeader/pfx:RetriesNumber"/>
+                                </RetriesNumber>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:ExternalId)>0">
+                            <ClientExternalId>
+                                <xsl:value-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:ExternalId"/>
+                            </ClientExternalId>
+                        </xsl:if>
+                        <ServiceType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_RoutingGatewayAdapter"/>
+                        </ServiceType>
+                        <xsl:if test="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:ReprocessingHeader">
+                            <xsl:if test="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:ReprocessingHeader/pfx:OriginalInstanceId">
+                                <OriginalInstanceId>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/TraceLevels/GLB_Critical"/>
+                                </OriginalInstanceId>
+                            </xsl:if>
+                        </xsl:if>
+                        <TraceLevel>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/TraceLevels/GLB_Critical"/>
+                        </TraceLevel>
+                        <StarterServiceId>
+                            <xsl:value-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:ServiceIdStarter"/>
+                        </StarterServiceId>
+                        <StarterTimestamp>
+                            <xsl:value-of select="$Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:StartTimestamp"/>
+                        </StarterTimestamp>
+                        <LightActive>
+                            <xsl:value-of select="true()"/>
+                        </LightActive>
+                        <E2EControl>
+                            <xsl:value-of select="true()"/>
+                        </E2EControl>
+                    </AuditHeader>
+                    <ErrorHeader>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_StartError"/>
+                        </ErrorCode>
+                        <xsl:if test="string-length($_error/ns:ErrorReport/Msg)>0">
+                            <xsl:if test="$_error/ns:ErrorReport/Msg">
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_error/ns:ErrorReport/Msg"/>
+                                </ErrorDescription>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns:ErrorReport/MsgCode)>0">
+                            <xsl:if test="$_error/ns:ErrorReport/MsgCode">
+                                <NativeErrorCode>
+                                    <xsl:value-of select="$_error/ns:ErrorReport/MsgCode"/>
+                                </NativeErrorCode>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns:ErrorReport/Msg)>0">
+                            <xsl:if test="$_error/ns:ErrorReport/Msg">
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$_error/ns:ErrorReport/Msg"/>
+                                </NativeErrorDescription>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns:ErrorReport/StackTrace)>0">
+                            <xsl:if test="$_error/ns:ErrorReport/StackTrace">
+                                <StackTrace>
+                                    <xsl:value-of select="$_error/ns:ErrorReport/StackTrace"/>
+                                </StackTrace>
+                            </xsl:if>
+                        </xsl:if>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <xsl:if test="string-length($_error/ns:ErrorReport/ProcessStack)>0">
+                            <xsl:if test="$_error/ns:ErrorReport/ProcessStack">
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                            </xsl:if>
+                        </xsl:if>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <OriginalMessage>
+                            <xsl:value-of select="tib:render-xml($Start/AdapterParameters/pfx:Message)"/>
+                        </OriginalMessage>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/AdapterParameters)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </ErrorHeader>
+                </CLEHeader>
+            </pfx:CLEMessage>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Get Framework Context">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>251</pd:x>
+        <pd:y>499</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/Architecture Internal Data.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="ARC_SendReturnSyncMsg">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>656</pd:x>
+        <pd:y>603</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_QueueOrTopic/ARC_SendCDM2QueueOrTopic.process</processName>
+            <processNameXPath>concat($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_mockRoot, "/Common/ARC/ARC_QueueOrTopic/ARC_SendCDM2QueueOrTopic.process")</processNameXPath>
+        </config>
+        <pd:inputBindings>
+            <IN_SendReply2QueueOrTopic>
+                <xsl:choose>
+                    <xsl:when test="string-length($Start/AdapterParameters/Parameters/JMSReplyTo)>0">
+                        <TargetName>
+                            <xsl:value-of select="$Start/AdapterParameters/Parameters/JMSReplyTo"/>
+                        </TargetName>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:choose>
+                            <xsl:when test="string-length($Start/AdapterParameters/Parameters/OrchestrationService/JMSInputOrchestrationDestination)>0">
+                                <TargetName>
+                                    <xsl:value-of select="$Start/AdapterParameters/Parameters/OrchestrationService/JMSInputOrchestrationDestination"/>
+                                </TargetName>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <TargetName>
+                                    <xsl:value-of select="$ARC_FindQueue/pfx:Destination"/>
+                                </TargetName>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <IsTopic>
+                    <xsl:value-of select="false()"/>
+                </IsTopic>
+                <CorrelationId>
+                    <xsl:value-of select="$Start/AdapterParameters/Parameters/JMSCorrelationId"/>
+                </CorrelationId>
+                <pfx:Message>
+                    <pfx:ArchitectureHeader>
+                        <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:AuditHeader"/>
+                        <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:RequestHeader"/>
+                        <pfx:ErrorHeader>
+                            <pfx:IsError>
+                                <xsl:value-of select="1"/>
+                            </pfx:IsError>
+                            <xsl:choose>
+                                <xsl:when test="string-length($Catch-Error-Message)>0">
+                                    <pfx:ErrorMessage>
+                                        <ErrorCode>
+                                            <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/ErrorCode"/>
+                                        </ErrorCode>
+                                        <xsl:if test="$Catch-Error-Message/pfx:ErrorMessage/ErrorDescription">
+                                            <ErrorDescription>
+                                                <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/ErrorDescription"/>
+                                            </ErrorDescription>
+                                        </xsl:if>
+                                        <xsl:if test="$Catch-Error-Message/pfx:ErrorMessage/NativeErrorCode">
+                                            <NativeErrorCode>
+                                                <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/NativeErrorCode"/>
+                                            </NativeErrorCode>
+                                        </xsl:if>
+                                        <xsl:if test="$Catch-Error-Message/pfx:ErrorMessage/NativeErrorDescription">
+                                            <NativeErrorDescription>
+                                                <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/NativeErrorDescription"/>
+                                            </NativeErrorDescription>
+                                        </xsl:if>
+                                        <xsl:if test="$Catch-Error-Message/pfx:ErrorMessage/StackTrace">
+                                            <StackTrace>
+                                                <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/StackTrace"/>
+                                            </StackTrace>
+                                        </xsl:if>
+                                        <ErrorDate>
+                                            <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/ErrorDate"/>
+                                        </ErrorDate>
+                                        <xsl:if test="$Catch-Error-Message/pfx:ErrorMessage/StackProcess">
+                                            <StackProcess>
+                                                <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/StackProcess"/>
+                                            </StackProcess>
+                                        </xsl:if>
+                                        <Severity>
+                                            <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/Severity"/>
+                                        </Severity>
+                                        <xsl:if test="$Catch-Error-Message/pfx:ErrorMessage/OriginalMessage">
+                                            <OriginalMessage>
+                                                <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/OriginalMessage"/>
+                                            </OriginalMessage>
+                                        </xsl:if>
+                                        <Category>
+                                            <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/Category"/>
+                                        </Category>
+                                        <ProcessInputMessage>
+                                            <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/ProcessInputMessage"/>
+                                        </ProcessInputMessage>
+                                        <IsResponse>
+                                            <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/IsResponse"/>
+                                        </IsResponse>
+                                        <MessageType>
+                                            <xsl:value-of select="$Catch-Error-Message/pfx:ErrorMessage/MessageType"/>
+                                        </MessageType>
+                                        <xsl:copy-of select="$Catch-Error-Message/pfx:ErrorMessage/PreviousErrorMessage"/>
+                                        <xsl:copy-of select="$Catch-Error-Message/pfx:ErrorMessage/FunctionalErrorData"/>
+                                    </pfx:ErrorMessage>
+                                </xsl:when>
+                                <xsl:when test="string-length($Catch-group-Message/group/pfx:ErrorMessage) > 0">
+                                    <pfx:ErrorMessage>
+                                        <ErrorCode>
+                                            <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/ErrorCode"/>
+                                        </ErrorCode>
+                                        <ErrorDescription>
+                                            <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/ErrorDescription"/>
+                                        </ErrorDescription>
+                                        <NativeErrorCode>
+                                            <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/NativeErrorCode"/>
+                                        </NativeErrorCode>
+                                        <NativeErrorDescription>
+                                            <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/NativeErrorDescription"/>
+                                        </NativeErrorDescription>
+                                        <StackTrace>
+                                            <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/StackTrace"/>
+                                        </StackTrace>
+                                        <ErrorDate>
+                                            <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/ErrorDate"/>
+                                        </ErrorDate>
+                                        <StackProcess>
+                                            <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/StackProcess"/>
+                                        </StackProcess>
+                                        <Severity>
+                                            <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/Severity"/>
+                                        </Severity>
+                                        <OriginalMessage>
+                                            <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/OriginalMessage"/>
+                                        </OriginalMessage>
+                                        <Category>
+                                            <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/Category"/>
+                                        </Category>
+                                        <ProcessInputMessage>
+                                            <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/ProcessInputMessage"/>
+                                        </ProcessInputMessage>
+                                        <IsResponse>
+                                            <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/IsResponse"/>
+                                        </IsResponse>
+                                        <MessageType>
+                                            <xsl:value-of select="$Catch-group-Message/group/pfx:ErrorMessage/MessageType"/>
+                                        </MessageType>
+                                        <xsl:copy-of select="$Catch-group-Message/group/pfx:ErrorMessage/PreviousErrorMessage"/>
+                                        <xsl:copy-of select="$Catch-group-Message/group/pfx:ErrorMessage/FunctionalErrorData"/>
+                                    </pfx:ErrorMessage>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <pfx:ErrorMessage>
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                        </ErrorCode>
+                                        <ErrorDescription>
+                                            <xsl:value-of select="$_error/ns:ErrorReport/Msg"/>
+                                        </ErrorDescription>
+                                        <xsl:if test="$_error/ns:ErrorReport/MsgCode">
+                                            <NativeErrorCode>
+                                                <xsl:value-of select="$_error/ns:ErrorReport/MsgCode"/>
+                                            </NativeErrorCode>
+                                        </xsl:if>
+                                        <xsl:if test="$_error/ns:ErrorReport/Msg">
+                                            <NativeErrorDescription>
+                                                <xsl:value-of select="$_error/ns:ErrorReport/Msg"/>
+                                            </NativeErrorDescription>
+                                        </xsl:if>
+                                        <xsl:if test="$_error/ns:ErrorReport/StackTrace">
+                                            <StackTrace>
+                                                <xsl:value-of select="$_error/ns:ErrorReport/StackTrace"/>
+                                            </StackTrace>
+                                        </xsl:if>
+                                        <ErrorDate>
+                                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                        </ErrorDate>
+                                        <xsl:if test="$_error/ns:ErrorReport/ProcessStack">
+                                            <StackProcess>
+                                                <xsl:value-of select="$_error/ns:ErrorReport/ProcessStack"/>
+                                            </StackProcess>
+                                        </xsl:if>
+                                        <Severity>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                        </Severity>
+                                        <OriginalMessage>
+                                            <xsl:value-of select="tib:render-xml($Start/AdapterParameters/pfx:Message)"/>
+                                        </OriginalMessage>
+                                        <Category>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                        </Category>
+                                        <ProcessInputMessage>
+                                            <xsl:value-of select="tib:render-xml($Start/AdapterParameters/pfx:Message)"/>
+                                        </ProcessInputMessage>
+                                        <IsResponse>
+                                            <xsl:value-of select="0"/>
+                                        </IsResponse>
+                                        <MessageType>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                        </MessageType>
+                                    </pfx:ErrorMessage>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </pfx:ErrorHeader>
+                        <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:ReprocessingHeader"/>
+                        <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:SecurityHeader"/>
+                        <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:RoutingHeader"/>
+                        <xsl:copy-of select="$ARC_GW_PreGoingAction/ARC_OUTPUTPreGoing_GW/pfx:ArchitectureHeader/pfx:FunctionalData"/>
+                    </pfx:ArchitectureHeader>
+                    <pfx:Body>
+                        <xsl:choose>
+                            <xsl:when test="string-length($Catch-Error-Message/pfx:ErrorMessage) > 0">
+                                <xsl:copy-of select="$Catch-Error-Message/pfx:ErrorMessage"/>
+                            </xsl:when>
+                            <xsl:when test="string-length($Catch-group-Message/group/pfx:ErrorMessage) > 0">
+                                <xsl:copy-of select="$Catch-group-Message/group/pfx:ErrorMessage"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:copy-of select="$Catch-Other-Errors/exceptiondata"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </pfx:Body>
+                </pfx:Message>
+            </IN_SendReply2QueueOrTopic>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="LogError">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <pd:x>148</pd:x>
+        <pd:y>492</pd:y>
+        <config>
+            <role>User</role>
+        </config>
+        <pd:inputBindings>
+            <pfx3:ActivityInput>
+                <message>
+                    <xsl:value-of select="concat(&quot;Notify Top level Error GW: &quot;,$_processContext/ns:ProcessContext/ProcessId)"/>
+                </message>
+            </pfx3:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="NotifySyncParents">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <pd:x>384</pd:x>
+        <pd:y>606</pd:y>
+        <config>
+            <role>User</role>
+        </config>
+        <pd:inputBindings>
+            <pfx3:ActivityInput>
+                <message>
+                    <xsl:value-of select="concat(&quot; GW sync service  starter. Publishing back response: &quot;,$_processContext/ns:ProcessContext/ProcessId)"/>
+                </message>
+            </pfx3:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="LogFatalError">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <pd:x>239</pd:x>
+        <pd:y>603</pd:y>
+        <config>
+            <role>User</role>
+        </config>
+        <pd:inputBindings>
+            <pfx3:ActivityInput>
+                <message>
+                    <xsl:value-of select="concat(&quot;GW Fatal Error. Not recoverable:&quot;,$_processContext/ns:ProcessContext/ProcessId,&quot;\n trackinfo: &quot;,$Catch-Error-Message/pfx:ErrorMessage/StackTrace)"/>
+                </message>
+            </pfx3:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_FindQueue">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>523</pd:x>
+        <pd:y>697</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Queues/ARC_FindQueue.process</processName>
+        </config>
+        <pd:inputBindings>
+            <FindQueueIn>
+                <ServiceId>
+                    <xsl:value-of select="$Start/AdapterParameters/Parameters/OrchestrationService/OrchestrationServiceId"/>
+                </ServiceId>
+            </FindQueueIn>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch group Message">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>67</pd:x>
+        <pd:y>335</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <fault>localname=group</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="GetGWQueue">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>374</pd:x>
+        <pd:y>219</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Queues/ARC_FindQueue.process</processName>
+        </config>
+        <pd:inputBindings>
+            <FindQueueIn>
+                <ServiceId>
+                    <xsl:value-of select="$ARC_GetServiceId/GetServiceIdParams/ServiceId"/>
+                </ServiceId>
+            </FindQueueIn>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>ARC_GW_PostGoingAction</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>ARC_GetServiceId</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Group</pd:from>
+        <pd:to>ARC_GW_PostGoingAction</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_GetServiceId</pd:from>
+        <pd:to>ARC_GW_PreGoingAction</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_CLESenderAPI</pd:from>
+        <pd:to>Generate by ARC_IMPA</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get Framework Context</pd:from>
+        <pd:to>LogFatalError</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65485</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_TrackingErrorManagement</pd:from>
+        <pd:to>Generate by ARC_IMPA 1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SendReturnSyncMsg</pd:from>
+        <pd:to>ARC_CLESenderAPI</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get Framework Context</pd:from>
+        <pd:to>ARC_CLESenderAPI</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get Framework Context</pd:from>
+        <pd:to>NotifySyncParents</pd:to>
+        <pd:xpathDescription>error</pd:xpathDescription>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>string-length($Start/AdapterParameters/Parameters/JMSReplyTo)&gt;0 or ( count($Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Target/pfx:Services/pfx:Service) &gt; 0 and ( string-length($Start/AdapterParameters/Parameters/OrchestrationService/OrchestrationServiceId)&gt;0  or  string-length($Start/AdapterParameters/Parameters/OrchestrationService/JMSInputOrchestrationDestination)&gt;0  ))</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Other Errors</pd:from>
+        <pd:to>LogError</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>LogError</pd:from>
+        <pd:to>Get Framework Context</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Error Message</pd:from>
+        <pd:to>LogError</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>LogFatalError</pd:from>
+        <pd:to>ARC_TrackingErrorManagement</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>NotifySyncParents</pd:from>
+        <pd:to>ARC_SendReturnSyncMsg</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>NotifySyncParents</pd:from>
+        <pd:to>ARC_FindQueue</pd:to>
+        <pd:xpathDescription>OrchestrationService</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>count($Start/AdapterParameters/pfx:Message/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Target/pfx:Services/pfx:Service) &gt; 0 and string-length($Start/AdapterParameters/Parameters/OrchestrationService/OrchestrationServiceId)&gt;0</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_FindQueue</pd:from>
+        <pd:to>ARC_SendReturnSyncMsg</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch group Message</pd:from>
+        <pd:to>LogError</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_GW_PreGoingAction</pd:from>
+        <pd:to>GetGWQueue</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetGWQueue</pd:from>
+        <pd:to>Group</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

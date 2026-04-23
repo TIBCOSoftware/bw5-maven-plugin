@@ -1,0 +1,29 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>GLB_BW-PROCESS</name>
+			<value>FW.BW-PROCESS.ACTIONS</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671904</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_CLE_STORE</name>
+			<value>CLE.CLEMESSAGE.INSERT</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864674202</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_PROCESS_INTERNAL_CLE</name>
+			<value>CLE.INTERNAL_CLEMESSAGE.PROCESS</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1404727377014</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

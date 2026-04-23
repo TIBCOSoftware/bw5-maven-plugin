@@ -1,0 +1,21 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>GLB_AdvRoutingPrefixDomain</name>
+			<value>GLB.BBVA.CIB</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1391454565962</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_ArchitecturePrefix</name>
+			<value>GLB.BBVA.ARC</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672057</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

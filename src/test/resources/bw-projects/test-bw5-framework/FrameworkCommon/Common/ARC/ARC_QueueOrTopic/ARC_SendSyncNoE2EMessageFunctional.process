@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:pfx11="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:pfx10="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx5="http://www.tibco.com/ns/no_namespace_schema_location/SINC_CONS_RecursosComunes/Esquemas/XSD/Patron_Sincrono/ModeloComun/MLC/NM_MLC.xsd" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx4="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:pfx3="http://www.tibco.com/schemas/AW_ArquitecturaComun/RecursosComunes/Esquemas/EsquemasArquitectura/AW_gestionErrores/Schema.xsd" xmlns:pfx2="http://xmlns.example.com/PROCESO_SINCRONO" xmlns:pfx9="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/ServiceParameters/SR/Schema.xsd" xmlns:pfx8="http://www.tibco.com/ns/no_namespace_schema_location/EAI-Framework/Public/Resources/Schemas/XSD/MUREX/MXML.dtd" xmlns:pfx7="http://www.tibco.com/schemas/FrameworkIntegracion/EAI-Framework/Resources/Private/Schemas/SINC_SimpleService/Schema.xsd" xmlns:pfx6="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns5="http://schemas.tibco.com/bw/plugins/jms/5.0/jmsExceptions" xmlns:ns12="http://www.bbva.com/EAIFramework" xmlns:ns6="http://www.tibco.com/pe/DeployedVarsType" xmlns:pfx="http://www.example.com/PROCESO_SINCRONO" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:ns1="http://www.example.org/BBVACabecera" xmlns:ns4="http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions" xmlns:ns3="http://www.tibco.com/pe/SignalInActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+
+    <pd:name>Common/ARC/ARC_QueueOrTopic/ARC_SendSyncNoE2EMessageFunctional.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ARC_REQS_Main_IN">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="Body">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:any processContents="skip"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="JMsReplyTo" type="xsd:string" minOccurs="0"/>
+                    <xsd:element name="JMSCorrelationId" type="xsd:string" minOccurs="0"/>
+                    <xsd:element name="Service">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="ServiceId" type="xsd:string"/>
+                                <xsd:element name="ServiceType" type="xsd:string"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="TimeOut" type="xsd:string" minOccurs="0"/>
+                    <xsd:element name="UpdateHeaderParameters" minOccurs="0">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="IsLight" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="SaveMessage" type="xsd:boolean" minOccurs="0"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>36</pd:startX>
+    <pd:startY>122</pd:startY>
+    <pd:returnBindings>
+        <OUTPUT_SendMessage>
+            <xsl:copy-of select="$Request-Reply-SS-No-E2E/OUTPUT_SendMessage/ns12:Message"/>
+        </OUTPUT_SendMessage>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="OUTPUT_SendMessage">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="ns12:Message"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>575</pd:endX>
+    <pd:endY>123</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema>
+            <xsd:element name="group">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element ref="ns12:ErrorMessage"/>
+                        <xsd:element name="Body" minOccurs="0">
+                            <xsd:complexType>
+                                <xsd:sequence>
+                                    <xsd:any processContents="skip"/>
+                                </xsd:sequence>
+                            </xsd:complexType>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </ErrorSchema>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1292404027083</pd:targetNamespace>
+    <pd:activity name="Catch Error message">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>574</pd:x>
+        <pd:y>235</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>false</catchAll>
+            <fault>localname=group</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Catch Other Errors">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>327</pd:x>
+        <pd:y>338</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Generate ErrorMessage">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>138</pd:x>
+        <pd:y>240</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx4:ActivityInput>
+                <data>
+                    <group>
+                        <xsl:choose>
+                            <xsl:when test="string-length($Catch-Error-message/group/ns12:ErrorMessage/ErrorCode)>0">
+                                <ns12:ErrorMessage>
+                                    <ErrorCode>
+                                        <xsl:value-of select="$Catch-Error-message/group/ns12:ErrorMessage/ErrorCode"/>
+                                    </ErrorCode>
+                                    <xsl:if test="$Catch-Error-message/group/ns12:ErrorMessage/ErrorDescription">
+                                        <ErrorDescription>
+                                            <xsl:value-of select="$Catch-Error-message/group/ns12:ErrorMessage/ErrorDescription"/>
+                                        </ErrorDescription>
+                                    </xsl:if>
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$Catch-Error-message/group/ns12:ErrorMessage/NativeErrorCode"/>
+                                    </NativeErrorCode>
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$Catch-Error-message/group/ns12:ErrorMessage/NativeErrorDescription"/>
+                                    </NativeErrorDescription>
+                                    <StackTrace>
+                                        <xsl:value-of select="$Catch-Error-message/group/ns12:ErrorMessage/StackTrace"/>
+                                    </StackTrace>
+                                    <ErrorDate>
+                                        <xsl:value-of select="$Catch-Error-message/group/ns12:ErrorMessage/ErrorDate"/>
+                                    </ErrorDate>
+                                    <StackProcess>
+                                        <xsl:value-of select="$Catch-Error-message/group/ns12:ErrorMessage/StackProcess"/>
+                                    </StackProcess>
+                                    <Severity>
+                                        <xsl:value-of select="$_globalVariables/ns6:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                    </Severity>
+                                    <OriginalMessage>
+                                        <xsl:value-of select="tib:render-xml($Start/ARC_REQS_Main_IN)"/>
+                                    </OriginalMessage>
+                                    <Category>
+                                        <xsl:value-of select="$Catch-Error-message/group/ns12:ErrorMessage/Category"/>
+                                    </Category>
+                                    <ProcessInputMessage>
+                                        <xsl:value-of select="$Catch-Error-message/group/ns12:ErrorMessage/ProcessInputMessage"/>
+                                    </ProcessInputMessage>
+                                    <IsResponse>
+                                        <xsl:value-of select="$Catch-Error-message/group/ns12:ErrorMessage/IsResponse"/>
+                                    </IsResponse>
+                                    <MessageType>
+                                        <xsl:value-of select="$Catch-Error-message/group/ns12:ErrorMessage/MessageType"/>
+                                    </MessageType>
+                                    <PreviousErrorMessage>
+                                        <xsl:copy-of select="$Catch-Error-message/group/ns12:ErrorMessage/ancestor-or-self::*/namespace::node()"/>
+                                        <xsl:copy-of select="$Catch-Error-message/group/ns12:ErrorMessage/@*"/>
+                                        <xsl:copy-of select="$Catch-Error-message/group/ns12:ErrorMessage/node()"/>
+                                    </PreviousErrorMessage>
+                                    <xsl:copy-of select="$Catch-Error-message/group/ns12:ErrorMessage/FunctionalErrorData"/>
+                                </ns12:ErrorMessage>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <ns12:ErrorMessage>
+                                    <ErrorCode>
+                                        <xsl:value-of select="$_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                    </ErrorCode>
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                    </NativeErrorCode>
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                    </NativeErrorDescription>
+                                    <StackTrace>
+                                        <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                    </StackTrace>
+                                    <ErrorDate>
+                                        <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                    </ErrorDate>
+                                    <StackProcess>
+                                        <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                    </StackProcess>
+                                    <Severity>
+                                        <xsl:value-of select="$_globalVariables/ns6:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                    </Severity>
+                                    <OriginalMessage>
+                                        <xsl:value-of select="tib:render-xml($Start/ARC_REQS_Main_IN)"/>
+                                    </OriginalMessage>
+                                    <Category>
+                                        <xsl:value-of select="$_globalVariables/ns6:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                    </Category>
+                                    <ProcessInputMessage>
+                                        <xsl:value-of select="tib:render-xml($Start/ARC_REQS_Main_IN)"/>
+                                    </ProcessInputMessage>
+                                    <IsResponse>
+                                        <xsl:value-of select="0"/>
+                                    </IsResponse>
+                                    <MessageType>
+                                        <xsl:value-of select="$_globalVariables/ns6:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                    </MessageType>
+                                </ns12:ErrorMessage>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </group>
+                </data>
+            </pfx4:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Get-Framework-Context-1">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>326</pd:x>
+        <pd:y>230</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/Architecture Internal Data.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Request-Reply-SS-No-E2E">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>172</pd:x>
+        <pd:y>124</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_QueueOrTopic/ARC_SendMessageHeaderCount.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_REQS_Main_IN>
+                <Body>
+                    <xsl:copy-of select="$Start/ARC_REQS_Main_IN/Body/*"/>
+                </Body>
+                <xsl:if test="$Start/ARC_REQS_Main_IN/JMsReplyTo">
+                    <JMsReplyTo>
+                        <xsl:value-of select="$Start/ARC_REQS_Main_IN/JMsReplyTo"/>
+                    </JMsReplyTo>
+                </xsl:if>
+                <xsl:if test="$Start/ARC_REQS_Main_IN/JMSCorrelationId">
+                    <JMSCorrelationId>
+                        <xsl:value-of select="$Start/ARC_REQS_Main_IN/JMSCorrelationId"/>
+                    </JMSCorrelationId>
+                </xsl:if>
+                <Service>
+                    <ServiceId>
+                        <xsl:value-of select="$Start/ARC_REQS_Main_IN/Service/ServiceId"/>
+                    </ServiceId>
+                    <ServiceType>
+                        <xsl:value-of select="$_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_SimpleService"/>
+                    </ServiceType>
+                </Service>
+                <xsl:if test="$Start/ARC_REQS_Main_IN/TimeOut">
+                    <TimeOut>
+                        <xsl:value-of select="$Start/ARC_REQS_Main_IN/TimeOut"/>
+                    </TimeOut>
+                </xsl:if>
+                <Sync>
+                    <xsl:value-of select="true()"/>
+                </Sync>
+                <UpdateHeaderParameters>
+                    <xsl:choose>
+                        <xsl:when test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/IsLight)>0">
+                            <ControlE2E>
+                                <xsl:value-of select="not($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/IsLight)"/>
+                            </ControlE2E>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <ControlE2E>
+                                <xsl:value-of select="false()"/>
+                            </ControlE2E>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <xsl:choose>
+                        <xsl:when test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/IsLight)>0">
+                            <ParentControlE2E>
+                                <xsl:value-of select="not($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/IsLight)"/>
+                            </ParentControlE2E>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <ParentControlE2E>
+                                <xsl:value-of select="false()"/>
+                            </ParentControlE2E>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <xsl:choose>
+                        <xsl:when test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/IsLight)>0">
+                            <IsLight>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/IsLight"/>
+                            </IsLight>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <IsLight>
+                                <xsl:value-of select="true()"/>
+                            </IsLight>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <xsl:choose>
+                        <xsl:when test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/SaveMessage)>0">
+                            <SaveMessage>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/SaveMessage"/>
+                            </SaveMessage>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <SaveMessage>
+                                <xsl:value-of select="false()"/>
+                            </SaveMessage>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <xsl:choose>
+                        <xsl:when test="$Start/ARC_REQS_Main_IN/Service/ServiceType=$_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_RoutingGatewayAdapter">
+                            <ActiveHeaderNonCompatibility>
+                                <xsl:value-of select="true()"/>
+                            </ActiveHeaderNonCompatibility>
+                        </xsl:when>
+                        <xsl:when test="$Start/ARC_REQS_Main_IN/Service/ServiceType=$_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_OrchestrationAdapter">
+                            <ActiveHeaderNonCompatibility>
+                                <xsl:value-of select="true()"/>
+                            </ActiveHeaderNonCompatibility>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <ActiveHeaderNonCompatibility>
+                                <xsl:value-of select="false()"/>
+                            </ActiveHeaderNonCompatibility>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </UpdateHeaderParameters>
+            </ARC_REQS_Main_IN>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Catch Other Errors</pd:from>
+        <pd:to>Get-Framework-Context-1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Error message</pd:from>
+        <pd:to>Get-Framework-Context-1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get-Framework-Context-1</pd:from>
+        <pd:to>Generate ErrorMessage</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Request-Reply-SS-No-E2E</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Request-Reply-SS-No-E2E</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

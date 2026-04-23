@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:pfx11="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx10="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:ns12="http://www.bbva.com/EAIFramework" xmlns:pfx="http://www.example.org/BBVACabecera" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns2="http://www.tibco.com/namespaces/tnt/plugins/file" xmlns:ns1="http://www.tibco.com/pe/EngineTypes" xmlns:ns3="http://www.tibco.com/pe/DeployedVarsType" xmlns:pfx5="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx4="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC_EXP_RecursosComunes/Esquemas/Schema.xsd" xmlns:pfx3="http://www.tibco.com/ns/no_namespace_schema_location/ASINC_IMP_RecursosComunes/Esquemas/Patron_Asincrono/Import Adapter/AsyncrhonousImporterSchema.xsd" xmlns:pfx2="http://www.tibco.com/ns/no_namespace_schema_location/ASINC_IMP_RecursosComunes/Esquemas/Patron_Asincrono/Modelo Comun/main/ForwardDealsEvent.xsd" xmlns:pfx9="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx8="http://www.tibco.com/schemas/FrameworkIntegracion/EAI-Framework/Resources/Private/ASINC_IMP_CommonResources/Schemas/Schema.xsd" xmlns:pfx7="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/ASINC_IMP/ASINC_IMP_RecursosComunes/Esquemas/Schema.xsd" xmlns:pfx6="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC_EXP_RecursosComunes/Esquemas/Schema.xsd2">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC_BAN1/ARC_IMPA_Batch_Scheduler.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType ref="ns12:BatchN1SchedulerParameters"/>
+    <pd:startX>79</pd:startX>
+    <pd:startY>121</pd:startY>
+    <pd:returnBindings>
+        <xsl:copy-of select="$FUN_IMPA_InboundFunctionalScheduler/*"/>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endX>1225</pd:endX>
+    <pd:endY>128</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="ns12:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1292831516672</pd:targetNamespace>
+    <pd:activity name="ARC_FunctionalErrorValidation">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>367</pd:x>
+        <pd:y>240</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_FunctionalErrorValidation/ARC_FunctionalErrorValidation.process</processName>
+        </config>
+        <pd:inputBindings>
+            <root>
+                <xsl:copy-of select="$_error_FUN_IMPA_InboundFunctionalScheduler/ns12:ErrorMessage"/>
+                <ErrorReport>
+                    <xsl:copy-of select="$_error/ns1:ErrorReport/ancestor-or-self::*/namespace::node()"/>
+                    <xsl:copy-of select="$_error/ns1:ErrorReport/@*"/>
+                    <xsl:copy-of select="$_error/ns1:ErrorReport/node()"/>
+                </ErrorReport>
+            </root>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_IAA_GenerateNewBatchId">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>1075</pd:x>
+        <pd:y>128</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_BatchN1/ARC_IMPA_GenerateNewBatchId/ARC_IMPA_GenerateInternalNewBatchId.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_IMPA_GenerateNewBatchId>
+                <ServiceId>
+                    <xsl:value-of select="$ARC_GetServiceId/GetServiceIdParams/ServiceId"/>
+                </ServiceId>
+                <xsl:choose>
+                    <xsl:when test="$Start/ns12:BatchN1SchedulerParameters/AuditLevel">
+                        <Tracelevel>
+                            <xsl:value-of select="$Start/ns12:BatchN1SchedulerParameters/AuditLevel"/>
+                        </Tracelevel>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:if test="$_globalVariables/ns3:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit">
+                            <Tracelevel>
+                                <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit"/>
+                            </Tracelevel>
+                        </xsl:if>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </ARC_IMPA_GenerateNewBatchId>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_IAA_GetBatchId">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>518</pd:x>
+        <pd:y>123</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_BatchN1/ARC_IMPA_GetBatchId/ARC_IMPA_GetInternalBatchId.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_IMPA_GetBatchId>
+                <ServiceId>
+                    <xsl:value-of select="$ARC_GetServiceId/GetServiceIdParams/ServiceId"/>
+                </ServiceId>
+                <xsl:choose>
+                    <xsl:when test="$Start/ns12:BatchN1SchedulerParameters/AuditLevel">
+                        <TraceLevel>
+                            <xsl:value-of select="$Start/ns12:BatchN1SchedulerParameters/AuditLevel"/>
+                        </TraceLevel>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:if test="$_globalVariables/ns3:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit">
+                            <TraceLevel>
+                                <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit"/>
+                            </TraceLevel>
+                        </xsl:if>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </ARC_IMPA_GetBatchId>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch Other Errors">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>303</pd:x>
+        <pd:y>339</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="FUN_IMPA_InboundFunctionalScheduler">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>365</pd:x>
+        <pd:y>124</pd:y>
+        <config>
+            <processName>/Common/ARC_BAN1/Functional/FUN_IMPA_InboundFunctionalScheduler.process</processName>
+            <processNameXPath>concat($ARC_GetServiceId/GetServiceIdParams/DynamicInvocationRoot , $_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/Types/GLB_BatchScheduler)</processNameXPath>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Generate Error by ARC_IMPA_Batch_Scheduler">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>629</pd:x>
+        <pd:y>249</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx10:ActivityInput>
+                <data>
+                    <xsl:copy-of select="$ARC_FunctionalErrorValidation/ns12:ErrorMessage"/>
+                </data>
+            </pfx10:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Rethrow">
+        <pd:type>com.tibco.pe.core.RethrowActivity</pd:type>
+        <pd:resourceType>ae.activities.rethrow</pd:resourceType>
+        <pd:x>488</pd:x>
+        <pd:y>341</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="ARC_GetServiceId">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>208</pd:x>
+        <pd:y>122</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_ServiceIdManagement/ARC_GetServiceId.process</processName>
+        </config>
+        <pd:inputBindings>
+            <pathGetCurrentProcess>
+                <xsl:value-of select="$Start/ns12:BatchN1SchedulerParameters/ProcessName"/>
+            </pathGetCurrentProcess>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_IMPA_SendEndBatch">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>907</pd:x>
+        <pd:y>125</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_BatchN1/BatchAudit/ARC_IMPA_SendInternalEndBatch.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_IMPA_SendEndBatch>
+                <ns12:ArchitectureHeader>
+                    <ns12:AuditHeader>
+                        <ns12:E2EId>
+                            <xsl:value-of select="$ARC_IAA_GetBatchId/OUT_GetInternalBatchId/BatchId"/>
+                        </ns12:E2EId>
+                        <ns12:InstanceId>
+                            <xsl:value-of select="$ARC_IAA_GetBatchId/OUT_GetInternalBatchId/BatchId"/>
+                        </ns12:InstanceId>
+                        <ns12:Deepness>
+                            <xsl:value-of select="0"/>
+                        </ns12:Deepness>
+                        <ns12:ServiceId>
+                            <xsl:value-of select="$ARC_GetServiceId/GetServiceIdParams/ServiceId"/>
+                        </ns12:ServiceId>
+                        <ns12:ServiceType>
+                            <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_BatchN21"/>
+                        </ns12:ServiceType>
+                    </ns12:AuditHeader>
+                    <xsl:if test="string-length($Start/ns12:BatchN1SchedulerParameters/ECSConfig/ns12:namespace)>0">
+                        <ns12:ECSHeader>
+                            <ns12:traceId>
+                                <xsl:value-of select="concat($_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/TracePrefix,$ARC_IAA_GetBatchId/OUT_GetInternalBatchId/TimeStampUUID,&quot;-&quot;,$ARC_IAA_GetBatchId/OUT_GetInternalBatchId/BatchId)"/>
+                            </ns12:traceId>
+                            <ns12:spanId>
+                                <xsl:value-of select="concat($_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/SpanPrefix,$ARC_IAA_GetBatchId/OUT_GetInternalBatchId/TimeStampUUID,&quot;-&quot;,$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/ESBToken,&quot;-&quot;,$ARC_IAA_GetBatchId/OUT_GetInternalBatchId/BatchId)"/>
+                            </ns12:spanId>
+                            <xsl:if test="count($Start/ns12:BatchN1SchedulerParameters/ECSConfig/ns12:properties/ns12:property[ns12:spreadE2E=$_globalVariables/ns3:GlobalVariables/GeneralConstants/BooleanConstants/True])>0">
+                                <ns12:properties>
+                                    <xsl:for-each-group select="$Start/ns12:BatchN1SchedulerParameters/ECSConfig/ns12:properties/ns12:property[ns12:spreadE2E=$_globalVariables/ns3:GlobalVariables/GeneralConstants/BooleanConstants/True]" group-by="ns12:key">
+                                        <xsl:for-each select=".">
+                                            <ns12:property>
+                                                <ns12:key>
+                                                    <xsl:value-of select="ns12:key"/>
+                                                </ns12:key>
+                                                <xsl:choose>
+                                                    <xsl:when test="ns12:boolean_value">
+                                                        <ns12:boolean_value>
+                                                            <xsl:value-of select="ns12:boolean_value"/>
+                                                        </ns12:boolean_value>
+                                                    </xsl:when>
+                                                    <xsl:when test="ns12:number_value">
+                                                        <ns12:number_value>
+                                                            <xsl:value-of select="ns12:number_value"/>
+                                                        </ns12:number_value>
+                                                    </xsl:when>
+                                                    <xsl:otherwise>
+                                                        <ns12:value>
+                                                            <xsl:value-of select="ns12:value"/>
+                                                        </ns12:value>
+                                                    </xsl:otherwise>
+                                                </xsl:choose>
+                                            </ns12:property>
+                                        </xsl:for-each>
+                                    </xsl:for-each-group>
+                                </ns12:properties>
+                            </xsl:if>
+                        </ns12:ECSHeader>
+                    </xsl:if>
+                    <ns12:RequestHeader>
+                        <ns12:BBVAUser>
+                            <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_Generic_User"/>
+                        </ns12:BBVAUser>
+                        <ns12:BatchId>
+                            <xsl:value-of select="$ARC_IAA_GetBatchId/OUT_GetInternalBatchId/BatchId"/>
+                        </ns12:BatchId>
+                        <ns12:StartTimestamp>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ns12:StartTimestamp>
+                        <ns12:ServiceIdStarter>
+                            <xsl:value-of select="$ARC_GetServiceId/GetServiceIdParams/ServiceId"/>
+                        </ns12:ServiceIdStarter>
+                    </ns12:RequestHeader>
+                    <ns12:ErrorHeader>
+                        <ns12:IsError>
+                            <xsl:value-of select="0"/>
+                        </ns12:IsError>
+                    </ns12:ErrorHeader>
+                </ns12:ArchitectureHeader>
+                <BatchId>
+                    <xsl:value-of select="$ARC_IAA_GetBatchId/OUT_GetInternalBatchId/BatchId"/>
+                </BatchId>
+                <ServiceId>
+                    <xsl:value-of select="$ARC_GetServiceId/GetServiceIdParams/ServiceId"/>
+                </ServiceId>
+                <xsl:choose>
+                    <xsl:when test="$Start/ns12:BatchN1SchedulerParameters/AuditLevel">
+                        <TraceLevel>
+                            <xsl:value-of select="$Start/ns12:BatchN1SchedulerParameters/AuditLevel"/>
+                        </TraceLevel>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:if test="$_globalVariables/ns3:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit">
+                            <TraceLevel>
+                                <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit"/>
+                            </TraceLevel>
+                        </xsl:if>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <TimeStampUUID>
+                    <xsl:value-of select="$ARC_IAA_GetBatchId/OUT_GetInternalBatchId/TimeStampUUID"/>
+                </TimeStampUUID>
+            </ARC_IMPA_SendEndBatch>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_SetPropertiesECSConfig">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>701</pd:x>
+        <pd:y>126</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_SetAdditionalArchitectureHeaderData/ARC_SetPropertiesECSConfig.process</processName>
+        </config>
+        <pd:inputBindings>
+            <group>
+                <xsl:if test="$Start/ns12:BatchN1SchedulerParameters/ECSConfig">
+                    <ns12:ECSConfig>
+                        <ns12:namespace>
+                            <xsl:value-of select="$Start/ns12:BatchN1SchedulerParameters/ECSConfig/ns12:namespace"/>
+                        </ns12:namespace>
+                        <ns12:mrId>
+                            <xsl:value-of select="$Start/ns12:BatchN1SchedulerParameters/ECSConfig/ns12:mrId"/>
+                        </ns12:mrId>
+                        <ns12:genMetrics>
+                            <xsl:value-of select="$Start/ns12:BatchN1SchedulerParameters/ECSConfig/ns12:genMetrics"/>
+                        </ns12:genMetrics>
+                        <ns12:properties>
+                            <xsl:for-each-group select="$Start/ns12:BatchN1SchedulerParameters/ECSConfig/ns12:properties/ns12:property[ns12:spreadE2E=$_globalVariables/ns3:GlobalVariables/GeneralConstants/BooleanConstants/False]" group-by="ns12:key">
+                                <xsl:copy-of select="."/>
+                            </xsl:for-each-group>
+                            <ns12:property>
+                                <ns12:key>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/E2EIdKey"/>
+                                </ns12:key>
+                                <ns12:value>
+                                    <xsl:value-of select="$ARC_IAA_GetBatchId/OUT_GetInternalBatchId/BatchId"/>
+                                </ns12:value>
+                                <ns12:spreadE2E>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                </ns12:spreadE2E>
+                            </ns12:property>
+                            <ns12:property>
+                                <ns12:key>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/ServiceIdKey"/>
+                                </ns12:key>
+                                <ns12:value>
+                                    <xsl:value-of select="$ARC_GetServiceId/GetServiceIdParams/ServiceId"/>
+                                </ns12:value>
+                                <ns12:spreadE2E>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                </ns12:spreadE2E>
+                            </ns12:property>
+                            <ns12:property>
+                                <ns12:key>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/InstanceIdKey"/>
+                                </ns12:key>
+                                <ns12:value>
+                                    <xsl:value-of select="$ARC_IAA_GetBatchId/OUT_GetInternalBatchId/BatchId"/>
+                                </ns12:value>
+                                <ns12:spreadE2E>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                </ns12:spreadE2E>
+                            </ns12:property>
+                            <ns12:property>
+                                <ns12:key>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/UUAAKey"/>
+                                </ns12:key>
+                                <ns12:value>
+                                    <xsl:value-of select="tib:tokenize($ARC_GetServiceId/GetServiceIdParams/ServiceId, &quot;_&quot;)[2]"/>
+                                </ns12:value>
+                                <ns12:spreadE2E>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                </ns12:spreadE2E>
+                            </ns12:property>
+                            <ns12:property>
+                                <ns12:key>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/EntitytKey"/>
+                                </ns12:key>
+                                <ns12:value>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_Generic_Object"/>
+                                </ns12:value>
+                                <ns12:spreadE2E>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                </ns12:spreadE2E>
+                            </ns12:property>
+                            <ns12:property>
+                                <ns12:key>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/HostKey"/>
+                                </ns12:key>
+                                <ns12:value>
+                                    <xsl:value-of select="BW:getHostName()"/>
+                                </ns12:value>
+                                <ns12:spreadE2E>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                </ns12:spreadE2E>
+                            </ns12:property>
+                            <ns12:property>
+                                <ns12:key>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/PlatformKey"/>
+                                </ns12:key>
+                                <ns12:value>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/ESBToken"/>
+                                </ns12:value>
+                                <ns12:spreadE2E>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                </ns12:spreadE2E>
+                            </ns12:property>
+                            <xsl:if test="$Start/ns12:BatchN1SchedulerParameters/ECSConfig/ns12:genMetrics">
+                                <ns12:property>
+                                    <ns12:key>
+                                        <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/MetricsKey"/>
+                                    </ns12:key>
+                                    <ns12:boolean_value>
+                                        <xsl:value-of select="$Start/ns12:BatchN1SchedulerParameters/ECSConfig/ns12:genMetrics"/>
+                                    </ns12:boolean_value>
+                                    <ns12:spreadE2E>
+                                        <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                    </ns12:spreadE2E>
+                                </ns12:property>
+                            </xsl:if>
+                        </ns12:properties>
+                    </ns12:ECSConfig>
+                </xsl:if>
+            </group>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>FUN_IMPA_InboundFunctionalScheduler</pd:from>
+        <pd:to>ARC_FunctionalErrorValidation</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65536</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_FunctionalErrorValidation</pd:from>
+        <pd:to>Generate Error by ARC_IMPA_Batch_Scheduler</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_IAA_GetBatchId</pd:from>
+        <pd:to>ARC_SetPropertiesECSConfig</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Other Errors</pd:from>
+        <pd:to>Rethrow</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FUN_IMPA_InboundFunctionalScheduler</pd:from>
+        <pd:to>ARC_IAA_GetBatchId</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_IAA_GenerateNewBatchId</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>ARC_GetServiceId</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_GetServiceId</pd:from>
+        <pd:to>FUN_IMPA_InboundFunctionalScheduler</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_IMPA_SendEndBatch</pd:from>
+        <pd:to>ARC_IAA_GenerateNewBatchId</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SetPropertiesECSConfig</pd:from>
+        <pd:to>ARC_IMPA_SendEndBatch</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

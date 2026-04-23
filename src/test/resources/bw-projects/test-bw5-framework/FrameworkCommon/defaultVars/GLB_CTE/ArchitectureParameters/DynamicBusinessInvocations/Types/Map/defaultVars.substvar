@@ -1,0 +1,29 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>GLB_Error</name>
+			<value>/Maps/Error/</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672974</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Inbound</name>
+			<value>/Maps/Inbound/</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672797</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Outbound</name>
+			<value>/Maps/Outbound/</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673262</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

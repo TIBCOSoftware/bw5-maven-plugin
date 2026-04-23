@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="com/tibco/pe/commands" xmlns:pfx="http://com.bbva.cib/EYFW/ManagementServices" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:pfx5="http://com.bbva.cib/EYFW/MngServ" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx4="http://www.bbva.com/EAIFramework" xmlns:pfx3="http://com.bbva.cib/EYFW/Management" xmlns:pfx2="http://com.bbva.cib/EYFW/Libraries" xmlns:pfx9="http://com.bbva.cib/EYFW/Engine" xmlns:pfx8="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:pfx7="http://www.tibco.com/pe/DeployedVarsType" xmlns:pfx6="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd">
+    <xsd:import namespace="http://com.bbva.cib/EYFW/ManagementServices" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/ManagementServices.xsd"/>
+    <xsd:import namespace="http://com.bbva.cib/EYFW/Management" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/ManagementServiceCommon.xsd"/>
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <xsd:import namespace="http://com.bbva.cib/EYFW/MngServ"/>
+    <xsd:import namespace="http://com.bbva.cib/EYFW/Engine" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/S_EngineCommandService.xsd"/>
+    <xsd:import namespace="http://com.bbva.cib/EYFW/MngServ" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/MngServCommon.xsd"/>
+    <pd:name>ArchitectureServices/Business/S_EYFW_FW_STARSTOOUT/Maps/Outbound/Map.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="Message">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="Body">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="MessageID" type="xsd:string"/>
+                                <xsd:element ref="pfx5:RequestEngine"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>27</pd:startX>
+    <pd:startY>121</pd:startY>
+    <pd:returnBindings>
+        <xsl:copy-of select="$Map-Data/pfx5:ListRespond"/>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType ref="pfx5:ListRespond"/>
+    <pd:endX>715</pd:endX>
+    <pd:endY>117</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx4:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1330453645326</pd:targetNamespace>
+    <pd:activity name="DiferentsActionsDependingOperationType">
+        <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+        <pd:resourceType>ae.activities.null</pd:resourceType>
+        <pd:x>139</pd:x>
+        <pd:y>120</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="FUNC_MGSV_KillProccessInstance">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>362</pd:x>
+        <pd:y>35</pd:y>
+        <config>
+            <processName>/ArchitectureServices/Business/S_EYFW_FW_STARSTOOUT/Internal/FUNC_MGSV_KillProccessInstance.process</processName>
+        </config>
+        <pd:inputBindings>
+            <xsl:copy-of select="$Start/Message"/>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="FUNC_MGSV_ResumeProcessStarter">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>360</pd:x>
+        <pd:y>116</pd:y>
+        <config>
+            <processName>/ArchitectureServices/Business/S_EYFW_FW_STARSTOOUT/Internal/FUNC_MGSV_ResumeProcessStarter.process</processName>
+        </config>
+        <pd:inputBindings>
+            <xsl:copy-of select="$Start/Message"/>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="FUNC_MGSV_RestartRecoverableProcess">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>368</pd:x>
+        <pd:y>210</pd:y>
+        <config>
+            <processName>/ArchitectureServices/Business/S_EYFW_FW_STARSTOOUT/Internal/FUNC_MGSV_RestartRecoverableProcess.process</processName>
+        </config>
+        <pd:inputBindings>
+            <xsl:copy-of select="$Start/Message"/>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="FUNC_MGSV_SuspendProcessStarter">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>374</pd:x>
+        <pd:y>322</pd:y>
+        <config>
+            <processName>/ArchitectureServices/Business/S_EYFW_FW_STARSTOOUT/Internal/FUNC_MGSV_SuspendProcessStarter.process</processName>
+        </config>
+        <pd:inputBindings>
+            <xsl:copy-of select="$Start/Message"/>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Map Data">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>606</pd:x>
+        <pd:y>117</pd:y>
+        <config>
+            <element ref="pfx5:ListRespond"/>
+        </config>
+        <pd:inputBindings>
+            <pfx5:ListRespond>
+                <pfx5:messageId>
+                    <xsl:value-of select="$Start/Message/Body/MessageID"/>
+                </pfx5:messageId>
+                <xsl:copy-of select="$FUNC_MGSV_KillProccessInstance/pfx5:ListRespond/pfx5:EngineCommandRespond"/>
+                <xsl:copy-of select="$FUNC_MGSV_ResumeProcessStarter/pfx5:ListRespond/pfx5:EngineCommandRespond"/>
+                <xsl:copy-of select="$FUNC_MGSV_SuspendProcessStarter/pfx5:ListRespond/pfx5:EngineCommandRespond"/>
+                <xsl:copy-of select="$FUNC_MGSV_RestartRecoverableProcess/pfx5:ListRespond/pfx5:EngineCommandRespond"/>
+            </pfx5:ListRespond>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch-1">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>239</pd:x>
+        <pd:y>510</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Generate-Error-1-1">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>461</pd:x>
+        <pd:y>513</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx8:ActivityInput>
+                <data>
+                    <pfx4:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/pfx7:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_StartStopEngines"/>
+                        </ErrorCode>
+                        <ErrorDescription>
+                            <xsl:value-of select="'Error in Command Engine'"/>
+                        </ErrorDescription>
+                        <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                            <NativeErrorCode>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                            </NativeErrorCode>
+                        </xsl:if>
+                        <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                            <NativeErrorDescription>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                            </NativeErrorDescription>
+                        </xsl:if>
+                        <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                            <StackTrace>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                            </StackTrace>
+                        </xsl:if>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                            <StackProcess>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                            </StackProcess>
+                        </xsl:if>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/pfx7:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/pfx7:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/*)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="1"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/pfx7:GlobalVariables/GeneralConstants/MessageType/GLB_ProprietaryDataModel"/>
+                        </MessageType>
+                    </pfx4:ErrorMessage>
+                </data>
+            </pfx8:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>DiferentsActionsDependingOperationType</pd:from>
+        <pd:to>FUNC_MGSV_KillProccessInstance</pd:to>
+        <pd:xpathDescription>KillProcessInstance</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>contains($Start/Message/Body/pfx5:RequestEngine/pfx5:OperationType, $_globalVariables/pfx7:GlobalVariables/GLB_CTE/ArchitectureParameters/ManagementServices/GLB_KillProcessInstance)</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>DiferentsActionsDependingOperationType</pd:from>
+        <pd:to>FUNC_MGSV_RestartRecoverableProcess</pd:to>
+        <pd:xpathDescription>RestartRecoverableProccesStart</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>contains($Start/Message/Body/pfx5:RequestEngine/pfx5:OperationType, $_globalVariables/pfx7:GlobalVariables/GLB_CTE/ArchitectureParameters/ManagementServices/GLB_RestartRecoverableProccesStart)</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>DiferentsActionsDependingOperationType</pd:from>
+        <pd:to>FUNC_MGSV_SuspendProcessStarter</pd:to>
+        <pd:xpathDescription>SuspendProcessStarter</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>contains($Start/Message/Body/pfx5:RequestEngine/pfx5:OperationType, $_globalVariables/pfx7:GlobalVariables/GLB_CTE/ArchitectureParameters/ManagementServices/GLB_SuspendProcessStarter)</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FUNC_MGSV_ResumeProcessStarter</pd:from>
+        <pd:to>Map Data</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FUNC_MGSV_RestartRecoverableProcess</pd:from>
+        <pd:to>Map Data</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FUNC_MGSV_SuspendProcessStarter</pd:from>
+        <pd:to>Map Data</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FUNC_MGSV_KillProccessInstance</pd:from>
+        <pd:to>Map Data</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>DiferentsActionsDependingOperationType</pd:from>
+        <pd:to>FUNC_MGSV_ResumeProcessStarter</pd:to>
+        <pd:xpathDescription>ResumeProcessStarter</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>contains($Start/Message/Body/pfx5:RequestEngine/pfx5:OperationType,$_globalVariables/pfx7:GlobalVariables/GLB_CTE/ArchitectureParameters/ManagementServices/GLB_ResumeProcessStarter)</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>DiferentsActionsDependingOperationType</pd:to>
+        <pd:xpathDescription>Success</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Map Data</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch-1</pd:from>
+        <pd:to>Generate-Error-1-1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

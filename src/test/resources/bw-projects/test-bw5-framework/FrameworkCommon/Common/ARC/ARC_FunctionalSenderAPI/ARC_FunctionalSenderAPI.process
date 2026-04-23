@@ -1,0 +1,711 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:UUID="java://Framework.CommonResources.CustomFunctions.UUIDGenerator.UUIDGenerator" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx="http://www.bbva.com/EAIFramework">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_FunctionalSenderAPI/ARC_FunctionalSenderAPI.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ARC_FunctionalSenderAPI">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="EventName" type="xsd:string"/>
+                    <xsd:element name="Version" type="xsd:string" minOccurs="0"/>
+                    <xsd:element name="EventType" type="xsd:string"/>
+                    <xsd:element name="BusinessObject" type="xsd:string" minOccurs="0"/>
+                    <xsd:element name="Message">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:any processContents="skip"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:choice>
+                        <xsd:element name="ServiceId" type="pfx:ServiceIdType"/>
+                        <xsd:element name="DirectPublication">
+                            <xsd:complexType>
+                                <xsd:sequence>
+                                    <xsd:element name="Target" type="xsd:string"/>
+                                    <xsd:element name="IsTopic" type="xsd:boolean"/>
+                                </xsd:sequence>
+                            </xsd:complexType>
+                        </xsd:element>
+                    </xsd:choice>
+                    <xsd:element name="ServiceData">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="ServiceName" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="SourceApp" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="TargetApp" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="Domain" type="xsd:integer" minOccurs="0"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="TraceLevel" type="pfx:TraceLevelType" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>57</pd:startX>
+    <pd:startY>179</pd:startY>
+    <pd:returnBindings/>
+    <pd:endName>End</pd:endName>
+    <pd:endX>1063</pd:endX>
+    <pd:endY>179</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1335180504947</pd:targetNamespace>
+    <pd:activity name="ARC_FindQueue">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>368</pd:x>
+        <pd:y>53</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Queues/ARC_FindQueue.process</processName>
+        </config>
+        <pd:inputBindings>
+            <FindQueueIn>
+                <ServiceId>
+                    <xsl:value-of select="$Start/ARC_FunctionalSenderAPI/ServiceId"/>
+                </ServiceId>
+            </FindQueueIn>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_GetArchitectureHeader">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>234</pd:x>
+        <pd:y>179</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_GetArchitectureData/ARC_GetArchitectureHeader.process</processName>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="ARC_SendCDM2QueueOrTopic">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>934</pd:x>
+        <pd:y>54</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_QueueOrTopic/ARC_SendCDM2QueueOrTopic.process</processName>
+            <processNameXPath>concat($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_mockRoot, "/Common/ARC/ARC_QueueOrTopic/ARC_SendCDM2QueueOrTopic.process")</processNameXPath>
+        </config>
+        <pd:inputBindings>
+            <IN_SendReply2QueueOrTopic>
+                <TargetName>
+                    <xsl:value-of select="$ARC_FindQueue/pfx:Destination"/>
+                </TargetName>
+                <xsl:choose>
+                    <xsl:when test="$ARC_FindQueue/pfx:Destination/@DestinationType=&quot;Topic&quot;">
+                        <IsTopic>
+                            <xsl:value-of select="1"/>
+                        </IsTopic>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <IsTopic>
+                            <xsl:value-of select="0"/>
+                        </IsTopic>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <pfx:Message>
+                    <xsl:for-each select="$ARC_GetArchitectureHeader/pfx:ArchitectureHeader">
+                        <pfx:ArchitectureHeader>
+                            <xsl:for-each select="pfx:AuditHeader">
+                                <pfx:AuditHeader>
+                                    <pfx:E2EId>
+                                        <xsl:value-of select="pfx:E2EId"/>
+                                    </pfx:E2EId>
+                                    <pfx:ParentInstanceId>
+                                        <xsl:value-of select="pfx:InstanceId"/>
+                                    </pfx:ParentInstanceId>
+                                    <pfx:InstanceId>
+                                        <xsl:value-of select="pfx:InstanceId"/>
+                                    </pfx:InstanceId>
+                                    <pfx:Deepness>
+                                        <xsl:value-of select="pfx:Deepness"/>
+                                    </pfx:Deepness>
+                                    <pfx:ServiceId>
+                                        <xsl:value-of select="pfx:ServiceId"/>
+                                    </pfx:ServiceId>
+                                    <pfx:ServiceType>
+                                        <xsl:value-of select="pfx:ServiceType"/>
+                                    </pfx:ServiceType>
+                                    <xsl:if test="pfx:E2EControl">
+                                        <pfx:E2EControl>
+                                            <xsl:value-of select="pfx:E2EControl"/>
+                                        </pfx:E2EControl>
+                                    </xsl:if>
+                                    <xsl:if test="pfx:ParentE2EControl">
+                                        <pfx:ParentE2EControl>
+                                            <xsl:value-of select="pfx:ParentE2EControl"/>
+                                        </pfx:ParentE2EControl>
+                                    </xsl:if>
+                                    <xsl:if test="pfx:isLight">
+                                        <pfx:isLight>
+                                            <xsl:value-of select="pfx:isLight"/>
+                                        </pfx:isLight>
+                                    </xsl:if>
+                                    <xsl:if test="pfx:SaveMessage">
+                                        <pfx:SaveMessage>
+                                            <xsl:value-of select="pfx:SaveMessage"/>
+                                        </pfx:SaveMessage>
+                                    </xsl:if>
+                                </pfx:AuditHeader>
+                            </xsl:for-each>
+                            <xsl:for-each select="pfx:ECSHeader">
+                                <pfx:ECSHeader>
+                                    <pfx:traceId>
+                                        <xsl:value-of select="pfx:traceId"/>
+                                    </pfx:traceId>
+                                    <xsl:if test="string-length($GetECSConfig/group/pfx:ECSConfig/pfx:namespace)>0">
+                                        <pfx:parentSpan>
+                                            <xsl:value-of select="concat($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/NSToken,$GetECSConfig/group/pfx:ECSConfig/pfx:namespace,$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/MRSToken,$GetECSConfig/group/pfx:ECSConfig/pfx:mrId,$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/SpansToken,pfx:spanId)"/>
+                                        </pfx:parentSpan>
+                                    </xsl:if>
+                                    <pfx:spanId>
+                                        <xsl:value-of select="pfx:spanId"/>
+                                    </pfx:spanId>
+                                    <xsl:copy-of select="pfx:properties" copy-namespaces="no"/>
+                                </pfx:ECSHeader>
+                            </xsl:for-each>
+                            <xsl:for-each select="pfx:RequestHeader">
+                                <pfx:RequestHeader>
+                                    <xsl:choose>
+                                        <xsl:when test="string-length($Get-ExternalId-And-BBVAUser/AdditionalArchitectureHeaderData/BBVAUser)>0">
+                                            <pfx:BBVAUser>
+                                                <xsl:value-of select="$Get-ExternalId-And-BBVAUser/AdditionalArchitectureHeaderData/BBVAUser"/>
+                                            </pfx:BBVAUser>
+                                        </xsl:when>
+                                        <xsl:otherwise>
+                                            <pfx:BBVAUser>
+                                                <xsl:value-of select="pfx:BBVAUser"/>
+                                            </pfx:BBVAUser>
+                                        </xsl:otherwise>
+                                    </xsl:choose>
+                                    <xsl:choose>
+                                        <xsl:when test="string-length($Get-ExternalId-And-BBVAUser/AdditionalArchitectureHeaderData/ExternalId)>0">
+                                            <pfx:ExternalId>
+                                                <xsl:value-of select="$Get-ExternalId-And-BBVAUser/AdditionalArchitectureHeaderData/ExternalId"/>
+                                            </pfx:ExternalId>
+                                        </xsl:when>
+                                        <xsl:otherwise>
+                                            <pfx:ExternalId>
+                                                <xsl:value-of select="pfx:ExternalId"/>
+                                            </pfx:ExternalId>
+                                        </xsl:otherwise>
+                                    </xsl:choose>
+                                    <xsl:if test="pfx:BatchId">
+                                        <pfx:BatchId>
+                                            <xsl:value-of select="pfx:BatchId"/>
+                                        </pfx:BatchId>
+                                    </xsl:if>
+                                    <xsl:choose>
+                                        <xsl:when test="string-length($Start/ARC_FunctionalSenderAPI/BusinessObject)>0">
+                                            <pfx:BusinessObject>
+                                                <xsl:value-of select="$Start/ARC_FunctionalSenderAPI/BusinessObject"/>
+                                            </pfx:BusinessObject>
+                                        </xsl:when>
+                                        <xsl:otherwise>
+                                            <xsl:if test="pfx:BusinessObject">
+                                                <pfx:BusinessObject>
+                                                    <xsl:value-of select="pfx:BusinessObject"/>
+                                                </pfx:BusinessObject>
+                                            </xsl:if>
+                                        </xsl:otherwise>
+                                    </xsl:choose>
+                                    <pfx:StartTimestamp>
+                                        <xsl:value-of select="pfx:StartTimestamp"/>
+                                    </pfx:StartTimestamp>
+                                    <pfx:ServiceIdStarter>
+                                        <xsl:value-of select="pfx:ServiceIdStarter"/>
+                                    </pfx:ServiceIdStarter>
+                                </pfx:RequestHeader>
+                            </xsl:for-each>
+                            <xsl:copy-of select="pfx:ErrorHeader"/>
+                            <xsl:copy-of select="pfx:ReprocessingHeader"/>
+                            <xsl:copy-of select="pfx:SecurityHeader"/>
+                            <xsl:copy-of select="pfx:RoutingHeader"/>
+                            <xsl:copy-of select="pfx:FunctionalData"/>
+                        </pfx:ArchitectureHeader>
+                    </xsl:for-each>
+                    <pfx:Body>
+                        <xsl:copy-of select="$Map-Data/pfx:Event"/>
+                    </pfx:Body>
+                </pfx:Message>
+            </IN_SendReply2QueueOrTopic>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_SendMessageToQueueOrTopic">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>721</pd:x>
+        <pd:y>179</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_QueueOrTopic/ARC_SendMessageToQueueOrTopic.process</processName>
+            <processNameXPath>concat($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_mockRoot, "/Common/ARC/ARC_QueueOrTopic/ARC_SendMessageToQueueOrTopic.process")</processNameXPath>
+        </config>
+        <pd:inputBindings>
+            <IN_SendMessageToQueueOrTopic>
+                <Target>
+                    <xsl:value-of select="$Start/ARC_FunctionalSenderAPI/DirectPublication/Target"/>
+                </Target>
+                <IsTopic>
+                    <xsl:value-of select="$Start/ARC_FunctionalSenderAPI/DirectPublication/IsTopic"/>
+                </IsTopic>
+                <Message>
+                    <xsl:copy-of select="$Map-Data/pfx:Event"/>
+                </Message>
+            </IN_SendMessageToQueueOrTopic>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>519</pd:x>
+        <pd:y>490</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Catch ErrorMessage">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>513</pd:x>
+        <pd:y>402</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <fault>localname=ErrorMessage namespace=http://www.bbva.com/EAIFramework</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Error in FunctionalSenderAPIDescription">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>234</pd:x>
+        <pd:y>325</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns:ActivityInput>
+                <data>
+                    <pfx:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Routing/GLB_FunctionalSenderAPI"/>
+                        </ErrorCode>
+                        <ErrorDescription>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/ErrorDescriptions/GLB_FunctionalSenderAPIDescription"/>
+                        </ErrorDescription>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/ARC_FunctionalSenderAPI)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </pfx:ErrorMessage>
+                </data>
+            </ns:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="General Error FunctionalSenderAPIDescription">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>724</pd:x>
+        <pd:y>410</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns:ActivityInput>
+                <data>
+                    <xsl:copy-of select="$Catch-ErrorMessage/pfx:ErrorMessage"/>
+                </data>
+            </ns:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Get ExternalId And BBVAUser">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>718</pd:x>
+        <pd:y>62</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/AdditionalArchitectureHeaderData.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Map Data">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>366</pd:x>
+        <pd:y>179</pd:y>
+        <config>
+            <element ref="pfx:Event"/>
+        </config>
+        <pd:inputBindings>
+            <pfx:Event>
+                <EventName>
+                    <xsl:value-of select="$Start/ARC_FunctionalSenderAPI/EventName"/>
+                </EventName>
+                <xsl:if test="string-length($Start/ARC_FunctionalSenderAPI/Version)>0">
+                    <Version>
+                        <xsl:value-of select="$Start/ARC_FunctionalSenderAPI/Version"/>
+                    </Version>
+                </xsl:if>
+                <EventEmitter>
+                    <xsl:value-of select="substring-before(substring-after($ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:ServiceId, &quot;S_&quot;), &quot;_&quot;)"/>
+                </EventEmitter>
+                <EventType>
+                    <xsl:value-of select="$Start/ARC_FunctionalSenderAPI/EventType"/>
+                </EventType>
+                <Machine>
+                    <xsl:value-of select="BW:getHostName()"/>
+                </Machine>
+                <Timestamp>
+                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                </Timestamp>
+                <EventUUID>
+                    <xsl:value-of select="UUID:generateUUID()"/>
+                </EventUUID>
+                <FrameworkData>
+                    <ExecutionData>
+                        <E2EId>
+                            <xsl:value-of select="$ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:E2EId"/>
+                        </E2EId>
+                        <E2EDeepness>
+                            <xsl:value-of select="$ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:Deepness"/>
+                        </E2EDeepness>
+                        <InvocationUser>
+                            <xsl:value-of select="$ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:BBVAUser"/>
+                        </InvocationUser>
+                        <BatchId>
+                            <xsl:value-of select="$ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:BatchId"/>
+                        </BatchId>
+                        <InstanceId>
+                            <xsl:value-of select="$ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:InstanceId"/>
+                        </InstanceId>
+                        <xsl:if test="string-length($ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:ParentInstanceId)>0">
+                            <ParentInstanceId>
+                                <xsl:value-of select="$ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:ParentInstanceId"/>
+                            </ParentInstanceId>
+                        </xsl:if>
+                        <xsl:if test="string-length($ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:ExternalId)>0">
+                            <ExternalId>
+                                <xsl:value-of select="$ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:ExternalId"/>
+                            </ExternalId>
+                        </xsl:if>
+                        <StarTimestamp>
+                            <xsl:value-of select="$ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:StartTimestamp"/>
+                        </StarTimestamp>
+                        <ServiceIdStater>
+                            <xsl:value-of select="$ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:ServiceIdStarter"/>
+                        </ServiceIdStater>
+                        <xsl:if test="$ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:ReprocessingHeader">
+                            <ReprocesingData>
+                                <RetriesNumber>
+                                    <xsl:value-of select="$ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:ReprocessingHeader/pfx:RetriesNumber"/>
+                                </RetriesNumber>
+                                <OriginalInstanceId>
+                                    <xsl:value-of select="$ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:ReprocessingHeader/pfx:OriginalInstanceId"/>
+                                </OriginalInstanceId>
+                            </ReprocesingData>
+                        </xsl:if>
+                    </ExecutionData>
+                    <ServiceData>
+                        <ServiceId>
+                            <xsl:value-of select="$ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:ServiceId"/>
+                        </ServiceId>
+                        <ServiceType>
+                            <xsl:value-of select="$ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:AuditHeader/pfx:ServiceType"/>
+                        </ServiceType>
+                        <xsl:choose>
+                            <xsl:when test="string-length($Start/ARC_FunctionalSenderAPI/BusinessObject)>0">
+                                <xsl:if test="$Start/ARC_FunctionalSenderAPI/BusinessObject">
+                                    <BusinessObject>
+                                        <xsl:value-of select="$Start/ARC_FunctionalSenderAPI/BusinessObject"/>
+                                    </BusinessObject>
+                                </xsl:if>
+                            </xsl:when>
+                            <xsl:when test="string-length($ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:BusinessObject)>0 and  $ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:BusinessObject!=$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_Generic_Object">
+                                <BusinessObject>
+                                    <xsl:value-of select="$ARC_GetArchitectureHeader/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:BusinessObject"/>
+                                </BusinessObject>
+                            </xsl:when>
+                        </xsl:choose>
+                        <xsl:if test="string-length($Start/ARC_FunctionalSenderAPI/ServiceData/ServiceName)>0">
+                            <xsl:if test="$Start/ARC_FunctionalSenderAPI/ServiceData/ServiceName">
+                                <ServiceName>
+                                    <xsl:value-of select="$Start/ARC_FunctionalSenderAPI/ServiceData/ServiceName"/>
+                                </ServiceName>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($Start/ARC_FunctionalSenderAPI/ServiceData/SourceApp)>0">
+                            <xsl:if test="$Start/ARC_FunctionalSenderAPI/ServiceData/SourceApp">
+                                <SourceApp>
+                                    <xsl:value-of select="$Start/ARC_FunctionalSenderAPI/ServiceData/SourceApp"/>
+                                </SourceApp>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($Start/ARC_FunctionalSenderAPI/ServiceData/TargetApp)>0">
+                            <xsl:if test="$Start/ARC_FunctionalSenderAPI/ServiceData/TargetApp">
+                                <TargetApp>
+                                    <xsl:value-of select="$Start/ARC_FunctionalSenderAPI/ServiceData/TargetApp"/>
+                                </TargetApp>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($Start/ARC_FunctionalSenderAPI/ServiceData/Domain)>0">
+                            <xsl:if test="$Start/ARC_FunctionalSenderAPI/ServiceData/Domain">
+                                <Domain>
+                                    <xsl:value-of select="$Start/ARC_FunctionalSenderAPI/ServiceData/Domain"/>
+                                </Domain>
+                            </xsl:if>
+                        </xsl:if>
+                    </ServiceData>
+                </FrameworkData>
+                <Body>
+                    <xsl:copy-of select="$Start/ARC_FunctionalSenderAPI/Message/ancestor-or-self::*/namespace::node()"/>
+                    <xsl:copy-of select="$Start/ARC_FunctionalSenderAPI/Message/@*"/>
+                    <xsl:copy-of select="$Start/ARC_FunctionalSenderAPI/Message/node()"/>
+                </Body>
+            </pfx:Event>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Not controlled Errors in FunctionalSenderAPIDescription">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>727</pd:x>
+        <pd:y>505</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns:ActivityInput>
+                <data>
+                    <pfx:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Routing/GLB_FunctionalSenderAPI"/>
+                        </ErrorCode>
+                        <ErrorDescription>
+                            <xsl:value-of select="&quot;No contemplated erro in FunctionalSenderAPI&quot;"/>
+                        </ErrorDescription>
+                        <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                            <NativeErrorCode>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                            </NativeErrorCode>
+                        </xsl:if>
+                        <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                            <NativeErrorDescription>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                            </NativeErrorDescription>
+                        </xsl:if>
+                        <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                            <StackTrace>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                            </StackTrace>
+                        </xsl:if>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                            <StackProcess>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                            </StackProcess>
+                        </xsl:if>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/ARC_FunctionalSenderAPI)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </pfx:ErrorMessage>
+                </data>
+            </ns:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_TraceAuditSenderAPI">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>934</pd:x>
+        <pd:y>181</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CLEManagement/ARC_TraceAuditSenderAPI.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_TraceSenderAPI>
+                <CLETraceData>
+                    <EventCode>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Trace/GLB_FunctionalSenderTrace"/>
+                    </EventCode>
+                    <EventType>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Trace"/>
+                    </EventType>
+                    <MessageType>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                    </MessageType>
+                    <isResponse>
+                        <xsl:value-of select="false()"/>
+                    </isResponse>
+                    <xsl:choose>
+                        <xsl:when test="$Start/ARC_FunctionalSenderAPI/TraceLevel">
+                            <xsl:if test="$Start/ARC_FunctionalSenderAPI/TraceLevel">
+                                <TraceLevel>
+                                    <xsl:value-of select="$Start/ARC_FunctionalSenderAPI/TraceLevel"/>
+                                </TraceLevel>
+                            </xsl:if>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <TraceLevel>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/TraceLevels/GLB_Critical"/>
+                            </TraceLevel>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <NameValue>
+                        <Name>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/EVENTNAME"/>
+                        </Name>
+                        <Value>
+                            <xsl:value-of select="$Map-Data/pfx:Event/EventName"/>
+                        </Value>
+                    </NameValue>
+                    <NameValue>
+                        <Name>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/EVENTYPE"/>
+                        </Name>
+                        <Value>
+                            <xsl:value-of select="$Map-Data/pfx:Event/EventType"/>
+                        </Value>
+                    </NameValue>
+                </CLETraceData>
+                <Body>
+                    <xsl:value-of select="tib:render-xml($Start/ARC_FunctionalSenderAPI/Message)"/>
+                </Body>
+            </ARC_TraceSenderAPI>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="GetECSConfig">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>529</pd:x>
+        <pd:y>52</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/ECSConfig.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>ARC_GetArchitectureHeader</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>string-length($Start/ARC_FunctionalSenderAPI/ServiceId)&gt;0 or $Start/ARC_FunctionalSenderAPI/DirectPublication</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_FindQueue</pd:from>
+        <pd:to>GetECSConfig</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SendMessageToQueueOrTopic</pd:from>
+        <pd:to>ARC_TraceAuditSenderAPI</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_GetArchitectureHeader</pd:from>
+        <pd:to>Map Data</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Map Data</pd:from>
+        <pd:to>ARC_FindQueue</pd:to>
+        <pd:xpathDescription>There Is ServiceId</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$Start/ARC_FunctionalSenderAPI/ServiceId</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>Not controlled Errors in FunctionalSenderAPIDescription</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Map Data</pd:from>
+        <pd:to>ARC_SendMessageToQueueOrTopic</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Error in FunctionalSenderAPIDescription</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch ErrorMessage</pd:from>
+        <pd:to>General Error FunctionalSenderAPIDescription</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SendCDM2QueueOrTopic</pd:from>
+        <pd:to>ARC_TraceAuditSenderAPI</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get ExternalId And BBVAUser</pd:from>
+        <pd:to>ARC_SendCDM2QueueOrTopic</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_TraceAuditSenderAPI</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetECSConfig</pd:from>
+        <pd:to>Get ExternalId And BBVAUser</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

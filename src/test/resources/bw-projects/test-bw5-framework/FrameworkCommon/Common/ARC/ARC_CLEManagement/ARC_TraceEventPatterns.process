@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pfx="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:pfx2="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd" xmlns:ns="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:GetIP="java://EAIFramework.Processes.Private.Common.HeaderManagement.IPAddress.IPAddress" xmlns:pfx3="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns2="http://www.tibco.com/pe/DeployedVarsType" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns1="http://www.tibco.com/pe/EngineTypes" xmlns:ns4="http://www.tibco.com/schemas/FrameworkIntegracion/EAI-Framework/Resources/Public/Schemas/XSD/MCD/Schema.xsd" xmlns:ns3="http://www.bbva.com/EAIFramework" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:UUID="java://EAIFramework.Processes.Private.Common.HeaderManagement.UUIDGenerator.UUIDGenerator">
+    
+    
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_CLEManagement/ARC_TraceEventPatterns.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ARC_TraceEventPatterns">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="EventMetaData">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="EventCode" type="ns3:EventCodeType"/>
+                                <xsd:element name="EventType" type="xsd:string"/>
+                                <xsd:element name="MessageType" type="ns3:MessageTypes"/>
+                                <xsd:element name="isResponse" type="xsd:boolean"/>
+                                <xsd:element name="TraceLevel" type="ns3:TraceLevelType" minOccurs="0"/>
+                                <xsd:element name="NameValue" minOccurs="0" maxOccurs="unbounded">
+                                    <xsd:complexType>
+                                        <xsd:sequence>
+                                            <xsd:element name="Name" type="xsd:string"/>
+                                            <xsd:element name="Value" type="xsd:string"/>
+                                        </xsd:sequence>
+                                    </xsd:complexType>
+                                </xsd:element>
+                                <xsd:element ref="ns3:ArchitectureHeader" minOccurs="0"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="Body">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:any/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>312</pd:startX>
+    <pd:startY>115</pd:startY>
+    <pd:returnBindings>
+        <Data>
+            <xsl:copy-of select="$SendEventPatterns/EventPatterns"/>
+        </Data>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endX>588</pd:endX>
+    <pd:endY>116</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1324409765610</pd:targetNamespace>
+    <pd:activity name="CLESenderAPI_EventPatterns">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>457</pd:x>
+        <pd:y>116</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CLEManagement/ARC_SendEventPatterns.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_SendEventPattern>
+                <EventData>
+                    <EventCode>
+                        <xsl:value-of select="$Start/ARC_TraceEventPatterns/EventMetaData/EventCode"/>
+                    </EventCode>
+                </EventData>
+                <Body>
+                    <xsl:copy-of select="$Start/ARC_TraceEventPatterns/Body/*"/>
+                </Body>
+            </ARC_SendEventPattern>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>CLESenderAPI_EventPatterns</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>CLESenderAPI_EventPatterns</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:label>
+        <pd:name>Label</pd:name>
+        <pd:description>En la variable global recibe el correspondiente el correspondiente grupo de patrones que corresponde con el serviceID configurado en el Queue. Esta variable se usa en el filtrado. </pd:description>
+        <pd:x>399</pd:x>
+        <pd:y>220</pd:y>
+        <pd:width>712</pd:width>
+        <pd:height>64</pd:height>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-1</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+</pd:ProcessDefinition>

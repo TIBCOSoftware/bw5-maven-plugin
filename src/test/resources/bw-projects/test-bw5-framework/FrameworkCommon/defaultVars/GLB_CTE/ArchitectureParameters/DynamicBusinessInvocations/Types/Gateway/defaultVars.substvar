@@ -1,0 +1,37 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>GLB_ProcesSelection</name>
+			<value>/ProcessSelection/</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673527</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Process</name>
+			<value>/Process/</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671293</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Routing</name>
+			<value>/Routing/</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671206</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_RulesSelection</name>
+			<value>/RulesSelection/</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672642</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

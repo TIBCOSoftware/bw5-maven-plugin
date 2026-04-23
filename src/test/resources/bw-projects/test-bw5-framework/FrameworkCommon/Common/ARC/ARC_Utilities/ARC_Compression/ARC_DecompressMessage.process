@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <pd:name>Common/ARC/ARC_Utilities/ARC_Compression/ARC_DecompressMessage.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="Input">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="CompressMessage" type="xsd:base64Binary"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>75</pd:startX>
+    <pd:startY>79</pd:startY>
+    <pd:returnBindings>
+        <Output>
+            <DecompressMessage>
+                <xsl:value-of select="$Java-Code-Decompress/javaCodeActivityOutput/message_out"/>
+            </DecompressMessage>
+        </Output>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="Output">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="DecompressMessage" type="xsd:string"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>375</pd:endX>
+    <pd:endY>79</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1547731923860</pd:targetNamespace>
+    <pd:activity name="Java Code Decompress">
+        <pd:type>com.tibco.plugin.java.JavaActivity</pd:type>
+        <pd:resourceType>ae.javapalette.javaActivity</pd:resourceType>
+        <pd:x>219</pd:x>
+        <pd:y>87</pd:y>
+        <config>
+            <fileName>ARC_DecompressMessageJavaCodeDecompress</fileName>
+            <packageName>Common.ARC.ARC_Utilities.ARC_Compression.ARC_DecompressMessage</packageName>
+            <fullsource>package Common.ARC.ARC_Utilities.ARC_Compression.ARC_DecompressMessage;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+
+public class ARC_DecompressMessageJavaCodeDecompress{
+
+public static String decompress(byte[] compressed) throws IOException {
+		ByteArrayInputStream bis = new ByteArrayInputStream(compressed);
+		GZIPInputStream gis = new GZIPInputStream(bis);
+		BufferedReader br = new BufferedReader(new InputStreamReader(gis, "UTF-8"));
+		StringBuilder sb = new StringBuilder();
+		String line;
+		while((line = br.readLine()) != null) {
+			sb.append(line);
+		}
+		br.close();
+		gis.close();
+		bis.close();
+		return sb.toString();
+	}
+
+
+/****** START SET/GET METHOD, DO NOT MODIFY *****/
+	protected byte[] message_in = null;
+	protected String message_out = "";
+	public byte[] getmessage_in() {
+		return message_in;
+	}
+	public void setmessage_in(byte[] val) {
+		message_in = val;
+	}
+	public String getmessage_out() {
+		return message_out;
+	}
+	public void setmessage_out(String val) {
+		message_out = val;
+	}
+/****** END SET/GET METHOD, DO NOT MODIFY *****/
+	public ARC_DecompressMessageJavaCodeDecompress() {
+	}
+	public void invoke() throws Exception {
+/* Available Variables: DO NOT MODIFY
+	In  : byte[] message_in
+	Out : String message_out
+* Available Variables: DO NOT MODIFY *****/
+
+message_out = decompress(message_in);}
+}
+</fullsource>
+            <inputData>
+                <row>
+                    <fieldName>message_in</fieldName>
+                    <fieldType>byte</fieldType>
+                    <fieldRequired>repeating</fieldRequired>
+                </row>
+            </inputData>
+            <outputData>
+                <row>
+                    <fieldName>message_out</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>optional</fieldRequired>
+                </row>
+            </outputData>
+            <byteCode>
+                <class>
+                    <name>ARC_DecompressMessageJavaCodeDecompress</name>
+                    <byteCode>yv66vgAAADMAWAcAOAoAAQA5BwA6CgADADsHADwHAD0IAD4KAAYAPwoABQBABwBBCgAKAEIKAAUAQwoACgBECgAFAEUKAAMARQoAAQBFCgAKAEYJABcARwkAFwBICgAYAEIIAEkKABcASgcASwcATAEACm1lc3NhZ2VfaW4BAAJbQgEAC21lc3NhZ2Vfb3V0AQASTGphdmEvbGFuZy9TdHJpbmc7AQAKZGVjb21wcmVzcwEAFihbQilMamF2YS9sYW5nL1N0cmluZzsBAARDb2RlAQAPTGluZU51bWJlclRhYmxlAQANU3RhY2tNYXBUYWJsZQcAGgcAOAcAOgcAPAcAQQcATQEACkV4Y2VwdGlvbnMHAE4BAA1nZXRtZXNzYWdlX2luAQAEKClbQgEADXNldG1lc3NhZ2VfaW4BAAUoW0IpVgEADmdldG1lc3NhZ2Vfb3V0AQAUKClMamF2YS9sYW5nL1N0cmluZzsBAA5zZXRtZXNzYWdlX291dAEAFShMamF2YS9sYW5nL1N0cmluZzspVgEABjxpbml0PgEAAygpVgEABmludm9rZQcATwEAClNvdXJjZUZpbGUBACxBUkNfRGVjb21wcmVzc01lc3NhZ2VKYXZhQ29kZURlY29tcHJlc3MuamF2YQEAHGphdmEvaW8vQnl0ZUFycmF5SW5wdXRTdHJlYW0MADIALQEAHWphdmEvdXRpbC96aXAvR1pJUElucHV0U3RyZWFtDAAyAFABABZqYXZhL2lvL0J1ZmZlcmVkUmVhZGVyAQAZamF2YS9pby9JbnB1dFN0cmVhbVJlYWRlcgEABVVURi04DAAyAFEMADIAUgEAF2phdmEvbGFuZy9TdHJpbmdCdWlsZGVyDAAyADMMAFMALwwAVABVDABWADMMAFcALwwAGQAaDAAbABwBAAAMAB0AHgEAZkNvbW1vbi9BUkMvQVJDX1V0aWxpdGllcy9BUkNfQ29tcHJlc3Npb24vQVJDX0RlY29tcHJlc3NNZXNzYWdlL0FSQ19EZWNvbXByZXNzTWVzc2FnZUphdmFDb2RlRGVjb21wcmVzcwEAEGphdmEvbGFuZy9PYmplY3QBABBqYXZhL2xhbmcvU3RyaW5nAQATamF2YS9pby9JT0V4Y2VwdGlvbgEAE2phdmEvbGFuZy9FeGNlcHRpb24BABgoTGphdmEvaW8vSW5wdXRTdHJlYW07KVYBACooTGphdmEvaW8vSW5wdXRTdHJlYW07TGphdmEvbGFuZy9TdHJpbmc7KVYBABMoTGphdmEvaW8vUmVhZGVyOylWAQAIcmVhZExpbmUBAAZhcHBlbmQBAC0oTGphdmEvbGFuZy9TdHJpbmc7KUxqYXZhL2xhbmcvU3RyaW5nQnVpbGRlcjsBAAVjbG9zZQEACHRvU3RyaW5nACEAFwAYAAAAAgAEABkAGgAAAAQAGwAcAAAABwAJAB0AHgACAB8AAAC0AAYABgAAAFS7AAFZKrcAAky7AANZK7cABE27AAVZuwAGWSwSB7cACLcACU67AApZtwALOgQttgAMWToFxgAOGQQZBbYADVen/+4ttgAOLLYADyu2ABAZBLYAEbAAAAACACAAAAAqAAoAAAANAAkADgASAA8AJAAQAC0AEgA3ABMAQgAVAEYAFgBKABcATgAYACEAAAAeAAL/AC0ABQcAIgcAIwcAJAcAJQcAJgAA/AAUBwAnACgAAAAEAAEAKQABACoAKwABAB8AAAAdAAEAAQAAAAUqtAASsAAAAAEAIAAAAAYAAQAAACAAAQAsAC0AAQAfAAAAIgACAAIAAAAGKiu1ABKxAAAAAQAgAAAACgACAAAAIwAFACQAAQAuAC8AAQAfAAAAHQABAAEAAAAFKrQAE7AAAAABACAAAAAGAAEAAAAmAAEAMAAxAAEAHwAAACIAAgACAAAABiortQATsQAAAAEAIAAAAAoAAgAAACkABQAqAAEAMgAzAAEAHwAAADQAAgABAAAAECq3ABQqAbUAEioSFbUAE7EAAAABACAAAAASAAQAAAAsAAQAHQAJAB4ADwAtAAEANAAzAAIAHwAAACQAAgABAAAADCoqtAASuAAWtQATsQAAAAEAIAAAAAYAAQAAADQAKAAAAAQAAQA1AAEANgAAAAIANw==</byteCode>
+                </class>
+            </byteCode>
+        </config>
+        <pd:inputBindings>
+            <javaCodeActivityInput>
+                <message_in>
+                    <xsl:value-of select="$Start/Input/CompressMessage"/>
+                </message_in>
+            </javaCodeActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Java Code Decompress</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Java Code Decompress</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

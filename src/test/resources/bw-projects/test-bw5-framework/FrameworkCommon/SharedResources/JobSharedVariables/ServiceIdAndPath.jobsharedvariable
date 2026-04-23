@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BWSharedResource xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <name>ServiceIdAndPath</name>
+    <resourceType>ae.shared.jobSharedVariable</resourceType>
+    <config xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <initialValue>byData</initialValue>
+        <initialValueData>&lt;?xml version="1.0" encoding="UTF-8"?&gt; &lt;Data&gt;     &lt;ServiceId/&gt;     &lt;Path/&gt; &lt;/Data&gt;</initialValueData>
+        <xsdString>
+            <xsd:element name="Data">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="ServiceId" type="xsd:string"/>
+                        <xsd:element name="Path" type="xsd:string"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </xsdString>
+    </config>
+</BWSharedResource>

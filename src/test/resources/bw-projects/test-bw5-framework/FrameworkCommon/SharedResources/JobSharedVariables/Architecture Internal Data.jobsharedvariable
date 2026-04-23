@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BWSharedResource xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:pfx="http://www.bbva.com/EAIFramework">
+    <import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <name>Architecture Internal Data</name>
+    <resourceType>ae.shared.jobSharedVariable</resourceType>
+    <config xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <initialValue>none</initialValue>
+        <xsdString>
+            <xsd:element name="FrameworkData">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="InvocationsNumber" type="xsd:integer" minOccurs="0"/>
+                        <xsd:element ref="pfx:ArchitectureHeader"/>
+                        <xsd:element name="SaveMessage" type="xsd:boolean" minOccurs="0"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </xsdString>
+    </config>
+</BWSharedResource>

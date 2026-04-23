@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns2="http://www.tibco.com/pe/DeployedVarsType" xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:ns1="http://www.tibco.com/pe/EngineTypes" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:ns3="http://www.bbva.com/EAIFramework" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:GetIP="java://EAIFramework.Processes.Private.Common.HeaderManagement.IPAddress.IPAddress" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx3="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx2="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd">
+    
+    
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC_REQS/PostActions/ARC_REQS_PostAction.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="root">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="ns3:Message"/>
+                    <xsd:element ref="ns3:TraceLevel" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>64</pd:startX>
+    <pd:startY>69</pd:startY>
+    <pd:returnBindings>
+        <xsl:copy-of select="$Start/CDMMessage/pfx3:ArchitectureHeader"/>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endX>379</pd:endX>
+    <pd:endY>67</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="ns3:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1324409765610</pd:targetNamespace>
+    <pd:activity name="ARC_CLESenderAPI">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>236</pd:x>
+        <pd:y>68</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CLEManagement/ARC_TraceAuditSenderAPI.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_TraceSenderAPI>
+                <CLETraceData>
+                    <EventCode>
+                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Audit/GLB_ReceivedResponse"/>
+                    </EventCode>
+                    <EventType>
+                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Audit"/>
+                    </EventType>
+                    <MessageType>
+                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                    </MessageType>
+                    <isResponse>
+                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/AuditParameters/IsResponse"/>
+                    </isResponse>
+                    <xsl:choose>
+                        <xsl:when test="$Start/root/ns3:TraceLevel">
+                            <TraceLevel>
+                                <xsl:value-of select="$Start/root/ns3:TraceLevel"/>
+                            </TraceLevel>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <TraceLevel>
+                                <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit"/>
+                            </TraceLevel>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <ns3:ArchitectureHeader>
+                        <ns3:AuditHeader>
+                            <ns3:E2EId>
+                                <xsl:value-of select="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:E2EId"/>
+                            </ns3:E2EId>
+                            <xsl:if test="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentInstanceId">
+                                <ns3:ParentInstanceId>
+                                    <xsl:value-of select="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentInstanceId"/>
+                                </ns3:ParentInstanceId>
+                            </xsl:if>
+                            <ns3:InstanceId>
+                                <xsl:value-of select="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:InstanceId"/>
+                            </ns3:InstanceId>
+                            <ns3:Deepness>
+                                <xsl:value-of select="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:Deepness"/>
+                            </ns3:Deepness>
+                            <ns3:ServiceId>
+                                <xsl:value-of select="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ServiceId"/>
+                            </ns3:ServiceId>
+                            <ns3:ServiceType>
+                                <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_RequestService"/>
+                            </ns3:ServiceType>
+                            <xsl:if test="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:E2EControl">
+                                <ns3:E2EControl>
+                                    <xsl:value-of select="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:E2EControl"/>
+                                </ns3:E2EControl>
+                            </xsl:if>
+                            <xsl:if test="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentE2EControl">
+                                <ns3:ParentE2EControl>
+                                    <xsl:value-of select="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentE2EControl"/>
+                                </ns3:ParentE2EControl>
+                            </xsl:if>
+                            <xsl:if test="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:isLight">
+                                <ns3:isLight>
+                                    <xsl:value-of select="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:isLight"/>
+                                </ns3:isLight>
+                            </xsl:if>
+                            <xsl:if test="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:SaveMessage">
+                                <ns3:SaveMessage>
+                                    <xsl:value-of select="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:SaveMessage"/>
+                                </ns3:SaveMessage>
+                            </xsl:if>
+                        </ns3:AuditHeader>
+                        <xsl:copy-of select="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:ECSHeader"/>
+                        <xsl:copy-of select="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:RequestHeader"/>
+                        <xsl:copy-of select="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:ErrorHeader"/>
+                        <xsl:copy-of select="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:ReprocessingHeader"/>
+                        <xsl:copy-of select="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:SecurityHeader"/>
+                        <xsl:copy-of select="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:RoutingHeader"/>
+                        <xsl:copy-of select="$Start/root/ns3:Message/ns3:ArchitectureHeader/ns3:FunctionalData"/>
+                    </ns3:ArchitectureHeader>
+                </CLETraceData>
+                <Body>
+                    <xsl:value-of select="tib:render-xml($Start/root/ns3:Message)"/>
+                </Body>
+            </ARC_TraceSenderAPI>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>ARC_CLESenderAPI</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>ARC_CLESenderAPI</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

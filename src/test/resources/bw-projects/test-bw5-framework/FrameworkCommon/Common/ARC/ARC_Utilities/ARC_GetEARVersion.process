@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns12="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:pfx="http://www.bbva.com/EAIFramework">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_Utilities/ARC_GetEARVersion.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startX>83</pd:startX>
+    <pd:startY>97</pd:startY>
+    <pd:returnBindings>
+        <Data>
+            <xsl:choose>
+                <xsl:when test="$EarVersion/javaCodeActivityOutput/EarVersion">
+                    <EarVersion>
+                        <xsl:value-of select="$EarVersion/javaCodeActivityOutput/EarVersion"/>
+                    </EarVersion>
+                </xsl:when>
+                <xsl:otherwise>
+                    <EarVersion>
+                        <xsl:value-of select="&quot;&quot;"/>
+                    </EarVersion>
+                </xsl:otherwise>
+            </xsl:choose>
+        </Data>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="Data">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="EarVersion" type="xsd:string"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>442</pd:endX>
+    <pd:endY>101</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1390838876553</pd:targetNamespace>
+    <pd:activity name="EarVersion">
+        <pd:type>com.tibco.plugin.java.JavaActivity</pd:type>
+        <pd:resourceType>ae.javapalette.javaActivity</pd:resourceType>
+        <pd:x>245</pd:x>
+        <pd:y>99</pd:y>
+        <config>
+            <fileName>ARC_GetEARVersionEarVersion</fileName>
+            <packageName>Common.ARC.ARC_Utilities.ARC_GetEARVersion</packageName>
+            <fullsource>package Common.ARC.ARC_Utilities.ARC_GetEARVersion;
+import java.util.*;
+import java.io.*;
+import com.tibco.pe.plugin.PluginProperties;
+
+public class ARC_GetEARVersionEarVersion{
+/****** START SET/GET METHOD, DO NOT MODIFY *****/
+	protected String EarVersion = "";
+	public String getEarVersion() {
+		return EarVersion;
+	}
+	public void setEarVersion(String val) {
+		EarVersion = val;
+	}
+/****** END SET/GET METHOD, DO NOT MODIFY *****/
+	public ARC_GetEARVersionEarVersion() {
+	}
+	public void invoke() throws Exception {
+/* Available Variables: DO NOT MODIFY
+	Out : String EarVersion
+* Available Variables: DO NOT MODIFY *****/
+
+PluginProperties.getProperty("__EAR_FILE_VERSION__");
+
+}
+}
+</fullsource>
+            <outputData>
+                <row>
+                    <fieldName>EarVersion</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>optional</fieldRequired>
+                </row>
+            </outputData>
+            <byteCode>
+                <class>
+                    <name>ARC_GetEARVersionEarVersion</name>
+                    <byteCode>yv66vgAAADMAIwkABgAXCgAHABgIABkIABoKABsAHAcAHQcAHgEACkVhclZlcnNpb24BABJMamF2YS9sYW5nL1N0cmluZzsBAA1nZXRFYXJWZXJzaW9uAQAUKClMamF2YS9sYW5nL1N0cmluZzsBAARDb2RlAQAPTGluZU51bWJlclRhYmxlAQANc2V0RWFyVmVyc2lvbgEAFShMamF2YS9sYW5nL1N0cmluZzspVgEABjxpbml0PgEAAygpVgEABmludm9rZQEACkV4Y2VwdGlvbnMHAB8BAApTb3VyY2VGaWxlAQAgQVJDX0dldEVBUlZlcnNpb25FYXJWZXJzaW9uLmphdmEMAAgACQwAEAARAQAAAQAUX19FQVJfRklMRV9WRVJTSU9OX18HACAMACEAIgEARkNvbW1vbi9BUkMvQVJDX1V0aWxpdGllcy9BUkNfR2V0RUFSVmVyc2lvbi9BUkNfR2V0RUFSVmVyc2lvbkVhclZlcnNpb24BABBqYXZhL2xhbmcvT2JqZWN0AQATamF2YS9sYW5nL0V4Y2VwdGlvbgEAJGNvbS90aWJjby9wZS9wbHVnaW4vUGx1Z2luUHJvcGVydGllcwEAC2dldFByb3BlcnR5AQAmKExqYXZhL2xhbmcvU3RyaW5nOylMamF2YS9sYW5nL1N0cmluZzsAIQAGAAcAAAABAAQACAAJAAAABAABAAoACwABAAwAAAAdAAEAAQAAAAUqtAABsAAAAAEADQAAAAYAAQAAAAoAAQAOAA8AAQAMAAAAIgACAAIAAAAGKiu1AAGxAAAAAQANAAAACgACAAAADQAFAA4AAQAQABEAAQAMAAAAKwACAAEAAAALKrcAAioSA7UAAbEAAAABAA0AAAAOAAMAAAAQAAQACAAKABEAAQASABEAAgAMAAAAIwABAAEAAAAHEgS4AAVXsQAAAAEADQAAAAoAAgAAABcABgAZABMAAAAEAAEAFAABABUAAAACABY=</byteCode>
+                </class>
+            </byteCode>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Catch">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>445</pd:x>
+        <pd:y>329</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <fault>localname=InvocationException namespace=http://schemas.tibco.com/bw/plugins/java/5.0/javaExceptions</fault>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="LogError">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <pd:x>442</pd:x>
+        <pd:y>210</pd:y>
+        <config>
+            <role>User</role>
+        </config>
+        <pd:inputBindings>
+            <ns12:ActivityInput>
+                <message>
+                    <xsl:value-of select="concat(&quot;Error de version del EAR para: &quot;, &quot;-ProjectName=&quot;,$_processContext/ns2:ProcessContext/ProjectName , &quot;-EngineName=&quot;, $_processContext/ns2:ProcessContext/EngineName , &quot;-ProcessId=&quot;,$_processContext/ns2:ProcessContext/ProcessId)"/>
+                </message>
+            </ns12:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>EarVersion</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>EarVersion</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>LogError</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>LogError</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

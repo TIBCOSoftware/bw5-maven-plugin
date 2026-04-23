@@ -1,0 +1,704 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx3="http://www.tibco.com/pe/DeployedVarsType" xmlns:pfx2="http://www.bbva.com/EAIFramework" xmlns:pfx="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_ServiceIdManagement/ARC_GetServiceId.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="pathGetCurrentProcess" type="xsd:string"/>
+    </pd:startType>
+    <pd:startX>71</pd:startX>
+    <pd:startY>114</pd:startY>
+    <pd:returnBindings>
+        <GetServiceIdParams>
+            <ServiceId>
+                <xsl:value-of select="$SetServiceIdAndPath/Data/ServiceId"/>
+            </ServiceId>
+            <DynamicInvocationRoot>
+                <xsl:value-of select="$SetServiceIdAndPath/Data/Path"/>
+            </DynamicInvocationRoot>
+            <xsl:copy-of select="$BuildMetaData/ServiceMetaData"/>
+        </GetServiceIdParams>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="GetServiceIdParams">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="ServiceId" type="xsd:string"/>
+                    <xsd:element name="DynamicInvocationRoot" type="xsd:string"/>
+                    <xsd:element name="ServiceMetaData" minOccurs="0">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="Data" maxOccurs="unbounded">
+                                    <xsd:complexType>
+                                        <xsd:sequence>
+                                            <xsd:element name="Name" type="xsd:string"/>
+                                            <xsd:element name="Value" type="xsd:string"/>
+                                        </xsd:sequence>
+                                    </xsd:complexType>
+                                </xsd:element>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>2037</pd:endX>
+    <pd:endY>123</pd:endY>
+    <pd:errorSchemas>
+        <Schema0 ref="pfx2:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables>
+        <Variable>
+            <xsd:element name="group">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="ServiceId" type="xsd:string"/>
+                        <xsd:element name="root" type="xsd:string"/>
+                        <xsd:element name="FromBusiness" type="xsd:string"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </Variable>
+    </pd:processVariables>
+    <pd:targetNamespace>http://xmlns.example.com/1332850669167</pd:targetNamespace>
+    <pd:activity name="AssignServiceIdInfo">
+        <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+        <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+        <pd:x>332</pd:x>
+        <pd:y>115</pd:y>
+        <config>
+            <variableName>Variable</variableName>
+        </config>
+        <pd:inputBindings>
+            <group>
+                <ServiceId>
+                    <xsl:value-of select="substring-before(substring-after(substring-after(concat($_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_root,substring-after(concat(&quot;/&quot;,$Start/pathGetCurrentProcess), $_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_root)),&quot;/&quot;),&quot;/&quot;), &quot;/&quot;)"/>
+                </ServiceId>
+                <root>
+                    <xsl:value-of select="concat(substring-before($Start/pathGetCurrentProcess, $_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_root),$_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_root)"/>
+                </root>
+                <FromBusiness>
+                    <xsl:value-of select="concat($_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_root,substring-after(concat(&quot;/&quot;,$Start/pathGetCurrentProcess), $_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_root))"/>
+                </FromBusiness>
+            </group>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ServiceId_Not_Correct">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>468</pd:x>
+        <pd:y>251</pd:y>
+        <config>
+            <faultName>Schema0</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx:ActivityInput>
+                <message>
+                    <xsl:value-of select="$Start/pathGetCurrentProcess"/>
+                </message>
+                <data>
+                    <pfx2:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ServiceIdError"/>
+                        </ErrorCode>
+                        <ErrorDescription>
+                            <xsl:value-of select="if(string-length($Variable/group/ServiceId)=0)&#xA;then&#xA;$_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/ErrorDescriptions/GLB_ServiceIdErrorDescription&#xA;else&#xA;$_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/ErrorDescriptions/GLB_ServiceIdLenghTooLong"/>
+                        </ErrorDescription>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GeneralConstants/Errors/Severities/GLB_FatalError"/>
+                        </Severity>
+                        <OriginalMessage>
+                            <xsl:value-of select="$Start/pathGetCurrentProcess"/>
+                        </OriginalMessage>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="$Start/pathGetCurrentProcess"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </pfx2:ErrorMessage>
+                </data>
+            </pfx:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="SetServiceIdAndPath">
+        <pd:type>com.tibco.pe.core.SetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.setSharedVariable</pd:resourceType>
+        <pd:x>606</pd:x>
+        <pd:y>113</pd:y>
+        <config>
+            <showResult>true</showResult>
+            <variableConfig>/SharedResources/JobSharedVariables/ServiceIdAndPath.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings>
+            <Data>
+                <ServiceId>
+                    <xsl:value-of select="$Variable/group/ServiceId"/>
+                </ServiceId>
+                <Path>
+                    <xsl:value-of select="concat($Variable/group/root, $Variable/group/ServiceId)"/>
+                </Path>
+            </Data>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="SetMetaDataInfo">
+        <pd:type>com.tibco.pe.core.SetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.setSharedVariable</pd:resourceType>
+        <pd:x>1336</pd:x>
+        <pd:y>118</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/ServiceMetaData.jobsharedvariable</variableConfig>
+            <showResult>true</showResult>
+        </config>
+        <pd:inputBindings>
+            <xsl:copy-of select="$BuildMetaData/ServiceMetaData"/>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="BuildMetaData">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>1174</pd:x>
+        <pd:y>119</pd:y>
+        <config>
+            <element>
+                <xsd:element name="ServiceMetaData">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="Data" maxOccurs="unbounded">
+                                <xsd:complexType>
+                                    <xsd:sequence>
+                                        <xsd:element name="Name" type="xsd:string"/>
+                                        <xsd:element name="Value" type="xsd:string"/>
+                                    </xsd:sequence>
+                                </xsd:complexType>
+                            </xsd:element>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+            </element>
+        </config>
+        <pd:inputBindings>
+            <ServiceMetaData>
+                <Data>
+                    <Name>
+                        <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/MetaDataConstants/DEPVERSION"/>
+                    </Name>
+                    <xsl:variable name="var2" select="$_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/MetaDataConstants/DEPVERSION"/>
+                    <xsl:choose>
+                        <xsl:when test="string-length($GetGlobalMetaData/GlobalServiceMetaData/Data[  Name = $var2   ]/Value)>0">
+                            <xsl:variable name="var" select="$_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/MetaDataConstants/DEPVERSION"/>
+                            <Value>
+                                <xsl:value-of select="$GetGlobalMetaData/GlobalServiceMetaData/Data[  Name = $var   ]/Value"/>
+                            </Value>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <Value>
+                                <xsl:value-of select="&quot;&quot;"/>
+                            </Value>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </Data>
+                <Data>
+                    <Name>
+                        <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/MetaDataConstants/LIBVERSION"/>
+                    </Name>
+                    <xsl:variable name="var4" select="$_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/MetaDataConstants/LIBVERSION"/>
+                    <xsl:choose>
+                        <xsl:when test="string-length($GetGlobalMetaData/GlobalServiceMetaData/Data[  Name = $var4   ]/Value)>0">
+                            <xsl:variable name="var3" select="$_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/MetaDataConstants/LIBVERSION"/>
+                            <Value>
+                                <xsl:value-of select="$GetGlobalMetaData/GlobalServiceMetaData/Data[  Name = $var3   ]/Value"/>
+                            </Value>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <Value>
+                                <xsl:value-of select="&quot;&quot;"/>
+                            </Value>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </Data>
+                <Data>
+                    <Name>
+                        <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/MetaDataConstants/ENDPOINT"/>
+                    </Name>
+                    <xsl:variable name="var5" select="$SetServiceIdAndPath/Data/ServiceId"/>
+                    <Value>
+                        <xsl:value-of select="$GetGlobalMetaData/GlobalServiceMetaData/Data[  Value = $var5   ]/Name"/>
+                    </Value>
+                </Data>
+                <Data>
+                    <Name>
+                        <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/MetaDataConstants/SERVICEID"/>
+                    </Name>
+                    <Value>
+                        <xsl:value-of select="$Variable/group/ServiceId"/>
+                    </Value>
+                </Data>
+                <Data>
+                    <Name>
+                        <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/MetaDataConstants/EVENTPATTERNGROUP"/>
+                    </Name>
+                    <xsl:variable name="var6" select="$SetServiceIdAndPath/Data/ServiceId"/>
+                    <Value>
+                        <xsl:value-of select="$GetGlobalQueueConfigurationCheck/pfx2:QueuesCacheList/pfx2:Destination[ @ServiceId= $var6 ]/@PatternGroupNameRef"/>
+                    </Value>
+                </Data>
+            </ServiceMetaData>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="SetFilteredMonitoringPatterns">
+        <pd:type>com.tibco.pe.core.SetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.setSharedVariable</pd:resourceType>
+        <pd:x>1869</pd:x>
+        <pd:y>124</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/ServiceIDFilteredEventPatterns.jobsharedvariable</variableConfig>
+            <showResult>true</showResult>
+        </config>
+        <pd:inputBindings>
+            <EventPatterns>
+                <xsl:variable name="var" select="$SetServiceIdAndPath/Data/ServiceId"/>
+                <xsl:choose>
+                    <xsl:when test="$LoadGeneralConfiguration">
+                        <xsl:for-each select="$GetEventPatterns/FilteredMonitoring/FilteredPatterns[  GroupPatternName = $LoadGeneralConfiguration/Data/pfx2:QueuesCacheList/pfx2:Destination[    @ServiceId= $SetServiceIdAndPath/Data/ServiceId ]/@PatternGroupNameRef    ]/Event">
+                            <Events>
+                                <EventName>
+                                    <xsl:value-of select="current()/EventCode"/>
+                                </EventName>
+                                <ErrorStopFlow>
+                                    <xsl:value-of select="current()/ErrorStopFlow"/>
+                                </ErrorStopFlow>
+                                <xsl:for-each select="Destination">
+                                    <Destination>
+                                        <DestinationType>
+                                            <xsl:value-of select="DestinationType"/>
+                                        </DestinationType>
+                                        <DestinationName>
+                                            <xsl:value-of select="DestinationName"/>
+                                        </DestinationName>
+                                    </Destination>
+                                </xsl:for-each>
+                            </Events>
+                        </xsl:for-each>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:for-each select="$GetEventPatterns/FilteredMonitoring/FilteredPatterns[  GroupPatternName = $GetGlobalQueueConfigurationCheck/pfx2:QueuesCacheList/pfx2:Destination[    @ServiceId= $SetServiceIdAndPath/Data/ServiceId ]/@PatternGroupNameRef    ]/Event">
+                            <Events>
+                                <EventName>
+                                    <xsl:value-of select="current()/EventCode"/>
+                                </EventName>
+                                <ErrorStopFlow>
+                                    <xsl:value-of select="current()/ErrorStopFlow"/>
+                                </ErrorStopFlow>
+                                <xsl:for-each select="Destination">
+                                    <Destination>
+                                        <DestinationType>
+                                            <xsl:value-of select="DestinationType"/>
+                                        </DestinationType>
+                                        <DestinationName>
+                                            <xsl:value-of select="DestinationName"/>
+                                        </DestinationName>
+                                    </Destination>
+                                </xsl:for-each>
+                            </Events>
+                        </xsl:for-each>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </EventPatterns>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:group name="Lock-MetaData">
+        <pd:type>com.tibco.pe.core.CriticalSectionGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>734</pd:x>
+        <pd:y>40</pd:y>
+        <pd:width>375</pd:width>
+        <pd:height>141</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>criticalSection</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:scope>multiple</pd:scope>
+            <pd:criticalSectionLock>/SharedResources/SharedVariables/Lock-GlobalMetaData.sharedLock</pd:criticalSectionLock>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>GetGlobalMetaData</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>GetGlobalMetaData</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:activity name="GetGlobalMetaData">
+            <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+            <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+            <pd:x>971</pd:x>
+            <pd:y>119</pd:y>
+            <config>
+                <variableConfig>/SharedResources/SharedVariables/GlobalServiceMetaData.sharedvariable</variableConfig>
+            </config>
+            <pd:inputBindings/>
+        </pd:activity>
+    </pd:group>
+    <pd:group name="Lock-Patterns">
+        <pd:type>com.tibco.pe.core.CriticalSectionGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>1425</pd:x>
+        <pd:y>44</pd:y>
+        <pd:width>377</pd:width>
+        <pd:height>140</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>criticalSection</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:scope>multiple</pd:scope>
+            <pd:criticalSectionLock>/SharedResources/SharedVariables/Lock-FilteredEvent.sharedLock</pd:criticalSectionLock>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>GetEventPatterns</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>GetEventPatterns</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:activity name="GetEventPatterns">
+            <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+            <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+            <pd:x>1618</pd:x>
+            <pd:y>124</pd:y>
+            <config>
+                <variableConfig>/SharedResources/SharedVariables/FilteredEventMonitoringList.sharedvariable</variableConfig>
+            </config>
+            <pd:inputBindings/>
+        </pd:activity>
+    </pd:group>
+    <pd:activity name="GetGlobalQueueConfigurationCheck">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>609</pd:x>
+        <pd:y>398</pd:y>
+        <config>
+            <variableConfig>/SharedResources/SharedVariables/Queues-Service List.sharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="LoadGeneralConfiguration">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>925</pd:x>
+        <pd:y>398</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Queues/ARC_QueuesManagement/LoadQueueListCache.process</processName>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="ServiceId_Not_Get">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>197</pd:x>
+        <pd:y>261</pd:y>
+        <config>
+            <faultName>Schema0</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx:ActivityInput>
+                <message>
+                    <xsl:value-of select="$Start/pathGetCurrentProcess"/>
+                </message>
+                <data>
+                    <pfx2:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ServiceIdError"/>
+                        </ErrorCode>
+                        <ErrorDescription>
+                            <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/ErrorDescriptions/GLB_ServiceIdErrorDescription"/>
+                        </ErrorDescription>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GeneralConstants/Errors/Severities/GLB_FatalError"/>
+                        </Severity>
+                        <OriginalMessage>
+                            <xsl:value-of select="$Start/pathGetCurrentProcess"/>
+                        </OriginalMessage>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="$Start/pathGetCurrentProcess"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </pfx2:ErrorMessage>
+                </data>
+            </pfx:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch_otherErrors">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>93</pd:x>
+        <pd:y>463</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="GeneralError">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>255</pd:x>
+        <pd:y>464</pd:y>
+        <config>
+            <faultName>Schema0</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx:ActivityInput>
+                <message>
+                    <xsl:value-of select="$Start/pathGetCurrentProcess"/>
+                </message>
+                <data>
+                    <xsl:choose>
+                        <xsl:when test="string-length($CatchErrorMessage/pfx2:ErrorMessage/ErrorCode)>0">
+                            <xsl:copy-of select="$CatchErrorMessage/pfx2:ErrorMessage"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <pfx2:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ServiceIdError"/>
+                                </ErrorCode>
+                                <xsl:if test="$_error/ns:ErrorReport/Msg">
+                                    <ErrorDescription>
+                                        <xsl:value-of select="$_error/ns:ErrorReport/Msg"/>
+                                    </ErrorDescription>
+                                </xsl:if>
+                                <xsl:if test="$_error/ns:ErrorReport/StackTrace">
+                                    <StackTrace>
+                                        <xsl:value-of select="$_error/ns:ErrorReport/StackTrace"/>
+                                    </StackTrace>
+                                </xsl:if>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GeneralConstants/Errors/Severities/GLB_FatalError"/>
+                                </Severity>
+                                <OriginalMessage>
+                                    <xsl:value-of select="$Start/pathGetCurrentProcess"/>
+                                </OriginalMessage>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="$Start/pathGetCurrentProcess"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/pfx3:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx2:ErrorMessage>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </data>
+            </pfx:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="checkGetRoot">
+        <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+        <pd:resourceType>ae.activities.null</pd:resourceType>
+        <pd:x>201</pd:x>
+        <pd:y>113</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="checkServiceId">
+        <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+        <pd:resourceType>ae.activities.null</pd:resourceType>
+        <pd:x>463</pd:x>
+        <pd:y>113</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="CatchErrorMessage">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>100</pd:x>
+        <pd:y>350</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <fault>localname=ErrorMessage namespace=http://www.bbva.com/EAIFramework</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>BuildMetaData</pd:from>
+        <pd:to>SetMetaDataInfo</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>SetFilteredMonitoringPatterns</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Lock-MetaData</pd:from>
+        <pd:to>BuildMetaData</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>SetMetaDataInfo</pd:from>
+        <pd:to>Lock-Patterns</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Lock-Patterns</pd:from>
+        <pd:to>SetFilteredMonitoringPatterns</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>SetServiceIdAndPath</pd:from>
+        <pd:to>GetGlobalQueueConfigurationCheck</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetGlobalQueueConfigurationCheck</pd:from>
+        <pd:to>LoadGeneralConfiguration</pd:to>
+        <pd:xpathDescription>not loaded</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>count($GetGlobalQueueConfigurationCheck/pfx2:QueuesCacheList/pfx2:Destination)=0</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>LoadGeneralConfiguration</pd:from>
+        <pd:to>Lock-MetaData</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetGlobalQueueConfigurationCheck</pd:from>
+        <pd:to>Lock-MetaData</pd:to>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch_otherErrors</pd:from>
+        <pd:to>GeneralError</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>checkGetRoot</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>checkGetRoot</pd:from>
+        <pd:to>AssignServiceIdInfo</pd:to>
+        <pd:xpathDescription>OKGetRoot</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>tib:index-of(concat("/",$Start/pathGetCurrentProcess), $_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_root)!=-1   and tib:last-index-of(concat("/",$Start/pathGetCurrentProcess), $_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_root)= tib:index-of(concat("/",$Start/pathGetCurrentProcess), $_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_root)</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>checkGetRoot</pd:from>
+        <pd:to>ServiceId_Not_Get</pd:to>
+        <pd:xpathDescription>ErrorGetRoot</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>AssignServiceIdInfo</pd:from>
+        <pd:to>checkServiceId</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>checkServiceId</pd:from>
+        <pd:to>SetServiceIdAndPath</pd:to>
+        <pd:xpathDescription>OKGetServiceId</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>string-length($Variable/group/ServiceId)&lt;=$_globalVariables/pfx3:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_ServiceId_Max_Length
+and
+string-length($Variable/group/ServiceId)&gt;0</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>checkServiceId</pd:from>
+        <pd:to>ServiceId_Not_Correct</pd:to>
+        <pd:xpathDescription>ErrorGetServiceId</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>CatchErrorMessage</pd:from>
+        <pd:to>GeneralError</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

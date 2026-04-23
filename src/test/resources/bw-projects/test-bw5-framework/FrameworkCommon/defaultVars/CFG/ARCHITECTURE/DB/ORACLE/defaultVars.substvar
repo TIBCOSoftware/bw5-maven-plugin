@@ -1,0 +1,45 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>CFG_DB_LOGINTIMEOUT</name>
+			<value>0</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1386864673993</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_DB_MAX_CONNECTIONS</name>
+			<value>10</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1386864671284</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_DB_PASSWORD</name>
+			<value>#!E+Jl7FzwsQIyppmQJKBpnw==</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Password</type>
+			<modTime>1393349657705</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_DB_URL</name>
+			<value>no value</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671149</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_DB_USER</name>
+			<value></value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673575</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

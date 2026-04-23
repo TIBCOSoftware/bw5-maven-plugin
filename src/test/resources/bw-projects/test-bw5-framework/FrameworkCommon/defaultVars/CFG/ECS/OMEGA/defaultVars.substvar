@@ -1,0 +1,45 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>API_Version</name>
+			<value>v1</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1624953986752</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>DNS_TLD</name>
+			<value>nextgen.igrupobbva</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1624953986789</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>Deployment_Environment</name>
+			<value>work-01</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1624953986814</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>Num_Attempts_Connection</name>
+			<value>1</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1624953986839</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>Reconnection_Interval</name>
+			<value>1000</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1624953986875</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

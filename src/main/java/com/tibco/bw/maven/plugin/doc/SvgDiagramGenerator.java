@@ -5,197 +5,285 @@ import java.util.*;
 /**
  * Generates an SVG diagram for a BW5 process.
  *
- * <p>Uses the x/y coordinates stored in the process XML to position activities.
- * Draws activities as labelled boxes and transitions as arrows with condition labels.</p>
+ * <p>Renders activities as icon + label (no surrounding rectangle), matching the
+ * visual style of TIBCO Designer 5.x. Start/End states are drawn as small circles.</p>
  */
 public class SvgDiagramGenerator {
 
-    // Activity box dimensions (icon 32px + label area)
-    private static final int BOX_W = 100;
-    private static final int BOX_H = 64;
-    private static final int BOX_HALF_W = BOX_W / 2;
-    private static final int BOX_HALF_H = BOX_H / 2;
-    private static final int ICON_SIZE = 32;
+    private static final int ICON_SIZE  = 32;
+    private static final int ICON_HALF  = ICON_SIZE / 2;   // 16 — used for edge connection points
 
-    // Padding around the whole diagram
-    private static final int PADDING = 30;
+    /** Vertical distance from activity centre to the first label baseline. */
+    private static final int LABEL_OFFSET = ICON_HALF + 13;
+
+    /** Extra canvas space around the outermost activity. */
+    private static final int PADDING = 40;
+
+    /** Approximate half-width of the label area (for canvas sizing only). */
+    private static final int SLOT_HALF_W = 44;
+    /** Approximate half-height including label (for canvas sizing only). */
+    private static final int SLOT_HALF_H = 30;
+
+    // ── Public API ────────────────────────────────────────────────────────────
 
     public String generate(ProcessDocModel model) {
         List<ProcessDocModel.Activity> activities = model.allActivities();
-        if (activities.isEmpty()) return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"60\"></svg>";
+        if (activities.isEmpty()) {
+            return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"60\"></svg>";
+        }
 
-        // Calculate canvas bounds
+        // Calculate canvas bounds from raw process coordinates
         int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
         int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
         for (ProcessDocModel.Activity a : activities) {
-            minX = Math.min(minX, a.x);
-            minY = Math.min(minY, a.y);
-            maxX = Math.max(maxX, a.x);
-            maxY = Math.max(maxY, a.y);
+            minX = Math.min(minX, a.x); minY = Math.min(minY, a.y);
+            maxX = Math.max(maxX, a.x); maxY = Math.max(maxY, a.y);
+        }
+        // Include group bounding boxes in canvas sizing
+        for (ProcessDocModel.Group g : model.groups) {
+            minX = Math.min(minX, g.x); minY = Math.min(minY, g.y);
+            maxX = Math.max(maxX, g.x + g.width); maxY = Math.max(maxY, g.y + g.height);
+        }
+        // Include canvas labels so they are never clipped outside the viewport
+        for (ProcessDocModel.Label lbl : model.labels) {
+            if (lbl.x >= 0 && lbl.y >= 0) {
+                // Approximate label width: ~6px per char, max line ~40 chars
+                int approxW = Math.min(lbl.text != null ? lbl.text.length() * 6 : 0, 260);
+                int approxH = lbl.text != null ? (lbl.text.split("\\r?\\n").length + 1) * 13 : 13;
+                minX = Math.min(minX, lbl.x); minY = Math.min(minY, lbl.y);
+                maxX = Math.max(maxX, lbl.x + approxW); maxY = Math.max(maxY, lbl.y + approxH);
+            }
         }
 
-        // Offset so activities start at PADDING
-        final int offsetX = PADDING + BOX_HALF_W - minX;
-        final int offsetY = PADDING + BOX_HALF_H - minY;
+        final int offsetX = PADDING + SLOT_HALF_W - minX;
+        final int offsetY = PADDING + SLOT_HALF_H - minY;
 
-        int width  = maxX - minX + BOX_W + PADDING * 2;
-        int height = maxY - minY + BOX_H + PADDING * 2;
+        int width  = maxX - minX + SLOT_HALF_W * 2 + PADDING * 2;
+        int height = maxY - minY + SLOT_HALF_H * 2 + PADDING * 2;
 
-        // Build activity name → position map
+        // Activity name → canvas centre position
         Map<String, int[]> positions = new HashMap<>();
         for (ProcessDocModel.Activity a : activities) {
             positions.put(a.name, new int[]{ a.x + offsetX, a.y + offsetY });
         }
+        // Groups expose distinct entry and exit boundary points so transitions
+        // connect to the correct edge of the group box.
+        for (ProcessDocModel.Group g : model.groups) {
+            if (g.name == null) continue;
+            int midY = g.y + g.height / 2 + offsetY;
+            positions.put(g.name + "#entry", new int[]{ g.x + offsetX,           midY });
+            positions.put(g.name + "#exit",  new int[]{ g.x + g.width + offsetX, midY });
+        }
 
         StringBuilder svg = new StringBuilder();
         svg.append(String.format(
-            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"%d\" height=\"%d\" "
-            + "style=\"font-family:Arial,sans-serif;background:#fafafa;border:1px solid #e0e0e0;border-radius:6px;\">%n",
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" "
+            + "xmlns:xlink=\"http://www.w3.org/1999/xlink\" "
+            + "viewBox=\"0 0 %d %d\" "
+            + "width=\"100%%\" "
+            + "style=\"font-family:Arial,sans-serif;background:#fafbff;display:block;\">%n",
             width, height));
 
         appendDefs(svg);
 
-        // Draw transitions first (below activities)
+        // Groups — drawn first (background, behind everything)
+        for (ProcessDocModel.Group g : model.groups) {
+            drawGroup(svg, g, g.x + offsetX, g.y + offsetY);
+        }
+
+        // Transitions first (drawn behind activities)
         for (ProcessDocModel.Transition tr : model.transitions) {
             int[] from = positions.get(tr.from);
             int[] to   = positions.get(tr.to);
             if (from == null || to == null) continue;
-            drawTransition(svg, from, to, tr, BOX_HALF_W, BOX_HALF_H);
+            drawTransition(svg, from, to, tr);
         }
 
-        // Draw activities on top
+        // Activities on top
         for (ProcessDocModel.Activity a : activities) {
-            int cx = a.x + offsetX;
-            int cy = a.y + offsetY;
-            drawActivity(svg, a, cx, cy);
+            drawActivity(svg, a, a.x + offsetX, a.y + offsetY);
+        }
+
+        // Canvas labels (text annotations)
+        for (ProcessDocModel.Label lbl : model.labels) {
+            drawCanvasLabel(svg, lbl, lbl.x + offsetX, lbl.y + offsetY);
         }
 
         svg.append("</svg>");
         return svg.toString();
     }
 
+    // ── Defs (arrow markers) ──────────────────────────────────────────────────
+
     private void appendDefs(StringBuilder svg) {
         svg.append("  <defs>\n");
-        // Arrow markers for different transition types
-        appendArrowMarker(svg, "arrow-always",    "#555555");
-        appendArrowMarker(svg, "arrow-success",   "#27ae60");
-        appendArrowMarker(svg, "arrow-error",     "#e74c3c");
-        appendArrowMarker(svg, "arrow-cond",      "#e67e22");
-        appendArrowMarker(svg, "arrow-otherwise", "#8e44ad");
+        appendArrowMarker(svg, "arr-always",    "#888888");
+        appendArrowMarker(svg, "arr-success",   "#27ae60");
+        appendArrowMarker(svg, "arr-error",     "#e74c3c");
+        appendArrowMarker(svg, "arr-cond",      "#e67e22");
+        appendArrowMarker(svg, "arr-otherwise", "#8e44ad");
         svg.append("  </defs>\n");
     }
 
     private void appendArrowMarker(StringBuilder svg, String id, String color) {
         svg.append(String.format(
-            "    <marker id=\"%s\" markerWidth=\"8\" markerHeight=\"8\" refX=\"6\" refY=\"3\" orient=\"auto\">"
-            + "<path d=\"M0,0 L0,6 L8,3 z\" fill=\"%s\"/></marker>%n", id, color));
+            "    <marker id=\"%s\" markerWidth=\"8\" markerHeight=\"8\" "
+            + "refX=\"6\" refY=\"3\" orient=\"auto\">"
+            + "<path d=\"M0,0 L0,6 L8,3 z\" fill=\"%s\"/></marker>%n",
+            id, color));
     }
+
+    // ── Activity rendering ────────────────────────────────────────────────────
+
+    // ── Group rendering ───────────────────────────────────────────────────────
+
+    private static final int GROUP_TITLE_H = 20;
+    private static final String GROUP_TITLE_FILL  = "#c3bdf5";
+    private static final String GROUP_TITLE_STROKE = "#7e57c2";
+    private static final String GROUP_BODY_FILL    = "rgba(195,189,245,0.10)";
+
+    private void drawGroup(StringBuilder svg, ProcessDocModel.Group g, int gx, int gy) {
+        String label = g.name != null ? g.name : "";
+        int w = g.width;
+        int h = g.height;
+
+        // Title bar
+        svg.append(String.format(
+            "  <rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" "
+            + "fill=\"%s\" stroke=\"%s\" stroke-width=\"1\" rx=\"3\" ry=\"0\"/>%n",
+            gx, gy, w, GROUP_TITLE_H, GROUP_TITLE_FILL, GROUP_TITLE_STROKE));
+
+        // Body (transparent fill so activities show through)
+        svg.append(String.format(
+            "  <rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" "
+            + "fill=\"%s\" stroke=\"%s\" stroke-width=\"1\" "
+            + "stroke-dasharray=\"4,2\" rx=\"0\" ry=\"3\"/>%n",
+            gx, gy + GROUP_TITLE_H, w, h - GROUP_TITLE_H, GROUP_BODY_FILL, GROUP_TITLE_STROKE));
+
+        // Group name centred in title bar
+        String[] labelLines = wrapText(label, (int)(w / 6.5));
+        int ty = gy + GROUP_TITLE_H / 2 + 4;
+        for (String line : labelLines) {
+            svg.append(String.format(
+                "  <text x=\"%d\" y=\"%d\" text-anchor=\"middle\" font-size=\"10\" "
+                + "fill=\"#311b92\" font-weight=\"bold\">%s</text>%n",
+                gx + w / 2, ty, escXml(line)));
+            ty += 12;
+        }
+
+        // Entry marker (▶ triangle on left edge at mid-height) and exit marker (■ on right edge)
+        int midY = gy + h / 2;
+        svg.append(String.format(
+            "  <polygon points=\"%d,%d %d,%d %d,%d\" fill=\"%s\" stroke=\"none\"/>%n",
+            gx - 6, midY - 5, gx - 6, midY + 5, gx, midY,
+            GROUP_TITLE_STROKE));
+        svg.append(String.format(
+            "  <rect x=\"%d\" y=\"%d\" width=\"7\" height=\"7\" fill=\"%s\" stroke=\"none\"/>%n",
+            gx + w - 1, midY - 3,
+            GROUP_TITLE_STROKE));
+    }
+
+    // ── Activity rendering ────────────────────────────────────────────────────
 
     private void drawActivity(StringBuilder svg, ProcessDocModel.Activity a, int cx, int cy) {
-        int x = cx - BOX_HALF_W;
-        int y = cy - BOX_HALF_H;
 
+        // End / stop-state: solid red bull's-eye (Designer "End" node)
         if (a.isEnd || "ae.process.stopstate".equals(a.resourceType)) {
-            // End / stop-state: icon + label, same style as start-state
             svg.append(String.format(
-                "  <circle cx=\"%d\" cy=\"%d\" r=\"22\" fill=\"#b71c1c\" stroke=\"#7f0000\" stroke-width=\"2\"/>%n",
+                "  <circle cx=\"%d\" cy=\"%d\" r=\"14\" fill=\"#c62828\" stroke=\"#7f0000\" stroke-width=\"2\"/>%n",
                 cx, cy));
-            svg.append("  ");
-            svg.append(ActivityIconRegistry.getImageElement(null, "ae.process.stopstate", cx, cy, ICON_SIZE));
-            svg.append(System.lineSeparator());
-            String ename = a.name != null ? a.name : "";
             svg.append(String.format(
-                "  <text x=\"%d\" y=\"%d\" text-anchor=\"middle\" font-size=\"10\" fill=\"#1a1a1a\">%s</text>%n",
-                cx, cy + 32, escXml(ename)));
+                "  <circle cx=\"%d\" cy=\"%d\" r=\"5\" fill=\"#7f0000\"/>%n",
+                cx, cy));
+            appendLabel(svg, a.name, cx, cy + LABEL_OFFSET, false);
             return;
         }
 
-        // Start-state node (no event source — pure process-group start state): render as
-        // a filled green circle with the icon overlaid, then the name label.
+        // Process start-state node: solid green circle (Designer "Start" node)
         if ("act-startstate".equals(a.cssClass())) {
             svg.append(String.format(
-                "  <circle cx=\"%d\" cy=\"%d\" r=\"22\" fill=\"#1b5e20\" stroke=\"#2e7d32\" stroke-width=\"2\"/>%n",
+                "  <circle cx=\"%d\" cy=\"%d\" r=\"14\" fill=\"#2e7d32\" stroke=\"#1b5e20\" stroke-width=\"2\"/>%n",
                 cx, cy));
-            svg.append("  ");
-            svg.append(ActivityIconRegistry.getImageElement(a.type, a.resourceType, cx, cy, ICON_SIZE));
-            svg.append(System.lineSeparator());
-            String sname = a.name != null ? a.name : "";
             svg.append(String.format(
-                "  <text x=\"%d\" y=\"%d\" text-anchor=\"middle\" font-size=\"10\" fill=\"#1a1a1a\">%s</text>%n",
-                cx, cy + 32, escXml(sname)));
+                "  <circle cx=\"%d\" cy=\"%d\" r=\"5\" fill=\"#a5d6a7\"/>%n",
+                cx, cy));
+            appendLabel(svg, a.name, cx, cy + LABEL_OFFSET, false);
             return;
         }
 
-        String fillColor   = getColor(a);
-        String strokeColor = getDarkerColor(a);
-        int radius         = a.isStarter ? 8 : 6;
-        int strokeW        = a.isStarter ? 3 : 1;
-
-        // Background box
-        svg.append(String.format(
-            "  <rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" rx=\"%d\" ry=\"%d\" "
-            + "fill=\"%s\" stroke=\"%s\" stroke-width=\"%d\"/>%n",
-            x, y, BOX_W, BOX_H, radius, radius, fillColor, strokeColor, strokeW));
-
-        // Icon centred in the upper portion of the box
-        int iconY = y + 4;   // 4px top padding
+        // All other activities (including event-source starters): icon + label, no box
         svg.append("  ");
-        svg.append(ActivityIconRegistry.getImageElement(a.type, a.resourceType,
-            cx, iconY + ICON_SIZE / 2, ICON_SIZE));
+        svg.append(ActivityIconRegistry.getImageElement(a.type, a.resourceType, cx, cy, ICON_SIZE));
         svg.append(System.lineSeparator());
+        appendLabel(svg, a.name, cx, cy + LABEL_OFFSET, a.isStarter);
+    }
 
-        // Activity name label below the icon
-        String name = a.name != null ? a.name : "";
-        String[] lines = wrapText(name, 14);
-        int labelY = iconY + ICON_SIZE + 11;   // baseline of first label line
+    private void appendLabel(StringBuilder svg, String name, int cx, int baseY, boolean bold) {
+        String text  = name != null ? name : "";
+        String[] lines = wrapText(text, 14);
+        int y = baseY;
         for (String line : lines) {
             svg.append(String.format(
-                "  <text x=\"%d\" y=\"%d\" text-anchor=\"middle\" "
-                + "font-size=\"10\" fill=\"#1a1a1a\" font-weight=\"%s\">%s</text>%n",
-                cx, labelY, a.isStarter ? "bold" : "normal", escXml(line)));
-            labelY += 12;
+                "  <text x=\"%d\" y=\"%d\" text-anchor=\"middle\" font-size=\"10\" "
+                + "fill=\"#1a1a1a\"%s>%s</text>%n",
+                cx, y, bold ? " font-weight=\"bold\"" : "", escXml(line)));
+            y += 12;
         }
     }
 
+    private void drawCanvasLabel(StringBuilder svg, ProcessDocModel.Label lbl, int cx, int cy) {
+        // Split on actual newlines first, then wrap long lines
+        String[] rawLines = lbl.text.split("\\r?\\n");
+        int y = cy;
+        for (String raw : rawLines) {
+            String trimmed = raw.trim();
+            if (trimmed.isEmpty()) { y += 7; continue; }
+            String[] wrapped = wrapText(trimmed, 40);
+            for (String line : wrapped) {
+                svg.append(String.format(
+                    "  <text x=\"%d\" y=\"%d\" text-anchor=\"start\" font-size=\"10\" "
+                    + "fill=\"#555\" font-style=\"italic\">%s</text>%n",
+                    cx, y, escXml(line)));
+                y += 13;
+            }
+        }
+    }
+
+    // ── Transition rendering ──────────────────────────────────────────────────
+
     private void drawTransition(StringBuilder svg, int[] from, int[] to,
-                                ProcessDocModel.Transition tr,
-                                int halfW, int halfH) {
-        // Compute edge attachment points (simplified: center of box edges)
-        int x1 = from[0];
-        int y1 = from[1];
-        int x2 = to[0];
-        int y2 = to[1];
+                                ProcessDocModel.Transition tr) {
+        int[] start = iconEdge(from[0], from[1], to[0],   to[1]);
+        int[] end   = iconEdge(to[0],   to[1],   from[0], from[1]);
 
-        // Adjust to box edges (right/left/top/bottom depending on direction)
-        int[] start = boxEdge(x1, y1, x2, y2, halfW, halfH);
-        int[] end   = boxEdge(x2, y2, x1, y1, halfW, halfH);
-
-        String color = transitionColor(tr);
+        String color    = transitionColor(tr);
         String markerId = transitionMarkerId(tr);
 
-        // Cubic bezier control points
-        int dx = end[0] - start[0];
-        int dy = end[1] - start[1];
+        int dx  = end[0] - start[0];
+        int dy  = end[1] - start[1];
         int cx1 = start[0] + dx / 3;
         int cy1 = start[1];
         int cx2 = end[0] - dx / 3;
         int cy2 = end[1];
 
+        boolean isError = tr.conditionType != null
+            && "error".equalsIgnoreCase(tr.conditionType);
+
         svg.append(String.format(
-            "  <path d=\"M%d,%d C%d,%d %d,%d %d,%d\" fill=\"none\" stroke=\"%s\" stroke-width=\"1.8\" "
-            + "marker-end=\"url(#%s)\" %s/>%n",
+            "  <path d=\"M%d,%d C%d,%d %d,%d %d,%d\" fill=\"none\" stroke=\"%s\" "
+            + "stroke-width=\"1.5\" marker-end=\"url(#%s)\"%s/>%n",
             start[0], start[1], cx1, cy1, cx2, cy2, end[0], end[1],
             color, markerId,
-            tr.conditionType != null && "error".equalsIgnoreCase(tr.conditionType)
-                ? "stroke-dasharray=\"5,3\"" : ""));
+            isError ? " stroke-dasharray=\"5,3\"" : ""));
 
-        // Condition label on transition
+        // Condition label mid-arc
         String label = tr.conditionLabel();
         if (!label.isEmpty()) {
             int lx = (start[0] + end[0]) / 2;
             int ly = (start[1] + end[1]) / 2 - 6;
             svg.append(String.format(
-                "  <rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"14\" rx=\"3\" fill=\"white\" opacity=\"0.85\"/>%n",
+                "  <rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"14\" rx=\"3\" "
+                + "fill=\"white\" opacity=\"0.85\"/>%n",
                 lx - 30, ly - 9, 60));
             svg.append(String.format(
                 "  <text x=\"%d\" y=\"%d\" text-anchor=\"middle\" font-size=\"9\" fill=\"%s\">%s</text>%n",
@@ -203,86 +291,52 @@ public class SvgDiagramGenerator {
         }
     }
 
-    private int[] boxEdge(int cx, int cy, int targetX, int targetY, int hw, int hh) {
+    /**
+     * Returns the point on the edge of the icon hit-area (circle of radius ICON_HALF)
+     * closest to the target position.
+     */
+    private int[] iconEdge(int cx, int cy, int targetX, int targetY) {
         double dx = targetX - cx;
         double dy = targetY - cy;
-        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return new int[]{cx, cy};
-        double absDx = Math.abs(dx);
-        double absDy = Math.abs(dy);
-
-        if (absDx / hw > absDy / hh) {
-            // Hit left or right edge
-            int ex = (int)(cx + Math.signum(dx) * hw);
-            int ey = (int)(cy + dy * hw / absDx);
-            return new int[]{ex, ey};
-        } else {
-            // Hit top or bottom edge
-            int ex = (int)(cx + dx * hh / absDy);
-            int ey = (int)(cy + Math.signum(dy) * hh);
-            return new int[]{ex, ey};
-        }
+        double dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 1) return new int[]{cx, cy};
+        return new int[]{
+            (int)(cx + dx / dist * ICON_HALF),
+            (int)(cy + dy / dist * ICON_HALF)
+        };
     }
 
-    private String getColor(ProcessDocModel.Activity a) {
-        switch (a.cssClass()) {
-            case "act-startstate": return "#e8f5e9";
-            case "act-starter":   return "#1565c0";
-            case "act-http":      return "#e3f2fd";
-            case "act-timer":     return "#fff8e1";
-            case "act-jms":       return "#e8f5e9";
-            case "act-jdbc":      return "#fce4ec";
-            case "act-mail":      return "#f3e5f5";
-            case "act-java":      return "#e0f2f1";
-            case "act-log":       return "#f5f5f5";
-            case "act-callproc":  return "#fff3e0";
-            case "act-mapper":    return "#e8eaf6";
-            default:              return "#f5f5f5";
-        }
-    }
-
-    private String getDarkerColor(ProcessDocModel.Activity a) {
-        switch (a.cssClass()) {
-            case "act-startstate": return "#2e7d32";
-            case "act-starter":   return "#0d47a1";
-            case "act-http":      return "#1565c0";
-            case "act-timer":     return "#f57f17";
-            case "act-jms":       return "#2e7d32";
-            case "act-jdbc":      return "#c62828";
-            case "act-mail":      return "#6a1b9a";
-            case "act-java":      return "#00695c";
-            case "act-log":       return "#757575";
-            case "act-callproc":  return "#e65100";
-            case "act-mapper":    return "#283593";
-            default:              return "#757575";
-        }
-    }
+    // ── Transition colour / marker helpers ────────────────────────────────────
 
     private String transitionColor(ProcessDocModel.Transition tr) {
-        if (tr.conditionType == null) return "#555";
-        switch (tr.conditionType.toLowerCase()) {
+        if (tr.conditionType == null) return "#888";
+        switch (tr.conditionType.toLowerCase(Locale.ROOT)) {
             case "error":                return "#e74c3c";
+            case "xpath":
             case "successwithcondition": return "#e67e22";
             case "otherwise":            return "#8e44ad";
             case "success":              return "#27ae60";
-            default:                     return "#555";
+            default:                     return "#888";
         }
     }
 
     private String transitionMarkerId(ProcessDocModel.Transition tr) {
-        if (tr.conditionType == null) return "arrow-always";
-        switch (tr.conditionType.toLowerCase()) {
-            case "error":                return "arrow-error";
-            case "successwithcondition": return "arrow-cond";
-            case "otherwise":            return "arrow-otherwise";
-            case "success":              return "arrow-success";
-            default:                     return "arrow-always";
+        if (tr.conditionType == null) return "arr-always";
+        switch (tr.conditionType.toLowerCase(Locale.ROOT)) {
+            case "error":                return "arr-error";
+            case "xpath":
+            case "successwithcondition": return "arr-cond";
+            case "otherwise":            return "arr-otherwise";
+            case "success":              return "arr-success";
+            default:                     return "arr-always";
         }
     }
 
+    // ── Utilities ─────────────────────────────────────────────────────────────
+
     private String[] wrapText(String text, int maxChars) {
         if (text.length() <= maxChars) return new String[]{ text };
-        // Try to break at space near middle
-        int mid = text.length() / 2;
+        int mid   = text.length() / 2;
         int space = text.indexOf(' ', mid);
         if (space < 0) space = text.lastIndexOf(' ', mid);
         if (space > 0) {

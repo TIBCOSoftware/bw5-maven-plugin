@@ -28,6 +28,7 @@ public class ProcessDocParser {
         model.targetNamespace = text(root, "targetNamespace");
         model.displayName = toDisplayName(model.name != null ? model.name : processFile.getName());
         model.folderPath = extractFolder(model.name);
+        model.description = text(root, "description");
 
         // Parse starter (event source)
         Element starterEl = root.getChild("starter", PD);
@@ -70,14 +71,42 @@ public class ProcessDocParser {
 
         // Parse transitions
         for (Element trEl : root.getChildren("transition", PD)) {
-            ProcessDocModel.Transition tr = new ProcessDocModel.Transition();
-            tr.from = textDirect(trEl, "from");
-            tr.to = textDirect(trEl, "to");
-            tr.conditionType = textDirect(trEl, "conditionType");
-            tr.condition = textDirect(trEl, "condition");
-            if (tr.from != null && tr.to != null) {
-                model.transitions.add(tr);
+            ProcessDocModel.Transition tr = parseTransition(trEl);
+            if (tr != null) model.transitions.add(tr);
+        }
+
+        // Parse groups (LoopGroup, CriticalSection, etc.)
+        // Group activities/transitions use the same absolute coordinate space as the process.
+        for (Element grpEl : root.getChildren("group", PD)) {
+            parseGroup(grpEl, model);
+        }
+
+        // Parse canvas labels (text annotations)
+        // Structure: <pd:label><pd:description>text</pd:description><pd:x>n</pd:x><pd:y>n</pd:y>...</pd:label>
+        for (Element lblEl : root.getChildren("label", PD)) {
+            ProcessDocModel.Label lbl = new ProcessDocModel.Label();
+            lbl.x = intText(lblEl, "x", -1);
+            lbl.y = intText(lblEl, "y", -1);
+            String labelText = text(lblEl, "description");
+            if (labelText == null || labelText.isEmpty()) {
+                labelText = text(lblEl, "labelText");
             }
+            lbl.text = labelText != null ? labelText.trim() : null;
+            if (lbl.text != null && !lbl.text.isEmpty() && lbl.x >= 0 && lbl.y >= 0) {
+                model.labels.add(lbl);
+            }
+        }
+
+        // Remap process-level transitions that reference a group by name to its distinct
+        // entry (#entry) or exit (#exit) boundary key, so they connect to the correct
+        // edge of the group box in the SVG diagram.
+        Set<String> groupNames = new HashSet<>();
+        for (ProcessDocModel.Group g : model.groups) {
+            if (g.name != null) groupNames.add(g.name);
+        }
+        for (ProcessDocModel.Transition tr : model.transitions) {
+            if (tr.from != null && groupNames.contains(tr.from)) tr.from = tr.from + "#exit";
+            if (tr.to   != null && groupNames.contains(tr.to))   tr.to   = tr.to   + "#entry";
         }
 
         // Detect ProcessGroup activities: those with outgoing transitions are start states,
@@ -94,6 +123,54 @@ public class ProcessDocParser {
         }
 
         return model;
+    }
+
+    /**
+     * Parses a &lt;pd:group&gt; element: records the group bounding-box and absorbs its
+     * activities and transitions into the parent model's flat lists so they appear in
+     * the diagram and transition table.  Recurses for nested groups.
+     */
+    private void parseGroup(Element grpEl, ProcessDocModel model) {
+        ProcessDocModel.Group g = new ProcessDocModel.Group();
+        g.name = grpEl.getAttributeValue("name");
+        g.type = text(grpEl, "type");
+        g.x = intText(grpEl, "x", 0);
+        g.y = intText(grpEl, "y", 0);
+        g.width = intText(grpEl, "width", 80);
+        g.height = intText(grpEl, "height", 80);
+        model.groups.add(g);
+
+        // Activities inside the group use the same absolute coordinate space
+        for (Element actEl : grpEl.getChildren("activity", PD)) {
+            model.activities.add(parseActivity(actEl, false));
+        }
+
+        // Transitions inside the group.
+        // "start" / "end" are virtual names for the group's own entry/exit point —
+        // remap them to distinct entry/exit keys so they resolve at the group boundary.
+        for (Element trEl : grpEl.getChildren("transition", PD)) {
+            ProcessDocModel.Transition tr = parseTransition(trEl);
+            if (tr == null) continue;
+            if ("start".equals(tr.from)) tr.from = g.name + "#entry";
+            if ("end".equals(tr.to))     tr.to   = g.name + "#exit";
+            model.transitions.add(tr);
+        }
+
+        // Recurse into nested groups
+        for (Element subGrpEl : grpEl.getChildren("group", PD)) {
+            parseGroup(subGrpEl, model);
+        }
+    }
+
+    private ProcessDocModel.Transition parseTransition(Element trEl) {
+        ProcessDocModel.Transition tr = new ProcessDocModel.Transition();
+        tr.from = textDirect(trEl, "from");
+        tr.to = textDirect(trEl, "to");
+        tr.conditionType = textDirect(trEl, "conditionType");
+        // BW5 stores XPath expressions in <pd:xpath>, with an optional <pd:xpathDescription> label
+        tr.condition = textDirect(trEl, "xpath");
+        tr.conditionDescription = textDirect(trEl, "xpathDescription");
+        return (tr.from != null && tr.to != null) ? tr : null;
     }
 
     private ProcessDocModel.Activity parseActivity(Element el, boolean isStarter) {
@@ -137,13 +214,12 @@ public class ProcessDocParser {
      */
     private List<ProcessDocModel.FieldMapping> parseMappings(Element bindingsEl) {
         List<ProcessDocModel.FieldMapping> result = new ArrayList<>();
-        // Walk the bindings tree to find xsl:value-of elements and their target paths
-        collectMappings(bindingsEl, new ArrayList<>(), null, result);
+        collectMappings(bindingsEl, new ArrayList<>(), null, null, result);
         return result;
     }
 
     private void collectMappings(Element el, List<String> pathStack,
-                                  String currentCondition,
+                                  String currentCondition, String conditionKind,
                                   List<ProcessDocModel.FieldMapping> result) {
 
         String tag = el.getName();
@@ -153,7 +229,6 @@ public class ProcessDocParser {
         if (XSL.equals(ns)) {
             switch (tag) {
                 case "value-of": {
-                    // This is a leaf mapping
                     String select = el.getAttributeValue("select");
                     if (select != null && !pathStack.isEmpty()) {
                         ProcessDocModel.FieldMapping m = new ProcessDocModel.FieldMapping();
@@ -161,8 +236,9 @@ public class ProcessDocParser {
                         m.targetPath = String.join("/", pathStack);
                         m.sourceExpression = cleanSelectExpr(select);
                         m.isLiteral = isLiteral(select);
-                        m.isConditional = currentCondition != null;
+                        m.isConditional = currentCondition != null || "otherwise".equals(conditionKind);
                         m.condition = currentCondition;
+                        m.conditionKind = conditionKind;
                         result.add(m);
                     }
                     return;
@@ -170,24 +246,41 @@ public class ProcessDocParser {
                 case "if": {
                     String test = el.getAttributeValue("test");
                     for (Element child : el.getChildren()) {
-                        collectMappings(child, new ArrayList<>(pathStack), test, result);
+                        collectMappings(child, new ArrayList<>(pathStack), test, "if", result);
+                    }
+                    return;
+                }
+                case "choose": {
+                    // Structural element — recurse without overriding condition
+                    for (Element child : el.getChildren()) {
+                        collectMappings(child, new ArrayList<>(pathStack), null, null, result);
+                    }
+                    return;
+                }
+                case "when": {
+                    String test = el.getAttributeValue("test"); // correct attribute for when
+                    for (Element child : el.getChildren()) {
+                        collectMappings(child, new ArrayList<>(pathStack), test, "when", result);
+                    }
+                    return;
+                }
+                case "otherwise": {
+                    for (Element child : el.getChildren()) {
+                        collectMappings(child, new ArrayList<>(pathStack), null, "otherwise", result);
                     }
                     return;
                 }
                 case "for-each":
-                case "choose":
-                case "when":
-                case "otherwise":
                 case "copy-of": {
-                    String test = el.getAttributeValue("select");
+                    String select = el.getAttributeValue("select");
                     for (Element child : el.getChildren()) {
-                        collectMappings(child, new ArrayList<>(pathStack), test, result);
+                        collectMappings(child, new ArrayList<>(pathStack), select, conditionKind, result);
                     }
                     return;
                 }
                 default: {
                     for (Element child : el.getChildren()) {
-                        collectMappings(child, new ArrayList<>(pathStack), currentCondition, result);
+                        collectMappings(child, new ArrayList<>(pathStack), currentCondition, conditionKind, result);
                     }
                     return;
                 }
@@ -212,15 +305,16 @@ public class ProcessDocParser {
                 m.targetPath = String.join("/", fullPath);
                 m.sourceExpression = cleanSelectExpr(select);
                 m.isLiteral = isLiteral(select);
-                m.isConditional = currentCondition != null;
+                m.isConditional = currentCondition != null || "otherwise".equals(conditionKind);
                 m.condition = currentCondition;
+                m.conditionKind = conditionKind;
                 result.add(m);
                 // Continue for any other children
                 for (Element child : children) {
                     if (child != valueOfChild) {
                         List<String> newPath = new ArrayList<>(pathStack);
                         newPath.add(tag);
-                        collectMappings(child, newPath, currentCondition, result);
+                        collectMappings(child, newPath, currentCondition, conditionKind, result);
                     }
                 }
                 return;
@@ -230,12 +324,11 @@ public class ProcessDocParser {
         // Recurse into children with this element as part of the path
         if (!children.isEmpty()) {
             List<String> newPath = new ArrayList<>(pathStack);
-            // Only add to path if it looks like a target field (not a wrapper like namespace-prefixed elements)
             if (!tag.equals("inputBindings") && !tag.contains(":")) {
                 newPath.add(tag);
             }
             for (Element child : children) {
-                collectMappings(child, newPath, currentCondition, result);
+                collectMappings(child, newPath, currentCondition, conditionKind, result);
             }
         }
     }

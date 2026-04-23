@@ -1,0 +1,101 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>GLB_ARC_GenericError</name>
+			<value>Error de Arquitectura Generico</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671401</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_ARC_RequestMessage2QueueOrTopicTimeout</name>
+			<value>Timeout  reply to your request</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1406810370893</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_BAN1_IsNewBatchDescrition</name>
+			<value>Error in functional IsNewBatch</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673464</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_ErrorDealingErrorDescription</name>
+			<value>Error in dynamic functional mapping</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673052</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_FunctionalSenderAPIDescription</name>
+			<value>There is no target to send the Functional Event</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671249</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_GenerateNewBatchIdDescription</name>
+			<value>Error Generating a new BatchId</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673511</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_GetBatchIdDescription</name>
+			<value>Error Getting the BatchId for the ServiceId</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672748</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_NoParentServiceTypeAllowed</name>
+			<value>The parent service can't invoke the current service, because they are not compatible</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1390839899516</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_QueuesNotFoundDescription</name>
+			<value>Not all service Ids in configuration file</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673592</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_SameTypeDestinationDescription</name>
+			<value>Destination Types must to be the same type</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671081</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_ServiceIdErrorDescription</name>
+			<value>ServiceId not found. Please check your starter.</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671099</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_ServiceIdLenghTooLong</name>
+			<value>ServiceId lengh too long. Please set its lengh with 20 characters maximum.</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1524501197826</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

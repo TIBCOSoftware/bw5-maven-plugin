@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pfx5="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:pfx4="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx3="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:pfx2="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC_EXP_RecursosComunes/Esquemas/Schema.xsd" xmlns:pfx="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC_EXP_RecursosComunes/Esquemas/Schema.xsd2" xmlns:pfx6="http://www.bbva.com/EAIFramework">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC_FLTR/Functionals/FUN_FLTR_Filter.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:any processContents="skip"/>
+    </pd:startType>
+    <pd:startX>149</pd:startX>
+    <pd:startY>64</pd:startY>
+    <pd:returnBindings>
+        <IsFiltered>
+            <xsl:value-of select="1"/>
+        </IsFiltered>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="IsFiltered" type="xsd:boolean"/>
+    </pd:endType>
+    <pd:endX>451</pd:endX>
+    <pd:endY>64</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx6:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1323970667070</pd:targetNamespace>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:label>
+        <pd:name>Label</pd:name>
+        <pd:description>PROCESS IN CHARGE TO DECIDE IF THE MESSAGE 
+SHOULD BE FILTERED OR NOT.  MUST RECEIVE THE PROPIETARY MESSAGE
+
+This process is invoked in a dinamic way 
+
+Calling: "Filter.process"</pd:description>
+        <pd:x>674</pd:x>
+        <pd:y>97</pd:y>
+        <pd:width>354</pd:width>
+        <pd:height>130</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-52276</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+</pd:ProcessDefinition>

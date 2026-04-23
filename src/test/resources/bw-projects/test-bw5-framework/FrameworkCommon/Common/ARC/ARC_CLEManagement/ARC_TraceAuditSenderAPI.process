@@ -1,0 +1,1002 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:UUID1="java://Framework.CommonResources.CustomFunctions.UUIDGenerator.UUIDGenerator" xmlns:pfx="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:pfx2="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd" xmlns:ns="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:GetIP="java://EAIFramework.Processes.Private.Common.HeaderManagement.IPAddress.IPAddress" xmlns:pfx3="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns2="http://www.tibco.com/pe/DeployedVarsType" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns1="http://www.tibco.com/pe/EngineTypes" xmlns:ns4="http://www.tibco.com/schemas/FrameworkIntegracion/EAI-Framework/Resources/Public/Schemas/XSD/MCD/Schema.xsd" xmlns:ns3="http://www.bbva.com/EAIFramework" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:UUID="java://EAIFramework.Processes.Private.Common.HeaderManagement.UUIDGenerator.UUIDGenerator">
+    
+    
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_CLEManagement/ARC_TraceAuditSenderAPI.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ARC_TraceSenderAPI">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="CLETraceData">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="EventCode" type="ns3:EventCodeType"/>
+                                <xsd:element name="EventType" type="xsd:string"/>
+                                <xsd:element name="MessageType" type="ns3:MessageTypes"/>
+                                <xsd:element name="isResponse" type="xsd:boolean"/>
+                                <xsd:element name="TraceLevel" type="ns3:TraceLevelType" minOccurs="0"/>
+                                <xsd:element name="NameValue" minOccurs="0" maxOccurs="unbounded">
+                                    <xsd:complexType>
+                                        <xsd:sequence>
+                                            <xsd:element name="Name" type="xsd:string"/>
+                                            <xsd:element name="Value" type="xsd:string"/>
+                                        </xsd:sequence>
+                                    </xsd:complexType>
+                                </xsd:element>
+                                <xsd:element ref="ns3:ArchitectureHeader" minOccurs="0"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="Body" type="xsd:string" minOccurs="0"/>
+                    <xsd:element ref="ns3:ErrorMessage" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>105</pd:startX>
+    <pd:startY>113</pd:startY>
+    <pd:returnBindings>
+        <xsl:copy-of select="$ARC_SpecificFormatOutboundHeaderManagement/SpecificFormatMessage/*"/>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endX>1122</pd:endX>
+    <pd:endY>119</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1324409765610</pd:targetNamespace>
+    <pd:activity name="CLESenderAPI_Audit">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>791</pd:x>
+        <pd:y>115</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CLEManagement/ARC_CLEBasicInternalSenderAPI.process</processName>
+            <processNameXPath/>
+            <spawn>true</spawn>
+        </config>
+        <pd:inputBindings>
+            <xsl:copy-of select="$Map-CLEInternalMessage/ns3:CLEInternalMessage"/>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="GetArchitectureHeader">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>238</pd:x>
+        <pd:y>266</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/Architecture Internal Data.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="GetServiceMetaData">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>498</pd:x>
+        <pd:y>112</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/ServiceMetaData.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="CLESenderAPI_EventPatterns">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>960</pd:x>
+        <pd:y>117</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CLEManagement/ARC_TraceEventPatterns.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_TraceEventPatterns>
+                <EventMetaData>
+                    <EventCode>
+                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/EventCode"/>
+                    </EventCode>
+                    <EventType>
+                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/EventType"/>
+                    </EventType>
+                    <MessageType>
+                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/MessageType"/>
+                    </MessageType>
+                    <isResponse>
+                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/isResponse"/>
+                    </isResponse>
+                    <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/TraceLevel">
+                        <TraceLevel>
+                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/TraceLevel"/>
+                        </TraceLevel>
+                    </xsl:if>
+                    <xsl:copy-of select="$Start/ARC_TraceSenderAPI/CLETraceData/NameValue"/>
+                    <xsl:copy-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader"/>
+                </EventMetaData>
+                <Body>
+                    <ns3:Message>
+                        <xsl:choose>
+                            <xsl:when test="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader">
+                                <ns3:ArchitectureHeader>
+                                    <ns3:AuditHeader>
+                                        <ns3:E2EId>
+                                            <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:E2EId"/>
+                                        </ns3:E2EId>
+                                        <xsl:if test="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:InstanceId">
+                                            <ns3:ParentInstanceId>
+                                                <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:InstanceId"/>
+                                            </ns3:ParentInstanceId>
+                                        </xsl:if>
+                                        <ns3:InstanceId>
+                                            <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:InstanceId"/>
+                                        </ns3:InstanceId>
+                                        <ns3:Deepness>
+                                            <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:Deepness"/>
+                                        </ns3:Deepness>
+                                        <ns3:ServiceId>
+                                            <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ServiceId"/>
+                                        </ns3:ServiceId>
+                                        <ns3:ServiceType>
+                                            <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ServiceType"/>
+                                        </ns3:ServiceType>
+                                        <xsl:if test="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:E2EControl">
+                                            <ns3:E2EControl>
+                                                <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:E2EControl"/>
+                                            </ns3:E2EControl>
+                                        </xsl:if>
+                                        <xsl:if test="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentE2EControl">
+                                            <ns3:ParentE2EControl>
+                                                <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentE2EControl"/>
+                                            </ns3:ParentE2EControl>
+                                        </xsl:if>
+                                        <xsl:if test="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:isLight">
+                                            <ns3:isLight>
+                                                <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:isLight"/>
+                                            </ns3:isLight>
+                                        </xsl:if>
+                                        <xsl:if test="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:SaveMessage">
+                                            <ns3:SaveMessage>
+                                                <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:SaveMessage"/>
+                                            </ns3:SaveMessage>
+                                        </xsl:if>
+                                    </ns3:AuditHeader>
+                                    <xsl:copy-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:RequestHeader"/>
+                                    <xsl:copy-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:ErrorHeader"/>
+                                    <xsl:copy-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:ReprocessingHeader"/>
+                                    <xsl:copy-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:SecurityHeader"/>
+                                    <xsl:copy-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:RoutingHeader"/>
+                                    <xsl:copy-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:FunctionalData"/>
+                                </ns3:ArchitectureHeader>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <ns3:ArchitectureHeader>
+                                    <ns3:AuditHeader>
+                                        <ns3:E2EId>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:E2EId"/>
+                                        </ns3:E2EId>
+                                        <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:InstanceId">
+                                            <ns3:ParentInstanceId>
+                                                <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:InstanceId"/>
+                                            </ns3:ParentInstanceId>
+                                        </xsl:if>
+                                        <ns3:InstanceId>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:InstanceId"/>
+                                        </ns3:InstanceId>
+                                        <ns3:Deepness>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:Deepness"/>
+                                        </ns3:Deepness>
+                                        <ns3:ServiceId>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ServiceId"/>
+                                        </ns3:ServiceId>
+                                        <ns3:ServiceType>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ServiceType"/>
+                                        </ns3:ServiceType>
+                                        <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:E2EControl">
+                                            <ns3:E2EControl>
+                                                <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:E2EControl"/>
+                                            </ns3:E2EControl>
+                                        </xsl:if>
+                                        <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentE2EControl">
+                                            <ns3:ParentE2EControl>
+                                                <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentE2EControl"/>
+                                            </ns3:ParentE2EControl>
+                                        </xsl:if>
+                                        <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:isLight">
+                                            <ns3:isLight>
+                                                <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:isLight"/>
+                                            </ns3:isLight>
+                                        </xsl:if>
+                                        <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:SaveMessage">
+                                            <ns3:SaveMessage>
+                                                <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:SaveMessage"/>
+                                            </ns3:SaveMessage>
+                                        </xsl:if>
+                                    </ns3:AuditHeader>
+                                    <xsl:copy-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:RequestHeader"/>
+                                    <xsl:copy-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:ErrorHeader"/>
+                                    <xsl:copy-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:ReprocessingHeader"/>
+                                    <xsl:copy-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:SecurityHeader"/>
+                                    <xsl:copy-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:RoutingHeader"/>
+                                    <xsl:copy-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:FunctionalData"/>
+                                </ns3:ArchitectureHeader>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <ns3:Body>
+                            <ns3:Event>
+                                <EventName>
+                                    <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/EventCode"/>
+                                </EventName>
+                                <EventEmitter>
+                                    <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ServiceId"/>
+                                </EventEmitter>
+                                <xsl:choose>
+                                    <xsl:when test="$Start/ARC_TraceSenderAPI/CLETraceData/EventType=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Alarm">
+                                        <EventType>
+                                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/EventType/ALM"/>
+                                        </EventType>
+                                    </xsl:when>
+                                    <xsl:when test="$Start/ARC_TraceSenderAPI/CLETraceData/EventType=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Audit">
+                                        <EventType>
+                                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/EventType/AUD"/>
+                                        </EventType>
+                                    </xsl:when>
+                                    <xsl:when test="$Start/ARC_TraceSenderAPI/CLETraceData/EventType=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_CustomEvent">
+                                        <EventType>
+                                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/EventType/CUS"/>
+                                        </EventType>
+                                    </xsl:when>
+                                    <xsl:when test="$Start/ARC_TraceSenderAPI/CLETraceData/EventType=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Error">
+                                        <EventType>
+                                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/EventType/ERR"/>
+                                        </EventType>
+                                    </xsl:when>
+                                    <xsl:when test="$Start/ARC_TraceSenderAPI/CLETraceData/EventType=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Trace">
+                                        <EventType>
+                                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/EventType/TRC"/>
+                                        </EventType>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <EventType>
+                                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_Unknown"/>
+                                        </EventType>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <Machine>
+                                    <xsl:value-of select="BW:getHostName()"/>
+                                </Machine>
+                                <Timestamp>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </Timestamp>
+                                <EventUUID>
+                                    <xsl:value-of select="UUID1:generateUUID()"/>
+                                </EventUUID>
+                                <Body>
+                                    <xsl:copy-of select="$Map-CLEInternalMessage/ns3:CLEInternalMessage"/>
+                                </Body>
+                            </ns3:Event>
+                        </ns3:Body>
+                    </ns3:Message>
+                </Body>
+            </ARC_TraceEventPatterns>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="GetECSConfig">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>322</pd:x>
+        <pd:y>114</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/ECSConfig.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Map CLEInternalMessage">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>639</pd:x>
+        <pd:y>114</pd:y>
+        <config>
+            <element ref="ns3:CLEInternalMessage"/>
+        </config>
+        <pd:inputBindings>
+            <ns3:CLEInternalMessage>
+                <xsl:choose>
+                    <xsl:when test="exists($Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader)">
+                        <CLEInternalHeader>
+                            <E2EId>
+                                <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:E2EId"/>
+                            </E2EId>
+                            <E2EDeepness>
+                                <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:Deepness"/>
+                            </E2EDeepness>
+                            <InvocationUser>
+                                <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:BBVAUser"/>
+                            </InvocationUser>
+                            <xsl:if test="string-length($Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:BatchId)>0">
+                                <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:BatchId">
+                                    <BatchId>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:BatchId"/>
+                                    </BatchId>
+                                </xsl:if>
+                            </xsl:if>
+                            <EventCode>
+                                <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/EventCode"/>
+                            </EventCode>
+                            <EventType>
+                                <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/EventType"/>
+                            </EventType>
+                            <Timestamp>
+                                <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                            </Timestamp>
+                            <ServiceId>
+                                <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ServiceId"/>
+                            </ServiceId>
+                            <InstanceId>
+                                <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:InstanceId"/>
+                            </InstanceId>
+                            <ProjectName>
+                                <xsl:value-of select="$_processContext/ns1:ProcessContext/ProjectName"/>
+                            </ProjectName>
+                            <ProcessName>
+                                <xsl:value-of select="BW:getCurrentProcessName($_processContext/ns1:ProcessContext/ProcessId)"/>
+                            </ProcessName>
+                            <EngineName>
+                                <xsl:value-of select="$_processContext/ns1:ProcessContext/EngineName"/>
+                            </EngineName>
+                            <MachineName>
+                                <xsl:value-of select="BW:getHostName()"/>
+                            </MachineName>
+                            <MessageHeader>
+                                <IsResponse>
+                                    <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/isResponse"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/MessageType"/>
+                                </MessageType>
+                                <BusinessObject>
+                                    <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:BusinessObject"/>
+                                </BusinessObject>
+                            </MessageHeader>
+                            <AuditHeader>
+                                <xsl:if test="string-length($Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentInstanceId)>0">
+                                    <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentInstanceId">
+                                        <ParentInstanceId>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentInstanceId"/>
+                                        </ParentInstanceId>
+                                    </xsl:if>
+                                </xsl:if>
+                                <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:ReprocessingHeader">
+                                    <RetriesNumber>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:ReprocessingHeader/ns3:RetriesNumber"/>
+                                    </RetriesNumber>
+                                </xsl:if>
+                                <xsl:variable name="var2" select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/BATCH1N_NUM_MSG_SENT"/>
+                                <xsl:variable name="var4" select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GENERIC_E2E_NUM_CHILDS"/>
+                                <xsl:choose>
+                                    <xsl:when test="count($Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_GW_POST_NUM_MSGSENT])>0">
+                                        <NumMessagesSent>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_GW_POST_NUM_MSGSENT]/Value"/>
+                                        </NumMessagesSent>
+                                    </xsl:when>
+                                    <xsl:when test="count($Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$var2])>0">
+                                        <xsl:variable name="var" select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/BATCH1N_NUM_MSG_SENT"/>
+                                        <NumMessagesSent>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$var]/Value"/>
+                                        </NumMessagesSent>
+                                    </xsl:when>
+                                    <xsl:when test="count($Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$var4])>0">
+                                        <xsl:variable name="var3" select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GENERIC_E2E_NUM_CHILDS"/>
+                                        <NumMessagesSent>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$var3]/Value"/>
+                                        </NumMessagesSent>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <NumMessagesSent>
+                                            <xsl:value-of select="0"/>
+                                        </NumMessagesSent>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <xsl:if test="string-length($Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:ExternalId)>0">
+                                    <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:ExternalId">
+                                        <ClientExternalId>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:ExternalId"/>
+                                        </ClientExternalId>
+                                    </xsl:if>
+                                </xsl:if>
+                                <ServiceType>
+                                    <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ServiceType"/>
+                                </ServiceType>
+                                <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:ReprocessingHeader">
+                                    <OriginalInstanceId>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:ReprocessingHeader/ns3:OriginalInstanceId"/>
+                                    </OriginalInstanceId>
+                                </xsl:if>
+                                <xsl:choose>
+                                    <xsl:when test="exists($Start/ARC_TraceSenderAPI/CLETraceData/TraceLevel)">
+                                        <TraceLevel>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/TraceLevel"/>
+                                        </TraceLevel>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <TraceLevel>
+                                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/TraceLevels/GLB_Critical"/>
+                                        </TraceLevel>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <StarterServiceId>
+                                    <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:ServiceIdStarter"/>
+                                </StarterServiceId>
+                                <StarterTimestamp>
+                                    <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:StartTimestamp"/>
+                                </StarterTimestamp>
+                                <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:isLight">
+                                    <LightActive>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:isLight"/>
+                                    </LightActive>
+                                </xsl:if>
+                                <xsl:choose>
+                                    <xsl:when test="string-length($Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:E2EControl)>0">
+                                        <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:E2EControl">
+                                            <E2EControl>
+                                                <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:E2EControl"/>
+                                            </E2EControl>
+                                        </xsl:if>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <E2EControl>
+                                            <xsl:value-of select="false()"/>
+                                        </E2EControl>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <xsl:choose>
+                                    <xsl:when test="string-length($Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentE2EControl)>0">
+                                        <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentE2EControl">
+                                            <ParentE2EControl>
+                                                <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentE2EControl"/>
+                                            </ParentE2EControl>
+                                        </xsl:if>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <ParentE2EControl>
+                                            <xsl:value-of select="false()"/>
+                                        </ParentE2EControl>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                            </AuditHeader>
+                            <xsl:if test="string-length($GetECSConfig/group/ns3:ECSConfig/ns3:namespace)>0&#xA;and&#xA;string-length($Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:ECSHeader/ns3:traceId)>0">
+                                <ECSHeader>
+                                    <ns3:traceId>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:ECSHeader/ns3:traceId"/>
+                                    </ns3:traceId>
+                                    <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:ECSHeader/ns3:parentSpan">
+                                        <ns3:parentSpan>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:ECSHeader/ns3:parentSpan"/>
+                                        </ns3:parentSpan>
+                                    </xsl:if>
+                                    <ns3:spanId>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:ECSHeader/ns3:spanId"/>
+                                    </ns3:spanId>
+                                    <xsl:if test="count($Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:ECSHeader/ns3:properties/ns3:property)>0&#xA;or&#xA;count($GetECSConfig/group/ns3:ECSConfig/ns3:properties/ns3:property)>0">
+                                        <ns3:properties>
+                                            <xsl:if test="count($Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:ECSHeader/ns3:properties/ns3:property)>0">
+                                                <xsl:for-each-group select="$Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader/ns3:ECSHeader/ns3:properties/ns3:property" group-by="ns3:key">
+                                                    <xsl:if test="count($GetECSConfig/group/ns3:ECSConfig/ns3:properties/ns3:property[ns3:key=current-group()/ns3:key])=0">
+                                                        <xsl:copy-of select="."/>
+                                                    </xsl:if>
+                                                </xsl:for-each-group>
+                                            </xsl:if>
+                                            <xsl:if test="count($GetECSConfig/group/ns3:ECSConfig/ns3:properties/ns3:property)>0">
+                                                <xsl:for-each select="$GetECSConfig/group/ns3:ECSConfig/ns3:properties/ns3:property">
+                                                    <ns3:property>
+                                                        <ns3:key>
+                                                            <xsl:value-of select="ns3:key"/>
+                                                        </ns3:key>
+                                                        <xsl:choose>
+                                                            <xsl:when test="ns3:boolean_value">
+                                                                <ns3:boolean_value>
+                                                                    <xsl:value-of select="ns3:boolean_value"/>
+                                                                </ns3:boolean_value>
+                                                            </xsl:when>
+                                                            <xsl:when test="ns3:number_value">
+                                                                <ns3:number_value>
+                                                                    <xsl:value-of select="ns3:number_value"/>
+                                                                </ns3:number_value>
+                                                            </xsl:when>
+                                                            <xsl:otherwise>
+                                                                <ns3:value>
+                                                                    <xsl:value-of select="ns3:value"/>
+                                                                </ns3:value>
+                                                            </xsl:otherwise>
+                                                        </xsl:choose>
+                                                    </ns3:property>
+                                                </xsl:for-each>
+                                            </xsl:if>
+                                        </ns3:properties>
+                                    </xsl:if>
+                                    <namespace>
+                                        <xsl:value-of select="$GetECSConfig/group/ns3:ECSConfig/ns3:namespace"/>
+                                    </namespace>
+                                    <mrId>
+                                        <xsl:value-of select="$GetECSConfig/group/ns3:ECSConfig/ns3:mrId"/>
+                                    </mrId>
+                                </ECSHeader>
+                            </xsl:if>
+                            <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/EventType = $_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Error">
+                                <ErrorHeader>
+                                    <ErrorCode>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/ErrorCode"/>
+                                    </ErrorCode>
+                                    <xsl:if test="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/ErrorDescription">
+                                        <ErrorDescription>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/ErrorDescription"/>
+                                        </ErrorDescription>
+                                    </xsl:if>
+                                    <xsl:if test="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/NativeErrorCode">
+                                        <NativeErrorCode>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/NativeErrorCode"/>
+                                        </NativeErrorCode>
+                                    </xsl:if>
+                                    <xsl:if test="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/NativeErrorDescription">
+                                        <NativeErrorDescription>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/NativeErrorDescription"/>
+                                        </NativeErrorDescription>
+                                    </xsl:if>
+                                    <xsl:if test="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/StackTrace">
+                                        <StackTrace>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/StackTrace"/>
+                                        </StackTrace>
+                                    </xsl:if>
+                                    <ErrorDate>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/ErrorDate"/>
+                                    </ErrorDate>
+                                    <xsl:if test="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/StackProcess">
+                                        <StackProcess>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/StackProcess"/>
+                                        </StackProcess>
+                                    </xsl:if>
+                                    <Severity>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/Severity"/>
+                                    </Severity>
+                                    <xsl:if test="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/OriginalMessage">
+                                        <OriginalMessage>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/OriginalMessage"/>
+                                        </OriginalMessage>
+                                    </xsl:if>
+                                    <Category>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/Category"/>
+                                    </Category>
+                                    <ProcessInputMessage>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/ProcessInputMessage"/>
+                                    </ProcessInputMessage>
+                                    <IsResponse>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/IsResponse"/>
+                                    </IsResponse>
+                                    <MessageType>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/MessageType"/>
+                                    </MessageType>
+                                    <xsl:copy-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/PreviousErrorMessage"/>
+                                    <xsl:copy-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/FunctionalErrorData"/>
+                                </ErrorHeader>
+                            </xsl:if>
+                            <MetaDataHeader>
+                                <xsl:for-each select="$GetServiceMetaData/ServiceMetaData/Data">
+                                    <ServiceMetaData>
+                                        <xsl:attribute name="MetaDataPropertyName">
+                                            <xsl:value-of select="current()/Name"/>
+                                        </xsl:attribute>
+                                        <xsl:value-of select="current()/Value"/>
+                                    </ServiceMetaData>
+                                </xsl:for-each>
+                            </MetaDataHeader>
+                            <xsl:if test="count($Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/EVENTNAME])>0">
+                                <FunEventHeader>
+                                    <EventName>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/EVENTNAME]/Value"/>
+                                    </EventName>
+                                    <EventType>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/EVENTYPE]/Value"/>
+                                    </EventType>
+                                </FunEventHeader>
+                            </xsl:if>
+                        </CLEInternalHeader>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <CLEInternalHeader>
+                            <E2EId>
+                                <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:E2EId"/>
+                            </E2EId>
+                            <E2EDeepness>
+                                <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:Deepness"/>
+                            </E2EDeepness>
+                            <InvocationUser>
+                                <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:BBVAUser"/>
+                            </InvocationUser>
+                            <xsl:if test="string-length($GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:BatchId)>0">
+                                <xsl:if test="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:BatchId">
+                                    <BatchId>
+                                        <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:BatchId"/>
+                                    </BatchId>
+                                </xsl:if>
+                            </xsl:if>
+                            <EventCode>
+                                <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/EventCode"/>
+                            </EventCode>
+                            <EventType>
+                                <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/EventType"/>
+                            </EventType>
+                            <Timestamp>
+                                <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                            </Timestamp>
+                            <ServiceId>
+                                <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ServiceId"/>
+                            </ServiceId>
+                            <InstanceId>
+                                <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:InstanceId"/>
+                            </InstanceId>
+                            <ProjectName>
+                                <xsl:value-of select="$_processContext/ns1:ProcessContext/ProjectName"/>
+                            </ProjectName>
+                            <ProcessName>
+                                <xsl:value-of select="BW:getCurrentProcessName($_processContext/ns1:ProcessContext/ProcessId)"/>
+                            </ProcessName>
+                            <EngineName>
+                                <xsl:value-of select="$_processContext/ns1:ProcessContext/EngineName"/>
+                            </EngineName>
+                            <MachineName>
+                                <xsl:value-of select="BW:getHostName()"/>
+                            </MachineName>
+                            <MessageHeader>
+                                <IsResponse>
+                                    <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/isResponse"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/MessageType"/>
+                                </MessageType>
+                                <xsl:choose>
+                                    <xsl:when test="count($Start/ARC_TraceSenderAPI/CLETraceData/NameValue[ Name=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_GenericBusinessObjectKey ]/Value)>0">
+                                        <BusinessObject>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/NameValue[ Name=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_GenericBusinessObjectKey ]/Value"/>
+                                        </BusinessObject>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <BusinessObject>
+                                            <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:BusinessObject"/>
+                                        </BusinessObject>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                            </MessageHeader>
+                            <AuditHeader>
+                                <xsl:if test="string-length($GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentInstanceId)>0">
+                                    <xsl:if test="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentInstanceId">
+                                        <ParentInstanceId>
+                                            <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentInstanceId"/>
+                                        </ParentInstanceId>
+                                    </xsl:if>
+                                </xsl:if>
+                                <xsl:if test="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:ReprocessingHeader">
+                                    <xsl:if test="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:ReprocessingHeader/ns3:RetriesNumber">
+                                        <RetriesNumber>
+                                            <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:ReprocessingHeader/ns3:RetriesNumber"/>
+                                        </RetriesNumber>
+                                    </xsl:if>
+                                </xsl:if>
+                                <xsl:choose>
+                                    <xsl:when test="count($Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_GW_POST_NUM_MSGSENT])>0">
+                                        <NumMessagesSent>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_GW_POST_NUM_MSGSENT]/Value"/>
+                                        </NumMessagesSent>
+                                    </xsl:when>
+                                    <xsl:when test="count($Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/BATCH1N_NUM_MSG_SENT])>0">
+                                        <NumMessagesSent>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/BATCH1N_NUM_MSG_SENT]/Value"/>
+                                        </NumMessagesSent>
+                                    </xsl:when>
+                                    <xsl:when test="count($Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GENERIC_E2E_NUM_CHILDS])>0">
+                                        <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GENERIC_E2E_NUM_CHILDS]/Value">
+                                            <NumMessagesSent>
+                                                <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GENERIC_E2E_NUM_CHILDS]/Value"/>
+                                            </NumMessagesSent>
+                                        </xsl:if>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <NumMessagesSent>
+                                            <xsl:value-of select="0"/>
+                                        </NumMessagesSent>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <xsl:if test="string-length($GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:ExternalId)>0">
+                                    <xsl:if test="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:ExternalId">
+                                        <ClientExternalId>
+                                            <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:ExternalId"/>
+                                        </ClientExternalId>
+                                    </xsl:if>
+                                </xsl:if>
+                                <ServiceType>
+                                    <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ServiceType"/>
+                                </ServiceType>
+                                <xsl:if test="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:ReprocessingHeader">
+                                    <OriginalInstanceId>
+                                        <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:ReprocessingHeader/ns3:OriginalInstanceId"/>
+                                    </OriginalInstanceId>
+                                </xsl:if>
+                                <xsl:choose>
+                                    <xsl:when test="exists($Start/ARC_TraceSenderAPI/CLETraceData/TraceLevel)">
+                                        <TraceLevel>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/TraceLevel"/>
+                                        </TraceLevel>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <TraceLevel>
+                                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/TraceLevels/GLB_Critical"/>
+                                        </TraceLevel>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <StarterServiceId>
+                                    <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:ServiceIdStarter"/>
+                                </StarterServiceId>
+                                <StarterTimestamp>
+                                    <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:StartTimestamp"/>
+                                </StarterTimestamp>
+                                <xsl:if test="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:isLight">
+                                    <xsl:if test="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:isLight">
+                                        <LightActive>
+                                            <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:isLight"/>
+                                        </LightActive>
+                                    </xsl:if>
+                                </xsl:if>
+                                <xsl:choose>
+                                    <xsl:when test="string-length($GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:E2EControl)>0">
+                                        <xsl:if test="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:E2EControl">
+                                            <E2EControl>
+                                                <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:E2EControl"/>
+                                            </E2EControl>
+                                        </xsl:if>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <E2EControl>
+                                            <xsl:value-of select="false()"/>
+                                        </E2EControl>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <xsl:choose>
+                                    <xsl:when test="string-length($GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentE2EControl)>0">
+                                        <xsl:if test="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentE2EControl">
+                                            <ParentE2EControl>
+                                                <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:ParentE2EControl"/>
+                                            </ParentE2EControl>
+                                        </xsl:if>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <ParentE2EControl>
+                                            <xsl:value-of select="false()"/>
+                                        </ParentE2EControl>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                            </AuditHeader>
+                            <xsl:if test="string-length($GetECSConfig/group/ns3:ECSConfig/ns3:namespace)>0&#xA;and&#xA;string-length($GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:ECSHeader/ns3:traceId)>0">
+                                <ECSHeader>
+                                    <ns3:traceId>
+                                        <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:ECSHeader/ns3:traceId"/>
+                                    </ns3:traceId>
+                                    <xsl:if test="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:ECSHeader/ns3:parentSpan">
+                                        <ns3:parentSpan>
+                                            <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:ECSHeader/ns3:parentSpan"/>
+                                        </ns3:parentSpan>
+                                    </xsl:if>
+                                    <ns3:spanId>
+                                        <xsl:value-of select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:ECSHeader/ns3:spanId"/>
+                                    </ns3:spanId>
+                                    <xsl:if test="count($GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:ECSHeader/ns3:properties/ns3:property)>0&#xA;or&#xA;count($GetECSConfig/group/ns3:ECSConfig/ns3:properties/ns3:property)>0">
+                                        <ns3:properties>
+                                            <xsl:if test="count($GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:ECSHeader/ns3:properties/ns3:property)>0">
+                                                <xsl:for-each-group select="$GetArchitectureHeader/FrameworkData/ns3:ArchitectureHeader/ns3:ECSHeader/ns3:properties/ns3:property" group-by="ns3:key">
+                                                    <xsl:if test="count($GetECSConfig/group/ns3:ECSConfig/ns3:properties/ns3:property[ns3:key=current-group()/ns3:key])=0">
+                                                        <xsl:copy-of select="."/>
+                                                    </xsl:if>
+                                                </xsl:for-each-group>
+                                            </xsl:if>
+                                            <xsl:if test="count($GetECSConfig/group/ns3:ECSConfig/ns3:properties/ns3:property)>0">
+                                                <xsl:for-each select="$GetECSConfig/group/ns3:ECSConfig/ns3:properties/ns3:property">
+                                                    <ns3:property>
+                                                        <ns3:key>
+                                                            <xsl:value-of select="ns3:key"/>
+                                                        </ns3:key>
+                                                        <xsl:choose>
+                                                            <xsl:when test="ns3:boolean_value">
+                                                                <ns3:boolean_value>
+                                                                    <xsl:value-of select="ns3:boolean_value"/>
+                                                                </ns3:boolean_value>
+                                                            </xsl:when>
+                                                            <xsl:when test="ns3:number_value">
+                                                                <ns3:number_value>
+                                                                    <xsl:value-of select="ns3:number_value"/>
+                                                                </ns3:number_value>
+                                                            </xsl:when>
+                                                            <xsl:otherwise>
+                                                                <ns3:value>
+                                                                    <xsl:value-of select="ns3:value"/>
+                                                                </ns3:value>
+                                                            </xsl:otherwise>
+                                                        </xsl:choose>
+                                                    </ns3:property>
+                                                </xsl:for-each>
+                                            </xsl:if>
+                                        </ns3:properties>
+                                    </xsl:if>
+                                    <namespace>
+                                        <xsl:value-of select="$GetECSConfig/group/ns3:ECSConfig/ns3:namespace"/>
+                                    </namespace>
+                                    <mrId>
+                                        <xsl:value-of select="$GetECSConfig/group/ns3:ECSConfig/ns3:mrId"/>
+                                    </mrId>
+                                </ECSHeader>
+                            </xsl:if>
+                            <xsl:if test="$Start/ARC_TraceSenderAPI/CLETraceData/EventType = $_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Error">
+                                <ErrorHeader>
+                                    <ErrorCode>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/ErrorCode"/>
+                                    </ErrorCode>
+                                    <xsl:if test="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/ErrorDescription">
+                                        <ErrorDescription>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/ErrorDescription"/>
+                                        </ErrorDescription>
+                                    </xsl:if>
+                                    <xsl:if test="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/NativeErrorCode">
+                                        <NativeErrorCode>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/NativeErrorCode"/>
+                                        </NativeErrorCode>
+                                    </xsl:if>
+                                    <xsl:if test="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/NativeErrorDescription">
+                                        <NativeErrorDescription>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/NativeErrorDescription"/>
+                                        </NativeErrorDescription>
+                                    </xsl:if>
+                                    <xsl:if test="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/StackTrace">
+                                        <StackTrace>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/StackTrace"/>
+                                        </StackTrace>
+                                    </xsl:if>
+                                    <ErrorDate>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/ErrorDate"/>
+                                    </ErrorDate>
+                                    <xsl:if test="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/StackProcess">
+                                        <StackProcess>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/StackProcess"/>
+                                        </StackProcess>
+                                    </xsl:if>
+                                    <Severity>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/Severity"/>
+                                    </Severity>
+                                    <xsl:if test="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/OriginalMessage">
+                                        <OriginalMessage>
+                                            <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/OriginalMessage"/>
+                                        </OriginalMessage>
+                                    </xsl:if>
+                                    <Category>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/Category"/>
+                                    </Category>
+                                    <ProcessInputMessage>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/ProcessInputMessage"/>
+                                    </ProcessInputMessage>
+                                    <IsResponse>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/IsResponse"/>
+                                    </IsResponse>
+                                    <MessageType>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/MessageType"/>
+                                    </MessageType>
+                                    <xsl:copy-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/PreviousErrorMessage"/>
+                                    <xsl:copy-of select="$Start/ARC_TraceSenderAPI/ns3:ErrorMessage/FunctionalErrorData"/>
+                                </ErrorHeader>
+                            </xsl:if>
+                            <MetaDataHeader>
+                                <xsl:for-each select="$GetServiceMetaData/ServiceMetaData/Data">
+                                    <ServiceMetaData>
+                                        <xsl:attribute name="MetaDataPropertyName">
+                                            <xsl:value-of select="current()/Name"/>
+                                        </xsl:attribute>
+                                        <xsl:value-of select="current()/Value"/>
+                                    </ServiceMetaData>
+                                </xsl:for-each>
+                            </MetaDataHeader>
+                            <xsl:if test="count($Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/EVENTNAME])>0">
+                                <FunEventHeader>
+                                    <EventName>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/EVENTNAME]/Value"/>
+                                    </EventName>
+                                    <EventType>
+                                        <xsl:value-of select="$Start/ARC_TraceSenderAPI/CLETraceData/NameValue[Name=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/EVENTYPE]/Value"/>
+                                    </EventType>
+                                </FunEventHeader>
+                            </xsl:if>
+                        </CLEInternalHeader>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <Body>
+                    <xsl:value-of select="$Start/ARC_TraceSenderAPI/Body"/>
+                </Body>
+            </ns3:CLEInternalMessage>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>GetArchitectureHeader</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>GetECSConfig</pd:to>
+        <pd:xpathDescription>input header</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>exists($Start/ARC_TraceSenderAPI/CLETraceData/ns3:ArchitectureHeader)</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetServiceMetaData</pd:from>
+        <pd:to>Map CLEInternalMessage</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetArchitectureHeader</pd:from>
+        <pd:to>GetECSConfig</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>CLESenderAPI_EventPatterns</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>CLESenderAPI_Audit</pd:from>
+        <pd:to>CLESenderAPI_EventPatterns</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetECSConfig</pd:from>
+        <pd:to>GetServiceMetaData</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Map CLEInternalMessage</pd:from>
+        <pd:to>CLESenderAPI_Audit</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:label>
+        <pd:name>Label</pd:name>
+        <pd:description>El codigo de envio de los metadatos de los servicios hacia el modulo de auditoria se incorpora</pd:description>
+        <pd:x>805</pd:x>
+        <pd:y>56</pd:y>
+        <pd:width>379</pd:width>
+        <pd:height>49</pd:height>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-1</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (1)</pd:name>
+        <pd:description>Los eventos que se envian asociados a auditoria deben ser considerados como hijos del adaptador que los envia. Esto exige cambios en el mapeo del parentId en el auditheader dentro del mensaje</pd:description>
+        <pd:x>1031</pd:x>
+        <pd:y>207</pd:y>
+        <pd:width>344</pd:width>
+        <pd:height>85</pd:height>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-1</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+</pd:ProcessDefinition>

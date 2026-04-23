@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	 xmlns:tns="http://com.bbva.cib/EYFW/MngServ"
+	 targetNamespace="http://com.bbva.cib/EYFW/MngServ"
+	 elementFormDefault="qualified"
+	 attributeFormDefault="unqualified">
+	<xs:include schemaLocation="S_EngineCommandService.xsd"/>
+	<xs:include schemaLocation="S_StartStopServices.xsd"/>
+	<xs:element name="root">
+		<xs:complexType/>
+	</xs:element>
+</xs:schema>

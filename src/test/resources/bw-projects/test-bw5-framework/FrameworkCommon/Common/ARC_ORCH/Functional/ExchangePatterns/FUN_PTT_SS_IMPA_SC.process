@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pfx="http://www.bbva.com/EAIFramework" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:pfx2="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:ns12="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns0="http://www.tibco.com/pe/SignalInActivitySchema" xmlns:UUID="java://Framework.CommonResources.CustomFunctions.UUIDGenerator.UUIDGenerator" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC_ORCH/Functional/ExchangePatterns/FUN_PTT_SS_IMPA_SC.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="IN_GetRoutedMessage">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="pfx:Messages"/>
+                    <xsd:element name="DynamicInvocationRoot" type="xsd:string"/>
+                    <xsd:element name="ServiceId" type="xsd:string"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>27</pd:startX>
+    <pd:startY>248</pd:startY>
+    <pd:returnBindings>
+        <OUT_GetRoutedMessages>
+            <pfx:Message>
+                <pfx:ArchitectureHeader>
+                    <xsl:copy-of select="$ARC_ORC_Select_SS/OUT_GetRoutedMessages/pfx:Message/pfx:ArchitectureHeader/pfx:AuditHeader"/>
+                    <xsl:copy-of select="$ARC_ORC_Select_SS/OUT_GetRoutedMessages/pfx:Message/pfx:ArchitectureHeader/pfx:ECSHeader"/>
+                    <xsl:copy-of select="$ARC_ORC_Select_SS/OUT_GetRoutedMessages/pfx:Message/pfx:ArchitectureHeader/pfx:RequestHeader"/>
+                    <xsl:copy-of select="$ARC_ORC_Select_SS/OUT_GetRoutedMessages/pfx:Message/pfx:ArchitectureHeader/pfx:ErrorHeader"/>
+                    <xsl:copy-of select="$ARC_ORC_Select_SS/OUT_GetRoutedMessages/pfx:Message/pfx:ArchitectureHeader/pfx:ReprocessingHeader"/>
+                    <xsl:copy-of select="$ARC_ORC_Select_SS/OUT_GetRoutedMessages/pfx:Message/pfx:ArchitectureHeader/pfx:SecurityHeader"/>
+                    <pfx:RoutingHeader>
+                        <xsl:copy-of select="$ARC_ORC_Select_SS/OUT_GetRoutedMessages/pfx:Message/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Origin"/>
+                        <xsl:if test="$Start/IN_GetRoutedMessage/pfx:Messages/pfx:Message[last()]/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Origin/pfx:Services/pfx:Service[1]/pfx:ServiceType=$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_ChannelAdapter">
+                            <xsl:variable name="var" select="$ARC_ORC_Select_IMPA/OUT_GetRoutedMessages/pfx:Message/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Target/pfx:Services/pfx:Service[ pfx:ServiceType=$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_ChannelAdapter]/pfx:ServiceId"/>
+                            <pfx:Target>
+                                <pfx:Services>
+                                    <pfx:Service>
+                                        <pfx:ServiceId>
+                                            <xsl:value-of select="$var"/>
+                                        </pfx:ServiceId>
+                                        <xsl:if test="count($Start/IN_GetRoutedMessage/pfx:Messages/pfx:Message[last()]/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Origin/pfx:Services/pfx:Service[    pfx:ServiceId=$var    ]/pfx:JMSInputDestinationName)>0">
+                                            <pfx:JMSInputDestinationName>
+                                                <xsl:value-of select="$Start/IN_GetRoutedMessage/pfx:Messages/pfx:Message[last()]/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Origin/pfx:Services/pfx:Service[    pfx:ServiceId=$var    ]/pfx:JMSInputDestinationName"/>
+                                            </pfx:JMSInputDestinationName>
+                                        </xsl:if>
+                                        <pfx:JMSInputDestinationType>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_Generic_Queue_Key"/>
+                                        </pfx:JMSInputDestinationType>
+                                        <pfx:ServiceType>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_ChannelAdapter"/>
+                                        </pfx:ServiceType>
+                                    </pfx:Service>
+                                </pfx:Services>
+                            </pfx:Target>
+                        </xsl:if>
+                    </pfx:RoutingHeader>
+                    <xsl:copy-of select="$ARC_ORC_Select_SS/OUT_GetRoutedMessages/pfx:Message/pfx:ArchitectureHeader/pfx:FunctionalData"/>
+                </pfx:ArchitectureHeader>
+                <xsl:copy-of select="$Start/IN_GetRoutedMessage/pfx:Messages/pfx:Message/pfx:Body"/>
+            </pfx:Message>
+        </OUT_GetRoutedMessages>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="OUT_GetRoutedMessages">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="pfx:Message" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>681</pd:endX>
+    <pd:endY>244</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1380098109578</pd:targetNamespace>
+    <pd:activity name="Catch Error message">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>117</pd:x>
+        <pd:y>418</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>false</catchAll>
+            <fault>localname=ErrorMessage namespace=http://www.bbva.com/EAIFramework</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Rethrow">
+        <pd:type>com.tibco.pe.core.RethrowActivity</pd:type>
+        <pd:resourceType>ae.activities.rethrow</pd:resourceType>
+        <pd:x>302</pd:x>
+        <pd:y>413</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="ARC_SS">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>163</pd:x>
+        <pd:y>78</pd:y>
+        <config>
+            <processNameXPath/>
+            <processName>/Common/ARC/ARC_QueueOrTopic/ARC_SendMessageHeaderCount.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_REQS_Main_IN>
+                <Body>
+                    <xsl:copy-of select="$ARC_ORC_Select_SS/OUT_GetRoutedMessages/pfx:Message/pfx:Body/*"/>
+                </Body>
+                <Service>
+                    <ServiceId>
+                        <xsl:value-of select="$ARC_ORC_Select_SS/OUT_GetRoutedMessages/pfx:Message/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Target/pfx:Services/pfx:Service[last()]/pfx:ServiceId"/>
+                    </ServiceId>
+                    <ServiceType>
+                        <xsl:value-of select="$ARC_ORC_Select_SS/OUT_GetRoutedMessages/pfx:Message/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Target/pfx:Services/pfx:Service[last()]/pfx:ServiceType"/>
+                    </ServiceType>
+                </Service>
+                <TimeOut>
+                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/TIMEOUT/CFG_Timeout"/>
+                </TimeOut>
+                <Sync>
+                    <xsl:value-of select="true()"/>
+                </Sync>
+            </ARC_REQS_Main_IN>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_IMPA">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>679</pd:x>
+        <pd:y>79</pd:y>
+        <config>
+            <processNameXPath/>
+            <processName>/Common/ARC/ARC_QueueOrTopic/ARC_SendMessageHeaderCount.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_REQS_Main_IN>
+                <Body>
+                    <xsl:copy-of select="$Map-Data/pfx:Messages/pfx:Message[last()]/pfx:Body/*"/>
+                </Body>
+                <Service>
+                    <ServiceId>
+                        <xsl:value-of select="$ARC_ORC_Select_IMPA/OUT_GetRoutedMessages/pfx:Message/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Target/pfx:Services/pfx:Service[   pfx:ServiceType=$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_ImportationAdapter  ]/pfx:ServiceId"/>
+                    </ServiceId>
+                    <ServiceType>
+                        <xsl:value-of select="$ARC_ORC_Select_IMPA/OUT_GetRoutedMessages/pfx:Message/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Target/pfx:Services/pfx:Service[last()]/pfx:ServiceType"/>
+                    </ServiceType>
+                </Service>
+                <TimeOut>
+                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/TIMEOUT/CFG_Timeout"/>
+                </TimeOut>
+                <Sync>
+                    <xsl:value-of select="false()"/>
+                </Sync>
+            </ARC_REQS_Main_IN>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_ORC_Select_IMPA">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>389</pd:x>
+        <pd:y>78</pd:y>
+        <config>
+            <processNameXPath/>
+            <processName>/Common/ARC/ARC_RoutingHelper/ARC_RoutingBasicRulesSelection.process</processName>
+        </config>
+        <pd:inputBindings>
+            <IN_GetRoutedMessage>
+                <pfx:Messages>
+                    <xsl:copy-of select="$Start/IN_GetRoutedMessage/pfx:Messages/pfx:Message"/>
+                    <xsl:copy-of select="$ARC_SS/OUTPUT_SendMessage/pfx:Message"/>
+                </pfx:Messages>
+                <DynamicInvocationRoot>
+                    <xsl:value-of select="$Start/IN_GetRoutedMessage/DynamicInvocationRoot"/>
+                </DynamicInvocationRoot>
+                <ServiceId>
+                    <xsl:value-of select="$Start/IN_GetRoutedMessage/ServiceId"/>
+                </ServiceId>
+            </IN_GetRoutedMessage>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_ORC_Select_SS">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>160</pd:x>
+        <pd:y>246</pd:y>
+        <config>
+            <processNameXPath/>
+            <processName>/Common/ARC/ARC_RoutingHelper/ARC_RoutingBasicRulesSelection.process</processName>
+        </config>
+        <pd:inputBindings>
+            <IN_GetRoutedMessage>
+                <xsl:copy-of select="$Start/IN_GetRoutedMessage/pfx:Messages"/>
+                <DynamicInvocationRoot>
+                    <xsl:value-of select="$Start/IN_GetRoutedMessage/DynamicInvocationRoot"/>
+                </DynamicInvocationRoot>
+                <ServiceId>
+                    <xsl:value-of select="$Start/IN_GetRoutedMessage/ServiceId"/>
+                </ServiceId>
+            </IN_GetRoutedMessage>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch Other Errors">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>116</pd:x>
+        <pd:y>514</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Generate ErrorMessage">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>374</pd:x>
+        <pd:y>526</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns12:ActivityInput>
+                <data>
+                    <xsl:choose>
+                        <xsl:when test="string-length($Catch-group-ErrorMessage/group/pfx:ErrorMessage/ErrorCode)>0">
+                            <xsl:copy-of select="$Catch-group-ErrorMessage/group/pfx:ErrorMessage"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <pfx:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                </ErrorCode>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_Generic_Error_RoutingFromFileByServiceId"/>
+                                </ErrorDescription>
+                                <xsl:if xmlns:xsl="http://www.w3.org/1999/XSL/Transform" test="string-length($_error/ns:ErrorReport/MsgCode)>0">
+                                    <xsl:if test="$_error/ns:ErrorReport/MsgCode">
+                                        <NativeErrorCode>
+                                            <xsl:value-of select="$_error/ns:ErrorReport/MsgCode"/>
+                                        </NativeErrorCode>
+                                    </xsl:if>
+                                </xsl:if>
+                                <xsl:if xmlns:xsl="http://www.w3.org/1999/XSL/Transform" test="string-length($_error/ns:ErrorReport/Msg)>0">
+                                    <xsl:if test="$_error/ns:ErrorReport/Msg">
+                                        <NativeErrorDescription>
+                                            <xsl:value-of select="$_error/ns:ErrorReport/Msg"/>
+                                        </NativeErrorDescription>
+                                    </xsl:if>
+                                </xsl:if>
+                                <xsl:if xmlns:xsl="http://www.w3.org/1999/XSL/Transform" test="string-length($_error/ns:ErrorReport/StackTrace)>0">
+                                    <xsl:if test="$_error/ns:ErrorReport/StackTrace">
+                                        <StackTrace>
+                                            <xsl:value-of select="$_error/ns:ErrorReport/StackTrace"/>
+                                        </StackTrace>
+                                    </xsl:if>
+                                </xsl:if>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <xsl:if xmlns:xsl="http://www.w3.org/1999/XSL/Transform" test="string-length($_error/ns:ErrorReport/ProcessStack)>0">
+                                    <StackProcess>
+                                        <xsl:value-of select="$_error/ns:ErrorReport/ProcessStack"/>
+                                    </StackProcess>
+                                </xsl:if>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                </Severity>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/IN_GetRoutedMessage)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx:ErrorMessage>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </data>
+            </ns12:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Map Data">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>592</pd:x>
+        <pd:y>79</pd:y>
+        <config>
+            <element ref="pfx:Messages"/>
+        </config>
+        <pd:inputBindings>
+            <pfx:Messages>
+                <xsl:copy-of select="$Start/IN_GetRoutedMessage/pfx:Messages/pfx:Message"/>
+                <xsl:copy-of select="$ARC_SS/OUTPUT_SendMessage/pfx:Message"/>
+            </pfx:Messages>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch group ErrorMessage">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>644</pd:x>
+        <pd:y>520</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <fault>localname=group</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Catch Error message</pd:from>
+        <pd:to>Rethrow</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_IMPA</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_ORC_Select_IMPA</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_ORC_Select_SS</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SS</pd:from>
+        <pd:to>ARC_ORC_Select_IMPA</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>ARC_ORC_Select_SS</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Other Errors</pd:from>
+        <pd:to>Generate ErrorMessage</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Map Data</pd:from>
+        <pd:to>ARC_IMPA</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_ORC_Select_IMPA</pd:from>
+        <pd:to>Map Data</pd:to>
+        <pd:xpathDescription>IMPA</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>count($ARC_ORC_Select_IMPA/OUT_GetRoutedMessages/pfx:Message/pfx:ArchitectureHeader/pfx:RoutingHeader/pfx:Target/pfx:Services/pfx:Service[pfx:ServiceType=$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_ImportationAdapter ])=1</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_ORC_Select_SS</pd:from>
+        <pd:to>ARC_SS</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch group ErrorMessage</pd:from>
+        <pd:to>Generate ErrorMessage</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

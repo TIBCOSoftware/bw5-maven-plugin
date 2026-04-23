@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:pfx="http://www.bbva.com/EAIFramework">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_Transcoding/ARC_n2n_Complex_Transcoding.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="interface_n2n">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="appSource" type="xsd:string"/>
+                    <xsd:element name="appDestination" type="xsd:string"/>
+                    <xsd:element name="uniqueParameters" maxOccurs="unbounded">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="entity" type="xsd:string"/>
+                                <xsd:element name="sourceCode" maxOccurs="unbounded">
+                                    <xsd:complexType>
+                                        <xsd:sequence>
+                                            <xsd:element name="key" type="xsd:string"/>
+                                            <xsd:element name="value" type="xsd:string"/>
+                                        </xsd:sequence>
+                                    </xsd:complexType>
+                                </xsd:element>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>124</pd:startX>
+    <pd:startY>197</pd:startY>
+    <pd:returnBindings>
+        <root>
+            <xsl:copy-of select="$xmlList/AccumulatedOutput/ancestor-or-self::*/namespace::node()"/>
+            <xsl:copy-of select="$xmlList/AccumulatedOutput/@*"/>
+            <xsl:copy-of select="$xmlList/AccumulatedOutput/node()"/>
+        </root>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="root">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="xmlDestinationList" minOccurs="0" maxOccurs="unbounded">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:any processContents="skip"/>
+                            </xsd:sequence>
+                            <xsd:attribute name="entity" type="xsd:string" use="required"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>814</pd:endX>
+    <pd:endY>199</pd:endY>
+    <pd:errorSchemas>
+        <ErrorMessage ref="pfx:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables>
+        <output>
+            <xsd:element name="root">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:any minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </output>
+    </pd:processVariables>
+    <pd:targetNamespace>http://xmlns.example.com/1336494131338</pd:targetNamespace>
+    <pd:group name="Group">
+        <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>211</pd:x>
+        <pd:y>1</pd:y>
+        <pd:width>490</pd:width>
+        <pd:height>378</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>inputLoop</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:over>$Start/interface_n2n/uniqueParameters</pd:over>
+            <pd:iterationElementSlot>current</pd:iterationElementSlot>
+            <pd:indexSlot>i</pd:indexSlot>
+            <pd:outSlot>xmlList</pd:outSlot>
+            <pd:activityOutputName>Map Data</pd:activityOutputName>
+            <pd:accumulateOutput>true</pd:accumulateOutput>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>Null</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Map Data</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>ARC_Complex_Transcoding</pd:from>
+            <pd:to>Map Data</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Null</pd:from>
+            <pd:to>ARC_Complex_Transcoding</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:activity name="ARC_Complex_Transcoding">
+            <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+            <pd:resourceType>ae.process.subprocess</pd:resourceType>
+            <pd:x>431</pd:x>
+            <pd:y>196</pd:y>
+            <config>
+                <processName>/Common/ARC/ARC_Transcoding/ARC_Complex_Transcoding.process</processName>
+            </config>
+            <pd:inputBindings>
+                <interface>
+                    <multipleInterface>
+                        <appSource>
+                            <xsl:value-of select="$Start/interface_n2n/appSource"/>
+                        </appSource>
+                        <appDestination>
+                            <xsl:value-of select="$Start/interface_n2n/appDestination"/>
+                        </appDestination>
+                        <entity>
+                            <xsl:value-of select="$Start/interface_n2n/uniqueParameters[$i]/entity"/>
+                        </entity>
+                        <xsl:copy-of select="$Start/interface_n2n/uniqueParameters[$i]/sourceCode"/>
+                    </multipleInterface>
+                </interface>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Null">
+            <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+            <pd:resourceType>ae.activities.null</pd:resourceType>
+            <pd:x>305</pd:x>
+            <pd:y>199</pd:y>
+            <config/>
+            <pd:inputBindings/>
+        </pd:activity>
+        <pd:activity name="Map Data">
+            <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+            <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+            <pd:x>562</pd:x>
+            <pd:y>197</pd:y>
+            <config>
+                <element>
+                    <xsd:element name="xmlDestinationList">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:any processContents="skip"/>
+                            </xsd:sequence>
+                            <xsd:attribute name="entity" type="xsd:string" use="required"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                </element>
+            </config>
+            <pd:inputBindings>
+                <xmlDestinationList>
+                    <xsl:attribute name="entity">
+                        <xsl:value-of select="$current/uniqueParameters/entity"/>
+                    </xsl:attribute>
+                    <xsl:copy-of select="$ARC_Complex_Transcoding/XML_destinationCode/*"/>
+                </xmlDestinationList>
+            </pd:inputBindings>
+        </pd:activity>
+    </pd:group>
+    <pd:activity name="CatchArchError">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>263</pd:x>
+        <pd:y>415</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <fault>localname=ErrorMessage namespace=http://www.bbva.com/EAIFramework</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Rethrow">
+        <pd:type>com.tibco.pe.core.RethrowActivity</pd:type>
+        <pd:resourceType>ae.activities.rethrow</pd:resourceType>
+        <pd:x>390</pd:x>
+        <pd:y>414</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Group</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Group</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>CatchArchError</pd:from>
+        <pd:to>Rethrow</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:label>
+        <pd:name>Label</pd:name>
+        <pd:description>Invoke n times to
+complex process.</pd:description>
+        <pd:x>308</pd:x>
+        <pd:y>65</pd:y>
+        <pd:width>121</pd:width>
+        <pd:height>51</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-154</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (1)</pd:name>
+        <pd:description>Map @entity and
+destination XML
+for each query</pd:description>
+        <pd:x>585</pd:x>
+        <pd:y>72</pd:y>
+        <pd:width>109</pd:width>
+        <pd:height>63</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-10066177</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+</pd:ProcessDefinition>

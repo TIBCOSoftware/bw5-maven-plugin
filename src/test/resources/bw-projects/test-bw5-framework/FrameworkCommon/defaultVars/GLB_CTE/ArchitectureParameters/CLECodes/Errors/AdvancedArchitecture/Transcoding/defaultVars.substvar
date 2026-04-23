@@ -1,0 +1,101 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>GLB_MissingByteCount</name>
+			<value>ERR-ARC-1120</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671214</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_MissingByteCount_Msg</name>
+			<value>Excepción producida en el acceso al contador.</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673958</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Not_Implementation</name>
+			<value>ERR-ARC-1121</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671916</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Not_Implementation_Msg</name>
+			<value>Functional transcoding implementation not found.</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672429</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_ParseXml</name>
+			<value>ERR-ARC-1122</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671982</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_ParseXml_Msg</name>
+			<value>Transcoding xml parsing error. </value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672657</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_TranscodingImplementation</name>
+			<value>ERR-ARC-1119</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672485</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_TranscodingImplementation_Msg</name>
+			<value>Exception not handled in functional code. </value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672087</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_UnsupportedEncoding</name>
+			<value>ERR-ARC-1123</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671497</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_UnsupportedEncoding_Msg</name>
+			<value>Transcoding XML encoding not supported. </value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672371</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Validation_Xml</name>
+			<value>ERR-ARC-1124</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672958</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Validation_Xml_Msg</name>
+			<value>XML message wrong validation. </value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673369</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

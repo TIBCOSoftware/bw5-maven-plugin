@@ -1,0 +1,747 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pfx="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:pfx2="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:ns="http://www.bbva.com/EAIFramework" xmlns:ns12="http://www.tibco.com/namespaces/tnt/plugins/file/v2" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:Resources="java://Resources" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/file" xmlns:ns3="http://www.tibco.com/pe/DeployedVarsType">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_Queues/ARC_QueuesManagement/LoadQueueListCache.process</pd:name>
+    <pd:description>Proceso que se ocupa de cargar las variables de la lista de tuplas:
+Servicios-Colas en la caché, para su utilización</pd:description>
+    <pd:startName>Start</pd:startName>
+    <pd:startX>48</pd:startX>
+    <pd:startY>200</pd:startY>
+    <pd:returnBindings>
+        <Data>
+            <xsl:copy-of select="$translateQueueNames/ns:QueuesCacheList"/>
+            <xsl:if test="$Filtered-Event-elements/FilteredMonitoring/FilteredPatterns">
+                <FilteredMonitoringElement>
+                    <xsl:copy-of select="$Filtered-Event-elements/FilteredMonitoring/FilteredPatterns"/>
+                </FilteredMonitoringElement>
+            </xsl:if>
+        </Data>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="Data">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="ns:QueuesCacheList" minOccurs="0"/>
+                    <xsd:element name="FilteredMonitoringElement" minOccurs="0">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="FilteredPatterns" minOccurs="0" maxOccurs="unbounded">
+                                    <xsd:complexType>
+                                        <xsd:sequence>
+                                            <xsd:element name="GroupPatternName" type="xsd:string"/>
+                                            <xsd:element name="Event" maxOccurs="unbounded">
+                                                <xsd:complexType>
+                                                    <xsd:sequence>
+                                                        <xsd:element name="EventCode" type="xsd:string"/>
+                                                        <xsd:element name="ErrorStopFlow" type="xsd:boolean"/>
+                                                        <xsd:element name="Destination" maxOccurs="unbounded">
+                                                            <xsd:complexType>
+                                                                <xsd:sequence>
+                                                                    <xsd:element name="DestinationType" type="xsd:string"/>
+                                                                    <xsd:element name="DestinationName" type="xsd:string"/>
+                                                                </xsd:sequence>
+                                                            </xsd:complexType>
+                                                        </xsd:element>
+                                                    </xsd:sequence>
+                                                </xsd:complexType>
+                                            </xsd:element>
+                                        </xsd:sequence>
+                                    </xsd:complexType>
+                                </xsd:element>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>831</pd:endX>
+    <pd:endY>1017</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1331221478183</pd:targetNamespace>
+    <pd:group name="Store_Cache_elements">
+        <pd:type>com.tibco.pe.core.CriticalSectionGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>665</pd:x>
+        <pd:y>94</pd:y>
+        <pd:width>297</pd:width>
+        <pd:height>189</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>criticalSection</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:scope>multiple</pd:scope>
+            <pd:criticalSectionLock>/SharedResources/SharedVariables/Lock Queues Services Cache.sharedLock</pd:criticalSectionLock>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>Store Cache elements</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Store Cache elements</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:activity name="Store Cache elements">
+            <pd:type>com.tibco.pe.core.SetSharedVariableActivity</pd:type>
+            <pd:resourceType>ae.activities.setSharedVariable</pd:resourceType>
+            <pd:x>793</pd:x>
+            <pd:y>201</pd:y>
+            <config>
+                <variableConfig>/SharedResources/SharedVariables/Queues-Service List.sharedvariable</variableConfig>
+                <showResult>true</showResult>
+            </config>
+            <pd:inputBindings>
+                <xsl:copy-of select="$translateQueueNames/ns:QueuesCacheList"/>
+            </pd:inputBindings>
+        </pd:activity>
+    </pd:group>
+    <pd:activity name="Parse XML">
+        <pd:type>com.tibco.plugin.xml.XMLParseActivity</pd:type>
+        <pd:resourceType>ae.activities.XMLParseActivity</pd:resourceType>
+        <pd:x>285</pd:x>
+        <pd:y>201</pd:y>
+        <config>
+            <inputStyle>text</inputStyle>
+            <xsdVersion>default</xsdVersion>
+            <validateOutput>true</validateOutput>
+            <term ref="ns:QueuesCacheList"/>
+        </config>
+        <pd:inputBindings>
+            <xmlString>
+                <xsl:value-of select="$Read-File/ns1:ReadActivityOutputTextClass/fileContent/textContent"/>
+            </xmlString>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Read File">
+        <pd:type>com.tibco.plugin.file.FileReadActivity</pd:type>
+        <pd:resourceType>ae.activities.FileReadActivity</pd:resourceType>
+        <pd:x>161</pd:x>
+        <pd:y>200</pd:y>
+        <config>
+            <encoding>text</encoding>
+        </config>
+        <pd:inputBindings>
+            <ns12:ReadActivityInputClass>
+                <fileName>
+                    <xsl:value-of select="concat($_globalVariables/ns3:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_PATH,'Queues.xml')"/>
+                </fileName>
+            </ns12:ReadActivityInputClass>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Log">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <pd:x>157</pd:x>
+        <pd:y>1019</pd:y>
+        <config>
+            <role>User</role>
+        </config>
+        <pd:inputBindings>
+            <pfx:ActivityInput>
+                <message>
+                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                </message>
+                <xsl:if test="string-length($_error/ns2:ErrorReport/MsgCode)>0">
+                    <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                        <msgCode>
+                            <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                        </msgCode>
+                    </xsl:if>
+                </xsl:if>
+            </pfx:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="translateQueueNames">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>453</pd:x>
+        <pd:y>199</pd:y>
+        <config>
+            <element ref="ns:QueuesCacheList"/>
+        </config>
+        <pd:inputBindings>
+            <ns:QueuesCacheList>
+                <xsl:for-each select="$Parse-XML/ns:QueuesCacheList/ns:Destination">
+                    <xsl:variable name="qTokens" select="tib:tokenize(current() , &quot;.&quot;)"/>
+                    <xsl:choose>
+                        <xsl:when test="current()/@DestinationType='Psi'">
+                            <ns:Destination>
+                                <xsl:attribute name="ServiceId">
+                                    <xsl:value-of select="current()/@ServiceId"/>
+                                </xsl:attribute>
+                                <xsl:if test="current()/@DestinationType">
+                                    <xsl:attribute name="DestinationType">
+                                        <xsl:value-of select="current()/@DestinationType"/>
+                                    </xsl:attribute>
+                                </xsl:if>
+                                <xsl:if test="current()/@PatternGroupNameRef">
+                                    <xsl:attribute name="PatternGroupNameRef">
+                                        <xsl:value-of select="current()/@PatternGroupNameRef"/>
+                                    </xsl:attribute>
+                                </xsl:if>
+                                <xsl:value-of select="Resources:replaceAll(Resources:replaceAll(current(), '%REGION%', $_globalVariables/ns3:GlobalVariables/CFG/ECS/PSI/Deployment_Environment), '%ENV%', $_globalVariables/ns3:GlobalVariables/CFG/ECS/PSI/Environment)"/>
+                            </ns:Destination>
+                        </xsl:when>
+                        <xsl:when test="current()/@DestinationType='Upsilon'">
+                            <ns:Destination>
+                                <xsl:attribute name="ServiceId">
+                                    <xsl:value-of select="current()/@ServiceId"/>
+                                </xsl:attribute>
+                                <xsl:if test="current()/@DestinationType">
+                                    <xsl:attribute name="DestinationType">
+                                        <xsl:value-of select="current()/@DestinationType"/>
+                                    </xsl:attribute>
+                                </xsl:if>
+                                <xsl:if test="current()/@PatternGroupNameRef">
+                                    <xsl:attribute name="PatternGroupNameRef">
+                                        <xsl:value-of select="current()/@PatternGroupNameRef"/>
+                                    </xsl:attribute>
+                                </xsl:if>
+                                <xsl:value-of select="Resources:replaceAll(Resources:replaceAll(current(), '%REGION%', $_globalVariables/ns3:GlobalVariables/CFG/ECS/UPSILON/Deployment_Environment), '%ENV%', $_globalVariables/ns3:GlobalVariables/CFG/ECS/UPSILON/Environment)"/>
+                            </ns:Destination>
+                        </xsl:when>
+                        <xsl:when test="count($qTokens)>4 and $qTokens[4]=&quot;%ENV%&quot;">
+                            <ns:Destination>
+                                <xsl:attribute name="ServiceId">
+                                    <xsl:value-of select="current()/@ServiceId"/>
+                                </xsl:attribute>
+                                <xsl:if test="current()/@DestinationType">
+                                    <xsl:attribute name="DestinationType">
+                                        <xsl:value-of select="current()/@DestinationType"/>
+                                    </xsl:attribute>
+                                </xsl:if>
+                                <xsl:if test="current()/@PatternGroupNameRef">
+                                    <xsl:attribute name="PatternGroupNameRef">
+                                        <xsl:value-of select="current()/@PatternGroupNameRef"/>
+                                    </xsl:attribute>
+                                </xsl:if>
+                                <xsl:value-of select="concat(substring-before(current(), &quot;.%ENV%.&quot;),&quot;.&quot;,$_globalVariables/ns3:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_ENVIRONMENT_PREFIX,&quot;.&quot;,substring-after( current() , &quot;.%ENV%.&quot;))"/>
+                            </ns:Destination>
+                        </xsl:when>
+                        <xsl:when test="starts-with(current(), $_globalVariables/ns3:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_GLB_PREFIX)=false()">
+                            <ns:Destination>
+                                <xsl:attribute name="ServiceId">
+                                    <xsl:value-of select="current()/@ServiceId"/>
+                                </xsl:attribute>
+                                <xsl:if test="current()/@DestinationType">
+                                    <xsl:attribute name="DestinationType">
+                                        <xsl:value-of select="current()/@DestinationType"/>
+                                    </xsl:attribute>
+                                </xsl:if>
+                                <xsl:if test="current()/@PatternGroupNameRef">
+                                    <xsl:attribute name="PatternGroupNameRef">
+                                        <xsl:value-of select="current()/@PatternGroupNameRef"/>
+                                    </xsl:attribute>
+                                </xsl:if>
+                                <xsl:value-of select="concat($_globalVariables/ns3:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_QUEUEMGM_DOMAIN_PREFIX,&quot;.&quot;,$_globalVariables/ns3:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_ENVIRONMENT_PREFIX,&quot;.&quot;, $_globalVariables/ns3:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_QUEUEMGM_UUAA_PREFIX, &quot;.&quot;,current())"/>
+                            </ns:Destination>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <ns:Destination>
+                                <xsl:attribute name="ServiceId">
+                                    <xsl:value-of select="current()/@ServiceId"/>
+                                </xsl:attribute>
+                                <xsl:if test="current()/@DestinationType">
+                                    <xsl:attribute name="DestinationType">
+                                        <xsl:value-of select="current()/@DestinationType"/>
+                                    </xsl:attribute>
+                                </xsl:if>
+                                <xsl:attribute name="PatternGroupNameRef">
+                                    <xsl:value-of select="current()/@PatternGroupNameRef"/>
+                                </xsl:attribute>
+                                <xsl:value-of select="current()"/>
+                            </ns:Destination>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:for-each>
+                <xsl:if test="$Parse-XML/ns:QueuesCacheList/ns:DestinationServiceMonitoring">
+                    <ns:DestinationServiceMonitoring>
+                        <xsl:copy-of select="$Parse-XML/ns:QueuesCacheList/ns:DestinationServiceMonitoring/EventPatternGroup"/>
+                        <xsl:for-each select="$Parse-XML/ns:QueuesCacheList/ns:DestinationServiceMonitoring/EventPattern">
+                            <EventPattern>
+                                <xsl:variable name="var" select="tib:tokenize(current()/@DestinationName , &quot;.&quot;)"/>
+                                <xsl:attribute name="EventPatternName">
+                                    <xsl:value-of select="@EventPatternName"/>
+                                </xsl:attribute>
+                                <xsl:attribute name="DestinationType">
+                                    <xsl:value-of select="@DestinationType"/>
+                                </xsl:attribute>
+                                <xsl:choose>
+                                    <xsl:when test="@DestinationType='Psi'">
+                                        <xsl:attribute name="DestinationName">
+                                            <xsl:value-of select="current()/@DestinationName"/>
+                                        </xsl:attribute>
+                                    </xsl:when>
+                                    <xsl:when test="count($var)>4 and $var[4]=&quot;%ENV%&quot;">
+                                        <xsl:attribute name="DestinationName">
+                                            <xsl:value-of select="concat(substring-before(current()/@DestinationName, &quot;.%ENV%.&quot;),&quot;.&quot;,$_globalVariables/ns3:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_ENVIRONMENT_PREFIX,&quot;.&quot;,substring-after( current()/@DestinationName , &quot;.%ENV%.&quot;))"/>
+                                        </xsl:attribute>
+                                    </xsl:when>
+                                    <xsl:when test="starts-with(current()/@DestinationName, $_globalVariables/ns3:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_GLB_PREFIX)=false()">
+                                        <xsl:attribute name="DestinationName">
+                                            <xsl:value-of select="concat($_globalVariables/ns3:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_QUEUEMGM_DOMAIN_PREFIX,&quot;.&quot;,$_globalVariables/ns3:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_ENVIRONMENT_PREFIX,&quot;.&quot;, $_globalVariables/ns3:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_QUEUEMGM_UUAA_PREFIX, &quot;.&quot;,current()/@DestinationName)"/>
+                                        </xsl:attribute>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <xsl:attribute name="DestinationName">
+                                            <xsl:value-of select="current()/@DestinationName"/>
+                                        </xsl:attribute>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <xsl:for-each select="Event">
+                                    <xsl:choose>
+                                        <xsl:when test="current()/@EventType=$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Audit">
+                                            <Event>
+                                                <xsl:if test="@EventType">
+                                                    <xsl:attribute name="EventType">
+                                                        <xsl:value-of select="@EventType"/>
+                                                    </xsl:attribute>
+                                                </xsl:if>
+                                                <xsl:if test="@ErrorStopFlow">
+                                                    <xsl:attribute name="ErrorStopFlow">
+                                                        <xsl:value-of select="@ErrorStopFlow"/>
+                                                    </xsl:attribute>
+                                                </xsl:if>
+                                                <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Audit_Pattern"/>
+                                            </Event>
+                                        </xsl:when>
+                                        <xsl:when test="current()/@EventType=$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Alarm">
+                                            <Event>
+                                                <xsl:if test="@EventType">
+                                                    <xsl:attribute name="EventType">
+                                                        <xsl:value-of select="@EventType"/>
+                                                    </xsl:attribute>
+                                                </xsl:if>
+                                                <xsl:if test="@ErrorStopFlow">
+                                                    <xsl:attribute name="ErrorStopFlow">
+                                                        <xsl:value-of select="@ErrorStopFlow"/>
+                                                    </xsl:attribute>
+                                                </xsl:if>
+                                                <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Alarm_Pattern"/>
+                                            </Event>
+                                        </xsl:when>
+                                        <xsl:when test="current()/@EventType=$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_CustomEvent">
+                                            <Event>
+                                                <xsl:if test="@EventType">
+                                                    <xsl:attribute name="EventType">
+                                                        <xsl:value-of select="@EventType"/>
+                                                    </xsl:attribute>
+                                                </xsl:if>
+                                                <xsl:if test="@ErrorStopFlow">
+                                                    <xsl:attribute name="ErrorStopFlow">
+                                                        <xsl:value-of select="@ErrorStopFlow"/>
+                                                    </xsl:attribute>
+                                                </xsl:if>
+                                                <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Custom_Pattern"/>
+                                            </Event>
+                                        </xsl:when>
+                                        <xsl:when test="current()/@EventType=$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Error">
+                                            <Event>
+                                                <xsl:if test="@EventType">
+                                                    <xsl:attribute name="EventType">
+                                                        <xsl:value-of select="@EventType"/>
+                                                    </xsl:attribute>
+                                                </xsl:if>
+                                                <xsl:if test="@ErrorStopFlow">
+                                                    <xsl:attribute name="ErrorStopFlow">
+                                                        <xsl:value-of select="@ErrorStopFlow"/>
+                                                    </xsl:attribute>
+                                                </xsl:if>
+                                                <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Error_Pattern"/>
+                                            </Event>
+                                        </xsl:when>
+                                        <xsl:when test="current()/@EventType=$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Trace">
+                                            <Event>
+                                                <xsl:if test="@EventType">
+                                                    <xsl:attribute name="EventType">
+                                                        <xsl:value-of select="@EventType"/>
+                                                    </xsl:attribute>
+                                                </xsl:if>
+                                                <xsl:if test="@ErrorStopFlow">
+                                                    <xsl:attribute name="ErrorStopFlow">
+                                                        <xsl:value-of select="@ErrorStopFlow"/>
+                                                    </xsl:attribute>
+                                                </xsl:if>
+                                                <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Trace_Pattern"/>
+                                            </Event>
+                                        </xsl:when>
+                                        <xsl:when test="string-length(current()/@Pattern)>0">
+                                            <xsl:choose>
+                                                <xsl:when test="tib:index-of(current()/@Pattern, &quot;-*&quot;)=-1">
+                                                    <Event>
+                                                        <xsl:if test="@ErrorStopFlow">
+                                                            <xsl:attribute name="ErrorStopFlow">
+                                                                <xsl:value-of select="@ErrorStopFlow"/>
+                                                            </xsl:attribute>
+                                                        </xsl:if>
+                                                        <xsl:value-of select="current()"/>
+                                                    </Event>
+                                                </xsl:when>
+                                                <xsl:otherwise>
+                                                    <Event>
+                                                        <xsl:if test="@Pattern">
+                                                            <xsl:attribute name="Pattern">
+                                                                <xsl:value-of select="@Pattern"/>
+                                                            </xsl:attribute>
+                                                        </xsl:if>
+                                                        <xsl:if test="@ErrorStopFlow">
+                                                            <xsl:attribute name="ErrorStopFlow">
+                                                                <xsl:value-of select="@ErrorStopFlow"/>
+                                                            </xsl:attribute>
+                                                        </xsl:if>
+                                                        <xsl:value-of select="tib:substring-before-last(current()/@Pattern, &quot;-*&quot;)"/>
+                                                    </Event>
+                                                </xsl:otherwise>
+                                            </xsl:choose>
+                                        </xsl:when>
+                                        <xsl:otherwise>
+                                            <Event>
+                                                <xsl:if test="@ErrorStopFlow">
+                                                    <xsl:attribute name="ErrorStopFlow">
+                                                        <xsl:value-of select="@ErrorStopFlow"/>
+                                                    </xsl:attribute>
+                                                </xsl:if>
+                                                <xsl:value-of select="current()"/>
+                                            </Event>
+                                        </xsl:otherwise>
+                                    </xsl:choose>
+                                </xsl:for-each>
+                            </EventPattern>
+                        </xsl:for-each>
+                    </ns:DestinationServiceMonitoring>
+                </xsl:if>
+            </ns:QueuesCacheList>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:group name="Filtered_Event_Monitoring">
+        <pd:type>com.tibco.pe.core.CriticalSectionGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>604</pd:x>
+        <pd:y>764</pd:y>
+        <pd:width>444</pd:width>
+        <pd:height>163</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>criticalSection</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:scope>multiple</pd:scope>
+            <pd:criticalSectionLock>/SharedResources/SharedVariables/Lock-FilteredEvent.sharedLock</pd:criticalSectionLock>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>Filtered-Event-elements</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Filtered-Event-elements</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:activity name="Filtered-Event-elements">
+            <pd:type>com.tibco.pe.core.SetSharedVariableActivity</pd:type>
+            <pd:resourceType>ae.activities.setSharedVariable</pd:resourceType>
+            <pd:x>817</pd:x>
+            <pd:y>852</pd:y>
+            <config>
+                <variableConfig>/SharedResources/SharedVariables/FilteredEventMonitoringList.sharedvariable</variableConfig>
+                <showResult>true</showResult>
+            </config>
+            <pd:inputBindings>
+                <xsl:choose>
+                    <xsl:when test="$indexMonitoringInfo">
+                        <FilteredMonitoring>
+                            <xsl:choose>
+                                <xsl:when test="exists($indexMonitoringInfo)">
+                                    <xsl:for-each select="$EventListByGroup/AccumulatedOutput/EventList">
+                                        <FilteredPatterns>
+                                            <GroupPatternName>
+                                                <xsl:value-of select="current()/GroupName"/>
+                                            </GroupPatternName>
+                                            <xsl:for-each select="current()/ Event">
+                                                <Event>
+                                                    <EventCode>
+                                                        <xsl:value-of select="current()/EventCode"/>
+                                                    </EventCode>
+                                                    <ErrorStopFlow>
+                                                        <xsl:value-of select="current()/ErrorStopFlow"/>
+                                                    </ErrorStopFlow>
+                                                    <xsl:for-each select="current()/Destinations">
+                                                        <Destination>
+                                                            <DestinationType>
+                                                                <xsl:value-of select="current()/DestinationType"/>
+                                                            </DestinationType>
+                                                            <DestinationName>
+                                                                <xsl:value-of select="current()/DestinationName"/>
+                                                            </DestinationName>
+                                                        </Destination>
+                                                    </xsl:for-each>
+                                                </Event>
+                                            </xsl:for-each>
+                                        </FilteredPatterns>
+                                    </xsl:for-each>
+                                </xsl:when>
+                            </xsl:choose>
+                        </FilteredMonitoring>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <FilteredMonitoring>
+                            <FilteredPatterns>
+                                <GroupPatternName>
+                                    <xsl:value-of select="&quot;NA&quot;"/>
+                                </GroupPatternName>
+                                <Event>
+                                    <EventCode>
+                                        <xsl:value-of select="&quot;NA&quot;"/>
+                                    </EventCode>
+                                    <ErrorStopFlow>
+                                        <xsl:value-of select="&quot;false&quot;"/>
+                                    </ErrorStopFlow>
+                                    <Destination>
+                                        <DestinationType>
+                                            <xsl:value-of select="&quot;Queue&quot;"/>
+                                        </DestinationType>
+                                        <DestinationName>
+                                            <xsl:value-of select="&quot;&quot;"/>
+                                        </DestinationName>
+                                    </Destination>
+                                </Event>
+                            </FilteredPatterns>
+                        </FilteredMonitoring>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </pd:inputBindings>
+        </pd:activity>
+    </pd:group>
+    <pd:group name="Group">
+        <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>349</pd:x>
+        <pd:y>327</pd:y>
+        <pd:width>299</pd:width>
+        <pd:height>159</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>inputLoop</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:over>$translateQueueNames/ns:QueuesCacheList/ns:DestinationServiceMonitoring/EventPatternGroup</pd:over>
+            <pd:iterationElementSlot>ReferenceList</pd:iterationElementSlot>
+            <pd:indexSlot>i</pd:indexSlot>
+            <pd:outSlot>EventListByGroup</pd:outSlot>
+            <pd:activityOutputName>indexMonitoringInfo</pd:activityOutputName>
+            <pd:accumulateOutput>true</pd:accumulateOutput>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>indexMonitoringInfo</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>indexMonitoringInfo</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:activity name="indexMonitoringInfo">
+            <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+            <pd:resourceType>ae.process.subprocess</pd:resourceType>
+            <pd:x>500</pd:x>
+            <pd:y>411</pd:y>
+            <config>
+                <processName>/Common/ARC/ARC_Queues/ARC_QueuesManagement/IndexEventPatterns.process</processName>
+            </config>
+            <pd:inputBindings>
+                <Data>
+                    <GroupNamePattern>
+                        <xsl:value-of select="$ReferenceList/EventPatternGroup/@PatternGroupName"/>
+                    </GroupNamePattern>
+                    <DataServiceMonitoring>
+                        <xsl:copy-of select="$translateQueueNames/ns:QueuesCacheList/ns:DestinationServiceMonitoring"/>
+                    </DataServiceMonitoring>
+                </Data>
+            </pd:inputBindings>
+        </pd:activity>
+    </pd:group>
+    <pd:group name="GlobalMetaDataBestEffort">
+        <pd:type>com.tibco.pe.core.CriticalSectionGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>601</pd:x>
+        <pd:y>578</pd:y>
+        <pd:width>439</pd:width>
+        <pd:height>140</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>criticalSection</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:scope>multiple</pd:scope>
+            <pd:criticalSectionLock>/SharedResources/SharedVariables/Lock-GlobalMetaData.sharedLock</pd:criticalSectionLock>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>SetGlobalMetaData</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>SetGlobalMetaData</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:activity name="SetGlobalMetaData">
+            <pd:type>com.tibco.pe.core.SetSharedVariableActivity</pd:type>
+            <pd:resourceType>ae.activities.setSharedVariable</pd:resourceType>
+            <pd:x>796</pd:x>
+            <pd:y>654</pd:y>
+            <config>
+                <variableConfig>/SharedResources/SharedVariables/GlobalServiceMetaData.sharedvariable</variableConfig>
+                <showResult>true</showResult>
+            </config>
+            <pd:inputBindings>
+                <GlobalServiceMetaData>
+                    <Data>
+                        <Name>
+                            <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/MetaDataConstants/DEPVERSION"/>
+                        </Name>
+                        <Value>
+                            <xsl:value-of select="&quot;&quot;"/>
+                        </Value>
+                    </Data>
+                    <Data>
+                        <Name>
+                            <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/MetaDataConstants/LIBVERSION"/>
+                        </Name>
+                        <Value>
+                            <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/CFG/ARCHITECTURE/Version"/>
+                        </Value>
+                    </Data>
+                    <xsl:for-each xmlns:xsl="http://www.w3.org/1999/XSL/Transform" select="$Store-Cache-elements/ns:QueuesCacheList/ns:Destination">
+                        <Data>
+                            <Name>
+                                <xsl:value-of select="current()"/>
+                            </Name>
+                            <Value>
+                                <xsl:value-of select="@ServiceId"/>
+                            </Value>
+                        </Data>
+                    </xsl:for-each>
+                </GlobalServiceMetaData>
+            </pd:inputBindings>
+        </pd:activity>
+    </pd:group>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Read File</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Read File</pd:from>
+        <pd:to>Parse XML</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Read File</pd:from>
+        <pd:to>Log</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Log</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Parse XML</pd:from>
+        <pd:to>translateQueueNames</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>translateQueueNames</pd:from>
+        <pd:to>Store_Cache_elements</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Filtered_Event_Monitoring</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Store_Cache_elements</pd:from>
+        <pd:to>Group</pd:to>
+        <pd:xpathDescription>monitor active</pd:xpathDescription>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$Store-Cache-elements/ns:QueuesCacheList/ns:DestinationServiceMonitoring</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Store_Cache_elements</pd:from>
+        <pd:to>GlobalMetaDataBestEffort</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Group</pd:from>
+        <pd:to>GlobalMetaDataBestEffort</pd:to>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GlobalMetaDataBestEffort</pd:from>
+        <pd:to>Filtered_Event_Monitoring</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:UUID1="java://Framework.CommonResources.CustomFunctions.UUIDGenerator.UUIDGenerator" xmlns:ns="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:UUID="java://EAIFramework.Processes.Private.Common.HeaderManagement.UUIDGenerator.UUIDGenerator" xmlns:pfx="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:ns2="http://www.tibco.com/pe/DeployedVarsType" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/pe/EngineTypes" xmlns:ns3="http://www.bbva.com/EAIFramework" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:GetIP="java://EAIFramework.Processes.Private.Common.HeaderManagement.IPAddress.IPAddress" xmlns:pfx3="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx2="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd">
+    
+    
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC_BA1N/PreActions/ARC_BA1N_PreAction_FrameworkHeader.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="BA1N_Preaction">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="ns3:Message"/>
+                    <xsd:element name="ServiceId" type="xsd:string"/>
+                    <xsd:element ref="ns3:TraceLevel" minOccurs="0"/>
+                    <xsd:element name="E2EControl" type="xsd:boolean" minOccurs="0"/>
+                    <xsd:element ref="ns3:ECSConfig" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>78</pd:startX>
+    <pd:startY>89</pd:startY>
+    <pd:returnBindings>
+        <xsl:copy-of select="$ARC_FrameworkHeaderManagement/ns3:ArchitectureHeader"/>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType ref="ns3:ArchitectureHeader"/>
+    <pd:endX>1034</pd:endX>
+    <pd:endY>89</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="ns3:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables>
+        <Time>
+            <xsd:element name="TimeStamp" type="xsd:dateTime"/>
+        </Time>
+        <BatchID>
+            <xsd:element name="BatchID" type="xsd:string"/>
+        </BatchID>
+    </pd:processVariables>
+    <pd:targetNamespace>http://xmlns.example.com/1324409765610</pd:targetNamespace>
+    <pd:activity name="ARC_CLESenderAPI">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>864</pd:x>
+        <pd:y>87</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CLEManagement/ARC_TraceAuditSenderAPI.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_TraceSenderAPI>
+                <CLETraceData>
+                    <EventCode>
+                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Audit/GLB_StartBatch"/>
+                    </EventCode>
+                    <EventType>
+                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Audit"/>
+                    </EventType>
+                    <MessageType>
+                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/MessageType/GLB_ProprietaryDataModel"/>
+                    </MessageType>
+                    <isResponse>
+                        <xsl:value-of select="false()"/>
+                    </isResponse>
+                    <xsl:choose>
+                        <xsl:when test="$Start/BA1N_Preaction/ns3:TraceLevel">
+                            <TraceLevel>
+                                <xsl:value-of select="$Start/BA1N_Preaction/ns3:TraceLevel"/>
+                            </TraceLevel>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <TraceLevel>
+                                <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit"/>
+                            </TraceLevel>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <xsl:copy-of select="$Map-Data/ns3:Message/ns3:ArchitectureHeader"/>
+                </CLETraceData>
+                <Body>
+                    <xsl:value-of select="tib:render-xml($Map-Data/ns3:Message)"/>
+                </Body>
+            </ARC_TraceSenderAPI>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_FrameworkHeaderManagement">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>430</pd:x>
+        <pd:y>87</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_HeaderManagement/ARC_FrameworkHeaderManagement.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_FHM_IN>
+                <xsl:copy-of select="$Start/BA1N_Preaction/ns3:Message/ns3:ArchitectureHeader"/>
+                <ServiceId>
+                    <xsl:value-of select="$Start/BA1N_Preaction/ServiceId"/>
+                </ServiceId>
+                <ServiceType>
+                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_Batch12N"/>
+                </ServiceType>
+                <BatchId>
+                    <xsl:value-of select="$BatchID/BatchID"/>
+                </BatchId>
+                <StarTimestamp>
+                    <xsl:value-of select="$Time/TimeStamp"/>
+                </StarTimestamp>
+                <xsl:if test="string-length($Start/BA1N_Preaction/E2EControl)>0">
+                    <xsl:if test="$Start/BA1N_Preaction/E2EControl">
+                        <E2EControl>
+                            <xsl:value-of select="$Start/BA1N_Preaction/E2EControl"/>
+                        </E2EControl>
+                    </xsl:if>
+                </xsl:if>
+                <xsl:if test="string-length($Start/BA1N_Preaction/ns3:ECSConfig/ns3:namespace)>0">
+                    <ns3:ECSServiceHeader>
+                        <ns3:namespace>
+                            <xsl:value-of select="$Start/BA1N_Preaction/ns3:ECSConfig/ns3:namespace"/>
+                        </ns3:namespace>
+                        <ns3:mrId>
+                            <xsl:value-of select="$Start/BA1N_Preaction/ns3:ECSConfig/ns3:mrId"/>
+                        </ns3:mrId>
+                        <ns3:genMetrics>
+                            <xsl:value-of select="$Start/BA1N_Preaction/ns3:ECSConfig/ns3:genMetrics"/>
+                        </ns3:genMetrics>
+                        <xsl:copy-of select="$Start/BA1N_Preaction/ns3:ECSConfig/ns3:properties"/>
+                    </ns3:ECSServiceHeader>
+                </xsl:if>
+            </ARC_FHM_IN>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="BatchID">
+        <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+        <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+        <pd:x>298</pd:x>
+        <pd:y>89</pd:y>
+        <config>
+            <variableName>BatchID</variableName>
+        </config>
+        <pd:inputBindings>
+            <BatchID>
+                <xsl:value-of select="UUID1:generateUUID()"/>
+            </BatchID>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch Error Message">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>202</pd:x>
+        <pd:y>200</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>false</catchAll>
+            <fault>localname=ErrorMessage namespace=http://www.bbva.com/EAIFramework</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Catch-Other-Errors-1">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>199</pd:x>
+        <pd:y>294</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Generate-Error-1">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>497</pd:x>
+        <pd:y>291</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns:ActivityInput>
+                <data>
+                    <ns3:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                        </ErrorCode>
+                        <NativeErrorCode>
+                            <xsl:value-of select="$_error/ns1:ErrorReport/MsgCode"/>
+                        </NativeErrorCode>
+                        <NativeErrorDescription>
+                            <xsl:value-of select="$_error/ns1:ErrorReport/Msg"/>
+                        </NativeErrorDescription>
+                        <StackTrace>
+                            <xsl:value-of select="$_error/ns1:ErrorReport/StackTrace"/>
+                        </StackTrace>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <StackProcess>
+                            <xsl:value-of select="$_error/ns1:ErrorReport/ProcessStack"/>
+                        </StackProcess>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Severities/GLB_FatalError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/BA1N_Preaction)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/MessageType/GLB_ProprietaryDataModel"/>
+                        </MessageType>
+                    </ns3:ErrorMessage>
+                </data>
+            </ns:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Map Data">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>567</pd:x>
+        <pd:y>89</pd:y>
+        <config>
+            <element ref="ns3:Message"/>
+        </config>
+        <pd:inputBindings>
+            <ns3:Message>
+                <xsl:copy-of select="$ARC_FrameworkHeaderManagement/ns3:ArchitectureHeader"/>
+                <ns3:Body>
+                    <xsl:copy-of select="$Start/BA1N_Preaction/ns3:Message/ns3:Body/ancestor-or-self::*/namespace::node()"/>
+                    <xsl:copy-of select="$Start/BA1N_Preaction/ns3:Message/ns3:Body/@*"/>
+                    <xsl:copy-of select="$Start/BA1N_Preaction/ns3:Message/ns3:Body/node()"/>
+                </ns3:Body>
+            </ns3:Message>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Rethrow">
+        <pd:type>com.tibco.pe.core.RethrowActivity</pd:type>
+        <pd:resourceType>ae.activities.rethrow</pd:resourceType>
+        <pd:x>328</pd:x>
+        <pd:y>195</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="TimeStamp">
+        <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+        <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+        <pd:x>191</pd:x>
+        <pd:y>88</pd:y>
+        <config>
+            <variableName>Time</variableName>
+        </config>
+        <pd:inputBindings>
+            <TimeStamp>
+                <xsl:value-of xmlns:xsl="http://www.w3.org/1999/XSL/Transform" select="tib:current-dateTime-timezone(0,0)"/>
+            </TimeStamp>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_SaveContexts">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>717</pd:x>
+        <pd:y>90</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_SaveContextAndUserJobVaraible/ARC_SaveContextAndUserJobVaraible.process</processName>
+        </config>
+        <pd:inputBindings>
+            <SaveContexts>
+                <xsl:copy-of select="$ARC_FrameworkHeaderManagement/ns3:ArchitectureHeader"/>
+            </SaveContexts>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>ARC_CLESenderAPI</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>TimeStamp</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>TimeStamp</pd:from>
+        <pd:to>BatchID</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>BatchID</pd:from>
+        <pd:to>ARC_FrameworkHeaderManagement</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_FrameworkHeaderManagement</pd:from>
+        <pd:to>Map Data</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Error Message</pd:from>
+        <pd:to>Rethrow</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch-Other-Errors-1</pd:from>
+        <pd:to>Generate-Error-1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Map Data</pd:from>
+        <pd:to>ARC_SaveContexts</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SaveContexts</pd:from>
+        <pd:to>ARC_CLESenderAPI</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

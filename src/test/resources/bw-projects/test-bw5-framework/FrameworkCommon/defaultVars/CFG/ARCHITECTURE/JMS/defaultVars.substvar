@@ -1,0 +1,29 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>Intervalo_Primera_Reconexion</name>
+			<value>1000</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1393860604628</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>Intervalo_Resto_Reconexiones</name>
+			<value>1000</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1393860604690</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>Num_Intentos_Conexion</name>
+			<value>0</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1393860604752</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ea:correlationMapping xmlns:eai="http://www.bbva.com/EAIFramework"
+ xmlns:ea="http://www.bbva.com/EAIFrameworkOrchestration"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.bbva.com/EAIFrameworkOrchestration file:/D:/ARQ_TECH_REPO/CodigoFuente/branches/FrameworkESB/FrameworkCommon/SharedResources/Schemas/XSD/OrchestrationServices/OrchestrationServices.xsd">
+</ea:correlationMapping>

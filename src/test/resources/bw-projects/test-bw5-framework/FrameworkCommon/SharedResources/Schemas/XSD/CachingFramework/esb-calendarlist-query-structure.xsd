@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+	<xs:element name="calendarListQuery" type="CalendarListQuery" />
+
+	<xs:complexType name="CalendarListQuery">
+		<xs:sequence>
+			<xs:element ref="calendarListOperation" minOccurs="1" maxOccurs="1" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="CalendarListOperation" abstract="true">
+	</xs:complexType>
+
+	<xs:element name="calendarListOperation" type="CalendarListOperation" abstract="true"></xs:element>
+	
+	<xs:complexType name="CalendarListField-Op">
+		<xs:complexContent>
+			<xs:extension base="CalendarListOperation">
+				<xs:sequence>
+					<xs:element name="fvalue" type="xs:string" minOccurs="1"
+						maxOccurs="2" />
+				</xs:sequence>
+				<xs:attribute name="optype" type="CalendarListOptype" use="required" />
+				<xs:attribute name="coherenceKey" type="xs:string" use="required" />
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:element name="calendarListField-op" type="CalendarListField-Op"
+		substitutionGroup="calendarListOperation"></xs:element>
+
+	<xs:simpleType name="CalendarListOptype">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="between" />
+			<xs:enumeration value="contains" />
+			<xs:enumeration value="containsAny" />
+			<xs:enumeration value="containsAll" />
+			<xs:enumeration value="equals" />
+			<xs:enumeration value="notEqual" />
+			<xs:enumeration value="greater" />
+			<xs:enumeration value="greaterEqual" />
+			<xs:enumeration value="less" />
+			<xs:enumeration value="lessEqual" />
+		</xs:restriction>
+	</xs:simpleType>
+</xs:schema>

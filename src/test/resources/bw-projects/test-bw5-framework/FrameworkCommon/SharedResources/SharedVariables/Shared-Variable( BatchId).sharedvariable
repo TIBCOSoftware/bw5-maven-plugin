@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BWSharedResource xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:pfx3="http://www.bbva.com/EAIFramework" xmlns:pfx2="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd4" xmlns:pfx="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd2">
+    <import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <name>Shared-Variable( BatchId)</name>
+    <resourceType>ae.shared.sharedVariable</resourceType>
+    <config xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <persistent>false</persistent>
+        <multi-engine>false</multi-engine>
+        <initialValue>byRef</initialValue>
+        <initialValueRef>/SharedResources/Schemas/XML/Architecture/BatchN1Data.xml</initialValueRef>
+        <xsdString ref="pfx3:BatchN1Data"/>
+    </config>
+</BWSharedResource>

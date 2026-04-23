@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BWSharedResource>
+    <name>GenericConnection</name>
+    <resourceType>ae.shared.JMSConnectionKey</resourceType>
+    <config>
+        <NamingEnvironment>
+            <UseJNDI>true</UseJNDI>
+            <ProviderURL>tcp://localhost:7222</ProviderURL>
+            <NamingURL>%%CFG/ARCHITECTURE/JMS/GENERIC/CFG_JMS_URL%%</NamingURL>
+            <NamingInitialContextFactory>com.tibco.tibjms.naming.TibjmsInitialContextFactory</NamingInitialContextFactory>
+            <TopicFactoryName>%%CFG/ARCHITECTURE/JMS/GENERIC/CFG_JMS_TCONN_FACTORY%%</TopicFactoryName>
+            <QueueFactoryName>%%CFG/ARCHITECTURE/JMS/GENERIC/CFG_JMS_QCONN_FACTORY%%</QueueFactoryName>
+            <NamingPrincipal>%%CFG/ARCHITECTURE/JMS/GENERIC/CFG_JMS_USER%%</NamingPrincipal>
+            <NamingCredential>%%CFG/ARCHITECTURE/JMS/GENERIC/CFG_JMS_PASSWORD%%</NamingCredential>
+        </NamingEnvironment>
+        <ConnectionAttributes>
+            <username>%%CFG/ARCHITECTURE/JMS/GENERIC/CFG_JMS_USER%%</username>
+            <password>%%CFG/ARCHITECTURE/JMS/GENERIC/CFG_JMS_PASSWORD%%</password>
+            <clientID/>
+            <autoGenClientID>true</autoGenClientID>
+        </ConnectionAttributes>
+        <UseXACF>false</UseXACF>
+    </config>
+</BWSharedResource>

@@ -1,0 +1,41 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>GLB_Architecture</name>
+			<value>ARC</value>
+			<description>Catergoría de errores de arquitectura. No usar en funcionales. </description>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673873</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Functional</name>
+			<value>FUN</value>
+			<description>Categoría de errores para los mapeos funcionales.</description>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864674273</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_TX</name>
+			<value>TFR</value>
+			<description>Categoría de errores para las piezas de enrutamiento</description>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671454</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Technical</name>
+			<value>TEC</value>
+			<description>Categoría de errores para las invoaciones a los backends.</description>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864674027</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

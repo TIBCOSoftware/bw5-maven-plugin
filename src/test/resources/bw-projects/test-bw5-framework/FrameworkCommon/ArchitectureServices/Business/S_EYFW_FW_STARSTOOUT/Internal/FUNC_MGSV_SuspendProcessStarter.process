@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="com/tibco/pe/commands" xmlns:pfx="http://com.bbva.cib/EYFW/ManagementServices" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:ns4="http://www.tibco.com/pe/DeployedVarsType" xmlns:ns3="http://com.bbva.cib/EYFW/Libraries" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:pfx4="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:pfx3="http://com.bbva.cib/EYFW/MngServ" xmlns:pfx2="http://com.bbva.cib/EYFW/Management">
+    <xsd:import namespace="http://com.bbva.cib/EYFW/ManagementServices" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/ManagementServices.xsd"/>
+    <xsd:import namespace="http://com.bbva.cib/EYFW/Management" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/ManagementServiceCommon.xsd"/>
+    <xsd:import namespace="http://com.bbva.cib/EYFW/MngServ"/>
+    <pd:name>ArchitectureServices/Business/S_EYFW_FW_STARSTOOUT/Internal/FUNC_MGSV_SuspendProcessStarter.process</pd:name>
+    <pd:description>Suspends the specified process starter. 
+</pd:description>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="Message">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="Body">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="MessageID" type="xsd:string"/>
+                                <xsd:element ref="pfx3:RequestEngine"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>92</pd:startX>
+    <pd:startY>139</pd:startY>
+    <pd:returnBindings>
+        <xsl:for-each select="$VariableProcess/root">
+            <pfx3:ListRespond>
+                <xsl:if test="messageID">
+                    <pfx3:messageId>
+                        <xsl:value-of select="messageID"/>
+                    </pfx3:messageId>
+                </xsl:if>
+                <xsl:for-each select="Response">
+                    <pfx3:EngineCommandRespond>
+                        <pfx3:MachineName>
+                            <xsl:value-of select="MachineName"/>
+                        </pfx3:MachineName>
+                        <pfx3:ExecutedCommand>
+                            <xsl:value-of select="ExecutedCommand"/>
+                        </pfx3:ExecutedCommand>
+                        <pfx3:ProcessId>
+                            <xsl:value-of select="ProcessId"/>
+                        </pfx3:ProcessId>
+                        <pfx3:ProcessName>
+                            <xsl:value-of select="ProcessName"/>
+                        </pfx3:ProcessName>
+                        <pfx3:ExecutedResult>
+                            <xsl:value-of select="ExecutedResult"/>
+                        </pfx3:ExecutedResult>
+                    </pfx3:EngineCommandRespond>
+                </xsl:for-each>
+            </pfx3:ListRespond>
+        </xsl:for-each>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType ref="pfx3:ListRespond"/>
+    <pd:endX>792</pd:endX>
+    <pd:endY>133</pd:endY>
+    <pd:errorSchemas>
+        <Schema0>
+            <xsd:element name="root">
+                <xsd:complexType>
+                    <xsd:sequence/>
+                </xsd:complexType>
+            </xsd:element>
+        </Schema0>
+    </pd:errorSchemas>
+    <pd:processVariables>
+        <VariableProcess>
+            <xsd:element name="root">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="messageID" type="xsd:string" minOccurs="0"/>
+                        <xsd:element name="Response" minOccurs="0" maxOccurs="unbounded">
+                            <xsd:complexType>
+                                <xsd:sequence>
+                                    <xsd:element name="MachineName" type="xsd:string"/>
+                                    <xsd:element name="ExecutedCommand" type="xsd:string"/>
+                                    <xsd:element name="ProcessId" type="xsd:string"/>
+                                    <xsd:element name="ProcessName" type="xsd:string"/>
+                                    <xsd:element name="ExecutedResult" type="xsd:string"/>
+                                </xsd:sequence>
+                            </xsd:complexType>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </VariableProcess>
+    </pd:processVariables>
+    <pd:targetNamespace>http://xmlns.example.com/1330453645326</pd:targetNamespace>
+    <pd:activity name="EngineCommandSuspendProcessStarter">
+        <pd:type>com.tibco.pe.core.EngineCommandActivity</pd:type>
+        <pd:resourceType>ae.activities.enginecommand</pd:resourceType>
+        <pd:description>Suspends the specified process starter. 
+</pd:description>
+        <pd:x>375</pd:x>
+        <pd:y>138</pd:y>
+        <config>
+            <command>SuspendProcessStarter</command>
+            <processDefinition>/ArchitectureServices/Business/S_EYFW_FW_STARSTOOUT/Starter_S_EYFW_FW_STARSTOOUT.process</processDefinition>
+        </config>
+        <pd:inputBindings>
+            <ns:input>
+                <ProcessDefinitionName>
+                    <xsl:value-of select="$Start/Message/Body/pfx3:RequestEngine/pfx3:AppRunTime"/>
+                </ProcessDefinitionName>
+            </ns:input>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ManagementServicesGetInformation">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>225</pd:x>
+        <pd:y>138</pd:y>
+        <config>
+            <processName>/ArchitectureServices/Business/S_EYFW_FW_STARSTOOUT/Internal/FUNC_MGSV_GetInformation.process</processName>
+        </config>
+        <pd:inputBindings>
+            <xsl:copy-of select="$Start/Message"/>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Map Data">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>529</pd:x>
+        <pd:y>137</pd:y>
+        <config>
+            <element>
+                <xsd:element name="root">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="messageID" type="xsd:string" minOccurs="0"/>
+                            <xsd:element name="Response" minOccurs="0" maxOccurs="unbounded">
+                                <xsd:complexType>
+                                    <xsd:sequence>
+                                        <xsd:element name="MachineName" type="xsd:string"/>
+                                        <xsd:element name="ExecutedCommand" type="xsd:string"/>
+                                        <xsd:element name="ProcessId" type="xsd:string"/>
+                                        <xsd:element name="ProcessName" type="xsd:string"/>
+                                        <xsd:element name="ExecutedResult" type="xsd:string"/>
+                                    </xsd:sequence>
+                                </xsd:complexType>
+                            </xsd:element>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+            </element>
+        </config>
+        <pd:inputBindings>
+            <xsl:choose>
+                <xsl:when test="not(empty($ManagementServicesGetInformation/root/GetProcessInstance/*))">
+                    <root>
+                        <messageID>
+                            <xsl:value-of select="$Start/Message/Body/MessageID"/>
+                        </messageID>
+                        <xsl:for-each select="$ManagementServicesGetInformation/root/GetProcessInstance">
+                            <Response>
+                                <MachineName>
+                                    <xsl:value-of select="BW:getHostName()"/>
+                                </MachineName>
+                                <ExecutedCommand>
+                                    <xsl:value-of select="$Start/Message/Body/pfx3:RequestEngine/pfx3:OperationType"/>
+                                </ExecutedCommand>
+                                <ProcessId>
+                                    <xsl:value-of select="ProcessId"/>
+                                </ProcessId>
+                                <ProcessName>
+                                    <xsl:value-of select="ProcessStarterName"/>
+                                </ProcessName>
+                                <ExecutedResult>
+                                    <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_OK"/>
+                                </ExecutedResult>
+                            </Response>
+                        </xsl:for-each>
+                    </root>
+                </xsl:when>
+                <xsl:otherwise>
+                    <root>
+                        <messageID>
+                            <xsl:value-of select="$Start/Message/Body/MessageID"/>
+                        </messageID>
+                        <Response>
+                            <MachineName>
+                                <xsl:value-of select="BW:getHostName()"/>
+                            </MachineName>
+                            <ExecutedCommand>
+                                <xsl:value-of select="$Start/Message/Body/pfx3:RequestEngine/pfx3:OperationType"/>
+                            </ExecutedCommand>
+                            <ProcessId>
+                                <xsl:value-of select="''"/>
+                            </ProcessId>
+                            <ProcessName>
+                                <xsl:value-of select="$Start/Message/Body/pfx3:RequestEngine/pfx3:AppRunTime"/>
+                            </ProcessName>
+                            <ExecutedResult>
+                                <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_OK"/>
+                            </ExecutedResult>
+                        </Response>
+                    </root>
+                </xsl:otherwise>
+            </xsl:choose>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Map-Data-1">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>374</pd:x>
+        <pd:y>307</pd:y>
+        <config>
+            <element>
+                <xsd:element name="root">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="messageID" type="xsd:string" minOccurs="0"/>
+                            <xsd:element name="Response" minOccurs="0" maxOccurs="unbounded">
+                                <xsd:complexType>
+                                    <xsd:sequence>
+                                        <xsd:element name="MachineName" type="xsd:string"/>
+                                        <xsd:element name="ExecutedCommand" type="xsd:string"/>
+                                        <xsd:element name="ProcessId" type="xsd:string"/>
+                                        <xsd:element name="ProcessName" type="xsd:string"/>
+                                        <xsd:element name="ExecutedResult" type="xsd:string"/>
+                                    </xsd:sequence>
+                                </xsd:complexType>
+                            </xsd:element>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+            </element>
+        </config>
+        <pd:inputBindings>
+            <root>
+                <messageID>
+                    <xsl:value-of select="$Start/Message/Body/MessageID"/>
+                </messageID>
+                <Response>
+                    <MachineName>
+                        <xsl:value-of select="BW:getHostName()"/>
+                    </MachineName>
+                    <ExecutedCommand>
+                        <xsl:value-of select="$Start/Message/Body/pfx3:RequestEngine/pfx3:OperationType"/>
+                    </ExecutedCommand>
+                    <ProcessId>
+                        <xsl:value-of select="$ManagementServicesGetInformation/root/GetProcessInstance[*]/ProcessId"/>
+                    </ProcessId>
+                    <ProcessName>
+                        <xsl:value-of select="$ManagementServicesGetInformation/root/GetProcessInstance[*]/ProcessStarterName"/>
+                    </ProcessName>
+                    <ExecutedResult>
+                        <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_NOK"/>
+                    </ExecutedResult>
+                </Response>
+            </root>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Assign">
+        <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+        <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+        <pd:x>675</pd:x>
+        <pd:y>135</pd:y>
+        <config>
+            <variableName>VariableProcess</variableName>
+        </config>
+        <pd:inputBindings>
+            <xsl:choose>
+                <xsl:when test="$Map-Data/root">
+                    <xsl:copy-of select="$Map-Data/root"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:copy-of select="$Map-Data-1/root"/>
+                </xsl:otherwise>
+            </xsl:choose>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>EngineCommandSuspendProcessStarter</pd:from>
+        <pd:to>Map Data</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>ManagementServicesGetInformation</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ManagementServicesGetInformation</pd:from>
+        <pd:to>EngineCommandSuspendProcessStarter</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Map Data</pd:from>
+        <pd:to>Assign</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>EngineCommandSuspendProcessStarter</pd:from>
+        <pd:to>Map-Data-1</pd:to>
+        <pd:xpathDescription>NoExistProccesName</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Assign</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Map-Data-1</pd:from>
+        <pd:to>Assign</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

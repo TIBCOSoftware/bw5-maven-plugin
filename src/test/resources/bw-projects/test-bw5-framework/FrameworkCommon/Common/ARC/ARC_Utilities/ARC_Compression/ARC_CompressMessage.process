@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions">
+    <pd:name>Common/ARC/ARC_Utilities/ARC_Compression/ARC_CompressMessage.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="Input">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="OriginalMessage" type="xsd:string"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>83</pd:startX>
+    <pd:startY>138</pd:startY>
+    <pd:returnBindings>
+        <xsl:choose>
+            <xsl:when test="string-length($Start/Input/OriginalMessage)=0">
+                <Output/>
+            </xsl:when>
+            <xsl:otherwise>
+                <Output>
+                    <CompressMessage>
+                        <xsl:value-of select="$Java-Code-Compress-Message-and-Hash/javaCodeActivityOutput/message_out"/>
+                    </CompressMessage>
+                    <HashMessage>
+                        <xsl:value-of select="$Java-Code-Compress-Message-and-Hash/javaCodeActivityOutput/message_out_hash"/>
+                    </HashMessage>
+                </Output>
+            </xsl:otherwise>
+        </xsl:choose>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="Output">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="CompressMessage" type="xsd:base64Binary" minOccurs="0"/>
+                    <xsd:element name="HashMessage" type="xsd:string" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>380</pd:endX>
+    <pd:endY>138</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables>
+        <VarTiempoInicio>
+            <xsd:element name="TiempoInicio" type="xsd:long"/>
+        </VarTiempoInicio>
+    </pd:processVariables>
+    <pd:targetNamespace>http://xmlns.example.com/1547731902699</pd:targetNamespace>
+    <pd:activity name="Java Code Compress Message and Hash">
+        <pd:type>com.tibco.plugin.java.JavaActivity</pd:type>
+        <pd:resourceType>ae.javapalette.javaActivity</pd:resourceType>
+        <pd:x>227</pd:x>
+        <pd:y>146</pd:y>
+        <config>
+            <fileName>ARC_CompressMessageJavaCodeCompressMessageandHash</fileName>
+            <packageName>Common.ARC.ARC_Utilities.ARC_Compression.ARC_CompressMessage</packageName>
+            <fullsource>package Common.ARC.ARC_Utilities.ARC_Compression.ARC_CompressMessage;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+
+public class ARC_CompressMessageJavaCodeCompressMessageandHash{
+
+public static byte[]  compress(String data) throws IOException {
+		ByteArrayOutputStream bos = new ByteArrayOutputStream(data.length());
+		GZIPOutputStream gzip = new GZIPOutputStream(bos);
+		gzip.write(data.getBytes("UTF-8"));
+		gzip.close();
+		byte [] compressed = bos.toByteArray();
+		bos.close();
+		return compressed;
+	}
+
+public static String getSHA256(String input){
+
+	String toReturn = null;
+	try {
+	    MessageDigest digest = MessageDigest.getInstance("SHA-256");
+	    digest.reset();
+	    digest.update(input.getBytes("utf8"));
+	    toReturn = String.format("%064x", new BigInteger(1, digest.digest()));
+	} catch (Exception e) {
+	    e.printStackTrace();
+	}
+	
+	return toReturn;
+    }
+
+
+/****** START SET/GET METHOD, DO NOT MODIFY *****/
+	protected String message_in = "";
+	protected byte[] message_out = null;
+	protected String message_out_hash = "";
+	public String getmessage_in() {
+		return message_in;
+	}
+	public void setmessage_in(String val) {
+		message_in = val;
+	}
+	public byte[] getmessage_out() {
+		return message_out;
+	}
+	public void setmessage_out(byte[] val) {
+		message_out = val;
+	}
+	public String getmessage_out_hash() {
+		return message_out_hash;
+	}
+	public void setmessage_out_hash(String val) {
+		message_out_hash = val;
+	}
+/****** END SET/GET METHOD, DO NOT MODIFY *****/
+	public ARC_CompressMessageJavaCodeCompressMessageandHash() {
+	}
+	public void invoke() throws Exception {
+/* Available Variables: DO NOT MODIFY
+	In  : String message_in
+	Out : byte[] message_out
+	Out : String message_out_hash
+* Available Variables: DO NOT MODIFY *****/
+
+message_out = compress(message_in);
+message_out_hash = getSHA256(message_in);}
+}
+</fullsource>
+            <inputData>
+                <row>
+                    <fieldName>message_in</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>optional</fieldRequired>
+                </row>
+            </inputData>
+            <outputData>
+                <row>
+                    <fieldName>message_out</fieldName>
+                    <fieldType>byte</fieldType>
+                    <fieldRequired>repeating</fieldRequired>
+                </row>
+                <row>
+                    <fieldName>message_out_hash</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>optional</fieldRequired>
+                </row>
+            </outputData>
+            <byteCode>
+                <class>
+                    <name>ARC_CompressMessageJavaCodeCompressMessageandHash</name>
+                    <byteCode>yv66vgAAADQAdQcAQAoAQQBCCgABAEMHAEQKAAQARQgARgoAQQBHCgAEAEgKAAQASQoAAQBKCgABAEkIAEsKAEwATQoATABOCABPCgBMAFAIAFEHAFIHAFMKAEwAVAoAEwBVCgBBAFYHAFcKABcAWAkAIABZCQAgAFoJACAAWwoAEgBcCABdCgAgAF4KACAAXwcAYAEACm1lc3NhZ2VfaW4BABJMamF2YS9sYW5nL1N0cmluZzsBAAttZXNzYWdlX291dAEAAltCAQAQbWVzc2FnZV9vdXRfaGFzaAEACGNvbXByZXNzAQAWKExqYXZhL2xhbmcvU3RyaW5nOylbQgEABENvZGUBAA9MaW5lTnVtYmVyVGFibGUBAApFeGNlcHRpb25zBwBhAQAJZ2V0U0hBMjU2AQAmKExqYXZhL2xhbmcvU3RyaW5nOylMamF2YS9sYW5nL1N0cmluZzsBAA1TdGFja01hcFRhYmxlBwBiBwBXAQANZ2V0bWVzc2FnZV9pbgEAFCgpTGphdmEvbGFuZy9TdHJpbmc7AQANc2V0bWVzc2FnZV9pbgEAFShMamF2YS9sYW5nL1N0cmluZzspVgEADmdldG1lc3NhZ2Vfb3V0AQAEKClbQgEADnNldG1lc3NhZ2Vfb3V0AQAFKFtCKVYBABNnZXRtZXNzYWdlX291dF9oYXNoAQATc2V0bWVzc2FnZV9vdXRfaGFzaAEABjxpbml0PgEAAygpVgEABmludm9rZQEAClNvdXJjZUZpbGUBADZBUkNfQ29tcHJlc3NNZXNzYWdlSmF2YUNvZGVDb21wcmVzc01lc3NhZ2VhbmRIYXNoLmphdmEBAB1qYXZhL2lvL0J5dGVBcnJheU91dHB1dFN0cmVhbQcAYgwAYwBkDAA7AGUBAB5qYXZhL3V0aWwvemlwL0daSVBPdXRwdXRTdHJlYW0MADsAZgEABVVURi04DABnACcMAGgAOAwAaQA8DABqADYBAAdTSEEtMjU2BwBrDABsAG0MAG4APAEABHV0ZjgMAG8AOAEABSUwNjR4AQAQamF2YS9sYW5nL09iamVjdAEAFGphdmEvbWF0aC9CaWdJbnRlZ2VyDABwADYMADsAcQwAcgBzAQATamF2YS9sYW5nL0V4Y2VwdGlvbgwAdAA8DAAhACIMACMAJAwAJQAiDAA7ADwBAAAMACYAJwwALAAtAQBuQ29tbW9uL0FSQy9BUkNfVXRpbGl0aWVzL0FSQ19Db21wcmVzc2lvbi9BUkNfQ29tcHJlc3NNZXNzYWdlL0FSQ19Db21wcmVzc01lc3NhZ2VKYXZhQ29kZUNvbXByZXNzTWVzc2FnZWFuZEhhc2gBABNqYXZhL2lvL0lPRXhjZXB0aW9uAQAQamF2YS9sYW5nL1N0cmluZwEABmxlbmd0aAEAAygpSQEABChJKVYBABkoTGphdmEvaW8vT3V0cHV0U3RyZWFtOylWAQAIZ2V0Qnl0ZXMBAAV3cml0ZQEABWNsb3NlAQALdG9CeXRlQXJyYXkBABtqYXZhL3NlY3VyaXR5L01lc3NhZ2VEaWdlc3QBAAtnZXRJbnN0YW5jZQEAMShMamF2YS9sYW5nL1N0cmluZzspTGphdmEvc2VjdXJpdHkvTWVzc2FnZURpZ2VzdDsBAAVyZXNldAEABnVwZGF0ZQEABmRpZ2VzdAEABihJW0IpVgEABmZvcm1hdAEAOShMamF2YS9sYW5nL1N0cmluZztbTGphdmEvbGFuZy9PYmplY3Q7KUxqYXZhL2xhbmcvU3RyaW5nOwEAD3ByaW50U3RhY2tUcmFjZQAhACAAEgAAAAMABAAhACIAAAAEACMAJAAAAAQAJQAiAAAACgAJACYAJwACACgAAABeAAMABAAAAC67AAFZKrYAArcAA0y7AARZK7cABU0sKhIGtgAHtgAILLYACSu2AApOK7YACy2wAAAAAQApAAAAHgAHAAAADwAMABAAFQARAB8AEgAjABMAKAAUACwAFQAqAAAABAABACsACQAsAC0AAQAoAAAAkgAIAAMAAAA5AUwSDLgADU0stgAOLCoSD7YAB7YAEBIRBL0AElkDuwATWQQstgAUtwAVU7gAFkynAAhNLLYAGCuwAAEAAgAvADIAFwACACkAAAAmAAkAAAAaAAIAHAAIAB0ADAAeABYAHwAvACIAMgAgADMAIQA3ACQALgAAABMAAv8AMgACBwAvBwAvAAEHADAEAAEAMQAyAAEAKAAAAB0AAQABAAAABSq0ABmwAAAAAQApAAAABgABAAAALQABADMANAABACgAAAAiAAIAAgAAAAYqK7UAGbEAAAABACkAAAAKAAIAAAAwAAUAMQABADUANgABACgAAAAdAAEAAQAAAAUqtAAasAAAAAEAKQAAAAYAAQAAADMAAQA3ADgAAQAoAAAAIgACAAIAAAAGKiu1ABqxAAAAAQApAAAACgACAAAANgAFADcAAQA5ADIAAQAoAAAAHQABAAEAAAAFKrQAG7AAAAABACkAAAAGAAEAAAA5AAEAOgA0AAEAKAAAACIAAgACAAAABiortQAbsQAAAAEAKQAAAAoAAgAAADwABQA9AAEAOwA8AAEAKAAAAD4AAgABAAAAFiq3ABwqEh21ABkqAbUAGioSHbUAG7EAAAABACkAAAAWAAUAAAA/AAQAKQAKACoADwArABUAQAABAD0APAACACgAAAAzAAIAAQAAABcqKrQAGbgAHrUAGioqtAAZuAAftQAbsQAAAAEAKQAAAAoAAgAAAEgACwBJACoAAAAEAAEAFwABAD4AAAACAD8=</byteCode>
+                </class>
+            </byteCode>
+        </config>
+        <pd:inputBindings>
+            <javaCodeActivityInput>
+                <message_in>
+                    <xsl:value-of select="$Start/Input/OriginalMessage"/>
+                </message_in>
+            </javaCodeActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Null">
+        <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+        <pd:resourceType>ae.activities.null</pd:resourceType>
+        <pd:x>224</pd:x>
+        <pd:y>292</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Java Code Compress Message and Hash</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Java Code Compress Message and Hash</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Null</pd:to>
+        <pd:xpathDescription>Input Empty</pd:xpathDescription>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>string-length($Start/Input/OriginalMessage)=0</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Null</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

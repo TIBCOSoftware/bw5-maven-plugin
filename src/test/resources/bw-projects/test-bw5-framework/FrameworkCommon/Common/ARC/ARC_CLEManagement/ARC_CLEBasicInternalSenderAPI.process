@@ -1,0 +1,687 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pfx6="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:pfx7="http://www.bbva.com/EAIFramework" xmlns:pfx8="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:pfx="http://www.example.org/BBVACabecera" xmlns:pfx9="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx2="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/file" xmlns:GetIP="java://EAIFramework.Processes.Private.Common.HeaderManagement.IPAddress.IPAddress" xmlns:pfx3="http://www.tibco.com/schemas/Auditoria/Schema.xsd" xmlns:pfx4="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC_EXP_RecursosComunes/Esquemas/Schema.xsd2" xmlns:pfx5="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC_EXP_RecursosComunes/Esquemas/Schema.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns0="www.tibco.com/plugin/Sleep" xmlns:ns2="http://www.tibco.com/pe/DeployedVarsType" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns1="http://www.tibco.com/pe/EngineTypes" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:ns12="http://www.tibco.com/namespaces/tnt/plugins/jms">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_CLEManagement/ARC_CLEBasicInternalSenderAPI.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType ref="pfx7:CLEInternalMessage"/>
+    <pd:startX>48</pd:startX>
+    <pd:startY>241</pd:startY>
+    <pd:returnBindings>
+        <xsl:copy-of select="$Start/pfx7:CLEInternalMessage"/>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType ref="pfx7:CLEInternalMessage"/>
+    <pd:endX>777</pd:endX>
+    <pd:endY>247</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1292425961510</pd:targetNamespace>
+    <pd:group name="Group">
+        <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>470</pd:x>
+        <pd:y>125</pd:y>
+        <pd:width>211</pd:width>
+        <pd:height>223</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>errorLoop</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:indexSlot>i</pd:indexSlot>
+            <pd:errorCondition>$i &gt;= $_globalVariables/ns2:GlobalVariables/CFG/ARCHITECTURE/JMS/Num_Intentos_Conexion</pd:errorCondition>
+            <pd:suspendAfterErrorRetry>false</pd:suspendAfterErrorRetry>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>Null</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>JMS CLE Sender</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Null</pd:from>
+            <pd:to>JMS CLE Sender</pd:to>
+            <pd:xpathDescription>.</pd:xpathDescription>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>otherwise</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Null</pd:from>
+            <pd:to>Sleep</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>xpath</pd:conditionType>
+            <pd:xpath>$i&gt;1</pd:xpath>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Sleep</pd:from>
+            <pd:to>JMS CLE Sender</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:activity name="JMS CLE Sender">
+            <pd:type>com.tibco.plugin.jms.JMSQueueSendActivity</pd:type>
+            <pd:resourceType>ae.activities.JMSQueueSendActivity</pd:resourceType>
+            <pd:x>612</pd:x>
+            <pd:y>180</pd:y>
+            <config>
+                <PermittedMessageType>XML Text</PermittedMessageType>
+                <SessionAttributes>
+                    <transacted>false</transacted>
+                    <acknowledgeMode>1</acknowledgeMode>
+                    <maxSessions>1</maxSessions>
+                    <destination>%%GLB_CTE/ArchitectureParameters/FrameworkQueues/Prefix/GLB_ArchitecturePrefix%%.%%CFG/ARCHITECTURE/ENVIRONMENT/CFG_ENVIRONMENT_PREFIX%%.%%GLB_CTE/ArchitectureParameters/FrameworkQueues/GLB_PROCESS_INTERNAL_CLE%%</destination>
+                </SessionAttributes>
+                <ConfigurableHeaders>
+                    <JMSDeliveryMode>%%CFG/ARCHITECTURE/JMS/CLE/CFG_DELIVERY_MODE%%</JMSDeliveryMode>
+                    <JMSExpiration>%%CFG/ARCHITECTURE/JMS/CLE/CFG_JMS_EXPIRATION%%</JMSExpiration>
+                    <JMSPriority>%%CFG/ARCHITECTURE/JMS/CLE/CFG_PRIORITY%%</JMSPriority>
+                </ConfigurableHeaders>
+                <ConnectionReference>/SharedResources/Connections/JMSConnections/CLE/CLEConnection.sharedjmscon</ConnectionReference>
+                <ApplicationProperties/>
+                <InDataxsdString ref="pfx7:CLEInternalMessage"/>
+            </config>
+            <pd:inputBindings>
+                <ns12:ActivityInput>
+                    <Body>
+                        <pfx7:CLEInternalMessage>
+                            <CLEInternalHeader>
+                                <E2EId>
+                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/E2EId"/>
+                                </E2EId>
+                                <E2EDeepness>
+                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/E2EDeepness"/>
+                                </E2EDeepness>
+                                <InvocationUser>
+                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/InvocationUser"/>
+                                </InvocationUser>
+                                <xsl:if test="string-length($Start/pfx7:CLEInternalMessage/CLEInternalHeader/BatchId)>0">
+                                    <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/BatchId">
+                                        <BatchId>
+                                            <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/BatchId"/>
+                                        </BatchId>
+                                    </xsl:if>
+                                </xsl:if>
+                                <EventCode>
+                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/EventCode"/>
+                                </EventCode>
+                                <EventType>
+                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/EventType"/>
+                                </EventType>
+                                <Timestamp>
+                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/Timestamp"/>
+                                </Timestamp>
+                                <ServiceId>
+                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/ServiceId"/>
+                                </ServiceId>
+                                <InstanceId>
+                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/InstanceId"/>
+                                </InstanceId>
+                                <ProjectName>
+                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/ProjectName"/>
+                                </ProjectName>
+                                <ProcessName>
+                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/ProcessName"/>
+                                </ProcessName>
+                                <EngineName>
+                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/EngineName"/>
+                                </EngineName>
+                                <MachineName>
+                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/MachineName"/>
+                                </MachineName>
+                                <xsl:copy-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/MessageHeader"/>
+                                <AuditHeader>
+                                    <xsl:choose>
+                                        <xsl:when test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ParentInstanceId">
+                                            <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ParentInstanceId">
+                                                <ParentInstanceId>
+                                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ParentInstanceId"/>
+                                                </ParentInstanceId>
+                                            </xsl:if>
+                                        </xsl:when>
+                                    </xsl:choose>
+                                    <xsl:choose>
+                                        <xsl:when test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/RetriesNumber">
+                                            <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/RetriesNumber">
+                                                <RetriesNumber>
+                                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/RetriesNumber"/>
+                                                </RetriesNumber>
+                                            </xsl:if>
+                                        </xsl:when>
+                                    </xsl:choose>
+                                    <xsl:choose>
+                                        <xsl:when test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/NumMessagesSent">
+                                            <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/NumMessagesSent">
+                                                <NumMessagesSent>
+                                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/NumMessagesSent"/>
+                                                </NumMessagesSent>
+                                            </xsl:if>
+                                        </xsl:when>
+                                    </xsl:choose>
+                                    <xsl:choose>
+                                        <xsl:when test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ClientExternalId">
+                                            <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ClientExternalId">
+                                                <ClientExternalId>
+                                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ClientExternalId"/>
+                                                </ClientExternalId>
+                                            </xsl:if>
+                                        </xsl:when>
+                                    </xsl:choose>
+                                    <ServiceType>
+                                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ServiceType"/>
+                                    </ServiceType>
+                                    <xsl:choose>
+                                        <xsl:when test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/OriginalInstanceId">
+                                            <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/OriginalInstanceId">
+                                                <OriginalInstanceId>
+                                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/OriginalInstanceId"/>
+                                                </OriginalInstanceId>
+                                            </xsl:if>
+                                        </xsl:when>
+                                    </xsl:choose>
+                                    <xsl:choose>
+                                        <xsl:when test="exists($Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/TraceLevel)">
+                                            <TraceLevel>
+                                                <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/TraceLevel"/>
+                                            </TraceLevel>
+                                        </xsl:when>
+                                        <xsl:otherwise>
+                                            <TraceLevel>
+                                                <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/TraceLevels/GLB_Critical"/>
+                                            </TraceLevel>
+                                        </xsl:otherwise>
+                                    </xsl:choose>
+                                    <StarterServiceId>
+                                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/StarterServiceId"/>
+                                    </StarterServiceId>
+                                    <StarterTimestamp>
+                                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/StarterTimestamp"/>
+                                    </StarterTimestamp>
+                                    <xsl:for-each select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ServiceDestinations">
+                                        <xsl:if test=".">
+                                            <ServiceDestinations>
+                                                <xsl:value-of select="."/>
+                                            </ServiceDestinations>
+                                        </xsl:if>
+                                    </xsl:for-each>
+                                    <xsl:choose>
+                                        <xsl:when test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/LightActive">
+                                            <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/LightActive">
+                                                <LightActive>
+                                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/LightActive"/>
+                                                </LightActive>
+                                            </xsl:if>
+                                        </xsl:when>
+                                        <xsl:otherwise>
+                                            <LightActive>
+                                                <xsl:value-of select="false()"/>
+                                            </LightActive>
+                                        </xsl:otherwise>
+                                    </xsl:choose>
+                                    <xsl:choose>
+                                        <xsl:when test="string-length($Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/E2EControl)>0">
+                                            <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/E2EControl">
+                                                <E2EControl>
+                                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/E2EControl"/>
+                                                </E2EControl>
+                                            </xsl:if>
+                                        </xsl:when>
+                                        <xsl:otherwise>
+                                            <E2EControl>
+                                                <xsl:value-of select="false()"/>
+                                            </E2EControl>
+                                        </xsl:otherwise>
+                                    </xsl:choose>
+                                    <xsl:choose>
+                                        <xsl:when test="string-length($Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ParentE2EControl)>0">
+                                            <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ParentE2EControl">
+                                                <ParentE2EControl>
+                                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ParentE2EControl"/>
+                                                </ParentE2EControl>
+                                            </xsl:if>
+                                        </xsl:when>
+                                        <xsl:otherwise>
+                                            <ParentE2EControl>
+                                                <xsl:value-of select="false()"/>
+                                            </ParentE2EControl>
+                                        </xsl:otherwise>
+                                    </xsl:choose>
+                                    <xsl:if test="string-length($Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/StartServiceTimeStamp)>0">
+                                        <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/StartServiceTimeStamp">
+                                            <StartServiceTimeStamp>
+                                                <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/StartServiceTimeStamp"/>
+                                            </StartServiceTimeStamp>
+                                        </xsl:if>
+                                    </xsl:if>
+                                </AuditHeader>
+                                <xsl:copy-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/ECSHeader"/>
+                                <xsl:copy-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/ErrorHeader"/>
+                                <xsl:copy-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/MetaDataHeader"/>
+                                <xsl:copy-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/FunEventHeader"/>
+                                <xsl:copy-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/ErrorInfo"/>
+                            </CLEInternalHeader>
+                            <xsl:choose>
+                                <xsl:when test="exists($_error_Parse-XML)">
+                                    <BodyComplex>
+                                        <xsl:if test="$Compress-Message/Output/CompressMessage">
+                                            <Functional>
+                                                <xsl:value-of select="$Compress-Message/Output/CompressMessage"/>
+                                            </Functional>
+                                        </xsl:if>
+                                        <xsl:if test="$Compress-Message/Output/HashMessage">
+                                            <Hash>
+                                                <xsl:value-of select="$Compress-Message/Output/HashMessage"/>
+                                            </Hash>
+                                        </xsl:if>
+                                    </BodyComplex>
+                                </xsl:when>
+                                <xsl:when test="exists($Parse-XML)">
+                                    <BodyComplex>
+                                        <Header>
+                                            <xsl:value-of select="tib:render-xml($Parse-XML/pfx7:Message/pfx7:ArchitectureHeader)"/>
+                                        </Header>
+                                        <xsl:if test="$Compress-Message/Output/CompressMessage">
+                                            <Functional>
+                                                <xsl:value-of select="$Compress-Message/Output/CompressMessage"/>
+                                            </Functional>
+                                        </xsl:if>
+                                        <xsl:if test="$Compress-Message/Output/HashMessage">
+                                            <Hash>
+                                                <xsl:value-of select="$Compress-Message/Output/HashMessage"/>
+                                            </Hash>
+                                        </xsl:if>
+                                    </BodyComplex>
+                                </xsl:when>
+                            </xsl:choose>
+                        </pfx7:CLEInternalMessage>
+                    </Body>
+                </ns12:ActivityInput>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Sleep">
+            <pd:type>com.tibco.plugin.timer.SleepActivity</pd:type>
+            <pd:resourceType>ae.activities.sleep</pd:resourceType>
+            <pd:x>610</pd:x>
+            <pd:y>284</pd:y>
+            <config/>
+            <pd:inputBindings>
+                <ns0:SleepInputSchema>
+                    <xsl:choose>
+                        <xsl:when test="$i = 2">
+                            <IntervalInMillisec>
+                                <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/CFG/ARCHITECTURE/JMS/Intervalo_Primera_Reconexion"/>
+                            </IntervalInMillisec>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <IntervalInMillisec>
+                                <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/CFG/ARCHITECTURE/JMS/Intervalo_Resto_Reconexiones"/>
+                            </IntervalInMillisec>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </ns0:SleepInputSchema>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Null">
+            <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+            <pd:resourceType>ae.activities.null</pd:resourceType>
+            <pd:x>520</pd:x>
+            <pd:y>240</pd:y>
+            <config/>
+            <pd:inputBindings/>
+        </pd:activity>
+    </pd:group>
+    <pd:activity name="ARC_TrackingErrorManagement">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>778</pd:x>
+        <pd:y>400</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_TrackingManagement/ARC_TrackingErrorManagement.process</processName>
+            <processNameXPath>concat($_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_mockRoot, "/Common/ARC/ARC_TrackingManagement/ARC_TrackingErrorManagement.process")</processNameXPath>
+        </config>
+        <pd:inputBindings>
+            <pfx7:CLEMessage>
+                <CLEHeader>
+                    <E2EId>
+                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/E2EId"/>
+                    </E2EId>
+                    <E2EDeepness>
+                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/E2EDeepness"/>
+                    </E2EDeepness>
+                    <InvocationUser>
+                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/InvocationUser"/>
+                    </InvocationUser>
+                    <xsl:if test="string-length($Start/pfx7:CLEInternalMessage/CLEInternalHeader/BatchId)>0">
+                        <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/BatchId">
+                            <BatchId>
+                                <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/BatchId"/>
+                            </BatchId>
+                        </xsl:if>
+                    </xsl:if>
+                    <EventCode>
+                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/EventCode"/>
+                    </EventCode>
+                    <EventType>
+                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/EventType"/>
+                    </EventType>
+                    <Timestamp>
+                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/Timestamp"/>
+                    </Timestamp>
+                    <ServiceId>
+                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/ServiceId"/>
+                    </ServiceId>
+                    <InstanceId>
+                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/InstanceId"/>
+                    </InstanceId>
+                    <ProjectName>
+                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/ProjectName"/>
+                    </ProjectName>
+                    <ProcessName>
+                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/ProcessName"/>
+                    </ProcessName>
+                    <EngineName>
+                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/EngineName"/>
+                    </EngineName>
+                    <MachineName>
+                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/MachineName"/>
+                    </MachineName>
+                    <xsl:copy-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/MessageHeader"/>
+                    <AuditHeader>
+                        <xsl:choose>
+                            <xsl:when test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ParentInstanceId">
+                                <ParentInstanceId>
+                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ParentInstanceId"/>
+                                </ParentInstanceId>
+                            </xsl:when>
+                        </xsl:choose>
+                        <xsl:choose>
+                            <xsl:when test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/RetriesNumber">
+                                <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/RetriesNumber">
+                                    <RetriesNumber>
+                                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/RetriesNumber"/>
+                                    </RetriesNumber>
+                                </xsl:if>
+                            </xsl:when>
+                        </xsl:choose>
+                        <xsl:choose>
+                            <xsl:when test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/NumMessagesSent">
+                                <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/NumMessagesSent">
+                                    <NumMessagesSent>
+                                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/NumMessagesSent"/>
+                                    </NumMessagesSent>
+                                </xsl:if>
+                            </xsl:when>
+                        </xsl:choose>
+                        <xsl:choose>
+                            <xsl:when test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ClientExternalId">
+                                <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ClientExternalId">
+                                    <ClientExternalId>
+                                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ClientExternalId"/>
+                                    </ClientExternalId>
+                                </xsl:if>
+                            </xsl:when>
+                        </xsl:choose>
+                        <ServiceType>
+                            <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ServiceType"/>
+                        </ServiceType>
+                        <xsl:choose>
+                            <xsl:when test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/OriginalInstanceId">
+                                <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/OriginalInstanceId">
+                                    <OriginalInstanceId>
+                                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/OriginalInstanceId"/>
+                                    </OriginalInstanceId>
+                                </xsl:if>
+                            </xsl:when>
+                        </xsl:choose>
+                        <TraceLevel>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_TRACEABILITY_LEVEL"/>
+                        </TraceLevel>
+                        <StarterServiceId>
+                            <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/StarterServiceId"/>
+                        </StarterServiceId>
+                        <StarterTimestamp>
+                            <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/StarterTimestamp"/>
+                        </StarterTimestamp>
+                        <xsl:for-each select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ServiceDestinations">
+                            <ServiceDestinations>
+                                <xsl:value-of select="."/>
+                            </ServiceDestinations>
+                        </xsl:for-each>
+                        <xsl:choose>
+                            <xsl:when test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/LightActive">
+                                <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/LightActive">
+                                    <LightActive>
+                                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/LightActive"/>
+                                    </LightActive>
+                                </xsl:if>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <LightActive>
+                                    <xsl:value-of select="false()"/>
+                                </LightActive>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <xsl:choose>
+                            <xsl:when test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/E2EControl">
+                                <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/E2EControl">
+                                    <E2EControl>
+                                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/E2EControl"/>
+                                    </E2EControl>
+                                </xsl:if>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <E2EControl>
+                                    <xsl:value-of select="true()"/>
+                                </E2EControl>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <xsl:choose>
+                            <xsl:when test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ParentE2EControl">
+                                <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ParentE2EControl">
+                                    <ParentE2EControl>
+                                        <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/ParentE2EControl"/>
+                                    </ParentE2EControl>
+                                </xsl:if>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <ParentE2EControl>
+                                    <xsl:value-of select="false()"/>
+                                </ParentE2EControl>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <xsl:if test="string-length($Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/StartServiceTimeStamp)>0">
+                            <xsl:if test="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/StartServiceTimeStamp">
+                                <StartServiceTimeStamp>
+                                    <xsl:value-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/AuditHeader/StartServiceTimeStamp"/>
+                                </StartServiceTimeStamp>
+                            </xsl:if>
+                        </xsl:if>
+                    </AuditHeader>
+                    <xsl:copy-of select="$Start/pfx7:CLEInternalMessage/CLEInternalHeader/ErrorHeader"/>
+                </CLEHeader>
+                <xsl:if test="string-length($Start/pfx7:CLEInternalMessage/Body)>0">
+                    <xsl:if test="$Start/pfx7:CLEInternalMessage/Body">
+                        <Body>
+                            <xsl:value-of select="$Start/pfx7:CLEInternalMessage/Body"/>
+                        </Body>
+                    </xsl:if>
+                </xsl:if>
+            </pfx7:CLEMessage>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>596</pd:x>
+        <pd:y>399</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Compress Message">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>327</pd:x>
+        <pd:y>241</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Utilities/ARC_Compression/ARC_CompressMessage.process</processName>
+        </config>
+        <pd:inputBindings>
+            <Input>
+                <xsl:choose>
+                    <xsl:when test="exists($_error_Parse-XML)">
+                        <OriginalMessage>
+                            <xsl:value-of select="$Start/pfx7:CLEInternalMessage/Body"/>
+                        </OriginalMessage>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <OriginalMessage>
+                            <xsl:value-of select="tib:render-xml($Parse-XML/pfx7:Message/pfx7:Body/*)"/>
+                        </OriginalMessage>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </Input>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Continue On Parse Error">
+        <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+        <pd:resourceType>ae.activities.null</pd:resourceType>
+        <pd:x>240</pd:x>
+        <pd:y>349</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Parse XML">
+        <pd:type>com.tibco.plugin.xml.XMLParseActivity</pd:type>
+        <pd:resourceType>ae.activities.XMLParseActivity</pd:resourceType>
+        <pd:x>181</pd:x>
+        <pd:y>241</pd:y>
+        <config>
+            <inputStyle>text</inputStyle>
+            <xsdVersion>default</xsdVersion>
+            <validateOutput>true</validateOutput>
+            <term ref="pfx7:Message"/>
+        </config>
+        <pd:inputBindings>
+            <xmlString>
+                <xsl:value-of select="$Start/pfx7:CLEInternalMessage/Body"/>
+            </xmlString>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Body Empty">
+        <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+        <pd:resourceType>ae.activities.null</pd:resourceType>
+        <pd:x>236</pd:x>
+        <pd:y>137</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>ARC_TrackingErrorManagement</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>ARC_TrackingErrorManagement</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Group</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Parse XML</pd:to>
+        <pd:xpathDescription/>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Compress Message</pd:from>
+        <pd:to>Group</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Continue On Parse Error</pd:from>
+        <pd:to>Compress Message</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Parse XML</pd:from>
+        <pd:to>Continue On Parse Error</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65536</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Parse XML</pd:from>
+        <pd:to>Compress Message</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Body Empty</pd:to>
+        <pd:xpathDescription>Body Empty</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>string-length($Start/pfx7:CLEInternalMessage/Body)=0</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Body Empty</pd:from>
+        <pd:to>Group</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:label>
+        <pd:name>Label</pd:name>
+        <pd:description>El CLEInternalMessage es compartido tanto por FW como por Auditoria, por temas de compatibilidad.
+En este subproceso solo usa Body como input y BodyComplex como envio al CLE
+Si entra Body vacio solo se manda CLEInternalHeader.
+Si entra Body con un Message, se parsea, y se manda un BodyComplex completo, con Header en texto, Funcional comprimido y su Hash.
+Si entra Body con un Message pero sin Message/Body/Any vacio, se manda BodyComplex con Header en texto (entra en process Compress pero sale vacio).
+Si entra Body sin un Message, falla el parseo y se manda BodyComplex sin Header, Funcional comprimido y su Hash.
+</pd:description>
+        <pd:x>475</pd:x>
+        <pd:y>54</pd:y>
+        <pd:width>911</pd:width>
+        <pd:height>106</pd:height>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-1</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+</pd:ProcessDefinition>

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:UUID="java://EAIFramework.Processes.Private.Common.HeaderManagement.UUIDGenerator.UUIDGenerator" xmlns:pfx="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:ns2="http://www.tibco.com/pe/DeployedVarsType" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/pe/EngineTypes" xmlns:ns4="http://www.tibco.com/schemas/FrameworkIntegracion/EAI-Framework/Resources/Public/Schemas/XSD/MCD/Schema.xsd" xmlns:ns3="http://www.bbva.com/EAIFramework" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:GetIP="java://EAIFramework.Processes.Private.Common.HeaderManagement.IPAddress.IPAddress" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx3="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx2="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd">
+    
+    
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC_IPUB/PostActions/ARC_IPUB_PostGoingAction.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="root">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="ns3:Message"/>
+                    <xsd:element ref="ns3:TraceLevel" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>116</pd:startX>
+    <pd:startY>95</pd:startY>
+    <pd:returnBindings>
+        <xsl:copy-of select="$ARC_SpecificFormatOutboundHeaderManagement/SpecificFormatMessage/*"/>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endX>388</pd:endX>
+    <pd:endY>95</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="ns3:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1324409765610</pd:targetNamespace>
+    <pd:activity name="ARC_CLESenderAPI">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>252</pd:x>
+        <pd:y>95</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CLEManagement/ARC_TraceAuditSenderAPI.process</processName>
+        </config>
+        <pd:coercions>
+            <pd:coercion xpath="$Start/root/ns3:Message/ns3:Body/*" element="ns3:Event"/>
+        </pd:coercions>
+        <pd:inputBindings>
+            <ARC_TraceSenderAPI>
+                <CLETraceData>
+                    <EventCode>
+                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Audit/GLB_End_Ok"/>
+                    </EventCode>
+                    <EventType>
+                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Audit"/>
+                    </EventType>
+                    <MessageType>
+                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/MessageType/GLB_ProprietaryDataModel"/>
+                    </MessageType>
+                    <isResponse>
+                        <xsl:value-of select="false()"/>
+                    </isResponse>
+                    <xsl:choose>
+                        <xsl:when test="$Start/root/ns3:TraceLevel">
+                            <TraceLevel>
+                                <xsl:value-of select="$Start/root/ns3:TraceLevel"/>
+                            </TraceLevel>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <TraceLevel>
+                                <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit"/>
+                            </TraceLevel>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <xsl:if test="local-name($Start/root/ns3:Message/ns3:Body/*)=&quot;Event&quot;">
+                        <NameValue>
+                            <Name>
+                                <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/EVENTNAME"/>
+                            </Name>
+                            <Value>
+                                <xsl:value-of select="$Start/root/ns3:Message/ns3:Body/ns3:Event/EventName"/>
+                            </Value>
+                        </NameValue>
+                        <NameValue>
+                            <Name>
+                                <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/EVENTYPE"/>
+                            </Name>
+                            <Value>
+                                <xsl:value-of select="$Start/root/ns3:Message/ns3:Body/ns3:Event/EventType"/>
+                            </Value>
+                        </NameValue>
+                    </xsl:if>
+                </CLETraceData>
+                <Body>
+                    <xsl:value-of select="tib:render-xml($Start/root/ns3:Message)"/>
+                </Body>
+            </ARC_TraceSenderAPI>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>ARC_CLESenderAPI</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_CLESenderAPI</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

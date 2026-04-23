@@ -1,0 +1,21 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>CFG_COMPRESS_ENABLED</name>
+			<value>true</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Boolean</type>
+			<modTime>1570176933800</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_PROPERTY_NAME</name>
+			<value>JMS_TIBCO_COMPRESS</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1545923313181</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/DeployedVarsType" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <pd:name>Common/ARC/ARC_Cache/ARC_Put_In_Cache.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="Put_In_Cache">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="Key" type="xsd:string"/>
+                    <xsd:element name="Value" type="xsd:string"/>
+                    <xsd:element name="Expiration" type="xsd:integer"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>150</pd:startX>
+    <pd:startY>64</pd:startY>
+    <pd:returnBindings/>
+    <pd:endName>End</pd:endName>
+    <pd:endX>450</pd:endX>
+    <pd:endY>64</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1338227494972</pd:targetNamespace>
+    <pd:activity name="Put in Coherence Cache">
+        <pd:type>com.tibco.plugin.java.JavaActivity</pd:type>
+        <pd:resourceType>ae.javapalette.javaActivity</pd:resourceType>
+        <pd:x>294</pd:x>
+        <pd:y>69</pd:y>
+        <config>
+            <fileName>ARC_Put_In_CachePutinCoherenceCache</fileName>
+            <packageName>Common.ARC.ARC_Cache.ARC_Put_In_Cache</packageName>
+            <fullsource>package Common.ARC.ARC_Cache.ARC_Put_In_Cache;
+import java.util.*;
+import java.io.*;
+import com.tangosol.net.NamedCache;
+import com.tangosol.net.CacheFactory;
+
+
+public class ARC_Put_In_CachePutinCoherenceCache{
+/****** START SET/GET METHOD, DO NOT MODIFY *****/
+	protected String CacheName = "";
+	protected String Key = "";
+	protected String Value = "";
+	protected long Expiration = 0;
+	public String getCacheName() {
+		return CacheName;
+	}
+	public void setCacheName(String val) {
+		CacheName = val;
+	}
+	public String getKey() {
+		return Key;
+	}
+	public void setKey(String val) {
+		Key = val;
+	}
+	public String getValue() {
+		return Value;
+	}
+	public void setValue(String val) {
+		Value = val;
+	}
+	public long getExpiration() {
+		return Expiration;
+	}
+	public void setExpiration(long val) {
+		Expiration = val;
+	}
+/****** END SET/GET METHOD, DO NOT MODIFY *****/
+	public ARC_Put_In_CachePutinCoherenceCache() {
+	}
+	public void invoke() throws Exception {
+/* Available Variables: DO NOT MODIFY
+	In  : String CacheName
+	In  : String Key
+	In  : String Value
+	In  : long Expiration
+* Available Variables: DO NOT MODIFY *****/
+
+	NamedCache cache=CacheFactory.getCache(CacheName);
+	cache.put(Key, Value,Expiration*1000);
+
+
+}
+}
+</fullsource>
+            <inputData>
+                <row>
+                    <fieldName>CacheName</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>required</fieldRequired>
+                </row>
+                <row>
+                    <fieldName>Key</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>required</fieldRequired>
+                </row>
+                <row>
+                    <fieldName>Value</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>required</fieldRequired>
+                </row>
+                <row>
+                    <fieldName>Expiration</fieldName>
+                    <fieldType>long</fieldType>
+                    <fieldRequired>required</fieldRequired>
+                </row>
+            </inputData>
+            <byteCode>
+                <class>
+                    <name>ARC_Put_In_CachePutinCoherenceCache</name>
+                    <byteCode>yv66vgAAADIAOwkACwAoCQALACkJAAsAKgkACwArCgAMACwIAC0KAC4ALwUAAAAAAAAD6AsAMAAxBwAyBwAzAQAJQ2FjaGVOYW1lAQASTGphdmEvbGFuZy9TdHJpbmc7AQADS2V5AQAFVmFsdWUBAApFeHBpcmF0aW9uAQABSgEADGdldENhY2hlTmFtZQEAFCgpTGphdmEvbGFuZy9TdHJpbmc7AQAEQ29kZQEAD0xpbmVOdW1iZXJUYWJsZQEADHNldENhY2hlTmFtZQEAFShMamF2YS9sYW5nL1N0cmluZzspVgEABmdldEtleQEABnNldEtleQEACGdldFZhbHVlAQAIc2V0VmFsdWUBAA1nZXRFeHBpcmF0aW9uAQADKClKAQANc2V0RXhwaXJhdGlvbgEABChKKVYBAAY8aW5pdD4BAAMoKVYBAAZpbnZva2UBAApFeGNlcHRpb25zBwA0AQAKU291cmNlRmlsZQEAKEFSQ19QdXRfSW5fQ2FjaGVQdXRpbkNvaGVyZW5jZUNhY2hlLmphdmEMAA0ADgwADwAODAAQAA4MABEAEgwAIQAiAQAABwA1DAA2ADcHADgMADkAOgEASUNvbW1vbi9BUkMvQVJDX0NhY2hlL0FSQ19QdXRfSW5fQ2FjaGUvQVJDX1B1dF9Jbl9DYWNoZVB1dGluQ29oZXJlbmNlQ2FjaGUBABBqYXZhL2xhbmcvT2JqZWN0AQATamF2YS9sYW5nL0V4Y2VwdGlvbgEAHWNvbS90YW5nb3NvbC9uZXQvQ2FjaGVGYWN0b3J5AQAIZ2V0Q2FjaGUBADEoTGphdmEvbGFuZy9TdHJpbmc7KUxjb20vdGFuZ29zb2wvbmV0L05hbWVkQ2FjaGU7AQAbY29tL3Rhbmdvc29sL25ldC9OYW1lZENhY2hlAQADcHV0AQA5KExqYXZhL2xhbmcvT2JqZWN0O0xqYXZhL2xhbmcvT2JqZWN0O0opTGphdmEvbGFuZy9PYmplY3Q7ACEACwAMAAAABAAEAA0ADgAAAAQADwAOAAAABAAQAA4AAAAEABEAEgAAAAoAAQATABQAAQAVAAAAHQABAAEAAAAFKrQAAbAAAAABABYAAAAGAAEAAAAPAAEAFwAYAAEAFQAAACIAAgACAAAABiortQABsQAAAAEAFgAAAAoAAgAAABIABQATAAEAGQAUAAEAFQAAAB0AAQABAAAABSq0AAKwAAAAAQAWAAAABgABAAAAFQABABoAGAABABUAAAAiAAIAAgAAAAYqK7UAArEAAAABABYAAAAKAAIAAAAYAAUAGQABABsAFAABABUAAAAdAAEAAQAAAAUqtAADsAAAAAEAFgAAAAYAAQAAABsAAQAcABgAAQAVAAAAIgACAAIAAAAGKiu1AAOxAAAAAQAWAAAACgACAAAAHgAFAB8AAQAdAB4AAQAVAAAAHQACAAEAAAAFKrQABK0AAAABABYAAAAGAAEAAAAhAAEAHwAgAAEAFQAAACIAAwADAAAABioftQAEsQAAAAEAFgAAAAoAAgAAACQABQAlAAEAIQAiAAEAFQAAAEgAAwABAAAAHCq3AAUqEga1AAEqEga1AAIqEga1AAMqCbUABLEAAAABABYAAAAaAAYAAAAnAAQACgAKAAsAEAAMABYADQAbACgAAQAjACIAAgAVAAAAQAAHAAIAAAAgKrQAAbgAB0wrKrQAAiq0AAMqtAAEFAAIabkACgUAV7EAAAABABYAAAAOAAMAAAAxAAgAMgAfADUAJAAAAAQAAQAlAAEAJgAAAAIAJw==</byteCode>
+                </class>
+            </byteCode>
+        </config>
+        <pd:inputBindings>
+            <javaCodeActivityInput>
+                <CacheName>
+                    <xsl:value-of select="$_globalVariables/ns:GlobalVariables/CFG/ARCHITECTURE/TRANSCODING/CFG_DB_CACHE_NAME"/>
+                </CacheName>
+                <Key>
+                    <xsl:value-of select="$Start/Put_In_Cache/Key"/>
+                </Key>
+                <Value>
+                    <xsl:value-of select="$Start/Put_In_Cache/Value"/>
+                </Value>
+                <Expiration>
+                    <xsl:value-of select="$Start/Put_In_Cache/Expiration"/>
+                </Expiration>
+            </javaCodeActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Put in Coherence Cache</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Put in Coherence Cache</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

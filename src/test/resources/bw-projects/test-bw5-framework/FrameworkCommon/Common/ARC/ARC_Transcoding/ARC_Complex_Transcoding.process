@@ -1,0 +1,1159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="www.tibco.com/plugin/java/JavaMethodActivityInput" xmlns:ns5="http://schemas.tibco.com/bw/plugins/xml/5.0/xmlExceptions" xmlns:ns6="http://schemas.tibco.com/bw/plugins/java/5.0/javaExceptions" xmlns:pfx="http://www.tibco.com/schemas/sqlDirect/Esquemas/Schema.xsd" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns2="http://www.tibco.com/pe/DeployedVarsType" xmlns:ns1="www.tibco.com/plugin/java/JavaMethodActivityOutput" xmlns:ns4="http://www.tibco.com/pe/EngineTypes" xmlns:ns3="www.tibco.com/plugin/java/JavaMethodActivityException" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:pfx4="http://www.tibco.com/pe/SignalInActivitySchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx3="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:pfx2="http://www.bbva.com/EAIFramework">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_Transcoding/ARC_Complex_Transcoding.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="interface">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="multipleInterface">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="appSource" type="xsd:string"/>
+                                <xsd:element name="appDestination" type="xsd:string"/>
+                                <xsd:element name="entity" type="xsd:string"/>
+                                <xsd:element name="sourceCode" maxOccurs="unbounded">
+                                    <xsd:complexType>
+                                        <xsd:sequence>
+                                            <xsd:element name="key" type="xsd:string"/>
+                                            <xsd:element name="value" type="xsd:string"/>
+                                        </xsd:sequence>
+                                    </xsd:complexType>
+                                </xsd:element>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>178</pd:startX>
+    <pd:startY>291</pd:startY>
+    <pd:returnBindings>
+        <xsl:choose>
+            <xsl:when test="string-length($Get/Value)>0 or $getDestinationXML/destinationXML/xml">
+                <XML_destinationCode>
+                    <xsl:copy-of select="$Parse-XML/*"/>
+                </XML_destinationCode>
+            </xsl:when>
+            <xsl:otherwise>
+                <XML_destinationCode>
+                    <xsl:copy-of select="$Parse-XML-in-Error/*"/>
+                </XML_destinationCode>
+            </xsl:otherwise>
+        </xsl:choose>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="XML_destinationCode">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:any processContents="skip"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>1429</pd:endX>
+    <pd:endY>438</pd:endY>
+    <pd:errorSchemas>
+        <ErrorInvocationProcess>
+            <xsd:element name="InvocationError">
+                <xsd:complexType>
+                    <xsd:sequence/>
+                </xsd:complexType>
+            </xsd:element>
+        </ErrorInvocationProcess>
+        <ErrorMessage ref="pfx2:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1335169843583</pd:targetNamespace>
+    <pd:activity name="Parse XML">
+        <pd:type>com.tibco.plugin.xml.XMLParseActivity</pd:type>
+        <pd:resourceType>ae.activities.XMLParseActivity</pd:resourceType>
+        <pd:x>1119</pd:x>
+        <pd:y>438</pd:y>
+        <config>
+            <inputStyle>text</inputStyle>
+            <xsdVersion>default</xsdVersion>
+            <validateOutput>true</validateOutput>
+            <term>
+                <xsd:any processContents="skip"/>
+            </term>
+        </config>
+        <pd:inputBindings>
+            <xsl:choose>
+                <xsl:when test="string-length($Get/Value)>0">
+                    <xmlString>
+                        <xsl:value-of select="$Get/Value"/>
+                    </xmlString>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xmlString>
+                        <xsl:value-of select="$getDestinationXML/destinationXML/xml"/>
+                    </xmlString>
+                </xsl:otherwise>
+            </xsl:choose>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>562</pd:x>
+        <pd:y>776</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Error in ARC_Complex_Transcoding">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>739</pd:x>
+        <pd:y>784</pd:y>
+        <config>
+            <faultName>ErrorMessage</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx3:ActivityInput>
+                <data>
+                    <xsl:choose>
+                        <xsl:when test="$_error/ns4:ErrorReport/MsgCode=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_BWENGINE-100017">
+                            <pfx2:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Transcoding/GLB_Not_Implementation"/>
+                                </ErrorCode>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Transcoding/GLB_Not_Implementation_Msg"/>
+                                </ErrorDescription>
+                                <xsl:if test="$_error_Parse-XML/ActivityErrors/ns5:ValidationException/msgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:ValidationException/msgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                                <xsl:if test="$_error_Parse-XML/ActivityErrors/ns5:ValidationException/msg">
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:ValidationException/msg"/>
+                                    </NativeErrorDescription>
+                                </xsl:if>
+                                <xsl:if test="$_error/ns4:ErrorReport/StackTrace">
+                                    <StackTrace>
+                                        <xsl:value-of select="$_error/ns4:ErrorReport/StackTrace"/>
+                                    </StackTrace>
+                                </xsl:if>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <StackProcess>
+                                    <xsl:value-of select="BW:getCurrentProcessName($_processContext/ns4:ProcessContext/ProcessId)"/>
+                                </StackProcess>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                </Severity>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/interface)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx2:ErrorMessage>
+                        </xsl:when>
+                        <xsl:when test="not(empty($_error_Parse-XML/ActivityErrors/ns5:ValidationException))">
+                            <pfx2:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Transcoding/GLB_Validation_Xml"/>
+                                </ErrorCode>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Transcoding/GLB_Validation_Xml_Msg"/>
+                                </ErrorDescription>
+                                <xsl:if test="$_error_Parse-XML/ActivityErrors/ns5:ValidationException/msgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:ValidationException/msgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                                <xsl:if test="$_error_Parse-XML/ActivityErrors/ns5:ValidationException/msg">
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:ValidationException/msg"/>
+                                    </NativeErrorDescription>
+                                </xsl:if>
+                                <xsl:if test="$_error/ns4:ErrorReport/StackTrace">
+                                    <StackTrace>
+                                        <xsl:value-of select="$_error/ns4:ErrorReport/StackTrace"/>
+                                    </StackTrace>
+                                </xsl:if>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <StackProcess>
+                                    <xsl:value-of select="BW:getCurrentProcessName($_processContext/ns4:ProcessContext/ProcessId)"/>
+                                </StackProcess>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                </Severity>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/interface)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx2:ErrorMessage>
+                        </xsl:when>
+                        <xsl:when test="not(empty($_error_Parse-XML/ActivityErrors/ns5:UnsupportedEncodingException))">
+                            <pfx2:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Transcoding/GLB_UnsupportedEncoding"/>
+                                </ErrorCode>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Transcoding/GLB_UnsupportedEncoding_Msg"/>
+                                </ErrorDescription>
+                                <xsl:if test="$_error_Parse-XML/ActivityErrors/ns5:UnsupportedEncodingException/msgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:UnsupportedEncodingException/msgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                                <xsl:if test="$_error_Parse-XML/ActivityErrors/ns5:UnsupportedEncodingException/msg">
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:UnsupportedEncodingException/msg"/>
+                                    </NativeErrorDescription>
+                                </xsl:if>
+                                <xsl:if test="$_error/ns4:ErrorReport/StackTrace">
+                                    <StackTrace>
+                                        <xsl:value-of select="$_error/ns4:ErrorReport/StackTrace"/>
+                                    </StackTrace>
+                                </xsl:if>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <StackProcess>
+                                    <xsl:value-of select="BW:getCurrentProcessName($_processContext/ns4:ProcessContext/ProcessId)"/>
+                                </StackProcess>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                </Severity>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/interface)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx2:ErrorMessage>
+                        </xsl:when>
+                        <xsl:when test="not(empty($_error_Parse-XML/ActivityErrors/ns5:XMLParseException))">
+                            <pfx2:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Transcoding/GLB_ParseXml"/>
+                                </ErrorCode>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Transcoding/GLB_ParseXml_Msg"/>
+                                </ErrorDescription>
+                                <xsl:if test="$_error_Parse-XML/ActivityErrors/ns5:XMLParseException/msgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:XMLParseException/msgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                                <xsl:if test="$_error_Parse-XML/ActivityErrors/ns5:XMLParseException/msg">
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:XMLParseException/msg"/>
+                                    </NativeErrorDescription>
+                                </xsl:if>
+                                <xsl:if test="$_error/ns4:ErrorReport/StackTrace">
+                                    <StackTrace>
+                                        <xsl:value-of select="$_error/ns4:ErrorReport/StackTrace"/>
+                                    </StackTrace>
+                                </xsl:if>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <StackProcess>
+                                    <xsl:value-of select="BW:getCurrentProcessName($_processContext/ns4:ProcessContext/ProcessId)"/>
+                                </StackProcess>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                </Severity>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/interface)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx2:ErrorMessage>
+                        </xsl:when>
+                        <xsl:when test="not(empty($_error_Parse-XML/ActivityErrors/ns5:MissingByteCountException))">
+                            <pfx2:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Transcoding/GLB_MissingByteCount"/>
+                                </ErrorCode>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Transcoding/GLB_MissingByteCount_Msg"/>
+                                </ErrorDescription>
+                                <xsl:if test="$_error_Parse-XML/ActivityErrors/ns5:MissingByteCountException/msgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:MissingByteCountException/msgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                                <xsl:if test="$_error_Parse-XML/ActivityErrors/ns5:MissingByteCountException/msg">
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:MissingByteCountException/msg"/>
+                                    </NativeErrorDescription>
+                                </xsl:if>
+                                <xsl:if test="$_error/ns4:ErrorReport/StackTrace">
+                                    <StackTrace>
+                                        <xsl:value-of select="$_error/ns4:ErrorReport/StackTrace"/>
+                                    </StackTrace>
+                                </xsl:if>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <StackProcess>
+                                    <xsl:value-of select="BW:getCurrentProcessName($_processContext/ns4:ProcessContext/ProcessId)"/>
+                                </StackProcess>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                </Severity>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/interface)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx2:ErrorMessage>
+                        </xsl:when>
+                        <xsl:when test="$_error_InputHashProcess/ns6:InvocationException">
+                            <pfx2:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                </ErrorCode>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_error_InputHashProcess/ns6:InvocationException/msg"/>
+                                </ErrorDescription>
+                                <xsl:if test="$_error_InputHashProcess/ns6:InvocationException/msgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error_InputHashProcess/ns6:InvocationException/msgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$_error_InputHashProcess/ns6:InvocationException/exceptionMessage"/>
+                                </NativeErrorDescription>
+                                <xsl:if test="$_error/ns4:ErrorReport/StackTrace">
+                                    <StackTrace>
+                                        <xsl:value-of select="$_error/ns4:ErrorReport/StackTrace"/>
+                                    </StackTrace>
+                                </xsl:if>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns4:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                </Severity>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/interface)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx2:ErrorMessage>
+                        </xsl:when>
+                        <xsl:when test="$_error_getDestinationXMLDefault">
+                            <xsl:choose>
+                                <xsl:when test="string-length($_error_getDestinationXMLDefault/pfx2:ErrorMessage/ErrorCode)>0">
+                                    <xsl:copy-of select="$_error_getDestinationXMLDefault/pfx2:ErrorMessage"/>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <pfx2:ErrorMessage>
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Transcoding/GLB_TranscodingImplementation"/>
+                                        </ErrorCode>
+                                        <ErrorDescription>
+                                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Transcoding/GLB_TranscodingImplementation_Msg"/>
+                                        </ErrorDescription>
+                                        <xsl:if test="$_error/ns4:ErrorReport/MsgCode">
+                                            <NativeErrorCode>
+                                                <xsl:value-of select="$_error/ns4:ErrorReport/MsgCode"/>
+                                            </NativeErrorCode>
+                                        </xsl:if>
+                                        <xsl:if test="$_error/ns4:ErrorReport/Msg">
+                                            <NativeErrorDescription>
+                                                <xsl:value-of select="$_error/ns4:ErrorReport/Msg"/>
+                                            </NativeErrorDescription>
+                                        </xsl:if>
+                                        <xsl:if test="$_error/ns4:ErrorReport/StackTrace">
+                                            <StackTrace>
+                                                <xsl:value-of select="$_error/ns4:ErrorReport/StackTrace"/>
+                                            </StackTrace>
+                                        </xsl:if>
+                                        <ErrorDate>
+                                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                        </ErrorDate>
+                                        <StackProcess>
+                                            <xsl:value-of select="$_error/ns4:ErrorReport/ProcessStack"/>
+                                        </StackProcess>
+                                        <Severity>
+                                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                        </Severity>
+                                        <Category>
+                                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                        </Category>
+                                        <ProcessInputMessage>
+                                            <xsl:value-of select="tib:render-xml($Start/interface)"/>
+                                        </ProcessInputMessage>
+                                        <IsResponse>
+                                            <xsl:value-of select="0"/>
+                                        </IsResponse>
+                                        <MessageType>
+                                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                        </MessageType>
+                                    </pfx2:ErrorMessage>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <pfx2:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                </ErrorCode>
+                                <xsl:if test="$_error/ns4:ErrorReport/Msg">
+                                    <ErrorDescription>
+                                        <xsl:value-of select="$_error/ns4:ErrorReport/Msg"/>
+                                    </ErrorDescription>
+                                </xsl:if>
+                                <xsl:if test="$_error/ns4:ErrorReport/MsgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error/ns4:ErrorReport/MsgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                                <xsl:if test="$_error/ns4:ErrorReport/Msg">
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$_error/ns4:ErrorReport/Msg"/>
+                                    </NativeErrorDescription>
+                                </xsl:if>
+                                <xsl:if test="$_error/ns4:ErrorReport/StackTrace">
+                                    <StackTrace>
+                                        <xsl:value-of select="$_error/ns4:ErrorReport/StackTrace"/>
+                                    </StackTrace>
+                                </xsl:if>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <xsl:if test="$_error/ns4:ErrorReport/ProcessStack">
+                                    <StackProcess>
+                                        <xsl:value-of select="$_error/ns4:ErrorReport/ProcessStack"/>
+                                    </StackProcess>
+                                </xsl:if>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                </Severity>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/interface)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx2:ErrorMessage>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </data>
+            </pfx3:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="getDestinationXML">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>823</pd:x>
+        <pd:y>225</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Transcoding/interface/complexTranscodingIfz.process</processName>
+            <processNameXPath>concat($GetServiceIdAndPath/Data/Path, $_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/Types/Transcoding/GLB_COMPLEX_IMPL)</processNameXPath>
+        </config>
+        <pd:inputBindings>
+            <getDestinationXML>
+                <sourceApplication>
+                    <xsl:value-of select="$Start/interface/multipleInterface/appSource"/>
+                </sourceApplication>
+                <destinationApplication>
+                    <xsl:value-of select="$Start/interface/multipleInterface/appDestination"/>
+                </destinationApplication>
+                <entity>
+                    <xsl:value-of select="$Start/interface/multipleInterface/entity"/>
+                </entity>
+                <xsl:copy-of select="$Start/interface/multipleInterface/sourceCode"/>
+            </getDestinationXML>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="CatchArchError">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>310</pd:x>
+        <pd:y>641</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <fault>localname=ErrorMessage namespace=http://www.bbva.com/EAIFramework</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Rethrow">
+        <pd:type>com.tibco.pe.core.RethrowActivity</pd:type>
+        <pd:resourceType>ae.activities.rethrow</pd:resourceType>
+        <pd:x>449</pd:x>
+        <pd:y>640</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="GetServiceIdAndPath">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>551</pd:x>
+        <pd:y>222</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/ServiceIdAndPath.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="getDestinationXMLDefault">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>734</pd:x>
+        <pd:y>666</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Transcoding/interface/complexTranscodingIfz.process</processName>
+            <processNameXPath>$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/Types/Transcoding/GLB_COMPLEX_DEFAULT_IMPL</processNameXPath>
+        </config>
+        <pd:inputBindings>
+            <getDestinationXML>
+                <sourceApplication>
+                    <xsl:value-of select="$Start/interface/multipleInterface/appSource"/>
+                </sourceApplication>
+                <destinationApplication>
+                    <xsl:value-of select="$Start/interface/multipleInterface/appDestination"/>
+                </destinationApplication>
+                <entity>
+                    <xsl:value-of select="$Start/interface/multipleInterface/entity"/>
+                </entity>
+                <xsl:copy-of select="$Start/interface/multipleInterface/sourceCode"/>
+            </getDestinationXML>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Parse XML in Error">
+        <pd:type>com.tibco.plugin.xml.XMLParseActivity</pd:type>
+        <pd:resourceType>ae.activities.XMLParseActivity</pd:resourceType>
+        <pd:x>1077</pd:x>
+        <pd:y>669</pd:y>
+        <config>
+            <inputStyle>text</inputStyle>
+            <xsdVersion>default</xsdVersion>
+            <validateOutput>true</validateOutput>
+            <term>
+                <xsd:any processContents="skip"/>
+            </term>
+        </config>
+        <pd:inputBindings>
+            <xmlString>
+                <xsl:value-of select="$getDestinationXMLDefault/destinationXML/xml"/>
+            </xmlString>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="InputHashProcess">
+        <pd:type>com.tibco.plugin.java.JavaActivity</pd:type>
+        <pd:resourceType>ae.javapalette.javaActivity</pd:resourceType>
+        <pd:x>400</pd:x>
+        <pd:y>294</pd:y>
+        <config>
+            <fileName>ARC_Complex_TranscodingInputHashProcess</fileName>
+            <packageName>Common.ARC.ARC_Transcoding.ARC_Complex_Transcoding</packageName>
+            <fullsource>package Common.ARC.ARC_Transcoding.ARC_Complex_Transcoding;
+import java.util.*;
+import java.io.*;
+
+import java.util.HashMap;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+public class ARC_Complex_TranscodingInputHashProcess{
+/****** START SET/GET METHOD, DO NOT MODIFY *****/
+	protected String[] keys = null;
+	protected String[] values = null;
+	protected String entity = "";
+	protected String sourceApp = "";
+	protected String targetApp = "";
+	protected String HashValue = "";
+	public String[] getkeys() {
+		return keys;
+	}
+	public void setkeys(String[] val) {
+		keys = val;
+	}
+	public String[] getvalues() {
+		return values;
+	}
+	public void setvalues(String[] val) {
+		values = val;
+	}
+	public String getentity() {
+		return entity;
+	}
+	public void setentity(String val) {
+		entity = val;
+	}
+	public String getsourceApp() {
+		return sourceApp;
+	}
+	public void setsourceApp(String val) {
+		sourceApp = val;
+	}
+	public String gettargetApp() {
+		return targetApp;
+	}
+	public void settargetApp(String val) {
+		targetApp = val;
+	}
+	public String getHashValue() {
+		return HashValue;
+	}
+	public void setHashValue(String val) {
+		HashValue = val;
+	}
+/****** END SET/GET METHOD, DO NOT MODIFY *****/
+	public ARC_Complex_TranscodingInputHashProcess() {
+	}
+	public void invoke() throws Exception {
+/* Available Variables: DO NOT MODIFY
+	In  : String[] keys
+	In  : String[] values
+	In  : String entity
+	In  : String sourceApp
+	In  : String targetApp
+	Out : String HashValue
+* Available Variables: DO NOT MODIFY *****/
+
+				StringBuffer hashKey=new StringBuffer();
+
+
+		if (keys.length!=values.length)
+			throw new Exception("Not all the keys contain values. This is not allowed.");
+
+		//create the hashMap &lt;key, value&gt;
+		HashMap&lt;String, String&gt; hash= new HashMap&lt;String, String&gt;();
+		int length = keys.length;
+		for(int i=0; i&lt; length; i++){
+			hash.put(keys[i], values[i]);
+		}
+
+		//sort keys by alphabetical order
+		SortedSet&lt;String&gt; set= new TreeSet&lt;String&gt;(hash.keySet());
+		//create the hash key from entity and the pair &lt;key,value&gt; ordered alphabetically
+		hashKey.append(sourceApp);
+		hashKey.append(targetApp);
+		hashKey.append(entity);
+		
+		for(Object ob:set){
+			hashKey.append(ob);
+			hashKey.append(hash.get((String)ob));
+		}
+
+		HashValue= hashKey.toString();
+
+
+}
+}
+</fullsource>
+            <outputData>
+                <row>
+                    <fieldName>HashValue</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>required</fieldRequired>
+                </row>
+            </outputData>
+            <inputData>
+                <row>
+                    <fieldName>keys</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>repeating</fieldRequired>
+                </row>
+                <row>
+                    <fieldName>values</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>repeating</fieldRequired>
+                </row>
+                <row>
+                    <fieldName>entity</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>required</fieldRequired>
+                </row>
+                <row>
+                    <fieldName>sourceApp</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>required</fieldRequired>
+                </row>
+                <row>
+                    <fieldName>targetApp</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>required</fieldRequired>
+                </row>
+            </inputData>
+            <byteCode>
+                <class>
+                    <name>ARC_Complex_TranscodingInputHashProcess</name>
+                    <byteCode>yv66vgAAADIAcwkAHABDCQAcAEQJABwARQkAHABGCQAcAEcJABwASAoAHQBJCABKBwBLCgAJAEkHAEwIAE0KAAsATgcATwoADgBJCgAOAFAHAFEKAA4AUgoAEQBTCgAJAFQLAFUAVgsAVwBYCwBXAFkHAFoKAAkAWwoADgBcCgAJAF0HAF4HAF8BAARrZXlzAQATW0xqYXZhL2xhbmcvU3RyaW5nOwEABnZhbHVlcwEABmVudGl0eQEAEkxqYXZhL2xhbmcvU3RyaW5nOwEACXNvdXJjZUFwcAEACXRhcmdldEFwcAEACUhhc2hWYWx1ZQEAB2dldGtleXMBABUoKVtMamF2YS9sYW5nL1N0cmluZzsBAARDb2RlAQAPTGluZU51bWJlclRhYmxlAQAHc2V0a2V5cwEAFihbTGphdmEvbGFuZy9TdHJpbmc7KVYBAAlnZXR2YWx1ZXMBAAlzZXR2YWx1ZXMBAAlnZXRlbnRpdHkBABQoKUxqYXZhL2xhbmcvU3RyaW5nOwEACXNldGVudGl0eQEAFShMamF2YS9sYW5nL1N0cmluZzspVgEADGdldHNvdXJjZUFwcAEADHNldHNvdXJjZUFwcAEADGdldHRhcmdldEFwcAEADHNldHRhcmdldEFwcAEADGdldEhhc2hWYWx1ZQEADHNldEhhc2hWYWx1ZQEABjxpbml0PgEAAygpVgEABmludm9rZQEADVN0YWNrTWFwVGFibGUHAEsHAE8HAGAHAGEBAApFeGNlcHRpb25zAQAKU291cmNlRmlsZQEALEFSQ19Db21wbGV4X1RyYW5zY29kaW5nSW5wdXRIYXNoUHJvY2Vzcy5qYXZhDAAeAB8MACAAHwwAIQAiDAAjACIMACQAIgwAJQAiDAA4ADkBAAABABZqYXZhL2xhbmcvU3RyaW5nQnVmZmVyAQATamF2YS9sYW5nL0V4Y2VwdGlvbgEANU5vdCBhbGwgdGhlIGtleXMgY29udGFpbiB2YWx1ZXMuIFRoaXMgaXMgbm90IGFsbG93ZWQuDAA4ADEBABFqYXZhL3V0aWwvSGFzaE1hcAwAYgBjAQARamF2YS91dGlsL1RyZWVTZXQMAGQAZQwAOABmDABnAGgHAGAMAGkAagcAYQwAawBsDABtAG4BABBqYXZhL2xhbmcvU3RyaW5nDABnAG8MAHAAcQwAcgAvAQBaQ29tbW9uL0FSQy9BUkNfVHJhbnNjb2RpbmcvQVJDX0NvbXBsZXhfVHJhbnNjb2RpbmcvQVJDX0NvbXBsZXhfVHJhbnNjb2RpbmdJbnB1dEhhc2hQcm9jZXNzAQAQamF2YS9sYW5nL09iamVjdAEAE2phdmEvdXRpbC9Tb3J0ZWRTZXQBABJqYXZhL3V0aWwvSXRlcmF0b3IBAANwdXQBADgoTGphdmEvbGFuZy9PYmplY3Q7TGphdmEvbGFuZy9PYmplY3Q7KUxqYXZhL2xhbmcvT2JqZWN0OwEABmtleVNldAEAESgpTGphdmEvdXRpbC9TZXQ7AQAZKExqYXZhL3V0aWwvQ29sbGVjdGlvbjspVgEABmFwcGVuZAEALChMamF2YS9sYW5nL1N0cmluZzspTGphdmEvbGFuZy9TdHJpbmdCdWZmZXI7AQAIaXRlcmF0b3IBABYoKUxqYXZhL3V0aWwvSXRlcmF0b3I7AQAHaGFzTmV4dAEAAygpWgEABG5leHQBABQoKUxqYXZhL2xhbmcvT2JqZWN0OwEALChMamF2YS9sYW5nL09iamVjdDspTGphdmEvbGFuZy9TdHJpbmdCdWZmZXI7AQADZ2V0AQAmKExqYXZhL2xhbmcvT2JqZWN0OylMamF2YS9sYW5nL09iamVjdDsBAAh0b1N0cmluZwAhABwAHQAAAAYABAAeAB8AAAAEACAAHwAAAAQAIQAiAAAABAAjACIAAAAEACQAIgAAAAQAJQAiAAAADgABACYAJwABACgAAAAdAAEAAQAAAAUqtAABsAAAAAEAKQAAAAYAAQAAABIAAQAqACsAAQAoAAAAIgACAAIAAAAGKiu1AAGxAAAAAQApAAAACgACAAAAFQAFABYAAQAsACcAAQAoAAAAHQABAAEAAAAFKrQAArAAAAABACkAAAAGAAEAAAAYAAEALQArAAEAKAAAACIAAgACAAAABiortQACsQAAAAEAKQAAAAoAAgAAABsABQAcAAEALgAvAAEAKAAAAB0AAQABAAAABSq0AAOwAAAAAQApAAAABgABAAAAHgABADAAMQABACgAAAAiAAIAAgAAAAYqK7UAA7EAAAABACkAAAAKAAIAAAAhAAUAIgABADIALwABACgAAAAdAAEAAQAAAAUqtAAEsAAAAAEAKQAAAAYAAQAAACQAAQAzADEAAQAoAAAAIgACAAIAAAAGKiu1AASxAAAAAQApAAAACgACAAAAJwAFACgAAQA0AC8AAQAoAAAAHQABAAEAAAAFKrQABbAAAAABACkAAAAGAAEAAAAqAAEANQAxAAEAKAAAACIAAgACAAAABiortQAFsQAAAAEAKQAAAAoAAgAAAC0ABQAuAAEANgAvAAEAKAAAAB0AAQABAAAABSq0AAawAAAAAQApAAAABgABAAAAMAABADcAMQABACgAAAAiAAIAAgAAAAYqK7UABrEAAAABACkAAAAKAAIAAAAzAAUANAABADgAOQABACgAAABbAAIAAQAAACcqtwAHKgG1AAEqAbUAAioSCLUAAyoSCLUABCoSCLUABSoSCLUABrEAAAABACkAAAAiAAgAAAA2AAQACwAJAAwADgANABQADgAaAA8AIAAQACYANwABADoAOQACACgAAAE3AAQABwAAALq7AAlZtwAKTCq0AAG+KrQAAr6fAA27AAtZEgy3AA2/uwAOWbcAD00qtAABvj4DNgQVBB2iABwsKrQAARUEMiq0AAIVBDK2ABBXhAQBp//kuwARWSy2ABK3ABM6BCsqtAAEtgAUVysqtAAFtgAUVysqtAADtgAUVxkEuQAVAQA6BRkFuQAWAQCZACoZBbkAFwEAwAAYOgYrGQa2ABlXKywZBsAAGLYAGsAAGLYAFFen/9IqK7YAG7UABrEAAAACACkAAABGABEAAABCAAgARQAVAEYAHwBJACcASgAtAEsANgBMAEkASwBPAFAAXABSAGUAUwBuAFQAdwBWAJYAVwCdAFgAsQBbALkAXgA7AAAAHwAF/AAfBwA8/gAQBwA9AQH6AB79ADAHAD4HAD/6ADAAQAAAAAQAAQALAAEAQQAAAAIAQg==</byteCode>
+                </class>
+            </byteCode>
+        </config>
+        <pd:inputBindings>
+            <javaCodeActivityInput>
+                <xsl:for-each select="$Start/interface/multipleInterface/sourceCode/key">
+                    <keys>
+                        <xsl:value-of select="."/>
+                    </keys>
+                </xsl:for-each>
+                <xsl:for-each select="$Start/interface/multipleInterface/sourceCode/value">
+                    <values>
+                        <xsl:value-of select="."/>
+                    </values>
+                </xsl:for-each>
+                <entity>
+                    <xsl:value-of select="$Start/interface/multipleInterface/entity"/>
+                </entity>
+                <sourceApp>
+                    <xsl:value-of select="$Start/interface/multipleInterface/appSource"/>
+                </sourceApp>
+                <targetApp>
+                    <xsl:value-of select="$Start/interface/multipleInterface/appDestination"/>
+                </targetApp>
+            </javaCodeActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Get">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>551</pd:x>
+        <pd:y>438</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Cache/ARC_Get_From_Cache.process</processName>
+        </config>
+        <pd:inputBindings>
+            <Key>
+                <xsl:value-of select="$InputHashProcess/javaCodeActivityOutput/HashValue"/>
+            </Key>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Put">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>1115</pd:x>
+        <pd:y>228</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Cache/ARC_Put_In_Cache.process</processName>
+        </config>
+        <pd:inputBindings>
+            <Put_In_Cache>
+                <Key>
+                    <xsl:value-of select="$InputHashProcess/javaCodeActivityOutput/HashValue"/>
+                </Key>
+                <Value>
+                    <xsl:value-of select="$getDestinationXML/destinationXML/xml"/>
+                </Value>
+                <Expiration>
+                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/CFG/ARCHITECTURE/TRANSCODING/CFG_CACHE_EXPIRATION"/>
+                </Expiration>
+            </Put_In_Cache>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Put2">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>907</pd:x>
+        <pd:y>669</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Cache/ARC_Put_In_Cache.process</processName>
+        </config>
+        <pd:inputBindings>
+            <Put_In_Cache>
+                <Key>
+                    <xsl:value-of select="$InputHashProcess/javaCodeActivityOutput/HashValue"/>
+                </Key>
+                <Value>
+                    <xsl:value-of select="$getDestinationXMLDefault/destinationXML/xml"/>
+                </Value>
+                <Expiration>
+                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/CFG/ARCHITECTURE/TRANSCODING/CFG_CACHE_EXPIRATION"/>
+                </Expiration>
+            </Put_In_Cache>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Generate Invocation Error">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>972</pd:x>
+        <pd:y>307</pd:y>
+        <config>
+            <faultName>ErrorInvocationProcess</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx3:ActivityInput>
+                <data>
+                    <InvocationError/>
+                </data>
+            </pfx3:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch Invocation Error">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>552</pd:x>
+        <pd:y>668</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <fault>localname=InvocationError</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Parse XML</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>Error in ARC_Complex_Transcoding</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>CatchArchError</pd:from>
+        <pd:to>Rethrow</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetServiceIdAndPath</pd:from>
+        <pd:to>getDestinationXML</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>getDestinationXMLDefault</pd:to>
+        <pd:xpathDescription>Dynamic call no correct</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$_error/ns4:ErrorReport/MsgCode="BWENGINE-100017"</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Parse XML in Error</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>getDestinationXMLDefault</pd:from>
+        <pd:to>Error in ARC_Complex_Transcoding</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>InputHashProcess</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>InputHashProcess</pd:from>
+        <pd:to>Get</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get</pd:from>
+        <pd:to>Parse XML</pd:to>
+        <pd:xpathDescription>Value in cache</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>string-length($Get/Value)&gt;0</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get</pd:from>
+        <pd:to>GetServiceIdAndPath</pd:to>
+        <pd:xpathDescription>No value</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>getDestinationXML</pd:from>
+        <pd:to>Put</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Put</pd:from>
+        <pd:to>Parse XML</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>getDestinationXMLDefault</pd:from>
+        <pd:to>Put2</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Put2</pd:from>
+        <pd:to>Parse XML in Error</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>getDestinationXML</pd:from>
+        <pd:to>Generate Invocation Error</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Invocation Error</pd:from>
+        <pd:to>getDestinationXMLDefault</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:label>
+        <pd:name>Label</pd:name>
+        <pd:description>Assign the keys and values lists that are necessary for the 
+lookup in the cache memory.</pd:description>
+        <pd:x>230</pd:x>
+        <pd:y>176</pd:y>
+        <pd:width>197</pd:width>
+        <pd:height>68</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-10027264</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (1)</pd:name>
+        <pd:description>Get the hash
+key for the 
+cache memory</pd:description>
+        <pd:x>408</pd:x>
+        <pd:y>223</pd:y>
+        <pd:width>105</pd:width>
+        <pd:height>61</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-3407668</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (2)</pd:name>
+        <pd:description>Get the destination xml code from the cache memory</pd:description>
+        <pd:x>541</pd:x>
+        <pd:y>508</pd:y>
+        <pd:width>127</pd:width>
+        <pd:height>64</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-13312</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (1)</pd:name>
+        <pd:description>Invoke dynamically to 
+the process that 
+returns the destination XML</pd:description>
+        <pd:x>816</pd:x>
+        <pd:y>150</pd:y>
+        <pd:width>144</pd:width>
+        <pd:height>78</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-6710785</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (2)</pd:name>
+        <pd:description>Parse the destination
+XML to a XML type</pd:description>
+        <pd:x>1084</pd:x>
+        <pd:y>736</pd:y>
+        <pd:width>140</pd:width>
+        <pd:height>49</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-39322</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (3)</pd:name>
+        <pd:description>Parse the destination
+XML to a XML type</pd:description>
+        <pd:x>1211</pd:x>
+        <pd:y>399</pd:y>
+        <pd:width>143</pd:width>
+        <pd:height>50</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-10092340</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (5)</pd:name>
+        <pd:description>Invoke the default process 
+if the previous process
+couldn´t be invoked</pd:description>
+        <pd:x>721</pd:x>
+        <pd:y>598</pd:y>
+        <pd:width>171</pd:width>
+        <pd:height>64</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-39220</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (8)</pd:name>
+        <pd:description>Get the process to be invoke dynamically.</pd:description>
+        <pd:x>559</pd:x>
+        <pd:y>152</pd:y>
+        <pd:width>136</pd:width>
+        <pd:height>53</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-39424</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (18)</pd:name>
+        <pd:description>Store the destination
+XML in cache</pd:description>
+        <pd:x>916</pd:x>
+        <pd:y>600</pd:y>
+        <pd:width>142</pd:width>
+        <pd:height>52</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-16751002</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (19)</pd:name>
+        <pd:description>Store the destination
+XML in cache</pd:description>
+        <pd:x>1127</pd:x>
+        <pd:y>166</pd:y>
+        <pd:width>140</pd:width>
+        <pd:height>50</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-6697984</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (3) (1)</pd:name>
+        <pd:description>If the destination XML 
+is not stored in cache, a call is performed to obtain the data from the implementation</pd:description>
+        <pd:x>703</pd:x>
+        <pd:y>299</pd:y>
+        <pd:width>265</pd:width>
+        <pd:height>78</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-6711040</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (3) (2)</pd:name>
+        <pd:description>If the destination XML 
+is stored in cache</pd:description>
+        <pd:x>954</pd:x>
+        <pd:y>401</pd:y>
+        <pd:width>144</pd:width>
+        <pd:height>46</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-13421569</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+</pd:ProcessDefinition>

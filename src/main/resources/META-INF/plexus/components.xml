@@ -47,6 +47,7 @@
                     <generate-sources>com.tibco.bw:bw5-maven-plugin:copy-bw-sources,com.tibco.bw:bw5-maven-plugin:extract-java-sources</generate-sources>
                     <process-resources>com.tibco.bw:bw5-maven-plugin:resolve-dependencies</process-resources>
                     <compile>org.apache.maven.plugins:maven-compiler-plugin:compile</compile>
+                    <process-classes>com.tibco.bw:bw5-maven-plugin:prepare-jcf-bytecode</process-classes>
                     <package>com.tibco.bw:bw5-maven-plugin:bwear</package>
                     <install>org.apache.maven.plugins:maven-install-plugin:install</install>
                     <deploy>org.apache.maven.plugins:maven-deploy-plugin:deploy</deploy>
@@ -65,6 +66,7 @@
                     <generate-sources>com.tibco.bw:bw5-maven-plugin:copy-bw-sources,com.tibco.bw:bw5-maven-plugin:extract-java-sources</generate-sources>
                     <process-resources>com.tibco.bw:bw5-maven-plugin:resolve-dependencies</process-resources>
                     <compile>org.apache.maven.plugins:maven-compiler-plugin:compile</compile>
+                    <process-classes>com.tibco.bw:bw5-maven-plugin:prepare-jcf-bytecode</process-classes>
                     <package>com.tibco.bw:bw5-maven-plugin:bw5module</package>
                     <install>org.apache.maven.plugins:maven-install-plugin:install</install>
                     <deploy>org.apache.maven.plugins:maven-deploy-plugin:deploy</deploy>

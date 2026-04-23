@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pfx="http://www.example.org/BBVACabecera" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:pfx5="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC_EXP_RecursosComunes/Esquemas/Schema.xsd" xmlns:pfx4="http://www.tibco.com/ns/no_namespace_schema_location/ASINC_EXP_RecursosComunes/Esquemas/Patron_Asincrono/Export Adapter/MXML.dtd" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx3="http://www.tibco.com/ns/no_namespace_schema_location/ASINC_EXP_RecursosComunes/Esquemas/Patron_Asincrono/Modelo Comun/main/ForwardDealsEvent.xsd" xmlns:pfx2="http://www.tibco.com/ns/no_namespace_schema_location/ASINC_EXP_RecursosComunes/Esquemas/Patron_Asincrono/Modelo Comun/deals/ForwardDeals.xsd" xmlns:pfx9="http://www.bbva.com/EAIFramework" xmlns:pfx8="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx7="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx6="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC_CHAA/Functionals/FUN_CHAA_InboundFunctional.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:any processContents="skip"/>
+    </pd:startType>
+    <pd:startX>150</pd:startX>
+    <pd:startY>64</pd:startY>
+    <pd:returnBindings>
+        <xsl:copy-of select="$Start/*"/>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:any processContents="skip"/>
+    </pd:endType>
+    <pd:endX>543</pd:endX>
+    <pd:endY>61</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx9:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1292831667099</pd:targetNamespace>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

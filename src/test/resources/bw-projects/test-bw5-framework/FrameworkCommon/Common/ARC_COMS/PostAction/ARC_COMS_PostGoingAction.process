@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/DeployedVarsType" xmlns:generate="java://EAIFramework.Processes.Private.Common.HeaderManagement.UIDGenerator.UIDGeneratorUIDGenerator" xmlns:UUID="java://EAIFramework.Processes.Private.Common.HeaderManagement.UUIDGenerator.UUIDGenerator" xmlns:ns21="com/tibco/pe/commands" xmlns:Inc="java://EAIFramework.Processes.Private.Common.HeaderManagement.Incrementator.Incrementator" xmlns:ns12="http://www.bbva.com/EAIFramework" xmlns:ns13="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:pfx="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns2="http://www.tibco.com/schemas/FrameworkIntegracion/EAI-Framework/Resources/Public/Schemas/XSD/MCD/Schema.xsd" xmlns:ns1="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx4="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:GetIP="java://EAIFramework.Processes.Private.Common.HeaderManagement.IPAddress.IPAddress" xmlns:pfx3="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx2="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd">
+    
+    
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC_COMS/PostAction/ARC_COMS_PostGoingAction.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ARC_COMS_PostGoingAction">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="ns12:Message"/>
+                    <xsd:element name="ReplyTo" type="xsd:string"/>
+                    <xsd:element name="CorrelationId" type="xsd:string"/>
+                    <xsd:element name="IsTopic" type="xsd:boolean"/>
+                    <xsd:element ref="ns12:TraceLevel" minOccurs="0"/>
+                    <xsd:element name="StartServiceTimeStamp" type="xsd:dateTime"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>76</pd:startX>
+    <pd:startY>70</pd:startY>
+    <pd:returnBindings>
+        <xsl:copy-of select="$Start/CDMMessage/ns12:ArchitectureHeader"/>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endX>776</pd:endX>
+    <pd:endY>73</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="ns12:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1324409765610</pd:targetNamespace>
+    <pd:activity name="ARC_CLESenderAPI">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>518</pd:x>
+        <pd:y>74</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CLEManagement/ARC_TraceAuditSenderAPI.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_TraceSenderAPI>
+                <CLETraceData>
+                    <EventCode>
+                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Audit/GLB_End_Ok"/>
+                    </EventCode>
+                    <EventType>
+                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Audit"/>
+                    </EventType>
+                    <MessageType>
+                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                    </MessageType>
+                    <isResponse>
+                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/AuditParameters/IsResponse"/>
+                    </isResponse>
+                    <xsl:choose>
+                        <xsl:when test="$Start/ARC_COMS_PostGoingAction/ns12:TraceLevel">
+                            <TraceLevel>
+                                <xsl:value-of select="$Start/ARC_COMS_PostGoingAction/ns12:TraceLevel"/>
+                            </TraceLevel>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <TraceLevel>
+                                <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit"/>
+                            </TraceLevel>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </CLETraceData>
+                <Body>
+                    <xsl:value-of select="tib:render-xml($Start/ARC_COMS_PostGoingAction/ns12:Message)"/>
+                </Body>
+            </ARC_TraceSenderAPI>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_ResponseToQueueOrTopic">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>357</pd:x>
+        <pd:y>71</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_QueueOrTopic/ARC_ResponseToQueueOrTopic.process</processName>
+            <processNameXPath>concat($_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_mockRoot, "/Common/ARC/ARC_QueueOrTopic/ARC_ResponseToQueueOrTopic.process")</processNameXPath>
+        </config>
+        <pd:inputBindings>
+            <IN_SendReply2QueueOrTopic>
+                <TargetName>
+                    <xsl:value-of select="$Start/ARC_COMS_PostGoingAction/ReplyTo"/>
+                </TargetName>
+                <IsTopic>
+                    <xsl:value-of select="$Start/ARC_COMS_PostGoingAction/IsTopic"/>
+                </IsTopic>
+                <CorrelationId>
+                    <xsl:value-of select="$Start/ARC_COMS_PostGoingAction/CorrelationId"/>
+                </CorrelationId>
+                <ns12:Message>
+                    <ns12:ArchitectureHeader>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader"/>
+                        <xsl:if test="string-length($Start/ARC_COMS_PostGoingAction/ns12:Message/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:traceId)>0">
+                            <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader"/>
+                        </xsl:if>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:RequestHeader"/>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader"/>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ReprocessingHeader"/>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:SecurityHeader"/>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:RoutingHeader"/>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:FunctionalData"/>
+                    </ns12:ArchitectureHeader>
+                    <xsl:copy-of select="$Start/ARC_COMS_PostGoingAction/ns12:Message/ns12:Body"/>
+                </ns12:Message>
+            </IN_SendReply2QueueOrTopic>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>213</pd:x>
+        <pd:y>171</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Catch ErrorMessage">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>209</pd:x>
+        <pd:y>280</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>false</catchAll>
+            <fault>localname=ErrorMessage namespace=http://www.bbva.com/EAIFramework</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Generate-Error-1">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>354</pd:x>
+        <pd:y>280</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns13:ActivityInput>
+                <data>
+                    <ns12:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                        </ErrorCode>
+                        <NativeErrorCode>
+                            <xsl:value-of select="$Catch-ErrorMessage/ns12:ErrorMessage/NativeErrorCode"/>
+                        </NativeErrorCode>
+                        <NativeErrorDescription>
+                            <xsl:value-of select="$Catch-ErrorMessage/ns12:ErrorMessage/NativeErrorDescription"/>
+                        </NativeErrorDescription>
+                        <StackTrace>
+                            <xsl:value-of select="$Catch-ErrorMessage/ns12:ErrorMessage/StackTrace"/>
+                        </StackTrace>
+                        <ErrorDate>
+                            <xsl:value-of select="$Catch-ErrorMessage/ns12:ErrorMessage/ErrorDate"/>
+                        </ErrorDate>
+                        <StackProcess>
+                            <xsl:value-of select="$Catch-ErrorMessage/ns12:ErrorMessage/StackProcess"/>
+                        </StackProcess>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/ARC_COMS_PostGoingAction/ns12:Message)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="1"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                        <PreviousErrorMessage>
+                            <xsl:copy-of select="$Catch-ErrorMessage/ns12:ErrorMessage/ancestor-or-self::*/namespace::node()"/>
+                            <xsl:copy-of select="$Catch-ErrorMessage/ns12:ErrorMessage/@*"/>
+                            <xsl:copy-of select="$Catch-ErrorMessage/ns12:ErrorMessage/node()"/>
+                        </PreviousErrorMessage>
+                    </ns12:ErrorMessage>
+                </data>
+            </ns13:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Get-Framework-Context">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>209</pd:x>
+        <pd:y>70</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/Architecture Internal Data.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Rethrow">
+        <pd:type>com.tibco.pe.core.RethrowActivity</pd:type>
+        <pd:resourceType>ae.activities.rethrow</pd:resourceType>
+        <pd:x>354</pd:x>
+        <pd:y>171</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>ARC_CLESenderAPI</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Get-Framework-Context</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>Rethrow</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch ErrorMessage</pd:from>
+        <pd:to>Generate-Error-1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get-Framework-Context</pd:from>
+        <pd:to>ARC_ResponseToQueueOrTopic</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_ResponseToQueueOrTopic</pd:from>
+        <pd:to>ARC_CLESenderAPI</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

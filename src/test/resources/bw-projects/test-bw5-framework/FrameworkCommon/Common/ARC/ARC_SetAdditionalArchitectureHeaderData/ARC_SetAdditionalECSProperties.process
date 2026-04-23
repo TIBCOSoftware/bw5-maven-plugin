@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pfx="http://www.bbva.com/EAIFramework" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/DeployedVarsType" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_SetAdditionalArchitectureHeaderData/ARC_SetAdditionalECSProperties.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ARC_SetAdditionalArchitectureHeaderData">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="pfx:ECSProperties" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>150</pd:startX>
+    <pd:startY>78</pd:startY>
+    <pd:returnBindings/>
+    <pd:endName>End</pd:endName>
+    <pd:endType/>
+    <pd:endX>864</pd:endX>
+    <pd:endY>77</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1331749571006</pd:targetNamespace>
+    <pd:activity name="SetArchitectureInternalData">
+        <pd:type>com.tibco.pe.core.SetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.setSharedVariable</pd:resourceType>
+        <pd:x>691</pd:x>
+        <pd:y>74</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/Architecture Internal Data.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings>
+            <FrameworkData>
+                <xsl:if test="$ARC_GetArchitectureInternalData/FrameworkData/InvocationsNumber">
+                    <InvocationsNumber>
+                        <xsl:value-of select="$ARC_GetArchitectureInternalData/FrameworkData/InvocationsNumber"/>
+                    </InvocationsNumber>
+                </xsl:if>
+                <pfx:ArchitectureHeader>
+                    <xsl:copy-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:AuditHeader"/>
+                    <xsl:if test="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:ECSHeader">
+                        <pfx:ECSHeader>
+                            <pfx:traceId>
+                                <xsl:value-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:ECSHeader/pfx:traceId"/>
+                            </pfx:traceId>
+                            <pfx:parentSpan>
+                                <xsl:value-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:ECSHeader/pfx:parentSpan"/>
+                            </pfx:parentSpan>
+                            <pfx:spanId>
+                                <xsl:value-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:ECSHeader/pfx:spanId"/>
+                            </pfx:spanId>
+                            <xsl:if test="count($ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:ECSHeader/pfx:properties/pfx:property)>0&#xA;or&#xA;count($Start/ARC_SetAdditionalArchitectureHeaderData/pfx:ECSProperties/pfx:property[pfx:spreadE2E=$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/True])>0">
+                                <pfx:properties>
+                                    <xsl:for-each-group select="$Start/ARC_SetAdditionalArchitectureHeaderData/pfx:ECSProperties/pfx:property[pfx:spreadE2E=$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/True]" group-by="pfx:key">
+                                        <pfx:property>
+                                            <pfx:key>
+                                                <xsl:value-of select="pfx:key"/>
+                                            </pfx:key>
+                                            <xsl:choose>
+                                                <xsl:when test="pfx:boolean_value">
+                                                    <pfx:boolean_value>
+                                                        <xsl:value-of select="pfx:boolean_value"/>
+                                                    </pfx:boolean_value>
+                                                </xsl:when>
+                                                <xsl:when test="pfx:number_value">
+                                                    <pfx:number_value>
+                                                        <xsl:value-of select="pfx:number_value"/>
+                                                    </pfx:number_value>
+                                                </xsl:when>
+                                                <xsl:otherwise>
+                                                    <pfx:value>
+                                                        <xsl:value-of select="pfx:value"/>
+                                                    </pfx:value>
+                                                </xsl:otherwise>
+                                            </xsl:choose>
+                                        </pfx:property>
+                                    </xsl:for-each-group>
+                                    <xsl:for-each-group select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:ECSHeader/pfx:properties/pfx:property" group-by="pfx:key">
+                                        <xsl:if test="count($Start/ARC_SetAdditionalArchitectureHeaderData/pfx:ECSProperties/pfx:property[pfx:key=current-group()/pfx:key])=0">
+                                            <xsl:copy-of select="."/>
+                                        </xsl:if>
+                                    </xsl:for-each-group>
+                                </pfx:properties>
+                            </xsl:if>
+                        </pfx:ECSHeader>
+                    </xsl:if>
+                    <xsl:copy-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:RequestHeader"/>
+                    <xsl:copy-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:ErrorHeader"/>
+                    <xsl:copy-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:ReprocessingHeader"/>
+                    <xsl:copy-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:SecurityHeader"/>
+                    <xsl:copy-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:RoutingHeader"/>
+                    <xsl:if test="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:FunctionalData">
+                        <xsl:copy-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:FunctionalData"/>
+                    </xsl:if>
+                </pfx:ArchitectureHeader>
+                <xsl:if test="$ARC_GetArchitectureInternalData/FrameworkData/SaveMessage">
+                    <SaveMessage>
+                        <xsl:value-of select="$ARC_GetArchitectureInternalData/FrameworkData/SaveMessage"/>
+                    </SaveMessage>
+                </xsl:if>
+            </FrameworkData>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_GetArchitectureInternalData">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>526</pd:x>
+        <pd:y>76</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_GetArchitectureData/ARC_GetArchitectureInternalData.process</processName>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="GetECSConfig">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>259</pd:x>
+        <pd:y>79</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/ECSConfig.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="SetECSConfig">
+        <pd:type>com.tibco.pe.core.SetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.setSharedVariable</pd:resourceType>
+        <pd:x>379</pd:x>
+        <pd:y>79</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/ECSConfig.jobsharedvariable</variableConfig>
+            <showResult>true</showResult>
+        </config>
+        <pd:inputBindings>
+            <group>
+                <pfx:ECSConfig>
+                    <pfx:namespace>
+                        <xsl:value-of select="$GetECSConfig/group/pfx:ECSConfig/pfx:namespace"/>
+                    </pfx:namespace>
+                    <pfx:mrId>
+                        <xsl:value-of select="$GetECSConfig/group/pfx:ECSConfig/pfx:mrId"/>
+                    </pfx:mrId>
+                    <pfx:genMetrics>
+                        <xsl:value-of select="$GetECSConfig/group/pfx:ECSConfig/pfx:genMetrics"/>
+                    </pfx:genMetrics>
+                    <xsl:if test="count($GetECSConfig/group/pfx:ECSConfig/pfx:properties/pfx:property)>0&#xA;or&#xA;count($Start/ARC_SetAdditionalArchitectureHeaderData/pfx:ECSProperties/pfx:property)>0">
+                        <pfx:properties>
+                            <xsl:if test="count($Start/ARC_SetAdditionalArchitectureHeaderData/pfx:ECSProperties/pfx:property)>0">
+                                <xsl:for-each-group select="$Start/ARC_SetAdditionalArchitectureHeaderData/pfx:ECSProperties/pfx:property" group-by="pfx:key">
+                                    <xsl:copy-of select="."/>
+                                </xsl:for-each-group>
+                            </xsl:if>
+                            <xsl:if test="count($GetECSConfig/group/pfx:ECSConfig/pfx:properties/pfx:property)>0">
+                                <xsl:for-each-group select="$GetECSConfig/group/pfx:ECSConfig/pfx:properties/pfx:property" group-by="pfx:key">
+                                    <xsl:if test="count($Start/ARC_SetAdditionalArchitectureHeaderData/pfx:ECSProperties/pfx:property[pfx:key=current-group()/pfx:key])=0">
+                                        <pfx:property>
+                                            <pfx:key>
+                                                <xsl:value-of select="pfx:key"/>
+                                            </pfx:key>
+                                            <xsl:choose>
+                                                <xsl:when test="pfx:boolean_value">
+                                                    <pfx:boolean_value>
+                                                        <xsl:value-of select="pfx:boolean_value"/>
+                                                    </pfx:boolean_value>
+                                                </xsl:when>
+                                                <xsl:when test="pfx:number_value">
+                                                    <pfx:number_value>
+                                                        <xsl:value-of select="pfx:number_value"/>
+                                                    </pfx:number_value>
+                                                </xsl:when>
+                                                <xsl:otherwise>
+                                                    <pfx:value>
+                                                        <xsl:value-of select="pfx:value"/>
+                                                    </pfx:value>
+                                                </xsl:otherwise>
+                                            </xsl:choose>
+                                            <pfx:spreadE2E>
+                                                <xsl:value-of select="pfx:spreadE2E"/>
+                                            </pfx:spreadE2E>
+                                        </pfx:property>
+                                    </xsl:if>
+                                </xsl:for-each-group>
+                            </xsl:if>
+                        </pfx:properties>
+                    </xsl:if>
+                </pfx:ECSConfig>
+            </group>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>GetECSConfig</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>SetArchitectureInternalData</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_GetArchitectureInternalData</pd:from>
+        <pd:to>SetArchitectureInternalData</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetECSConfig</pd:from>
+        <pd:to>SetECSConfig</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>SetECSConfig</pd:from>
+        <pd:to>ARC_GetArchitectureInternalData</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

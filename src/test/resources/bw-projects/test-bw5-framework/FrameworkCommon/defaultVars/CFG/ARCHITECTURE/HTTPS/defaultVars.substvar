@@ -1,0 +1,45 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>CFG_HTTPS_HOST</name>
+			<value></value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1626255442132</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_HTTPS_ID_PASS</name>
+			<value>#!BtCk0cb0WTl/wG37xC21aQ==</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Password</type>
+			<modTime>1626255442207</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_HTTPS_ID_URL</name>
+			<value></value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1626255442269</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_HTTPS_PORT</name>
+			<value></value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1626255442322</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_HTTPS_TIMEOUT</name>
+			<value>95000</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1626255442378</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

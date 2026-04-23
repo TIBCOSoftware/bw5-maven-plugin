@@ -1,0 +1,717 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pfx="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:pfx2="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC_EXP_RecursosComunes/Esquemas/Schema.xsd2" xmlns:ns="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:pfx41="http://www.tibco.com/pe/CheckpointSchema" xmlns:pfx3="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx4="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType" xmlns:ns4="www.tibco.com/plugin/Sleep" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns5="http://schemas.tibco.com/bw/plugins/jms/5.0/jmsExceptions" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:ns12="http://www.bbva.com/EAIFramework" xmlns:ns11="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:ns21="http://www.tibco.com/namespaces/tnt/plugins/file" xmlns:pfx1="http://www.tibco.com/pe/WriteToLogActivitySchema">    
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC_FLTR/PostActions/ARC_FLTR_PostGoingAction.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="Inbound_FLTR_Postaction">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="ns12:ArchitectureHeader"/>
+                    <xsd:element name="Messages">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="Message" maxOccurs="unbounded">
+                                    <xsd:complexType>
+                                        <xsd:sequence>
+                                            <xsd:any processContents="skip"/>
+                                        </xsd:sequence>
+                                    </xsd:complexType>
+                                </xsd:element>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="DynamicInvocationRoot" type="xsd:string"/>
+                    <xsd:element name="TargetServiceId" type="xsd:string"/>
+                    <xsd:element ref="ns12:TraceLevel" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>45</pd:startX>
+    <pd:startY>248</pd:startY>
+    <pd:returnBindings/>
+    <pd:endName>End</pd:endName>
+    <pd:endX>1399</pd:endX>
+    <pd:endY>236</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="ns12:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables>
+        <VarMessage ref="ns12:Message"/>
+        <VarResult>
+            <xsd:element name="Messages">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="SentMessages">
+                            <xsd:complexType>
+                                <xsd:sequence>
+                                    <xsd:element ref="ns12:Message" minOccurs="0" maxOccurs="unbounded"/>
+                                </xsd:sequence>
+                            </xsd:complexType>
+                        </xsd:element>
+                        <xsd:element name="FilteredMessages">
+                            <xsd:complexType>
+                                <xsd:sequence>
+                                    <xsd:element name="Message" minOccurs="0" maxOccurs="unbounded">
+                                        <xsd:complexType>
+                                            <xsd:sequence>
+                                                <xsd:any processContents="skip"/>
+                                            </xsd:sequence>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                </xsd:sequence>
+                            </xsd:complexType>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </VarResult>
+        <Variable0>
+            <xsd:element name="counter" type="xsd:int"/>
+        </Variable0>
+    </pd:processVariables>
+    <pd:targetNamespace>http://xmlns.example.com/1324369924449</pd:targetNamespace>
+    <pd:activity name="ARC_CLESenderAPI">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>1298</pd:x>
+        <pd:y>236</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CLEManagement/ARC_TraceAuditSenderAPI.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_TraceSenderAPI>
+                <CLETraceData>
+                    <EventCode>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Audit/GLB_End_Ok"/>
+                    </EventCode>
+                    <EventType>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Audit"/>
+                    </EventType>
+                    <MessageType>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                    </MessageType>
+                    <isResponse>
+                        <xsl:value-of select="0"/>
+                    </isResponse>
+                    <xsl:choose>
+                        <xsl:when test="$Start/Inbound_FLTR_Postaction/ns12:TraceLevel">
+                            <xsl:if test="$Start/Inbound_FLTR_Postaction/ns12:TraceLevel">
+                                <TraceLevel>
+                                    <xsl:value-of select="$Start/Inbound_FLTR_Postaction/ns12:TraceLevel"/>
+                                </TraceLevel>
+                            </xsl:if>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <TraceLevel>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit"/>
+                            </TraceLevel>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <xsl:choose>
+                        <xsl:when test="$Variable0/counter>0">
+                            <NameValue>
+                                <Name>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GENERIC_E2E_NUM_CHILDS"/>
+                                </Name>
+                                <Value>
+                                    <xsl:value-of select="$Variable0/counter"/>
+                                </Value>
+                            </NameValue>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <NameValue>
+                                <Name>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GENERIC_E2E_NUM_CHILDS"/>
+                                </Name>
+                                <Value>
+                                    <xsl:value-of select="0"/>
+                                </Value>
+                            </NameValue>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </CLETraceData>
+                <Body>
+                    <xsl:value-of select="tib:render-xml($VarResult/Messages)"/>
+                </Body>
+            </ARC_TraceSenderAPI>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_FindQueue">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>236</pd:x>
+        <pd:y>251</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Queues/ARC_FindQueue.process</processName>
+        </config>
+        <pd:inputBindings>
+            <FindQueueIn>
+                <ServiceId>
+                    <xsl:value-of select="$Start/Inbound_FLTR_Postaction/TargetServiceId"/>
+                </ServiceId>
+            </FindQueueIn>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch Error message">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>1361</pd:x>
+        <pd:y>361</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>false</catchAll>
+            <fault>localname=ErrorMessage namespace=http://www.bbva.com/EAIFramework</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Catch Other Errors">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>1363</pd:x>
+        <pd:y>442</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Generate Error">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>1552</pd:x>
+        <pd:y>445</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns:ActivityInput>
+                <data>
+                    <ns12:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                        </ErrorCode>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/Msg)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                </ErrorDescription>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/MsgCode)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                <NativeErrorCode>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                </NativeErrorCode>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/Msg)>0">
+                            <NativeErrorDescription>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                            </NativeErrorDescription>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/StackTrace)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                                <StackTrace>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                </StackTrace>
+                            </xsl:if>
+                        </xsl:if>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/ProcessStack)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                            </xsl:if>
+                        </xsl:if>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_FatalError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/Inbound_FLTR_Postaction)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </ns12:ErrorMessage>
+                </data>
+            </ns:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="InitializeCounter">
+        <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+        <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+        <pd:x>131</pd:x>
+        <pd:y>250</pd:y>
+        <config>
+            <variableName>Variable0</variableName>
+        </config>
+        <pd:inputBindings>
+            <counter>
+                <xsl:value-of select="0"/>
+            </counter>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Rethrow">
+        <pd:type>com.tibco.pe.core.RethrowActivity</pd:type>
+        <pd:resourceType>ae.activities.rethrow</pd:resourceType>
+        <pd:x>1530</pd:x>
+        <pd:y>353</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:group name="Group (1)">
+        <pd:type>com.tibco.pe.core.TransactionGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>308</pd:x>
+        <pd:y>69</pd:y>
+        <pd:width>935</pd:width>
+        <pd:height>348</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>transactionGroup</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:transactionType>JMSTransaction</pd:transactionType>
+            <pd:includeCheckpoint>false</pd:includeCheckpoint>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>Group</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Group</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:group name="Group">
+            <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+            <pd:resourceType>ae.process.group</pd:resourceType>
+            <pd:x>316</pd:x>
+            <pd:y>121</pd:y>
+            <pd:width>872</pd:width>
+            <pd:height>277</pd:height>
+            <pd:collapsedWidth>57</pd:collapsedWidth>
+            <pd:collapsedHeight>70</pd:collapsedHeight>
+            <pd:groupVariables/>
+            <pd:joinToggle>inherit</pd:joinToggle>
+            <config>
+                <pd:groupType>inputLoop</pd:groupType>
+                <pd:serializable>false</pd:serializable>
+                <pd:over>$Start/Inbound_FLTR_Postaction/Messages/Message</pd:over>
+                <pd:iterationElementSlot>Message</pd:iterationElementSlot>
+                <pd:indexSlot>i</pd:indexSlot>
+                <pd:activityOutputName/>
+                <pd:accumulateOutput>false</pd:accumulateOutput>
+            </config>
+            <pd:inputBindings/>
+            <pd:expanded>true</pd:expanded>
+            <pd:transition>
+                <pd:from>start</pd:from>
+                <pd:to>FUN_FLTR_Filter</pd:to>
+                <pd:lineType>Default</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>always</pd:conditionType>
+            </pd:transition>
+            <pd:transition>
+                <pd:from>SaveResults</pd:from>
+                <pd:to>end</pd:to>
+                <pd:lineType>Default</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>always</pd:conditionType>
+            </pd:transition>
+            <pd:transition>
+                <pd:from>FUN_FLTR_Filter</pd:from>
+                <pd:to>Count++</pd:to>
+                <pd:xpathDescription>Send</pd:xpathDescription>
+                <pd:lineType>Default</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>xpath</pd:conditionType>
+                <pd:xpath>$FUN_FLTR_Filter/IsFiltered="false"</pd:xpath>
+            </pd:transition>
+            <pd:transition>
+                <pd:from>Count++</pd:from>
+                <pd:to>Get AdditionalArchitectureHeaderData</pd:to>
+                <pd:lineType>Default</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>always</pd:conditionType>
+            </pd:transition>
+            <pd:transition>
+                <pd:from>Get AdditionalArchitectureHeaderData</pd:from>
+                <pd:to>GetFunctionalHeader</pd:to>
+                <pd:lineType>Default</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>always</pd:conditionType>
+            </pd:transition>
+            <pd:transition>
+                <pd:from>GetFunctionalHeader</pd:from>
+                <pd:to>GetECSConfig</pd:to>
+                <pd:lineType>Default</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>always</pd:conditionType>
+            </pd:transition>
+            <pd:transition>
+                <pd:from>ARC_SendMessage2QueueOrTopic</pd:from>
+                <pd:to>SaveResults</pd:to>
+                <pd:lineType>One Bend</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>always</pd:conditionType>
+            </pd:transition>
+            <pd:transition>
+                <pd:from>FUN_FLTR_Filter</pd:from>
+                <pd:to>Continue</pd:to>
+                <pd:xpathDescription>Filtered</pd:xpathDescription>
+                <pd:lineType>Default</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>always</pd:conditionType>
+            </pd:transition>
+            <pd:transition>
+                <pd:from>Message</pd:from>
+                <pd:to>ARC_SendMessage2QueueOrTopic</pd:to>
+                <pd:lineType>Default</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>always</pd:conditionType>
+            </pd:transition>
+            <pd:transition>
+                <pd:from>Continue</pd:from>
+                <pd:to>SaveResults</pd:to>
+                <pd:lineType>One Bend</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>always</pd:conditionType>
+            </pd:transition>
+            <pd:transition>
+                <pd:from>GetECSConfig</pd:from>
+                <pd:to>Message</pd:to>
+                <pd:lineType>Default</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>always</pd:conditionType>
+            </pd:transition>
+            <pd:activity name="ARC_SendMessage2QueueOrTopic">
+                <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+                <pd:resourceType>ae.process.subprocess</pd:resourceType>
+                <pd:x>1012</pd:x>
+                <pd:y>212</pd:y>
+                <config>
+                    <processName>/Common/ARC/ARC_QueueOrTopic/ARC_SendCDM2QueueOrTopic.process</processName>
+                    <processNameXPath>concat($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_mockRoot, "/Common/ARC/ARC_QueueOrTopic/ARC_SendCDM2QueueOrTopic.process")</processNameXPath>
+                </config>
+                <pd:inputBindings>
+                    <IN_SendReply2QueueOrTopic>
+                        <TargetName>
+                            <xsl:value-of select="$ARC_FindQueue/ns12:Destination"/>
+                        </TargetName>
+                        <xsl:choose>
+                            <xsl:when test="$ARC_FindQueue/ns12:Destination/@DestinationType='Topic'">
+                                <IsTopic>
+                                    <xsl:value-of select="1"/>
+                                </IsTopic>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <IsTopic>
+                                    <xsl:value-of select="0"/>
+                                </IsTopic>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <xsl:copy-of select="$VarMessage/ns12:Message"/>
+                    </IN_SendReply2QueueOrTopic>
+                </pd:inputBindings>
+            </pd:activity>
+            <pd:activity name="Count++">
+                <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+                <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+                <pd:x>495</pd:x>
+                <pd:y>213</pd:y>
+                <config>
+                    <variableName>Variable0</variableName>
+                </config>
+                <pd:inputBindings>
+                    <counter>
+                        <xsl:value-of select="$Variable0/counter+1"/>
+                    </counter>
+                </pd:inputBindings>
+            </pd:activity>
+            <pd:activity name="FUN_FLTR_Filter">
+                <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+                <pd:resourceType>ae.process.subprocess</pd:resourceType>
+                <pd:x>397</pd:x>
+                <pd:y>214</pd:y>
+                <config>
+                    <processName>/Common/ARC_FLTR/Functionals/FUN_FLTR_Filter.process</processName>
+                    <processNameXPath>concat($Start/Inbound_FLTR_Postaction/DynamicInvocationRoot, $_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/Types/Filter/GLB_FLTR_Folder,$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/Types/Filter/GLB_FLTR_Filter)</processNameXPath>
+                </config>
+                <pd:inputBindings>
+                    <xsl:copy-of select="$Message/Message/*"/>
+                </pd:inputBindings>
+            </pd:activity>
+            <pd:activity name="Get AdditionalArchitectureHeaderData">
+                <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+                <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+                <pd:x>582</pd:x>
+                <pd:y>214</pd:y>
+                <config>
+                    <variableConfig>/SharedResources/JobSharedVariables/AdditionalArchitectureHeaderData.jobsharedvariable</variableConfig>
+                </config>
+                <pd:inputBindings/>
+            </pd:activity>
+            <pd:activity name="GetFunctionalHeader">
+                <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+                <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+                <pd:x>690</pd:x>
+                <pd:y>215</pd:y>
+                <config>
+                    <variableConfig>/SharedResources/JobSharedVariables/Architecture Internal Data.jobsharedvariable</variableConfig>
+                </config>
+                <pd:inputBindings/>
+            </pd:activity>
+            <pd:activity name="SaveResults">
+                <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+                <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+                <pd:x>1114</pd:x>
+                <pd:y>214</pd:y>
+                <config>
+                    <variableName>VarResult</variableName>
+                </config>
+                <pd:inputBindings>
+                    <xsl:choose>
+                        <xsl:when test="$FUN_FLTR_Filter/IsFiltered=&quot;false&quot;">
+                            <Messages>
+                                <SentMessages>
+                                    <xsl:copy-of select="$VarResult/Messages/SentMessages/ns12:Message"/>
+                                    <xsl:copy-of select="$VarMessage/ns12:Message"/>
+                                </SentMessages>
+                                <FilteredMessages>
+                                    <xsl:copy-of select="$VarResult/Messages/FilteredMessages/Message"/>
+                                </FilteredMessages>
+                            </Messages>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <Messages>
+                                <SentMessages>
+                                    <xsl:copy-of select="$VarResult/Messages/SentMessages/ns12:Message"/>
+                                </SentMessages>
+                                <FilteredMessages>
+                                    <xsl:copy-of select="$VarResult/Messages/FilteredMessages/Message"/>
+                                    <xsl:copy-of select="$Message/Message"/>
+                                </FilteredMessages>
+                            </Messages>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </pd:inputBindings>
+            </pd:activity>
+            <pd:activity name="Message">
+                <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+                <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+                <pd:x>914</pd:x>
+                <pd:y>213</pd:y>
+                <config>
+                    <variableName>VarMessage</variableName>
+                </config>
+                <pd:inputBindings>
+                    <ns12:Message>
+                        <ns12:ArchitectureHeader>
+                            <ns12:AuditHeader>
+                                <ns12:E2EId>
+                                    <xsl:value-of select="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EId"/>
+                                </ns12:E2EId>
+                                <xsl:if test="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:InstanceId">
+                                    <ns12:ParentInstanceId>
+                                        <xsl:value-of select="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:InstanceId"/>
+                                    </ns12:ParentInstanceId>
+                                </xsl:if>
+                                <ns12:InstanceId>
+                                    <xsl:value-of select="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:InstanceId"/>
+                                </ns12:InstanceId>
+                                <ns12:Deepness>
+                                    <xsl:value-of select="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:Deepness"/>
+                                </ns12:Deepness>
+                                <ns12:ServiceId>
+                                    <xsl:value-of select="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:ServiceId"/>
+                                </ns12:ServiceId>
+                                <ns12:ServiceType>
+                                    <xsl:value-of select="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:ServiceType"/>
+                                </ns12:ServiceType>
+                                <xsl:if test="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EControl">
+                                    <ns12:E2EControl>
+                                        <xsl:value-of select="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EControl"/>
+                                    </ns12:E2EControl>
+                                </xsl:if>
+                                <xsl:if test="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EControl">
+                                    <ns12:ParentE2EControl>
+                                        <xsl:value-of select="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EControl"/>
+                                    </ns12:ParentE2EControl>
+                                </xsl:if>
+                            </ns12:AuditHeader>
+                            <xsl:if test="string(((tib:tokenize($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSParams/ListServicesNotSendECSHeader, &quot;,&quot;)=$ARC_FindQueue/ns12:Destination/@ServiceId)))=$_globalVariables/ns1:GlobalVariables/GeneralConstants/BooleanConstants/False&#xA;and&#xA;$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSParams/ListServicesNotSendECSHeader!=$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/ALLServices&#xA;and&#xA;string-length($GetFunctionalHeader/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:traceId)>0">
+                                <ns12:ECSHeader>
+                                    <ns12:traceId>
+                                        <xsl:value-of select="$GetFunctionalHeader/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:traceId"/>
+                                    </ns12:traceId>
+                                    <xsl:if test="string-length($GetECSConfig/group/ns12:ECSConfig/ns12:namespace)>0">
+                                        <ns12:parentSpan>
+                                            <xsl:value-of select="concat($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/NSToken,$GetECSConfig/group/ns12:ECSConfig/ns12:namespace,$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/MRSToken,$GetECSConfig/group/ns12:ECSConfig/ns12:mrId,$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/SpansToken,$GetFunctionalHeader/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:spanId)"/>
+                                        </ns12:parentSpan>
+                                    </xsl:if>
+                                    <ns12:spanId>
+                                        <xsl:value-of select="$GetFunctionalHeader/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:spanId"/>
+                                    </ns12:spanId>
+                                    <xsl:copy-of select="$GetFunctionalHeader/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:properties"/>
+                                </ns12:ECSHeader>
+                            </xsl:if>
+                            <ns12:RequestHeader>
+                                <xsl:choose>
+                                    <xsl:when test="string-length($Get-AdditionalArchitectureHeaderData/AdditionalArchitectureHeaderData/BBVAUser)>0">
+                                        <ns12:BBVAUser>
+                                            <xsl:value-of select="$Get-AdditionalArchitectureHeaderData/AdditionalArchitectureHeaderData/BBVAUser"/>
+                                        </ns12:BBVAUser>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <ns12:BBVAUser>
+                                            <xsl:value-of select="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:BBVAUser"/>
+                                        </ns12:BBVAUser>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <xsl:choose>
+                                    <xsl:when test="string-length($Get-AdditionalArchitectureHeaderData/AdditionalArchitectureHeaderData/ExternalId)>0">
+                                        <ns12:ExternalId>
+                                            <xsl:value-of select="$Get-AdditionalArchitectureHeaderData/AdditionalArchitectureHeaderData/ExternalId"/>
+                                        </ns12:ExternalId>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <xsl:if test="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:ExternalId">
+                                            <ns12:ExternalId>
+                                                <xsl:value-of select="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:ExternalId"/>
+                                            </ns12:ExternalId>
+                                        </xsl:if>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <xsl:if test="string-length($Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:BatchId)>0">
+                                    <xsl:if test="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:BatchId">
+                                        <ns12:BatchId>
+                                            <xsl:value-of select="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:BatchId"/>
+                                        </ns12:BatchId>
+                                    </xsl:if>
+                                </xsl:if>
+                                <xsl:if test="string-length($Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:BusinessObject)>0">
+                                    <xsl:if test="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:BusinessObject">
+                                        <ns12:BusinessObject>
+                                            <xsl:value-of select="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:BusinessObject"/>
+                                        </ns12:BusinessObject>
+                                    </xsl:if>
+                                </xsl:if>
+                                <ns12:StartTimestamp>
+                                    <xsl:value-of select="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:StartTimestamp"/>
+                                </ns12:StartTimestamp>
+                                <ns12:ServiceIdStarter>
+                                    <xsl:value-of select="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:ServiceIdStarter"/>
+                                </ns12:ServiceIdStarter>
+                            </ns12:RequestHeader>
+                            <ns12:ErrorHeader>
+                                <ns12:IsError>
+                                    <xsl:value-of select="0"/>
+                                </ns12:IsError>
+                            </ns12:ErrorHeader>
+                            <xsl:copy-of select="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:SecurityHeader"/>
+                            <xsl:choose>
+                                <xsl:when test="$GetFunctionalHeader/FrameworkData/ns12:ArchitectureHeader/ns12:FunctionalData">
+                                    <xsl:copy-of select="$GetFunctionalHeader/FrameworkData/ns12:ArchitectureHeader/ns12:FunctionalData"/>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <xsl:copy-of select="$Start/Inbound_FLTR_Postaction/ns12:ArchitectureHeader/ns12:FunctionalData"/>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </ns12:ArchitectureHeader>
+                        <ns12:Body>
+                            <xsl:copy-of select="$Message/Message/*"/>
+                        </ns12:Body>
+                    </ns12:Message>
+                </pd:inputBindings>
+            </pd:activity>
+            <pd:activity name="Continue">
+                <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+                <pd:resourceType>ae.activities.null</pd:resourceType>
+                <pd:x>397</pd:x>
+                <pd:y>333</pd:y>
+                <config/>
+                <pd:inputBindings/>
+            </pd:activity>
+            <pd:activity name="GetECSConfig">
+                <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+                <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+                <pd:x>809</pd:x>
+                <pd:y>213</pd:y>
+                <config>
+                    <variableConfig>/SharedResources/JobSharedVariables/ECSConfig.jobsharedvariable</variableConfig>
+                </config>
+                <pd:inputBindings/>
+            </pd:activity>
+        </pd:group>
+    </pd:group>
+    <pd:transition>
+        <pd:from>ARC_CLESenderAPI</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Error message</pd:from>
+        <pd:to>Rethrow</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Other Errors</pd:from>
+        <pd:to>Generate Error</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>InitializeCounter</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>InitializeCounter</pd:from>
+        <pd:to>ARC_FindQueue</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_FindQueue</pd:from>
+        <pd:to>Group (1)</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Group (1)</pd:from>
+        <pd:to>ARC_CLESenderAPI</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

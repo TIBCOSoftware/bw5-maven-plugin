@@ -1,0 +1,14 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>CFG_EPUB_XSL_FOLDER_ROUTE</name>
+			<value></value>
+			<description>Ruta absoluta donde se encontrarán los ficheros para el enrutamiento de la publicación de eventos</description>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1622713468941</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx2="http://www.tibco.com/ns/no_namespace_schema_location/SharedResources/Schemas/XSD/CachingFramework/esb-querys-structure.xsd" xmlns:pfx="http://www.tibco.com/ns/no_namespace_schema_location/Schemas/esb-querys-structure.xsd">
+    <xsd:import namespace="http://www.tibco.com/ns/no_namespace_schema_location/Schemas/esb-querys-structure.xsd" schemaLocation="/Schemas/esb-querys-structure.xsd"/>
+    <xsd:import namespace="http://www.tibco.com/ns/no_namespace_schema_location/SharedResources/Schemas/XSD/CachingFramework/esb-querys-structure.xsd" schemaLocation="/SharedResources/Schemas/XSD/CachingFramework/esb-querys-structure.xsd"/>
+    <pd:name>Common/ARC/ARC_CachingFrameworkAPI/QueryToXML/ConditionalQuery_StringToXML.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="QueryElements">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="Entidad" minOccurs="0" maxOccurs="unbounded">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="Nombre" type="xsd:string"/>
+                                <xsd:element ref="pfx2:field-op"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="Sentencia" type="xsd:token"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>199</pd:startX>
+    <pd:startY>103</pd:startY>
+    <pd:returnBindings>
+        <xsl:copy-of select="$Parse-XML/query"/>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType ref="pfx2:query"/>
+    <pd:endX>504</pd:endX>
+    <pd:endY>103</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1373361004595</pd:targetNamespace>
+    <pd:activity name="Parse XML">
+        <pd:type>com.tibco.plugin.xml.XMLParseActivity</pd:type>
+        <pd:resourceType>ae.activities.XMLParseActivity</pd:resourceType>
+        <pd:x>408</pd:x>
+        <pd:y>103</pd:y>
+        <config>
+            <inputStyle>text</inputStyle>
+            <xsdVersion>default</xsdVersion>
+            <validateOutput>true</validateOutput>
+            <term ref="pfx2:query"/>
+        </config>
+        <pd:inputBindings>
+            <xmlString>
+                <xsl:value-of select="$QueryToXML/javaCodeActivityOutput/query_xml"/>
+            </xmlString>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="QueryToXML">
+        <pd:type>com.tibco.plugin.java.JavaActivity</pd:type>
+        <pd:resourceType>ae.javapalette.javaActivity</pd:resourceType>
+        <pd:x>304</pd:x>
+        <pd:y>103</pd:y>
+        <config>
+            <fileName>ConditionalQuery_StringToXMLQueryToXML</fileName>
+            <packageName>Common.ARC.ARC_CachingFrameworkAPI.QueryToXML.ConditionalQuery_StringToXML</packageName>
+            <fullsource>package Common.ARC.ARC_CachingFrameworkAPI.QueryToXML.ConditionalQuery_StringToXML;
+import java.util.*;
+import java.io.*;
+public class ConditionalQuery_StringToXMLQueryToXML{
+/****** START SET/GET METHOD, DO NOT MODIFY *****/
+	protected String query = "";
+	protected String[] nombre_entidades = null;
+	protected String[] codigo_XML_entidades = null;
+	protected String query_xml = "";
+	public String getquery() {
+		return query;
+	}
+	public void setquery(String val) {
+		query = val;
+	}
+	public String[] getnombre_entidades() {
+		return nombre_entidades;
+	}
+	public void setnombre_entidades(String[] val) {
+		nombre_entidades = val;
+	}
+	public String[] getcodigo_XML_entidades() {
+		return codigo_XML_entidades;
+	}
+	public void setcodigo_XML_entidades(String[] val) {
+		codigo_XML_entidades = val;
+	}
+	public String getquery_xml() {
+		return query_xml;
+	}
+	public void setquery_xml(String val) {
+		query_xml = val;
+	}
+/****** END SET/GET METHOD, DO NOT MODIFY *****/
+	
+	public ArrayList&lt;String&gt; entidades_validas = null;
+	
+	public void inicializar_parametros(){
+		query =	query.toUpperCase().replaceAll(" ","");
+		for (int i = 0; i&lt;nombre_entidades.length; i++)	{
+			nombre_entidades[i] = nombre_entidades[i].toUpperCase();
+		}
+		entidades_validas = new ArrayList&lt;String&gt;(Arrays.asList(nombre_entidades));
+	}	
+	
+	public boolean esNodoEntreParentesis(String nodo) {
+		if ((nodo.charAt(0)=='(') &amp;&amp; (nodo.charAt(nodo.length()-1)==')'))
+			return(true);
+		else
+			return(false);
+	}
+	
+	public int pos_primer_caracter_especial(String cadena) {
+		int[] pos_nodos = {cadena.indexOf("!"),cadena.indexOf("AND"),cadena.indexOf("OR"),cadena.indexOf("("),cadena.indexOf(")")};
+		int min = 1000;
+		for ( int i = 0; i&lt;pos_nodos.length; i++) {
+			if (pos_nodos[i]!=-1)
+				if (pos_nodos[i]&lt;min)
+					min=pos_nodos[i];
+		}
+		if (min==1000) min=-1;
+		return(min);
+	}
+
+	public String extraer_primer_nodo(String nodo) throws Exception {
+		if ((nodo.length()&gt;=2) &amp;&amp; (nodo.substring(0,2).equals("OR")))	// Nodo Operacion
+			return(nodo.substring(0,2));
+		else if ((nodo.length()&gt;=3) &amp;&amp; (nodo.substring(0,3).equals("AND")))	// Nodo Operacion
+			return(nodo.substring(0,3));
+		else if ((nodo.length()&gt;=3) &amp;&amp; (nodo.substring(0,3).equals("ASO")))	// Nodo Operacion
+			return(nodo.substring(0,3));
+		else if (nodo.substring(0,1).equals("!"))
+			return(nodo.substring(0,1));
+		else if (nodo.substring(0,1).equals(")"))
+			throw new Exception("Query mal construida: Se esta intentando cerrar un parentesis que no se abrió");		
+		else if (nodo.substring(0,1).equals("(")) { 	// Nodo Complejo
+			String contenidoParentesis = "(";
+			int num_parentesis_abiertos = 1;
+			int num_parentesis_cerrados = 0;
+			int indice = 0;
+			while (num_parentesis_abiertos!=num_parentesis_cerrados) {
+				indice++;
+				if (indice == nodo.length()) throw new Exception("Query mal construida: Sentencia en parentesis mal construida"); 
+				if (nodo.charAt(indice) == ')') num_parentesis_cerrados++;
+				if (nodo.charAt(indice) == '(')	num_parentesis_abiertos++;
+				contenidoParentesis = contenidoParentesis + nodo.charAt(indice);
+			}
+			if (contenidoParentesis.length() == 0) throw new Exception("Query mal construida: Sentencia en parentesis mal construida. Parentesis vacio"); 
+			return(contenidoParentesis);
+		}
+		else // Nodo Simple
+		{
+			int posTokenEspecial = pos_primer_caracter_especial(nodo);
+			if (posTokenEspecial!=-1)
+				return (nodo.substring(0,posTokenEspecial));
+			else
+				return (nodo);
+		}	
+	}
+	
+	public String analizar(String cadena) throws Exception {
+	
+		ArrayList&lt;String&gt; lista_nodos = new ArrayList&lt;String&gt;();
+		String resto_cadena = cadena;
+
+		while (resto_cadena.length() &gt; 0 ) {			
+			String nodo = extraer_primer_nodo(resto_cadena);
+			lista_nodos.add(nodo);
+			resto_cadena = resto_cadena.substring(nodo.length(),resto_cadena.length());
+		}
+		
+		if ((lista_nodos.size() == 2 ) &amp;&amp; (lista_nodos.get(0).equals("ASO")))
+			return analizar_asociacion(lista_nodos.get(1));		
+		
+		return(analizar(lista_nodos));
+	
+	}
+	
+	public String analizar_asociacion(String cadena) throws Exception {		
+	
+		if (!esNodoEntreParentesis(cadena))
+			throw new Exception("Query mal construida: La operacion asociacion debe contener sus elementos en un parentesis"); 	
+	
+		ArrayList&lt;String&gt; lista_nodos = new ArrayList&lt;String&gt;();
+		String resto_cadena = cadena;
+		
+		while (resto_cadena.length() &gt; 0 ) {			
+			String nodo = extraer_primer_nodo(resto_cadena);
+			lista_nodos.add(nodo);
+			resto_cadena = resto_cadena.substring(nodo.length(),resto_cadena.length());
+		}
+		
+		if (lista_nodos.size()&lt;3)
+			throw new Exception("Query mal construida: La operacion asociacion tiene que tener minimo 3 elementos: elemento 'component' y al menos dos elementos a asociar");
+		
+		String component = lista_nodos.get(0);
+		String codigoXml = "&lt;logicOp type='association' component='" + component + "'&gt;";
+		
+		Iterator iter = lista_nodos.iterator();
+		iter.next();
+		while (iter.hasNext()) {
+			String nodo = (String)iter.next();
+			if (entidades_validas.contains(nodo)) 
+				codigoXml = codigoXml + codigo_XML_entidades[entidades_validas.indexOf(nodo)];
+			else
+				throw new Exception("Query mal construida: La entidad " + nodo + " no es una entidad valida"); 	
+		}
+		
+		return (codigoXml + "&lt;/logicOp&gt;");
+	
+	}
+	
+	public String analizar(List&lt;String&gt; elementos_query) throws Exception {		
+		
+		//System.out.println("Analizando lista: " + elementos_query);
+		
+		String nodo = "";
+		String operador = "";		
+		
+		if (elementos_query.size() == 0 )
+			throw new Exception("Query mal construida: Nodo Vacio"); 
+		
+		if (elementos_query.size() == 1 ) {
+			 nodo = elementos_query.get(0);
+			 if (entidades_validas.contains(nodo)) 
+			 {	
+				//System.out.println("Encontrado entidad valida: " + nodo);
+				return (codigo_XML_entidades[entidades_validas.indexOf(nodo)]);
+			 } else {
+			     if (esNodoEntreParentesis(nodo))
+					return (analizar(nodo.substring(1,nodo.length()-1)));
+				 else				 
+					throw new Exception("Query mal construida: La entidad " + nodo + " no es una entidad valida"); 	
+			}		
+		} else if (elementos_query.size() == 2 )  { // Operacion NOT
+			 operador = elementos_query.get(0);
+			 nodo = elementos_query.get(1);
+		  	 if (!operador.equals("!"))
+				throw new Exception("Query mal construida: Operandos incorrectos, una operacion sobre dos elementos solo es posible con el operador negacion en la primera posicion. Error =&gt; " + operador + nodo); 
+			 return("&lt;logicOp type='not'&gt;" + analizar(nodo) + "&lt;/logicOp&gt;");
+		} else {
+			if (elementos_query.contains("OR")){
+				int pos_OR = elementos_query.indexOf("OR");
+				List&lt;String&gt; subLista_1 = elementos_query.subList(0,pos_OR);
+				List&lt;String&gt; subLista_2 = elementos_query.subList(pos_OR+1,elementos_query.size());
+				return("&lt;logicOp type='or'&gt;" + analizar(subLista_1) + analizar(subLista_2) + "&lt;/logicOp&gt;");
+			} else {
+				if (elementos_query.contains("AND")) {
+					int pos_AND = elementos_query.indexOf("AND");				
+					List&lt;String&gt; subLista_1 = elementos_query.subList(0,pos_AND);					
+					List&lt;String&gt; subLista_2 = elementos_query.subList(pos_AND+1,elementos_query.size());
+					return("&lt;logicOp type='and'&gt;" + analizar(subLista_1) + analizar(subLista_2) + "&lt;/logicOp&gt;");	
+				} else
+					throw new Exception("Query mal construida: Los operandos no son correctos"); 
+			}
+		}					
+	}
+
+	public ConditionalQuery_StringToXMLQueryToXML() {
+	}
+	public void invoke() throws Exception {
+/* Available Variables: DO NOT MODIFY
+	In  : String query
+	In  : String[] nombre_entidades
+	In  : String[] codigo_XML_entidades
+	Out : String query_xml
+* Available Variables: DO NOT MODIFY *****/
+		
+	inicializar_parametros();
+	query_xml = "&lt;?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?&gt;&lt;query&gt;" + analizar(query) + "&lt;/query&gt;";
+
+
+	}
+
+}
+</fullsource>
+            <outputData>
+                <row>
+                    <fieldName>query_xml</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>required</fieldRequired>
+                </row>
+            </outputData>
+            <inputData>
+                <row>
+                    <fieldName>query</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>required</fieldRequired>
+                </row>
+                <row>
+                    <fieldName>nombre_entidades</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>repeating</fieldRequired>
+                </row>
+                <row>
+                    <fieldName>codigo_XML_entidades</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>repeating</fieldRequired>
+                </row>
+            </inputData>
+            <byteCode>
+                <class>
+                    <name>ConditionalQuery_StringToXMLQueryToXML</name>
+                    <byteCode>yv66vgAAADIA5AkASAB5CQBIAHoJAEgAewkASAB8CgAoAH0IAH4IAH8KACgAgAcAgQoAggCDCgAJAIQJAEgAhQoAKACGCgAoAIcIAIgKACgAiQgAiggAiwgAjAgAjQoAKACOCgAoAI8IAJAHAJEIAJIKABgAkwgAlAcAlQoAHACWCgAcAJcKABwAmAoAHACZCACaCgBIAJsKAAkAlgoASACcCgAJAJ0KAAkAngoACQCfBwCgCgBIAKEKAEgAogoASACjCACkCAClCACmCACnCgAJAKgLAKkAqgsAqQCrCgAJAKwKAAkArQgArggArwgAsAsAsQCeCACyCwCxAJ8KAEgAswgAtAgAtQsAsQCsCwCxAK0LALEAtggAtwgAuAgAuQoASQCWCgBIALoIALsIALwHAL0HAL4BAAVxdWVyeQEAEkxqYXZhL2xhbmcvU3RyaW5nOwEAEG5vbWJyZV9lbnRpZGFkZXMBABNbTGphdmEvbGFuZy9TdHJpbmc7AQAUY29kaWdvX1hNTF9lbnRpZGFkZXMBAAlxdWVyeV94bWwBABFlbnRpZGFkZXNfdmFsaWRhcwEAFUxqYXZhL3V0aWwvQXJyYXlMaXN0OwEACVNpZ25hdHVyZQEAKUxqYXZhL3V0aWwvQXJyYXlMaXN0PExqYXZhL2xhbmcvU3RyaW5nOz47AQAIZ2V0cXVlcnkBABQoKUxqYXZhL2xhbmcvU3RyaW5nOwEABENvZGUBAA9MaW5lTnVtYmVyVGFibGUBAAhzZXRxdWVyeQEAFShMamF2YS9sYW5nL1N0cmluZzspVgEAE2dldG5vbWJyZV9lbnRpZGFkZXMBABUoKVtMamF2YS9sYW5nL1N0cmluZzsBABNzZXRub21icmVfZW50aWRhZGVzAQAWKFtMamF2YS9sYW5nL1N0cmluZzspVgEAF2dldGNvZGlnb19YTUxfZW50aWRhZGVzAQAXc2V0Y29kaWdvX1hNTF9lbnRpZGFkZXMBAAxnZXRxdWVyeV94bWwBAAxzZXRxdWVyeV94bWwBABZpbmljaWFsaXphcl9wYXJhbWV0cm9zAQADKClWAQANU3RhY2tNYXBUYWJsZQEAFWVzTm9kb0VudHJlUGFyZW50ZXNpcwEAFShMamF2YS9sYW5nL1N0cmluZzspWgEAHHBvc19wcmltZXJfY2FyYWN0ZXJfZXNwZWNpYWwBABUoTGphdmEvbGFuZy9TdHJpbmc7KUkHAL8BABNleHRyYWVyX3ByaW1lcl9ub2RvAQAmKExqYXZhL2xhbmcvU3RyaW5nOylMamF2YS9sYW5nL1N0cmluZzsHAL0HAKABAApFeGNlcHRpb25zAQAIYW5hbGl6YXIHAIEBABNhbmFsaXphcl9hc29jaWFjaW9uBwDAAQAkKExqYXZhL3V0aWwvTGlzdDspTGphdmEvbGFuZy9TdHJpbmc7AQA4KExqYXZhL3V0aWwvTGlzdDxMamF2YS9sYW5nL1N0cmluZzs+OylMamF2YS9sYW5nL1N0cmluZzsBAAY8aW5pdD4BAAZpbnZva2UBAApTb3VyY2VGaWxlAQArQ29uZGl0aW9uYWxRdWVyeV9TdHJpbmdUb1hNTFF1ZXJ5VG9YTUwuamF2YQwASgBLDABMAE0MAE4ATQwATwBLDADBAFUBAAEgAQAADADCAMMBABNqYXZhL3V0aWwvQXJyYXlMaXN0BwDEDADFAMYMAHUAxwwAUABRDADIAMkMAMoAywEAASEMAMwAaAEAA0FORAEAAk9SAQABKAEAASkMAM0AzgwAzwDQAQADQVNPAQATamF2YS9sYW5nL0V4Y2VwdGlvbgEATlF1ZXJ5IG1hbCBjb25zdHJ1aWRhOiBTZSBlc3RhIGludGVudGFuZG8gY2VycmFyIHVuIHBhcmVudGVzaXMgcXVlIG5vIHNlIGFicmnDswwAdQBZAQA8UXVlcnkgbWFsIGNvbnN0cnVpZGE6IFNlbnRlbmNpYSBlbiBwYXJlbnRlc2lzIG1hbCBjb25zdHJ1aWRhAQAXamF2YS9sYW5nL1N0cmluZ0J1aWxkZXIMAHUAYwwA0QDSDADRANMMANQAVQEATlF1ZXJ5IG1hbCBjb25zdHJ1aWRhOiBTZW50ZW5jaWEgZW4gcGFyZW50ZXNpcyBtYWwgY29uc3RydWlkYS4gUGFyZW50ZXNpcyB2YWNpbwwAZwBoDABqAGsMANUA0AwA1gDLDADXANgBABBqYXZhL2xhbmcvU3RyaW5nDABxAGsMAG8AcwwAZQBmAQBaUXVlcnkgbWFsIGNvbnN0cnVpZGE6IExhIG9wZXJhY2lvbiBhc29jaWFjaW9uIGRlYmUgY29udGVuZXIgc3VzIGVsZW1lbnRvcyBlbiB1biBwYXJlbnRlc2lzAQCJUXVlcnkgbWFsIGNvbnN0cnVpZGE6IExhIG9wZXJhY2lvbiBhc29jaWFjaW9uIHRpZW5lIHF1ZSB0ZW5lciBtaW5pbW8gMyBlbGVtZW50b3M6IGVsZW1lbnRvICdjb21wb25lbnQnIHkgYWwgbWVub3MgZG9zIGVsZW1lbnRvcyBhIGFzb2NpYXIBACc8bG9naWNPcCB0eXBlPSdhc3NvY2lhdGlvbicgY29tcG9uZW50PScBAAInPgwA2QDaBwDADADbANwMAN0A3gwA3wDQDADMAOABACFRdWVyeSBtYWwgY29uc3RydWlkYTogTGEgZW50aWRhZCABABkgbm8gZXMgdW5hIGVudGlkYWQgdmFsaWRhAQAKPC9sb2dpY09wPgcA4QEAIFF1ZXJ5IG1hbCBjb25zdHJ1aWRhOiBOb2RvIFZhY2lvDABvAGsBAJlRdWVyeSBtYWwgY29uc3RydWlkYTogT3BlcmFuZG9zIGluY29ycmVjdG9zLCB1bmEgb3BlcmFjaW9uIHNvYnJlIGRvcyBlbGVtZW50b3Mgc29sbyBlcyBwb3NpYmxlIGNvbiBlbCBvcGVyYWRvciBuZWdhY2lvbiBlbiBsYSBwcmltZXJhIHBvc2ljaW9uLiBFcnJvciA9PiABABQ8bG9naWNPcCB0eXBlPSdub3QnPgwA4gDjAQATPGxvZ2ljT3AgdHlwZT0nb3InPgEAFDxsb2dpY09wIHR5cGU9J2FuZCc+AQA0UXVlcnkgbWFsIGNvbnN0cnVpZGE6IExvcyBvcGVyYW5kb3Mgbm8gc29uIGNvcnJlY3RvcwwAYgBjAQA+PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9InllcyI/PjxxdWVyeT4BAAg8L3F1ZXJ5PgEAcUNvbW1vbi9BUkMvQVJDX0NhY2hpbmdGcmFtZXdvcmtBUEkvUXVlcnlUb1hNTC9Db25kaXRpb25hbFF1ZXJ5X1N0cmluZ1RvWE1ML0NvbmRpdGlvbmFsUXVlcnlfU3RyaW5nVG9YTUxRdWVyeVRvWE1MAQAQamF2YS9sYW5nL09iamVjdAEAAltJAQASamF2YS91dGlsL0l0ZXJhdG9yAQALdG9VcHBlckNhc2UBAApyZXBsYWNl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</byteCode>
+                </class>
+            </byteCode>
+        </config>
+        <pd:inputBindings>
+            <javaCodeActivityInput>
+                <query>
+                    <xsl:value-of select="$Start/QueryElements/Sentencia"/>
+                </query>
+                <xsl:for-each select="$Start/QueryElements/Entidad/Nombre">
+                    <nombre_entidades>
+                        <xsl:value-of select="."/>
+                    </nombre_entidades>
+                </xsl:for-each>
+                <xsl:for-each select="$Start/QueryElements/Entidad">
+                    <codigo_XML_entidades>
+                        <xsl:value-of select="tib:render-xml(field-op, 1, 0)"/>
+                    </codigo_XML_entidades>
+                </xsl:for-each>
+            </javaCodeActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>QueryToXML</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>QueryToXML</pd:from>
+        <pd:to>Parse XML</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Parse XML</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

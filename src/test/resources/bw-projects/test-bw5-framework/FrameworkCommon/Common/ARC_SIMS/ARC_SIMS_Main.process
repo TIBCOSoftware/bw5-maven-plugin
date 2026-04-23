@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/DeployedVarsType" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:pfx="http://www.bbva.com/EAIFramework">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC_SIMS/ARC_SIMS_Main.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ARC_SIMS_Main_IN">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="pfx:Message"/>
+                    <xsd:element ref="pfx:SimpleServiceParameters"/>
+                    <xsd:element ref="pfx:TraceLevel" minOccurs="0"/>
+                    <xsd:element name="multiObject" type="xsd:boolean" minOccurs="0"/>
+                    <xsd:element ref="pfx:ECSConfig" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>157</pd:startX>
+    <pd:startY>168</pd:startY>
+    <pd:returnBindings/>
+    <pd:endName>End</pd:endName>
+    <pd:endX>502</pd:endX>
+    <pd:endY>166</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1406712658912</pd:targetNamespace>
+    <pd:activity name="ARC_SIMS_Main">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>323</pd:x>
+        <pd:y>72</pd:y>
+        <config>
+            <processName>/Common/ARC_SIMS/ARC_SIMS_SimpleObject_Main.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_SIMS_Main_IN>
+                <xsl:copy-of select="$Start/ARC_SIMS_Main_IN/pfx:Message"/>
+                <xsl:copy-of select="$Start/ARC_SIMS_Main_IN/pfx:SimpleServiceParameters"/>
+                <xsl:choose>
+                    <xsl:when test="$Start/ARC_SIMS_Main_IN/pfx:TraceLevel">
+                        <pfx:TraceLevel>
+                            <xsl:value-of select="$Start/ARC_SIMS_Main_IN/pfx:TraceLevel"/>
+                        </pfx:TraceLevel>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <pfx:TraceLevel>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit"/>
+                        </pfx:TraceLevel>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <xsl:copy-of select="$Start/ARC_SIMS_Main_IN/pfx:ECSConfig"/>
+            </ARC_SIMS_Main_IN>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_SIMC_Main">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>323</pd:x>
+        <pd:y>239</pd:y>
+        <config>
+            <processName>/Common/ARC_SIMS/ARC_SIMS_MultiObject_Main.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_SIMS_Main_IN>
+                <xsl:copy-of select="$Start/ARC_SIMS_Main_IN/pfx:Message"/>
+                <xsl:copy-of select="$Start/ARC_SIMS_Main_IN/pfx:SimpleServiceParameters"/>
+                <xsl:choose>
+                    <xsl:when test="$Start/ARC_SIMS_Main_IN/pfx:TraceLevel">
+                        <pfx:TraceLevel>
+                            <xsl:value-of select="$Start/ARC_SIMS_Main_IN/pfx:TraceLevel"/>
+                        </pfx:TraceLevel>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <pfx:TraceLevel>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit"/>
+                        </pfx:TraceLevel>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <xsl:copy-of select="$Start/ARC_SIMS_Main_IN/pfx:ECSConfig"/>
+            </ARC_SIMS_Main_IN>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>177</pd:x>
+        <pd:y>354</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Rethrow">
+        <pd:type>com.tibco.pe.core.RethrowActivity</pd:type>
+        <pd:resourceType>ae.activities.rethrow</pd:resourceType>
+        <pd:x>358</pd:x>
+        <pd:y>356</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>ARC_SIMS_Main</pd:to>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SIMS_Main</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>ARC_SIMC_Main</pd:to>
+        <pd:xpathDescription>multiobject</pd:xpathDescription>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$Start/ARC_SIMS_Main_IN/multiObject="true"</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SIMC_Main</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>Rethrow</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

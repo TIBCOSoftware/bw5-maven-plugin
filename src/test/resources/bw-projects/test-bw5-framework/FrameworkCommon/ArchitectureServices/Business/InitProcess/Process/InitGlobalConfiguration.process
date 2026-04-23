@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:ns2="http://www.bbva.com/EAIFramework" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema">
+    <pd:name>ArchitectureServices/Business/InitProcess/Process/InitGlobalConfiguration.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startX>52</pd:startX>
+    <pd:startY>77</pd:startY>
+    <pd:returnBindings/>
+    <pd:endName>End</pd:endName>
+    <pd:endX>1121</pd:endX>
+    <pd:endY>84</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1431510796232</pd:targetNamespace>
+    <pd:activity name="GetEAR">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>208</pd:x>
+        <pd:y>78</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Utilities/ARC_GetEARVersion.process</processName>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="LoadQueueListCache">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>384</pd:x>
+        <pd:y>76</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Queues/ARC_QueuesManagement/LoadQueueListCache.process</processName>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="GetGlobalQueues">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>564</pd:x>
+        <pd:y>79</pd:y>
+        <config>
+            <processName>/ArchitectureServices/Business/InitProcess/Process/InitGlobalQueues.process</processName>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:group name="Group">
+        <pd:type>com.tibco.pe.core.CriticalSectionGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>706</pd:x>
+        <pd:y>2</pd:y>
+        <pd:width>315</pd:width>
+        <pd:height>140</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>criticalSection</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:scope>multiple</pd:scope>
+            <pd:criticalSectionLock>/SharedResources/SharedVariables/Lock-GlobalMetaData.sharedLock</pd:criticalSectionLock>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>SetGlobalMetaData</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>SetGlobalMetaData</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:activity name="SetGlobalMetaData">
+            <pd:type>com.tibco.pe.core.SetSharedVariableActivity</pd:type>
+            <pd:resourceType>ae.activities.setSharedVariable</pd:resourceType>
+            <pd:x>866</pd:x>
+            <pd:y>79</pd:y>
+            <config>
+                <variableConfig>/SharedResources/SharedVariables/GlobalServiceMetaData.sharedvariable</variableConfig>
+                <showResult>true</showResult>
+            </config>
+            <pd:inputBindings>
+                <GlobalServiceMetaData>
+                    <Data>
+                        <Name>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/MetaDataConstants/DEPVERSION"/>
+                        </Name>
+                        <Value>
+                            <xsl:value-of select="$GetEAR/Data/EarVersion"/>
+                        </Value>
+                    </Data>
+                    <Data>
+                        <Name>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/MetaDataConstants/LIBVERSION"/>
+                        </Name>
+                        <Value>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/Version"/>
+                        </Value>
+                    </Data>
+                    <xsl:choose>
+                        <xsl:when test="count($GetGlobalQueues/Data/Destinations/Destination)>0">
+                            <xsl:for-each select="$GetGlobalQueues/Data/Destinations/Destination">
+                                <Data>
+                                    <Name>
+                                        <xsl:value-of select="current()"/>
+                                    </Name>
+                                    <Value>
+                                        <xsl:value-of select="$LoadQueueListCache/Data/ns2:QueuesCacheList/ns2:Destination[   .=current()   ]/@ServiceId"/>
+                                    </Value>
+                                </Data>
+                            </xsl:for-each>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:for-each select="$LoadQueueListCache/Data/ns2:QueuesCacheList/ns2:Destination">
+                                <Data>
+                                    <Name>
+                                        <xsl:value-of select="current()"/>
+                                    </Name>
+                                    <Value>
+                                        <xsl:value-of select="@ServiceId"/>
+                                    </Value>
+                                </Data>
+                            </xsl:for-each>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </GlobalServiceMetaData>
+            </pd:inputBindings>
+        </pd:activity>
+    </pd:group>
+    <pd:transition>
+        <pd:from>GetEAR</pd:from>
+        <pd:to>LoadQueueListCache</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>GetEAR</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>LoadQueueListCache</pd:from>
+        <pd:to>GetGlobalQueues</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Group</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetGlobalQueues</pd:from>
+        <pd:to>Group</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

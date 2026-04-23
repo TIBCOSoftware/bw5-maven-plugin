@@ -1,0 +1,9 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<eai:DestinationServiceMonitoring xmlns:eai = "http://www.bbva.com/EAIFramework" xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation = "http://www.bbva.com/EAIFramework ../../XSD/ArchitectureServices/Configurations.xsd">
+	<EventPatternGroup PatternGroupName = "">
+		<EventPatternRef/>
+	</EventPatternGroup>
+	<EventPattern DestinationName = "" DestinationType = "" EventPatternName = "">
+		<Event/>
+	</EventPattern>
+</eai:DestinationServiceMonitoring>

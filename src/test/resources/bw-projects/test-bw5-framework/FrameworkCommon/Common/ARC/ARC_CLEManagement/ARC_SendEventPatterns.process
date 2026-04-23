@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pfx="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:pfx2="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd" xmlns:ns="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:GetIP="java://EAIFramework.Processes.Private.Common.HeaderManagement.IPAddress.IPAddress" xmlns:pfx3="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns0="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:ns2="http://www.tibco.com/pe/DeployedVarsType" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns1="http://www.tibco.com/pe/EngineTypes" xmlns:ns4="http://www.tibco.com/schemas/FrameworkIntegracion/EAI-Framework/Resources/Public/Schemas/XSD/MCD/Schema.xsd" xmlns:ns3="http://www.bbva.com/EAIFramework" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:UUID="java://EAIFramework.Processes.Private.Common.HeaderManagement.UUIDGenerator.UUIDGenerator">
+    
+    
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_CLEManagement/ARC_SendEventPatterns.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ARC_SendEventPattern">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="EventData">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="EventCode" type="xsd:string"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="Body">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:any processContents="skip"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>65</pd:startX>
+    <pd:startY>76</pd:startY>
+    <pd:returnBindings>
+        <xsl:copy-of select="$ARC_SpecificFormatOutboundHeaderManagement/SpecificFormatMessage/*"/>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endX>1816</pd:endX>
+    <pd:endY>50</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables>
+        <error>
+            <xsd:element name="error">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="message" type="xsd:string"/>
+                        <xsd:element name="messagecode" type="xsd:string"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </error>
+    </pd:processVariables>
+    <pd:targetNamespace>http://xmlns.example.com/1324409765610</pd:targetNamespace>
+    <pd:group name="Transaction">
+        <pd:type>com.tibco.pe.core.TransactionGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>545</pd:x>
+        <pd:y>60</pd:y>
+        <pd:width>1134</pd:width>
+        <pd:height>450</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>transactionGroup</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:transactionType>JMSTransaction</pd:transactionType>
+            <pd:includeCheckpoint>false</pd:includeCheckpoint>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>Events</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Events</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:group name="Events">
+            <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+            <pd:resourceType>ae.process.group</pd:resourceType>
+            <pd:x>612</pd:x>
+            <pd:y>110</pd:y>
+            <pd:width>982</pd:width>
+            <pd:height>355</pd:height>
+            <pd:collapsedWidth>57</pd:collapsedWidth>
+            <pd:collapsedHeight>70</pd:collapsedHeight>
+            <pd:groupVariables/>
+            <pd:joinToggle>inherit</pd:joinToggle>
+            <config>
+                <pd:groupType>inputLoop</pd:groupType>
+                <pd:serializable>false</pd:serializable>
+                <pd:over>$SendEventPatterns/EventPatterns/Events</pd:over>
+                <pd:iterationElementSlot>Events</pd:iterationElementSlot>
+                <pd:indexSlot>i</pd:indexSlot>
+                <pd:activityOutputName/>
+                <pd:accumulateOutput>false</pd:accumulateOutput>
+            </config>
+            <pd:inputBindings/>
+            <pd:expanded>true</pd:expanded>
+            <pd:transition>
+                <pd:from>start</pd:from>
+                <pd:to>Group</pd:to>
+                <pd:xpathDescription>event</pd:xpathDescription>
+                <pd:lineType>Multiple Bends</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>xpath</pd:conditionType>
+                <pd:xpath>tib:index-of(  $Start/ARC_SendEventPattern/EventData/EventCode  , $Events/Events/EventName  )!=-1</pd:xpath>
+            </pd:transition>
+            <pd:transition>
+                <pd:from>start</pd:from>
+                <pd:to>No match</pd:to>
+                <pd:lineType>Multiple Bends</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>otherwise</pd:conditionType>
+            </pd:transition>
+            <pd:transition>
+                <pd:from>Group</pd:from>
+                <pd:to>end</pd:to>
+                <pd:lineType>Multiple Bends</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>always</pd:conditionType>
+            </pd:transition>
+            <pd:transition>
+                <pd:from>No match</pd:from>
+                <pd:to>end</pd:to>
+                <pd:lineType>Multiple Bends</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>always</pd:conditionType>
+            </pd:transition>
+            <pd:group name="Group">
+                <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+                <pd:resourceType>ae.process.group</pd:resourceType>
+                <pd:x>837</pd:x>
+                <pd:y>165</pd:y>
+                <pd:width>409</pd:width>
+                <pd:height>164</pd:height>
+                <pd:collapsedWidth>57</pd:collapsedWidth>
+                <pd:collapsedHeight>70</pd:collapsedHeight>
+                <pd:groupVariables/>
+                <pd:joinToggle>inherit</pd:joinToggle>
+                <config>
+                    <pd:groupType>inputLoop</pd:groupType>
+                    <pd:serializable>false</pd:serializable>
+                    <pd:over>$Events/Events/Destination</pd:over>
+                    <pd:iterationElementSlot>Destination</pd:iterationElementSlot>
+                    <pd:indexSlot>j</pd:indexSlot>
+                    <pd:activityOutputName/>
+                    <pd:accumulateOutput>false</pd:accumulateOutput>
+                </config>
+                <pd:inputBindings/>
+                <pd:expanded>true</pd:expanded>
+                <pd:transition>
+                    <pd:from>start</pd:from>
+                    <pd:to>match</pd:to>
+                    <pd:lineType>Default</pd:lineType>
+                    <pd:lineColor>-16777216</pd:lineColor>
+                    <pd:conditionType>always</pd:conditionType>
+                </pd:transition>
+                <pd:transition>
+                    <pd:from>PublishEventPatterns</pd:from>
+                    <pd:to>end</pd:to>
+                    <pd:lineType>Default</pd:lineType>
+                    <pd:lineColor>-16777216</pd:lineColor>
+                    <pd:conditionType>always</pd:conditionType>
+                </pd:transition>
+                <pd:transition>
+                    <pd:from>match</pd:from>
+                    <pd:to>PublishEventPatterns</pd:to>
+                    <pd:xpathDescription>event</pd:xpathDescription>
+                    <pd:lineType>Default</pd:lineType>
+                    <pd:lineColor>-16777216</pd:lineColor>
+                    <pd:conditionType>always</pd:conditionType>
+                </pd:transition>
+                <pd:activity name="PublishEventPatterns">
+                    <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+                    <pd:resourceType>ae.process.subprocess</pd:resourceType>
+                    <pd:x>1148</pd:x>
+                    <pd:y>252</pd:y>
+                    <config>
+                        <spawn>true</spawn>
+                        <processName>/Common/ARC/ARC_QueueOrTopic/ARC_SendMessageToQueueOrTopic.process</processName>
+                        <processNameXPath/>
+                    </config>
+                    <pd:inputBindings>
+                        <IN_SendMessageToQueueOrTopic>
+                            <Target>
+                                <xsl:value-of select="$Destination/Destination/DestinationName"/>
+                            </Target>
+                            <xsl:choose>
+                                <xsl:when test="$Destination/Destination/DestinationType=$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_Generic_Queue_Key">
+                                    <IsTopic>
+                                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                    </IsTopic>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <IsTopic>
+                                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/BooleanConstants/True"/>
+                                    </IsTopic>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                            <Message>
+                                <xsl:copy-of select="$Start/ARC_SendEventPattern/Body/*"/>
+                            </Message>
+                        </IN_SendMessageToQueueOrTopic>
+                    </pd:inputBindings>
+                </pd:activity>
+                <pd:activity name="match">
+                    <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+                    <pd:resourceType>ae.activities.log</pd:resourceType>
+                    <pd:x>954</pd:x>
+                    <pd:y>253</pd:y>
+                    <config>
+                        <role>User</role>
+                    </config>
+                    <pd:inputBindings>
+                        <ns0:ActivityInput>
+                            <message>
+                                <xsl:value-of select="concat($Events/Events/EventName,&quot;=&quot;,$Start/ARC_SendEventPattern/EventData/EventCode)"/>
+                            </message>
+                        </ns0:ActivityInput>
+                    </pd:inputBindings>
+                </pd:activity>
+            </pd:group>
+            <pd:activity name="No match">
+                <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+                <pd:resourceType>ae.activities.log</pd:resourceType>
+                <pd:x>978</pd:x>
+                <pd:y>410</pd:y>
+                <config>
+                    <role>User</role>
+                </config>
+                <pd:inputBindings>
+                    <ns0:ActivityInput>
+                        <message>
+                            <xsl:value-of select="concat($Events/Events/EventName,&quot;!=&quot;,$Start/ARC_SendEventPattern/EventData/EventCode)"/>
+                        </message>
+                    </ns0:ActivityInput>
+                </pd:inputBindings>
+            </pd:activity>
+        </pd:group>
+    </pd:group>
+    <pd:activity name="Catch">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>1044</pd:x>
+        <pd:y>614</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="EventPatternCheck">
+        <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+        <pd:resourceType>ae.activities.null</pd:resourceType>
+        <pd:x>446</pd:x>
+        <pd:y>49</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:group name="CriticalSection">
+        <pd:type>com.tibco.pe.core.CriticalSectionGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>155</pd:x>
+        <pd:y>1</pd:y>
+        <pd:width>182</pd:width>
+        <pd:height>140</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>criticalSection</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:scope>single</pd:scope>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>SendEventPatterns</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>SendEventPatterns</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:activity name="SendEventPatterns">
+            <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+            <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+            <pd:x>235</pd:x>
+            <pd:y>65</pd:y>
+            <config>
+                <variableConfig>/SharedResources/JobSharedVariables/ServiceIDFilteredEventPatterns.jobsharedvariable</variableConfig>
+            </config>
+            <pd:inputBindings/>
+        </pd:activity>
+    </pd:group>
+    <pd:activity name="Log Error SendEventPatterns">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <pd:x>1195</pd:x>
+        <pd:y>624</pd:y>
+        <config>
+            <role>Error</role>
+        </config>
+        <pd:inputBindings>
+            <ns0:ActivityInput>
+                <message>
+                    <xsl:value-of select="$Catch/exceptiondata/*"/>
+                </message>
+            </ns0:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>EventPatternCheck</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Transaction</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>EventPatternCheck</pd:from>
+        <pd:to>Transaction</pd:to>
+        <pd:xpathDescription>new</pd:xpathDescription>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>count($SendEventPatterns/EventPatterns/Events)&gt;0</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>CriticalSection</pd:from>
+        <pd:to>EventPatternCheck</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>CriticalSection</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>Log Error SendEventPatterns</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65536</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Log Error SendEventPatterns</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>One Bend</pd:lineType>
+        <pd:lineColor>-65536</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

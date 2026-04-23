@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="com/tibco/pe/commands" xmlns:pfx="http://www.tibco.com/schemas/ProyectoServiciosVisor/SharedResources/Schemas/ManagementServices/XSD/Schema.xsd2" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:ns3="http://com.bbva.cib/EYFW/Libraries" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:pfx5="http://com.bbva.cib/EYFW/MngServ" xmlns:pfx4="http://com.bbva.cib/EYFW/Management" xmlns:pfx3="http://com.bbva.cib/EYFW/SchemaEngine" xmlns:pfx2="http://com.bbva.cib/EYFW/ManagementServices" xmlns:pfx6="http://com.bbva.cib/EYFW/Engine">
+    <xsd:import namespace="http://com.bbva.cib/EYFW/ManagementServices" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/ManagementServices.xsd"/>
+    <xsd:import namespace="http://com.bbva.cib/EYFW/SchemaEngine" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/SchemaEngine.xsd"/>
+    <xsd:import namespace="http://com.bbva.cib/EYFW/Management" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/ManagementServiceCommon.xsd"/>
+    <xsd:import namespace="http://com.bbva.cib/EYFW/Engine" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/S_EngineCommandService.xsd"/>
+    <xsd:import namespace="http://com.bbva.cib/EYFW/MngServ" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/MngServCommon.xsd"/>
+    <pd:name>ArchitectureServices/Business/S_EYFW_FW_STARSTOOUT/Internal/FUNC_MGSV_GetInformation.process</pd:name>
+    <pd:description>Suspends the specified process starter. 
+</pd:description>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="Message">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="Body">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="MessageID" type="xsd:string"/>
+                                <xsd:element ref="pfx5:RequestEngine"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>48</pd:startX>
+    <pd:startY>99</pd:startY>
+    <pd:returnBindings>
+        <root>
+            <xsl:for-each select="$EngineCommand-1-1-1/ns:output/ns:GetProcessInstanceInfo">
+                <GetProcessInstance>
+                    <xsl:if test="StartTime">
+                        <StartTime>
+                            <xsl:value-of select="StartTime"/>
+                        </StartTime>
+                    </xsl:if>
+                    <xsl:if test="SubProcessName">
+                        <SubProcessName>
+                            <xsl:value-of select="SubProcessName"/>
+                        </SubProcessName>
+                    </xsl:if>
+                    <xsl:if test="ProcessStarterName">
+                        <ProcessStarterName>
+                            <xsl:value-of select="ProcessStarterName"/>
+                        </ProcessStarterName>
+                    </xsl:if>
+                    <xsl:if test="CurrentActivityName">
+                        <CurrentActivityName>
+                            <xsl:value-of select="CurrentActivityName"/>
+                        </CurrentActivityName>
+                    </xsl:if>
+                    <xsl:if test="MainProcessName">
+                        <MainProcessName>
+                            <xsl:value-of select="MainProcessName"/>
+                        </MainProcessName>
+                    </xsl:if>
+                    <xsl:if test="Status">
+                        <Status>
+                            <xsl:value-of select="Status"/>
+                        </Status>
+                    </xsl:if>
+                    <xsl:if test="ElapsedTimeSinceStarted">
+                        <ElapsedTimeSinceStarted>
+                            <xsl:value-of select="ElapsedTimeSinceStarted"/>
+                        </ElapsedTimeSinceStarted>
+                    </xsl:if>
+                    <xsl:if test="CustomId">
+                        <CustomId>
+                            <xsl:value-of select="CustomId"/>
+                        </CustomId>
+                    </xsl:if>
+                    <xsl:if test="TrackingId">
+                        <TrackingId>
+                            <xsl:value-of select="TrackingId"/>
+                        </TrackingId>
+                    </xsl:if>
+                    <xsl:if test="ProcessInstanceName">
+                        <ProcessInstanceName>
+                            <xsl:value-of select="ProcessInstanceName"/>
+                        </ProcessInstanceName>
+                    </xsl:if>
+                    <xsl:if test="ProcessId">
+                        <ProcessId>
+                            <xsl:value-of select="ProcessId"/>
+                        </ProcessId>
+                    </xsl:if>
+                </GetProcessInstance>
+            </xsl:for-each>
+        </root>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="root">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="GetProcessInstance" minOccurs="0" maxOccurs="unbounded">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="StartTime" type="xsd:long" minOccurs="0"/>
+                                <xsd:element name="SubProcessName" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="ProcessStarterName" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="CurrentActivityName" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="MainProcessName" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="Status" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="ElapsedTimeSinceStarted" type="xsd:int" minOccurs="0"/>
+                                <xsd:element name="CustomId" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="TrackingId" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="ProcessInstanceName" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="ProcessId" type="xsd:long" minOccurs="0"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>327</pd:endX>
+    <pd:endY>100</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1330453645326</pd:targetNamespace>
+    <pd:activity name="EngineCommand-1-1-1">
+        <pd:type>com.tibco.pe.core.EngineCommandActivity</pd:type>
+        <pd:resourceType>ae.activities.enginecommand</pd:resourceType>
+        <pd:description>GetProcessInstanceInfo
+</pd:description>
+        <pd:x>185</pd:x>
+        <pd:y>102</pd:y>
+        <config>
+            <command>GetProcessInstanceInfo</command>
+            <processDefinition/>
+        </config>
+        <pd:inputBindings>
+            <ns:input>
+                <ProcessDefinitionName>
+                    <xsl:value-of select="$Start/Message/Body/pfx5:RequestEngine/pfx5:AppRunTime"/>
+                </ProcessDefinitionName>
+            </ns:input>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>EngineCommand-1-1-1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>EngineCommand-1-1-1</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

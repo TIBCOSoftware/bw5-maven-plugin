@@ -1,0 +1,50 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>GLB_FatalError</name>
+			<value>1</value>
+			<description>Error que implica cambios en el código.</description>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1386864671524</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_LowError</name>
+			<value>3</value>
+			<description>Error que indica que el servicio se ha podido ejecutar parcialmente. </description>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1386864673737</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_NoImpact</name>
+			<value>5</value>
+			<description>Error controlado en la ejecución sin impacto. </description>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1386864671360</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_SevereError</name>
+			<value>2</value>
+			<description>Error que implica que no se puede continuar la ejecución. </description>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1386864671131</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Warning</name>
+			<value>4</value>
+			<description>Error que implica un aviso debido al impacto en el servicio. </description>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1386864671379</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

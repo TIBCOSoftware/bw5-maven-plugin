@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="com/tibco/pe/commands" xmlns:ns3="http://www.tibco.com/pe/DeployedVarsType" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:pfx3="http://com.bbva.cib/EYFW/MngServ" xmlns:pfx2="http://com.bbva.cib/EYFW/Management" xmlns:pfx="http://com.bbva.cib/EYFW/ManagementServices">
+    <xsd:import namespace="http://com.bbva.cib/EYFW/ManagementServices" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/ManagementServices.xsd"/>
+    <xsd:import namespace="http://com.bbva.cib/EYFW/Management" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/ManagementServiceCommon.xsd"/>
+    <xsd:import namespace="http://com.bbva.cib/EYFW/MngServ" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/MngServCommon.xsd"/>
+    <pd:name>ArchitectureServices/Business/S_EYFW_FW_STARSTOOUT/Internal/FUNC_MGSV_RestartRecoverableProcess.process</pd:name>
+    <pd:description>Reinicia la instancia especificada del proceso</pd:description>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="Message">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="Body">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="MessageID" type="xsd:string"/>
+                                <xsd:element ref="pfx3:RequestEngine"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>46</pd:startX>
+    <pd:startY>142</pd:startY>
+    <pd:returnBindings>
+        <xsl:for-each select="$Map-Data/root">
+            <pfx3:ListRespond>
+                <xsl:if test="messageID">
+                    <pfx3:messageId>
+                        <xsl:value-of select="messageID"/>
+                    </pfx3:messageId>
+                </xsl:if>
+                <xsl:for-each select="Response">
+                    <pfx3:EngineCommandRespond>
+                        <pfx3:MachineName>
+                            <xsl:value-of select="MachineName"/>
+                        </pfx3:MachineName>
+                        <pfx3:ExecutedCommand>
+                            <xsl:value-of select="ExecutedCommand"/>
+                        </pfx3:ExecutedCommand>
+                        <pfx3:ProcessId>
+                            <xsl:value-of select="ProcessId"/>
+                        </pfx3:ProcessId>
+                        <pfx3:ProcessName>
+                            <xsl:value-of select="ProcessName"/>
+                        </pfx3:ProcessName>
+                        <pfx3:ExecutedResult>
+                            <xsl:value-of select="ExecutedResult"/>
+                        </pfx3:ExecutedResult>
+                    </pfx3:EngineCommandRespond>
+                </xsl:for-each>
+            </pfx3:ListRespond>
+        </xsl:for-each>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType ref="pfx3:ListRespond"/>
+    <pd:endX>714</pd:endX>
+    <pd:endY>140</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1330453645326</pd:targetNamespace>
+    <pd:group name="Group">
+        <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>284</pd:x>
+        <pd:y>222</pd:y>
+        <pd:width>220</pd:width>
+        <pd:height>171</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>inputLoop</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:over>$FUNC_MGSV_GeRecoverableProcess/root/GetRecoverableProcess/ProcessId</pd:over>
+            <pd:iterationElementSlot/>
+            <pd:indexSlot>k</pd:indexSlot>
+            <pd:activityOutputName/>
+            <pd:accumulateOutput>false</pd:accumulateOutput>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>EngineCommandRestartRecoverableProcess</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>EngineCommandRestartRecoverableProcess</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:activity name="EngineCommandRestartRecoverableProcess">
+            <pd:type>com.tibco.pe.core.EngineCommandActivity</pd:type>
+            <pd:resourceType>ae.activities.enginecommand</pd:resourceType>
+            <pd:description>Reinicia la instancia especificada del nombre del proceso</pd:description>
+            <pd:x>397</pd:x>
+            <pd:y>313</pd:y>
+            <config>
+                <command>RestartRecoverableProcess</command>
+                <processDefinition>/ApplicationProcesses/ManagementServices/EngineCommandService_ESB/V1.0.0/FUNC_ManagementServices.process</processDefinition>
+            </config>
+            <pd:inputBindings>
+                <ns:input>
+                    <ProcessId>
+                        <xsl:value-of select="$FUNC_MGSV_GeRecoverableProcess/root/GetRecoverableProcess[$k]/ProcessId"/>
+                    </ProcessId>
+                </ns:input>
+            </pd:inputBindings>
+        </pd:activity>
+    </pd:group>
+    <pd:activity name="FUNC_MGSV_GeRecoverableProcess">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>163</pd:x>
+        <pd:y>138</pd:y>
+        <config>
+            <processName>/ArchitectureServices/Business/S_EYFW_FW_STARSTOOUT/Internal/FUNC_MGSV_GetRecoverableProcess.process</processName>
+        </config>
+        <pd:inputBindings>
+            <xsl:copy-of select="$Start/Message"/>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Map Data">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>603</pd:x>
+        <pd:y>138</pd:y>
+        <config>
+            <element>
+                <xsd:element name="root">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="messageID" type="xsd:string" minOccurs="0"/>
+                            <xsd:element name="Response" minOccurs="0" maxOccurs="unbounded">
+                                <xsd:complexType>
+                                    <xsd:sequence>
+                                        <xsd:element name="MachineName" type="xsd:string"/>
+                                        <xsd:element name="ExecutedCommand" type="xsd:string"/>
+                                        <xsd:element name="ProcessId" type="xsd:string"/>
+                                        <xsd:element name="ProcessName" type="xsd:string"/>
+                                        <xsd:element name="ExecutedResult" type="xsd:string"/>
+                                    </xsd:sequence>
+                                </xsd:complexType>
+                            </xsd:element>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+            </element>
+        </config>
+        <pd:inputBindings>
+            <root>
+                <messageID>
+                    <xsl:value-of select="$Start/Message/Body/MessageID"/>
+                </messageID>
+                <xsl:choose>
+                    <xsl:when test="not(empty($FUNC_MGSV_GeRecoverableProcess/root/*))">
+                        <xsl:for-each select="$FUNC_MGSV_GeRecoverableProcess/root/GetRecoverableProcess">
+                            <Response>
+                                <MachineName>
+                                    <xsl:value-of select="BW:getHostName()"/>
+                                </MachineName>
+                                <ExecutedCommand>
+                                    <xsl:value-of select="$Start/Message/Body/pfx3:RequestEngine/pfx3:OperationType"/>
+                                </ExecutedCommand>
+                                <ProcessId>
+                                    <xsl:value-of select="ProcessId"/>
+                                </ProcessId>
+                                <ProcessName>
+                                    <xsl:value-of select="ProcessDefinitionName"/>
+                                </ProcessName>
+                                <ExecutedResult>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_OK"/>
+                                </ExecutedResult>
+                            </Response>
+                        </xsl:for-each>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <Response>
+                            <MachineName>
+                                <xsl:value-of select="BW:getHostName()"/>
+                            </MachineName>
+                            <ExecutedCommand>
+                                <xsl:value-of select="$Start/Message/Body/pfx3:RequestEngine/pfx3:OperationType"/>
+                            </ExecutedCommand>
+                            <ProcessId>
+                                <xsl:value-of select="$FUNC_MGSV_GeRecoverableProcess/root/GetRecoverableProcess[*]/ProcessId"/>
+                            </ProcessId>
+                            <ProcessName>
+                                <xsl:value-of select="$Start/Message/Body/pfx3:RequestEngine/pfx3:AppRunTime"/>
+                            </ProcessName>
+                            <ExecutedResult>
+                                <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_NOK"/>
+                            </ExecutedResult>
+                        </Response>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </root>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Group</pd:from>
+        <pd:to>Map Data</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>FUNC_MGSV_GeRecoverableProcess</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FUNC_MGSV_GeRecoverableProcess</pd:from>
+        <pd:to>Group</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>not(empty($FUNC_MGSV_GeRecoverableProcess/root/GetRecoverableProcess/ProcessId) )</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Map Data</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FUNC_MGSV_GeRecoverableProcess</pd:from>
+        <pd:to>Map Data</pd:to>
+        <pd:xpathDescription>No InstanceRecoverable</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

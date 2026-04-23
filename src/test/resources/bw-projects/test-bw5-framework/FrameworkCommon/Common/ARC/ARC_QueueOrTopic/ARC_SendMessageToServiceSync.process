@@ -1,0 +1,780 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType" xmlns:ns4="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:ns3="http://schemas.tibco.com/bw/plugins/jms/5.0/jmsExceptions" xmlns:ns0="www.tibco.com/plugin/Sleep" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx2="http://www.bbva.com/EAIFramework" xmlns:pfx="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_QueueOrTopic/ARC_SendMessageToServiceSync.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="IN_SendMessage">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="ServicesType" minOccurs="0">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="ServiceType" type="xsd:string" maxOccurs="unbounded"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="OrchestrationService" minOccurs="0">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="OrchestrationServiceId" type="xsd:string"/>
+                                <xsd:element name="JMSInputDestinationId" type="xsd:string" minOccurs="0"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="Body">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:any processContents="skip"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="TargetServices" minOccurs="0">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element ref="pfx2:RoutingService" minOccurs="0" maxOccurs="unbounded"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="UpdateHeaderParameters" minOccurs="0">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="ControlE2E" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="ParentControlE2E" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="IsLight" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="SaveMessage" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="JMSGWReplyTo" type="xsd:string"/>
+                                <xsd:element name="JMSHeadersParameters" minOccurs="0">
+                                    <xsd:complexType>
+                                        <xsd:sequence>
+                                            <xsd:element name="JMSReplyTo" type="xsd:string" minOccurs="0"/>
+                                            <xsd:element name="JMSDeliveryMode" type="xsd:string" minOccurs="0"/>
+                                            <xsd:element name="JMSTimeStamp" type="xsd:int" minOccurs="0"/>
+                                            <xsd:element name="JMSExpiration" type="xsd:int" minOccurs="0"/>
+                                            <xsd:element name="JMSRedelivered" type="xsd:boolean" minOccurs="0"/>
+                                            <xsd:element name="JMSPriority" type="xsd:int" minOccurs="0"/>
+                                            <xsd:element name="JMSCorrelationID" type="xsd:string" minOccurs="0"/>
+                                            <xsd:element name="JMSType" type="xsd:string" minOccurs="0"/>
+                                            <xsd:element name="NameValue" minOccurs="0" maxOccurs="unbounded">
+                                                <xsd:complexType>
+                                                    <xsd:sequence>
+                                                        <xsd:element name="Name" type="xsd:string"/>
+                                                        <xsd:element name="Value" type="xsd:string"/>
+                                                    </xsd:sequence>
+                                                </xsd:complexType>
+                                            </xsd:element>
+                                        </xsd:sequence>
+                                    </xsd:complexType>
+                                </xsd:element>
+                                <xsd:element name="JMSPropertiesParameters" minOccurs="0">
+                                    <xsd:complexType>
+                                        <xsd:sequence>
+                                            <xsd:element name="JMSXUserID" type="xsd:string" minOccurs="0"/>
+                                            <xsd:element name="JMSXAppID" type="xsd:string" minOccurs="0"/>
+                                            <xsd:element name="JMSXProducerTXID" type="xsd:string" minOccurs="0"/>
+                                            <xsd:element name="JMSXConsumerTXID" type="xsd:string" minOccurs="0"/>
+                                            <xsd:element name="JMSXRcvTimestamp" type="xsd:int" minOccurs="0"/>
+                                            <xsd:element name="JMSXDeliveryCount" type="xsd:int" minOccurs="0"/>
+                                            <xsd:element name="JMSXGroupID" type="xsd:string" minOccurs="0"/>
+                                            <xsd:element name="JMSXGroupSeq" type="xsd:int" minOccurs="0"/>
+                                            <xsd:element name="NameValue" minOccurs="0" maxOccurs="unbounded">
+                                                <xsd:complexType>
+                                                    <xsd:sequence>
+                                                        <xsd:element name="Name" type="xsd:string"/>
+                                                        <xsd:element name="Value" type="xsd:string"/>
+                                                    </xsd:sequence>
+                                                </xsd:complexType>
+                                            </xsd:element>
+                                        </xsd:sequence>
+                                    </xsd:complexType>
+                                </xsd:element>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>28</pd:startX>
+    <pd:startY>320</pd:startY>
+    <pd:returnBindings>
+        <OUT_SendMessage>
+            <xsl:if test="count(  $Start/IN_SendMessage/OrchestrationService/OrchestrationServiceId   )>0 and count( $returnMessages/AccumulatedOutput/OUTPUT_SendMessage/pfx2:Message )>0">
+                <xsl:copy-of select="$returnMessages/AccumulatedOutput/OUTPUT_SendMessage/pfx2:Message"/>
+            </xsl:if>
+        </OUT_SendMessage>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="OUT_SendMessage">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="pfx2:Message" minOccurs="0" maxOccurs="unbounded"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>1337</pd:endX>
+    <pd:endY>319</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx2:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1331551897594</pd:targetNamespace>
+    <pd:group name="Transaccion">
+        <pd:type>com.tibco.pe.core.TransactionGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>106</pd:x>
+        <pd:y>54</pd:y>
+        <pd:width>1148</pd:width>
+        <pd:height>515</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>transactionGroup</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:transactionType>JMSTransaction</pd:transactionType>
+            <pd:includeCheckpoint>false</pd:includeCheckpoint>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>Mensajes</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Mensajes</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:group name="Mensajes">
+            <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+            <pd:resourceType>ae.process.group</pd:resourceType>
+            <pd:x>124</pd:x>
+            <pd:y>96</pd:y>
+            <pd:width>1067</pd:width>
+            <pd:height>439</pd:height>
+            <pd:collapsedWidth>57</pd:collapsedWidth>
+            <pd:collapsedHeight>70</pd:collapsedHeight>
+            <pd:groupVariables/>
+            <pd:joinToggle>inherit</pd:joinToggle>
+            <config>
+                <pd:groupType>simpleGroup</pd:groupType>
+                <pd:serializable>false</pd:serializable>
+            </config>
+            <pd:inputBindings/>
+            <pd:expanded>true</pd:expanded>
+            <pd:transition>
+                <pd:from>start</pd:from>
+                <pd:to>TargetServices</pd:to>
+                <pd:lineType>Default</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>always</pd:conditionType>
+            </pd:transition>
+            <pd:transition>
+                <pd:from>TargetServices</pd:from>
+                <pd:to>end</pd:to>
+                <pd:lineType>Default</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>always</pd:conditionType>
+            </pd:transition>
+            <pd:group name="TargetServices">
+                <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+                <pd:resourceType>ae.process.group</pd:resourceType>
+                <pd:x>163</pd:x>
+                <pd:y>122</pd:y>
+                <pd:width>941</pd:width>
+                <pd:height>376</pd:height>
+                <pd:collapsedWidth>57</pd:collapsedWidth>
+                <pd:collapsedHeight>70</pd:collapsedHeight>
+                <pd:groupVariables/>
+                <pd:joinToggle>inherit</pd:joinToggle>
+                <config>
+                    <pd:groupType>inputLoop</pd:groupType>
+                    <pd:serializable>false</pd:serializable>
+                    <pd:over>$Start/IN_SendMessage/TargetServices/pfx2:RoutingService</pd:over>
+                    <pd:iterationElementSlot>current_service</pd:iterationElementSlot>
+                    <pd:indexSlot>j</pd:indexSlot>
+                    <pd:outSlot>returnMessages</pd:outSlot>
+                    <pd:activityOutputName>ARC_SendMesageWait</pd:activityOutputName>
+                    <pd:accumulateOutput>true</pd:accumulateOutput>
+                </config>
+                <pd:inputBindings/>
+                <pd:expanded>true</pd:expanded>
+                <pd:transition>
+                    <pd:from>start</pd:from>
+                    <pd:to>ARC_SendMesageWait</pd:to>
+                    <pd:lineType>Default</pd:lineType>
+                    <pd:lineColor>-16777216</pd:lineColor>
+                    <pd:conditionType>always</pd:conditionType>
+                </pd:transition>
+                <pd:transition>
+                    <pd:from>OK</pd:from>
+                    <pd:to>end</pd:to>
+                    <pd:lineType>Default</pd:lineType>
+                    <pd:lineColor>-16777216</pd:lineColor>
+                    <pd:conditionType>otherwise</pd:conditionType>
+                </pd:transition>
+                <pd:transition>
+                    <pd:from>ARC_SendMesageForward</pd:from>
+                    <pd:to>end</pd:to>
+                    <pd:lineType>Multiple Bends</pd:lineType>
+                    <pd:lineColor>-16777216</pd:lineColor>
+                    <pd:conditionType>always</pd:conditionType>
+                </pd:transition>
+                <pd:transition>
+                    <pd:from>ARC_SendMesageWait</pd:from>
+                    <pd:to>OK</pd:to>
+                    <pd:lineType>Multiple Bends</pd:lineType>
+                    <pd:lineColor>-16777216</pd:lineColor>
+                    <pd:conditionType>always</pd:conditionType>
+                </pd:transition>
+                <pd:transition>
+                    <pd:from>OK</pd:from>
+                    <pd:to>NotifySucessResponse</pd:to>
+                    <pd:xpathDescription>syncResponseMsg</pd:xpathDescription>
+                    <pd:lineType>Multiple Bends</pd:lineType>
+                    <pd:lineColor>-16777216</pd:lineColor>
+                    <pd:conditionType>xpath</pd:conditionType>
+                    <pd:xpath>count($Start/IN_SendMessage/OrchestrationService/OrchestrationServiceId )&gt;0 and count($ARC_SendMesageWait/OUTPUT_SendMessage/pfx2:Message)&gt;0</pd:xpath>
+                </pd:transition>
+                <pd:transition>
+                    <pd:from>NotifySucessResponse</pd:from>
+                    <pd:to>ARC_SendMesageForward</pd:to>
+                    <pd:lineType>One Bend</pd:lineType>
+                    <pd:lineColor>-16777216</pd:lineColor>
+                    <pd:conditionType>always</pd:conditionType>
+                </pd:transition>
+                <pd:activity name="ARC_SendMesageWait">
+                    <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+                    <pd:resourceType>ae.process.subprocess</pd:resourceType>
+                    <pd:x>271</pd:x>
+                    <pd:y>319</pd:y>
+                    <config>
+                        <processName>/Common/ARC/ARC_QueueOrTopic/ARC_SendMessageHeaderCount.process</processName>
+                    </config>
+                    <pd:inputBindings>
+                        <ARC_REQS_Main_IN>
+                            <Body>
+                                <xsl:copy-of select="$Start/IN_SendMessage/Body/*"/>
+                            </Body>
+                            <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSReplyTo">
+                                <JMsReplyTo>
+                                    <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSReplyTo"/>
+                                </JMsReplyTo>
+                            </xsl:if>
+                            <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSCorrelationID">
+                                <JMSCorrelationId>
+                                    <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSCorrelationID"/>
+                                </JMSCorrelationId>
+                            </xsl:if>
+                            <Service>
+                                <xsl:choose>
+                                    <xsl:when test="count($current_service/pfx2:RoutingService/pfx2:JMSInputDestinationName)>0">
+                                        <JMSDestination>
+                                            <xsl:value-of select="$current_service/pfx2:RoutingService/pfx2:JMSInputDestinationName"/>
+                                        </JMSDestination>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <ServiceId>
+                                            <xsl:value-of select="$current_service/pfx2:RoutingService/pfx2:ServiceId"/>
+                                        </ServiceId>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <ServiceType>
+                                    <xsl:value-of select="$current_service/pfx2:RoutingService/pfx2:ServiceType"/>
+                                </ServiceType>
+                            </Service>
+                            <TimeOut>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/TIMEOUT/CFG_Timeout"/>
+                            </TimeOut>
+                            <xsl:choose>
+                                <xsl:when test="count($Start/IN_SendMessage/ServicesType[ServiceType=$current_service/pfx2:RoutingService/pfx2:ServiceType]/ServiceType)>0">
+                                    <Sync>
+                                        <xsl:value-of select="true()"/>
+                                    </Sync>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <Sync>
+                                        <xsl:value-of select="false()"/>
+                                    </Sync>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                            <xsl:if test="count($Start/IN_SendMessage/UpdateHeaderParameters)>0">
+                                <xsl:choose>
+                                    <xsl:when test="$current_service/pfx2:RoutingService/pfx2:ServiceType=$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_SimpleService or $current_service/pfx2:RoutingService/pfx2:ServiceType=$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_ComposedService">
+                                        <UpdateHeaderParameters>
+                                            <ControlE2E>
+                                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/ROUTING/SyncControlE2E"/>
+                                            </ControlE2E>
+                                            <xsl:choose>
+                                                <xsl:when test="$Start/IN_SendMessage/TargetServices/pfx2:RoutingService/pfx2:ServiceType=$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_RoutingGatewayAdapter">
+                                                    <ActiveHeaderNonCompatibility>
+                                                        <xsl:value-of select="true()"/>
+                                                    </ActiveHeaderNonCompatibility>
+                                                </xsl:when>
+                                                <xsl:when test="$Start/IN_SendMessage/TargetServices/pfx2:RoutingService/pfx2:ServiceType=$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_OrchestrationAdapter">
+                                                    <ActiveHeaderNonCompatibility>
+                                                        <xsl:value-of select="true()"/>
+                                                    </ActiveHeaderNonCompatibility>
+                                                </xsl:when>
+                                                <xsl:otherwise>
+                                                    <ActiveHeaderNonCompatibility>
+                                                        <xsl:value-of select="false()"/>
+                                                    </ActiveHeaderNonCompatibility>
+                                                </xsl:otherwise>
+                                            </xsl:choose>
+                                            <JMSHeaderParameters>
+                                                <xsl:if test="string-length($Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSDeliveryMode)">
+                                                    <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSDeliveryMode">
+                                                        <JMSDeliveryMode>
+                                                            <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSDeliveryMode"/>
+                                                        </JMSDeliveryMode>
+                                                    </xsl:if>
+                                                </xsl:if>
+                                                <xsl:if test="string-length($Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSTimeStamp) > 0">
+                                                    <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSTimeStamp">
+                                                        <JMSTimeStamp>
+                                                            <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSTimeStamp"/>
+                                                        </JMSTimeStamp>
+                                                    </xsl:if>
+                                                </xsl:if>
+                                                <xsl:if test="string-length($Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSExpiration) >0">
+                                                    <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSExpiration">
+                                                        <JMSExpiration>
+                                                            <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSExpiration"/>
+                                                        </JMSExpiration>
+                                                    </xsl:if>
+                                                </xsl:if>
+                                                <xsl:if test="string-length($Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSRedelivered) >0">
+                                                    <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSRedelivered">
+                                                        <JMSRedelivered>
+                                                            <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSRedelivered"/>
+                                                        </JMSRedelivered>
+                                                    </xsl:if>
+                                                </xsl:if>
+                                                <xsl:if test="string-length($Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSPriority) >0">
+                                                    <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSPriority">
+                                                        <JMSPriority>
+                                                            <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSPriority"/>
+                                                        </JMSPriority>
+                                                    </xsl:if>
+                                                </xsl:if>
+                                                <xsl:if test="string-length($Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSType) > 0">
+                                                    <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSType">
+                                                        <JMSType>
+                                                            <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSType"/>
+                                                        </JMSType>
+                                                    </xsl:if>
+                                                </xsl:if>
+                                                <xsl:if test="count($Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/NameValue) > 0">
+                                                    <xsl:copy-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/NameValue"/>
+                                                </xsl:if>
+                                            </JMSHeaderParameters>
+                                            <JMSPropertiesParameters>
+                                                <xsl:if test="string-length($Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXUserID) > 0">
+                                                    <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXUserID">
+                                                        <JMSXUserID>
+                                                            <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXUserID"/>
+                                                        </JMSXUserID>
+                                                    </xsl:if>
+                                                </xsl:if>
+                                                <xsl:if test="string-length($Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXAppID) > 0">
+                                                    <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXAppID">
+                                                        <JMSXAppID>
+                                                            <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXAppID"/>
+                                                        </JMSXAppID>
+                                                    </xsl:if>
+                                                </xsl:if>
+                                                <xsl:if test="string-length($Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXProducerTXID) > 0">
+                                                    <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXProducerTXID">
+                                                        <JMSXProducerTXID>
+                                                            <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXProducerTXID"/>
+                                                        </JMSXProducerTXID>
+                                                    </xsl:if>
+                                                </xsl:if>
+                                                <xsl:if test="string-length($Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXConsumerTXID) > 0">
+                                                    <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXConsumerTXID">
+                                                        <JMSXConsumerTXID>
+                                                            <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXConsumerTXID"/>
+                                                        </JMSXConsumerTXID>
+                                                    </xsl:if>
+                                                </xsl:if>
+                                                <xsl:if test="string-length($Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXRcvTimestamp) > 0">
+                                                    <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXRcvTimestamp">
+                                                        <JMSXRcvTimestamp>
+                                                            <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXRcvTimestamp"/>
+                                                        </JMSXRcvTimestamp>
+                                                    </xsl:if>
+                                                </xsl:if>
+                                                <xsl:if test="string-length($Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXDeliveryCount) > 0">
+                                                    <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXDeliveryCount">
+                                                        <JMSDeliveryCount>
+                                                            <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXDeliveryCount"/>
+                                                        </JMSDeliveryCount>
+                                                    </xsl:if>
+                                                </xsl:if>
+                                                <xsl:if test="string-length($Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupID) > 0">
+                                                    <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupID">
+                                                        <JMSXGroupID>
+                                                            <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupID"/>
+                                                        </JMSXGroupID>
+                                                    </xsl:if>
+                                                </xsl:if>
+                                                <xsl:if test="string-length($Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupSeq) > 0">
+                                                    <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupSeq">
+                                                        <JMSXGroupSeq>
+                                                            <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupSeq"/>
+                                                        </JMSXGroupSeq>
+                                                    </xsl:if>
+                                                </xsl:if>
+                                                <xsl:if test="count($Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/NameValue) >0">
+                                                    <xsl:copy-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/NameValue"/>
+                                                </xsl:if>
+                                            </JMSPropertiesParameters>
+                                        </UpdateHeaderParameters>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <UpdateHeaderParameters>
+                                            <xsl:if test="count($Start/IN_SendMessage/UpdateHeaderParameters/ControlE2E)>0">
+                                                <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/ControlE2E">
+                                                    <ControlE2E>
+                                                        <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/ControlE2E"/>
+                                                    </ControlE2E>
+                                                </xsl:if>
+                                            </xsl:if>
+                                            <xsl:if test="count($Start/IN_SendMessage/UpdateHeaderParameters/ParentControlE2E)">
+                                                <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/ParentControlE2E">
+                                                    <ParentControlE2E>
+                                                        <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/ParentControlE2E"/>
+                                                    </ParentControlE2E>
+                                                </xsl:if>
+                                            </xsl:if>
+                                            <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/IsLight=&quot;true&quot;">
+                                                <IsLight>
+                                                    <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/IsLight"/>
+                                                </IsLight>
+                                            </xsl:if>
+                                            <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/SaveMessage=&quot;true&quot;">
+                                                <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/SaveMessage">
+                                                    <SaveMessage>
+                                                        <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/SaveMessage"/>
+                                                    </SaveMessage>
+                                                </xsl:if>
+                                            </xsl:if>
+                                            <xsl:choose>
+                                                <xsl:when test="$current_service/pfx2:RoutingService/pfx2:ServiceType=$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_RoutingGatewayAdapter">
+                                                    <ActiveHeaderNonCompatibility>
+                                                        <xsl:value-of select="true()"/>
+                                                    </ActiveHeaderNonCompatibility>
+                                                </xsl:when>
+                                                <xsl:when test="$current_service/pfx2:RoutingService/pfx2:ServiceType=$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_OrchestrationAdapter">
+                                                    <ActiveHeaderNonCompatibility>
+                                                        <xsl:value-of select="true()"/>
+                                                    </ActiveHeaderNonCompatibility>
+                                                </xsl:when>
+                                                <xsl:otherwise>
+                                                    <ActiveHeaderNonCompatibility>
+                                                        <xsl:value-of select="false()"/>
+                                                    </ActiveHeaderNonCompatibility>
+                                                </xsl:otherwise>
+                                            </xsl:choose>
+                                            <JMSHeaderParameters>
+                                                <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSDeliveryMode">
+                                                    <JMSDeliveryMode>
+                                                        <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSDeliveryMode"/>
+                                                    </JMSDeliveryMode>
+                                                </xsl:if>
+                                                <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSTimeStamp">
+                                                    <JMSTimeStamp>
+                                                        <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSTimeStamp"/>
+                                                    </JMSTimeStamp>
+                                                </xsl:if>
+                                                <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSExpiration">
+                                                    <JMSExpiration>
+                                                        <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSExpiration"/>
+                                                    </JMSExpiration>
+                                                </xsl:if>
+                                                <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSRedelivered">
+                                                    <JMSRedelivered>
+                                                        <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSRedelivered"/>
+                                                    </JMSRedelivered>
+                                                </xsl:if>
+                                                <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSPriority">
+                                                    <JMSPriority>
+                                                        <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSPriority"/>
+                                                    </JMSPriority>
+                                                </xsl:if>
+                                                <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSType">
+                                                    <JMSType>
+                                                        <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSType"/>
+                                                    </JMSType>
+                                                </xsl:if>
+                                                <xsl:copy-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/NameValue"/>
+                                            </JMSHeaderParameters>
+                                            <JMSPropertiesParameters>
+                                                <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXUserID">
+                                                    <JMSXUserID>
+                                                        <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXUserID"/>
+                                                    </JMSXUserID>
+                                                </xsl:if>
+                                                <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXAppID">
+                                                    <JMSXAppID>
+                                                        <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXAppID"/>
+                                                    </JMSXAppID>
+                                                </xsl:if>
+                                                <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXProducerTXID">
+                                                    <JMSXProducerTXID>
+                                                        <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXProducerTXID"/>
+                                                    </JMSXProducerTXID>
+                                                </xsl:if>
+                                                <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXConsumerTXID">
+                                                    <JMSXConsumerTXID>
+                                                        <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXConsumerTXID"/>
+                                                    </JMSXConsumerTXID>
+                                                </xsl:if>
+                                                <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXRcvTimestamp">
+                                                    <JMSXRcvTimestamp>
+                                                        <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXRcvTimestamp"/>
+                                                    </JMSXRcvTimestamp>
+                                                </xsl:if>
+                                                <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXDeliveryCount">
+                                                    <JMSDeliveryCount>
+                                                        <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXDeliveryCount"/>
+                                                    </JMSDeliveryCount>
+                                                </xsl:if>
+                                                <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupID">
+                                                    <JMSXGroupID>
+                                                        <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupID"/>
+                                                    </JMSXGroupID>
+                                                </xsl:if>
+                                                <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupSeq">
+                                                    <JMSXGroupSeq>
+                                                        <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupSeq"/>
+                                                    </JMSXGroupSeq>
+                                                </xsl:if>
+                                                <xsl:copy-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSPropertiesParameters/NameValue"/>
+                                            </JMSPropertiesParameters>
+                                        </UpdateHeaderParameters>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                            </xsl:if>
+                        </ARC_REQS_Main_IN>
+                    </pd:inputBindings>
+                </pd:activity>
+                <pd:activity name="ARC_SendMesageForward">
+                    <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+                    <pd:resourceType>ae.process.subprocess</pd:resourceType>
+                    <pd:x>785</pd:x>
+                    <pd:y>209</pd:y>
+                    <config>
+                        <processName>/Common/ARC/ARC_QueueOrTopic/ARC_SendMessageHeaderCount.process</processName>
+                    </config>
+                    <pd:inputBindings>
+                        <ARC_REQS_Main_IN>
+                            <Body>
+                                <xsl:copy-of select="$ARC_SendMesageWait/OUTPUT_SendMessage/pfx2:Message/pfx2:Body/*"/>
+                            </Body>
+                            <xsl:if test="$Start/IN_SendMessage/UpdateHeaderParameters/JMSGWReplyTo">
+                                <JMsReplyTo>
+                                    <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSGWReplyTo"/>
+                                </JMsReplyTo>
+                            </xsl:if>
+                            <JMSCorrelationId>
+                                <xsl:value-of select="$Start/IN_SendMessage/UpdateHeaderParameters/JMSHeadersParameters/JMSCorrelationID"/>
+                            </JMSCorrelationId>
+                            <Service>
+                                <xsl:choose>
+                                    <xsl:when test="count($Start/IN_SendMessage/OrchestrationService/JMSInputDestinationId)>0">
+                                        <JMSDestination>
+                                            <xsl:value-of select="$Start/IN_SendMessage/OrchestrationService/JMSInputDestinationId"/>
+                                        </JMSDestination>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <ServiceId>
+                                            <xsl:value-of select="$Start/IN_SendMessage/OrchestrationService/OrchestrationServiceId"/>
+                                        </ServiceId>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <ServiceType>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_OrchestrationAdapter"/>
+                                </ServiceType>
+                            </Service>
+                            <TimeOut>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/TIMEOUT/CFG_Timeout"/>
+                            </TimeOut>
+                            <Sync>
+                                <xsl:value-of select="false()"/>
+                            </Sync>
+                            <UpdateHeaderParameters>
+                                <ActiveHeaderNonCompatibility>
+                                    <xsl:value-of select="true()"/>
+                                </ActiveHeaderNonCompatibility>
+                                <JMSHeaderParameters/>
+                                <JMSPropertiesParameters/>
+                            </UpdateHeaderParameters>
+                        </ARC_REQS_Main_IN>
+                    </pd:inputBindings>
+                </pd:activity>
+                <pd:activity name="OK">
+                    <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+                    <pd:resourceType>ae.activities.null</pd:resourceType>
+                    <pd:x>444</pd:x>
+                    <pd:y>319</pd:y>
+                    <config/>
+                    <pd:inputBindings/>
+                </pd:activity>
+                <pd:activity name="NotifySucessResponse">
+                    <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+                    <pd:resourceType>ae.activities.log</pd:resourceType>
+                    <pd:x>593</pd:x>
+                    <pd:y>214</pd:y>
+                    <config>
+                        <role>User</role>
+                    </config>
+                    <pd:inputBindings>
+                        <ns4:ActivityInput>
+                            <message>
+                                <xsl:value-of select="&quot;Sucess response from sync service&quot;"/>
+                            </message>
+                        </ns4:ActivityInput>
+                    </pd:inputBindings>
+                </pd:activity>
+            </pd:group>
+        </pd:group>
+    </pd:group>
+    <pd:activity name="Catch-1">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>299</pd:x>
+        <pd:y>739</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>false</catchAll>
+            <fault>localname=group</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Rethrow">
+        <pd:type>com.tibco.pe.core.RethrowActivity</pd:type>
+        <pd:resourceType>ae.activities.rethrow</pd:resourceType>
+        <pd:x>600</pd:x>
+        <pd:y>739</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Catch-2">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>299</pd:x>
+        <pd:y>640</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+            <fault>localname=group</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Generate-Error-1">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>599</pd:x>
+        <pd:y>639</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx:ActivityInput>
+                <message/>
+                <data>
+                    <pfx2:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                        </ErrorCode>
+                        <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                            <ErrorDescription>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                            </ErrorDescription>
+                        </xsl:if>
+                        <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                            <NativeErrorCode>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                            </NativeErrorCode>
+                        </xsl:if>
+                        <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                            <NativeErrorDescription>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                            </NativeErrorDescription>
+                        </xsl:if>
+                        <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                            <StackTrace>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                            </StackTrace>
+                        </xsl:if>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0, 0)"/>
+                        </ErrorDate>
+                        <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                            <StackProcess>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                            </StackProcess>
+                        </xsl:if>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_FatalError"/>
+                        </Severity>
+                        <OriginalMessage>
+                            <xsl:value-of select="tib:render-xml($Start/*)"/>
+                        </OriginalMessage>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Functional"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/*)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </pfx2:ErrorMessage>
+                </data>
+            </pfx:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Transaccion</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch-1</pd:from>
+        <pd:to>Rethrow</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch-2</pd:from>
+        <pd:to>Generate-Error-1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Transaccion</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

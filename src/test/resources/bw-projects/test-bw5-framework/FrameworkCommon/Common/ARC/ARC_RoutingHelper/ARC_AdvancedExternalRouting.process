@@ -1,0 +1,683 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pfx="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:pfx2="http://www.bbva.com/EAIFramework" xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns0="www.tibco.com/plugin/Sleep" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType" xmlns:ns4="http://schemas.tibco.com/bw/plugins/jms/5.0/jmsExceptions" xmlns:ns3="http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_RoutingHelper/ARC_AdvancedExternalRouting.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="IN_AdvancedExternalRouting">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="pfx2:RoutingMessage"/>
+                    <xsd:element ref="pfx2:ExportAdapterParameters"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>84</pd:startX>
+    <pd:startY>419</pd:startY>
+    <pd:returnBindings>
+        <xsl:choose>
+            <xsl:when test="exists($JMS-Queue-Requestor)">
+                <pfx2:RoutingMessage>
+                    <xsl:copy-of select="$JMS-Queue-Requestor/ns:ActivityOutput/Body/pfx2:RoutingMessage/pfx2:ArchitectureRoutingHeader"/>
+                    <xsl:copy-of select="$JMS-Queue-Requestor/ns:ActivityOutput/Body/pfx2:RoutingMessage/pfx2:Body"/>
+                </pfx2:RoutingMessage>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:copy-of select="$Start/IN_AdvancedExternalRouting/pfx2:RoutingMessage"/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType ref="pfx2:RoutingMessage"/>
+    <pd:endX>816</pd:endX>
+    <pd:endY>431</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx2:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1331551897594</pd:targetNamespace>
+    <pd:group name="Group sync sender">
+        <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>245</pd:x>
+        <pd:y>101</pd:y>
+        <pd:width>304</pd:width>
+        <pd:height>275</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>errorLoop</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:indexSlot>j</pd:indexSlot>
+            <pd:errorCondition>$j&gt;= $_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Num_Intentos_Conexion</pd:errorCondition>
+            <pd:suspendAfterErrorRetry>false</pd:suspendAfterErrorRetry>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>Null-1</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>JMS Queue Requestor</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Sleep-sync</pd:from>
+            <pd:to>JMS Queue Requestor</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Null-1</pd:from>
+            <pd:to>JMS Queue Requestor</pd:to>
+            <pd:xpathDescription>.</pd:xpathDescription>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>otherwise</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Null-1</pd:from>
+            <pd:to>Sleep-sync</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>xpath</pd:conditionType>
+            <pd:xpath>$j &gt; 1</pd:xpath>
+        </pd:transition>
+        <pd:activity name="JMS Queue Requestor">
+            <pd:type>com.tibco.plugin.jms.JMSQueueRequestReplyActivity</pd:type>
+            <pd:resourceType>ae.activities.JMSQueueRequestReplyActivity</pd:resourceType>
+            <pd:x>469</pd:x>
+            <pd:y>188</pd:y>
+            <config>
+                <PermittedMessageType>XML Text</PermittedMessageType>
+                <SessionAttributes>
+                    <transacted>false</transacted>
+                    <acknowledgeMode>1</acknowledgeMode>
+                    <maxSessions>1</maxSessions>
+                </SessionAttributes>
+                <ConfigurableHeaders>
+                    <JMSDeliveryMode>PERSISTENT</JMSDeliveryMode>
+                    <JMSExpiration>0</JMSExpiration>
+                    <JMSPriority>4</JMSPriority>
+                </ConfigurableHeaders>
+                <ConnectionReference>/SharedResources/Connections/JMSConnections/Business/BusinessConnection.sharedjmscon</ConnectionReference>
+                <InDataxsdString ref="pfx2:RoutingMessage"/>
+                <OutDataxsdString ref="pfx2:RoutingMessage"/>
+            </config>
+            <pd:inputBindings>
+                <ns:ActivityInput>
+                    <xsl:choose>
+                        <xsl:when test="exists($Start/IN_AdvancedExternalRouting/pfx2:ExportAdapterParameters/AdvancedRoutingParams/Target)">
+                            <destinationQueue>
+                                <xsl:value-of select="concat ($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/FrameworkQueues/Prefix/GLB_AdvRoutingPrefixDomain , concat( &quot;.&quot; ,concat($_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_ENVIRONMENT_PREFIX ,concat( &quot;.&quot;,$Start/IN_AdvancedExternalRouting/pfx2:ExportAdapterParameters/AdvancedRoutingParams/Target))))"/>
+                            </destinationQueue>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <destinationQueue>
+                                <xsl:value-of select="concat ($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/FrameworkQueues/Prefix/GLB_AdvRoutingPrefixDomain , concat( &quot;.&quot; ,concat($_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_ENVIRONMENT_PREFIX ,concat( &quot;.&quot;,$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/ROUTING/AdvRoutingExternalComponentQueue))))"/>
+                            </destinationQueue>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <JMSExpiration>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/TIMEOUT/CFG_Timeout"/>
+                    </JMSExpiration>
+                    <xsl:choose>
+                        <xsl:when test="exists($Start/IN_AdvancedExternalRouting/pfx2:ExportAdapterParameters/AdvancedRoutingParams/Timeout) and ($Start/IN_AdvancedExternalRouting/pfx2:ExportAdapterParameters/AdvancedRoutingParams/Timeout  > 0)">
+                            <xsl:if test="$Start/IN_AdvancedExternalRouting/pfx2:ExportAdapterParameters/AdvancedRoutingParams/Timeout">
+                                <requestTimeout>
+                                    <xsl:value-of select="$Start/IN_AdvancedExternalRouting/pfx2:ExportAdapterParameters/AdvancedRoutingParams/Timeout"/>
+                                </requestTimeout>
+                            </xsl:if>
+                        </xsl:when>
+                        <xsl:when test="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/ROUTING/SyncTimeOut > 0">
+                            <requestTimeout>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/ROUTING/SyncTimeOut"/>
+                            </requestTimeout>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <requestTimeout>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/TIMEOUT/CFG_Timeout"/>
+                            </requestTimeout>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <Body>
+                        <xsl:copy-of select="$Start/IN_AdvancedExternalRouting/pfx2:RoutingMessage"/>
+                    </Body>
+                    <xsl:variable name="varCompressEnabled" select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/SERVICES/COMPRESSION/CFG_COMPRESS_ENABLED"/>
+                    <DynamicProperties>
+                        <xsl:if test="$varCompressEnabled='true'">
+                            <property>
+                                <name>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/SERVICES/COMPRESSION/CFG_PROPERTY_NAME"/>
+                                </name>
+                                <value>
+                                    <xsl:value-of select="'true'"/>
+                                </value>
+                                <type>
+                                    <xsl:value-of select="'boolean'"/>
+                                </type>
+                            </property>
+                        </xsl:if>
+                    </DynamicProperties>
+                </ns:ActivityInput>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Sleep-sync">
+            <pd:type>com.tibco.plugin.timer.SleepActivity</pd:type>
+            <pd:resourceType>ae.activities.sleep</pd:resourceType>
+            <pd:x>468</pd:x>
+            <pd:y>300</pd:y>
+            <config/>
+            <pd:inputBindings>
+                <ns0:SleepInputSchema>
+                    <xsl:choose>
+                        <xsl:when test="$j= 2">
+                            <IntervalInMillisec>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Intervalo_Primera_Reconexion"/>
+                            </IntervalInMillisec>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <IntervalInMillisec>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Intervalo_Resto_Reconexiones"/>
+                            </IntervalInMillisec>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </ns0:SleepInputSchema>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Null-1">
+            <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+            <pd:resourceType>ae.activities.null</pd:resourceType>
+            <pd:x>309</pd:x>
+            <pd:y>246</pd:y>
+            <config/>
+            <pd:inputBindings/>
+        </pd:activity>
+    </pd:group>
+    <pd:activity name="Error in ARC_AdvancedExternalRouting">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>684</pd:x>
+        <pd:y>435</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx:ActivityInput>
+                <data>
+                    <xsl:choose xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+                        <xsl:when test="$_error_JMS-Queue-Requestor/ActivityErrors/ns3:ActivityTimedOutException">
+                            <pfx2:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_Timeout"/>
+                                </ErrorCode>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/ErrorDescriptions/GLB_ARC_RequestMessage2QueueOrTopicTimeout"/>
+                                </ErrorDescription>
+                                <xsl:if test="string-length($_error/ns2:ErrorReport/MsgCode)>0">
+                                    <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                        <NativeErrorCode>
+                                            <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                        </NativeErrorCode>
+                                    </xsl:if>
+                                </xsl:if>
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                </NativeErrorDescription>
+                                <StackTrace>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                </StackTrace>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_Warning"/>
+                                </Severity>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Technical"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/IN_AdvancedExternalRouting)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx2:ErrorMessage>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <pfx2:ErrorMessage>
+                                <xsl:choose>
+                                    <xsl:when test="$_error_JMS-Queue-Requestor/ActivityErrors/ns4:JMSInvalidInputException">
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RqQueTopic_InvalidInput"/>
+                                        </ErrorCode>
+                                    </xsl:when>
+                                    <xsl:when test="$_error_JMS-Queue-Requestor/ActivityErrors/ns4:JMSMessageCreateException">
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RqQueTopic_MessageCreate"/>
+                                        </ErrorCode>
+                                    </xsl:when>
+                                    <xsl:when test="$_error_JMS-Queue-Requestor/ActivityErrors/ns4:JMSSessionCreateException">
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RqQueTopic_SessionCreate"/>
+                                        </ErrorCode>
+                                    </xsl:when>
+                                    <xsl:when test="$_error_JMS-Queue-Requestor/ActivityErrors/ns4:JMSSendException">
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RqQueTopic_Send"/>
+                                        </ErrorCode>
+                                    </xsl:when>
+                                    <xsl:when test="$_error_JMS-Queue-Requestor/ActivityErrors/ns4:JMSReceiveException">
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RqQueTopic_Receive"/>
+                                        </ErrorCode>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                        </ErrorCode>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                </ErrorDescription>
+                                <xsl:if test="string-length($_error/ns2:ErrorReport/MsgCode)>0">
+                                    <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                        <NativeErrorCode>
+                                            <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                        </NativeErrorCode>
+                                    </xsl:if>
+                                </xsl:if>
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                </NativeErrorDescription>
+                                <StackTrace>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                </StackTrace>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                </Severity>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Technical"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/IN_AdvancedExternalRouting)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx2:ErrorMessage>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </data>
+            </pfx:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>41</pd:x>
+        <pd:y>1012</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Error-in-ARC_AdvancedExternalRouting-1">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>276</pd:x>
+        <pd:y>1014</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx:ActivityInput>
+                <data>
+                    <xsl:choose xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+                        <xsl:when test="$_error_JMS-Queue-Requestor/ActivityErrors/ns3:ActivityTimedOutException">
+                            <pfx2:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_Timeout"/>
+                                </ErrorCode>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/ErrorDescriptions/GLB_ARC_RequestMessage2QueueOrTopicTimeout"/>
+                                </ErrorDescription>
+                                <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                </NativeErrorDescription>
+                                <StackTrace>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                </StackTrace>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_Warning"/>
+                                </Severity>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Technical"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/IN_AdvancedExternalRouting)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx2:ErrorMessage>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <pfx2:ErrorMessage>
+                                <xsl:choose>
+                                    <xsl:when test="$_error_JMS-Queue-Requestor/ActivityErrors/ns4:JMSInvalidInputException">
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RqQueTopic_InvalidInput"/>
+                                        </ErrorCode>
+                                    </xsl:when>
+                                    <xsl:when test="$_error_JMS-Queue-Requestor/ActivityErrors/ns4:JMSMessageCreateException">
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RqQueTopic_MessageCreate"/>
+                                        </ErrorCode>
+                                    </xsl:when>
+                                    <xsl:when test="$_error_JMS-Queue-Requestor/ActivityErrors/ns4:JMSSessionCreateException">
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RqQueTopic_SessionCreate"/>
+                                        </ErrorCode>
+                                    </xsl:when>
+                                    <xsl:when test="$_error_JMS-Queue-Requestor/ActivityErrors/ns4:JMSSendException">
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RqQueTopic_Send"/>
+                                        </ErrorCode>
+                                    </xsl:when>
+                                    <xsl:when test="$_error_JMS-Queue-Requestor/ActivityErrors/ns4:JMSReceiveException">
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RqQueTopic_Receive"/>
+                                        </ErrorCode>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                        </ErrorCode>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                </ErrorDescription>
+                                <xsl:if test="string-length($_error/ns2:ErrorReport/MsgCode)>0">
+                                    <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                        <NativeErrorCode>
+                                            <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                        </NativeErrorCode>
+                                    </xsl:if>
+                                </xsl:if>
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                </NativeErrorDescription>
+                                <StackTrace>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                </StackTrace>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                </Severity>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Technical"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/IN_AdvancedExternalRouting)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx2:ErrorMessage>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </data>
+            </pfx:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:group name="Group asyn sender">
+        <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>247</pd:x>
+        <pd:y>485</pd:y>
+        <pd:width>302</pd:width>
+        <pd:height>264</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>errorLoop</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:indexSlot>h</pd:indexSlot>
+            <pd:errorCondition>$h&gt;= $_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Num_Intentos_Conexion</pd:errorCondition>
+            <pd:suspendAfterErrorRetry>false</pd:suspendAfterErrorRetry>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>Null-1-1</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>JMS Queue Sender</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Null-1-1</pd:from>
+            <pd:to>Sleep-async</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>xpath</pd:conditionType>
+            <pd:xpath>$h &gt; 1</pd:xpath>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Sleep-async</pd:from>
+            <pd:to>JMS Queue Sender</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Null-1-1</pd:from>
+            <pd:to>JMS Queue Sender</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:activity name="Sleep-async">
+            <pd:type>com.tibco.plugin.timer.SleepActivity</pd:type>
+            <pd:resourceType>ae.activities.sleep</pd:resourceType>
+            <pd:x>428</pd:x>
+            <pd:y>685</pd:y>
+            <config/>
+            <pd:inputBindings>
+                <ns0:SleepInputSchema>
+                    <xsl:choose xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+                        <xsl:when test="$h = 2">
+                            <IntervalInMillisec>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Intervalo_Primera_Reconexion"/>
+                            </IntervalInMillisec>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <IntervalInMillisec>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Intervalo_Resto_Reconexiones"/>
+                            </IntervalInMillisec>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </ns0:SleepInputSchema>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Null-1-1">
+            <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+            <pd:resourceType>ae.activities.null</pd:resourceType>
+            <pd:x>319</pd:x>
+            <pd:y>624</pd:y>
+            <config/>
+            <pd:inputBindings/>
+        </pd:activity>
+        <pd:activity name="JMS Queue Sender">
+            <pd:type>com.tibco.plugin.jms.JMSQueueSendActivity</pd:type>
+            <pd:resourceType>ae.activities.JMSQueueSendActivity</pd:resourceType>
+            <pd:x>431</pd:x>
+            <pd:y>557</pd:y>
+            <config>
+                <PermittedMessageType>XML Text</PermittedMessageType>
+                <SessionAttributes>
+                    <transacted>false</transacted>
+                    <acknowledgeMode>1</acknowledgeMode>
+                    <maxSessions>1</maxSessions>
+                </SessionAttributes>
+                <ConfigurableHeaders>
+                    <JMSDeliveryMode>PERSISTENT</JMSDeliveryMode>
+                    <JMSExpiration>0</JMSExpiration>
+                    <JMSPriority>4</JMSPriority>
+                </ConfigurableHeaders>
+                <ConnectionReference>/SharedResources/Connections/JMSConnections/Business/BusinessConnection.sharedjmscon</ConnectionReference>
+                <InDataxsdString ref="pfx2:RoutingMessage"/>
+            </config>
+            <pd:inputBindings>
+                <ns:ActivityInput>
+                    <xsl:choose>
+                        <xsl:when test="exists($Start/IN_AdvancedExternalRouting/pfx2:ExportAdapterParameters/AdvancedRoutingParams/Target)">
+                            <destinationQueue>
+                                <xsl:value-of select="concat ($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/FrameworkQueues/Prefix/GLB_AdvRoutingPrefixDomain , concat( &quot;.&quot; ,concat($_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_ENVIRONMENT_PREFIX ,concat( &quot;.&quot;,$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/ROUTING/AdvRoutingConnectorInputQueue))))"/>
+                            </destinationQueue>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <destinationQueue>
+                                <xsl:value-of select="concat ($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/FrameworkQueues/Prefix/GLB_AdvRoutingPrefixDomain , concat( &quot;.&quot; ,concat($_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_ENVIRONMENT_PREFIX ,concat( &quot;.&quot;,$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/ROUTING/AdvRoutingConnectorInputQueue))))"/>
+                            </destinationQueue>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <JMSExpiration>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/TIMEOUT/CFG_Timeout"/>
+                    </JMSExpiration>
+                    <Body>
+                        <xsl:copy-of select="$Start/IN_AdvancedExternalRouting/pfx2:RoutingMessage"/>
+                    </Body>
+                    <xsl:variable name="varCompressEnabled" select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/SERVICES/COMPRESSION/CFG_COMPRESS_ENABLED"/>
+                    <DynamicProperties>
+                        <xsl:if test="$varCompressEnabled='true'">
+                            <property>
+                                <name>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/SERVICES/COMPRESSION/CFG_PROPERTY_NAME"/>
+                                </name>
+                                <value>
+                                    <xsl:value-of select="'true'"/>
+                                </value>
+                                <type>
+                                    <xsl:value-of select="'boolean'"/>
+                                </type>
+                            </property>
+                        </xsl:if>
+                    </DynamicProperties>
+                </ns:ActivityInput>
+            </pd:inputBindings>
+        </pd:activity>
+    </pd:group>
+    <pd:transition>
+        <pd:from>Group sync sender</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>One Bend</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Group sync sender</pd:from>
+        <pd:to>Error in ARC_AdvancedExternalRouting</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65485</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>Error-in-ARC_AdvancedExternalRouting-1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Group asyn sender</pd:from>
+        <pd:to>Error in ARC_AdvancedExternalRouting</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65536</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Group asyn sender</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>One Bend</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Group sync sender</pd:to>
+        <pd:xpathDescription>sync</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/ROUTING/isActiveSync="true"</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Group asyn sender</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BWSharedResource xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <name>AdditionalArchitectureHeaderData</name>
+    <resourceType>ae.shared.jobSharedVariable</resourceType>
+    <config xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <initialValue>byData</initialValue>
+        <initialValueData>&lt;?xml version="1.0" encoding="UTF-8"?&gt; &lt;AdditionalArchitectureHeaderData&gt;     &lt;BBVAUser/&gt;     &lt;ExternalId/&gt; &lt;/AdditionalArchitectureHeaderData&gt;</initialValueData>
+        <xsdString>
+            <xsd:element name="AdditionalArchitectureHeaderData">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="BBVAUser" type="xsd:string" minOccurs="0"/>
+                        <xsd:element name="ExternalId" type="xsd:string" minOccurs="0"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </xsdString>
+    </config>
+</BWSharedResource>

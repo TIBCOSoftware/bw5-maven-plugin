@@ -1,0 +1,4 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<eai:RoutingConfig xmlns:eai = "http://www.bbva.com/EAIFramework" xmlns:tns = "http://www.example.org/Framework_Schema" xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation = "http://www.bbva.com/EAIFramework file:///D:/ARQ_TECH_REPO/CodigoFuente/branches/FrameworkESB/FrameworkCommon/SharedResources/Schemas/XSD/ArchitectureSchema.xsd">    
+	<Group GatewayServiceId = "" Name = "DEFAULT" Process = "">         </Group>
+</eai:RoutingConfig>

@@ -1,0 +1,630 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pfx="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:pfx2="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC_EXP_RecursosComunes/Esquemas/Schema.xsd2" xmlns:ns="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:pfx3="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx4="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx5="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:ns12="http://www.bbva.com/EAIFramework">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC_EPUB/PostActions/ARC_EPUB_PostGoingAction.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="CDMMessage">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="ns12:ArchitectureHeader"/>
+                    <xsd:element name="Body">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:any processContents="skip"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="DynamicInvocationRoot" type="xsd:string"/>
+                    <xsd:element ref="ns12:TraceLevel" minOccurs="0"/>
+                    <xsd:element ref="ns12:ECSConfig" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>39</pd:startX>
+    <pd:startY>145</pd:startY>
+    <pd:returnBindings/>
+    <pd:endName>End</pd:endName>
+    <pd:endX>1300</pd:endX>
+    <pd:endY>136</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="ns12:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1324369924449</pd:targetNamespace>
+    <pd:group name="JMS Transaction">
+        <pd:type>com.tibco.pe.core.TransactionGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>688</pd:x>
+        <pd:y>3</pd:y>
+        <pd:width>287</pd:width>
+        <pd:height>252</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>transactionGroup</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:transactionType>JMSTransaction</pd:transactionType>
+            <pd:includeCheckpoint>false</pd:includeCheckpoint>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>Group</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Group</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:group name="Group">
+            <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+            <pd:resourceType>ae.process.group</pd:resourceType>
+            <pd:x>738</pd:x>
+            <pd:y>32</pd:y>
+            <pd:width>225</pd:width>
+            <pd:height>182</pd:height>
+            <pd:collapsedWidth>57</pd:collapsedWidth>
+            <pd:collapsedHeight>70</pd:collapsedHeight>
+            <pd:groupVariables/>
+            <pd:joinToggle>inherit</pd:joinToggle>
+            <config>
+                <pd:groupType>inputLoop</pd:groupType>
+                <pd:serializable>false</pd:serializable>
+                <pd:over>$ARC_FindQueues/ns12:QueuesCacheList/ns12:Destination</pd:over>
+                <pd:iterationElementSlot>current</pd:iterationElementSlot>
+                <pd:indexSlot>index</pd:indexSlot>
+                <pd:activityOutputName/>
+                <pd:accumulateOutput>false</pd:accumulateOutput>
+            </config>
+            <pd:inputBindings/>
+            <pd:expanded>true</pd:expanded>
+            <pd:transition>
+                <pd:from>start</pd:from>
+                <pd:to>ARC_SendCDM2QueueOrTopic</pd:to>
+                <pd:lineType>Default</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>always</pd:conditionType>
+            </pd:transition>
+            <pd:transition>
+                <pd:from>ARC_SendCDM2QueueOrTopic</pd:from>
+                <pd:to>end</pd:to>
+                <pd:lineType>Default</pd:lineType>
+                <pd:lineColor>-16777216</pd:lineColor>
+                <pd:conditionType>always</pd:conditionType>
+            </pd:transition>
+            <pd:activity name="ARC_SendCDM2QueueOrTopic">
+                <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+                <pd:resourceType>ae.process.subprocess</pd:resourceType>
+                <pd:x>854</pd:x>
+                <pd:y>130</pd:y>
+                <config>
+                    <processName>/Common/ARC/ARC_QueueOrTopic/ARC_SendCDM2QueueOrTopic.process</processName>
+                    <processNameXPath>concat($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_mockRoot, "/Common/ARC/ARC_QueueOrTopic/ARC_SendCDM2QueueOrTopic.process")</processNameXPath>
+                </config>
+                <pd:inputBindings>
+                    <IN_SendReply2QueueOrTopic>
+                        <TargetName>
+                            <xsl:value-of select="$ARC_FindQueues/ns12:QueuesCacheList/ns12:Destination[$index]"/>
+                        </TargetName>
+                        <xsl:choose>
+                            <xsl:when test="$ARC_FindQueues/ns12:QueuesCacheList/ns12:Destination[$index]/@DestinationType='Topic'">
+                                <IsTopic>
+                                    <xsl:value-of select="1"/>
+                                </IsTopic>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <IsTopic>
+                                    <xsl:value-of select="0"/>
+                                </IsTopic>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <ns12:Message>
+                            <ns12:ArchitectureHeader>
+                                <ns12:AuditHeader>
+                                    <ns12:E2EId>
+                                        <xsl:value-of select="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EId"/>
+                                    </ns12:E2EId>
+                                    <xsl:if test="string-length($Start/CDMMessage/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:InstanceId)>0">
+                                        <xsl:if test="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:InstanceId">
+                                            <ns12:ParentInstanceId>
+                                                <xsl:value-of select="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:InstanceId"/>
+                                            </ns12:ParentInstanceId>
+                                        </xsl:if>
+                                    </xsl:if>
+                                    <ns12:InstanceId>
+                                        <xsl:value-of select="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:InstanceId"/>
+                                    </ns12:InstanceId>
+                                    <ns12:Deepness>
+                                        <xsl:value-of select="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:Deepness"/>
+                                    </ns12:Deepness>
+                                    <ns12:ServiceId>
+                                        <xsl:value-of select="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:ServiceId"/>
+                                    </ns12:ServiceId>
+                                    <ns12:ServiceType>
+                                        <xsl:value-of select="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:ServiceType"/>
+                                    </ns12:ServiceType>
+                                    <xsl:if test="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EControl">
+                                        <ns12:E2EControl>
+                                            <xsl:value-of select="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EControl"/>
+                                        </ns12:E2EControl>
+                                    </xsl:if>
+                                    <xsl:if test="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EControl">
+                                        <ns12:ParentE2EControl>
+                                            <xsl:value-of select="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EControl"/>
+                                        </ns12:ParentE2EControl>
+                                    </xsl:if>
+                                </ns12:AuditHeader>
+                                <xsl:if test="string(((tib:tokenize($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSParams/ListServicesNotSendECSHeader, &quot;,&quot;)=$ARC_FindQueues/ns12:QueuesCacheList/ns12:Destination[$index]/@ServiceId)))=$_globalVariables/ns1:GlobalVariables/GeneralConstants/BooleanConstants/False&#xA;and&#xA;$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSParams/ListServicesNotSendECSHeader!=$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/ALLServices&#xA;and&#xA;string-length($Start/CDMMessage/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:traceId)>0">
+                                    <ns12:ECSHeader>
+                                        <ns12:traceId>
+                                            <xsl:value-of select="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:traceId"/>
+                                        </ns12:traceId>
+                                        <xsl:if test="string-length($Start/CDMMessage/ns12:ECSConfig/ns12:namespace)>0">
+                                            <ns12:parentSpan>
+                                                <xsl:value-of select="concat($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/NSToken,$Start/CDMMessage/ns12:ECSConfig/ns12:namespace,$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/MRSToken,$Start/CDMMessage/ns12:ECSConfig/ns12:mrId,$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/SpansToken,$Start/CDMMessage/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:spanId)"/>
+                                            </ns12:parentSpan>
+                                        </xsl:if>
+                                        <ns12:spanId>
+                                            <xsl:value-of select="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:spanId"/>
+                                        </ns12:spanId>
+                                        <xsl:copy-of select="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:properties"/>
+                                    </ns12:ECSHeader>
+                                </xsl:if>
+                                <xsl:copy-of select="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:RequestHeader"/>
+                                <ns12:ErrorHeader>
+                                    <ns12:IsError>
+                                        <xsl:value-of select="0"/>
+                                    </ns12:IsError>
+                                </ns12:ErrorHeader>
+                                <xsl:copy-of select="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:SecurityHeader"/>
+                            </ns12:ArchitectureHeader>
+                            <ns12:Body>
+                                <xsl:copy-of select="$Start/CDMMessage/Body/ancestor-or-self::*/namespace::node()"/>
+                                <xsl:copy-of select="$Start/CDMMessage/Body/@*"/>
+                                <xsl:copy-of select="$Start/CDMMessage/Body/node()"/>
+                            </ns12:Body>
+                        </ns12:Message>
+                    </IN_SendReply2QueueOrTopic>
+                </pd:inputBindings>
+            </pd:activity>
+        </pd:group>
+    </pd:group>
+    <pd:activity name="ARC_FindQueues">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>518</pd:x>
+        <pd:y>135</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Queues/ARC_FindQueues.process</processName>
+        </config>
+        <pd:inputBindings>
+            <xsl:choose>
+                <xsl:when test="local-name($Start/CDMMessage/Body/*)=&quot;Event&quot;">
+                    <FindQueuesIn>
+                        <xsl:for-each select="$RoutingFromFile-By-EventType/TargetServices/Service">
+                            <ServiceId>
+                                <xsl:value-of select="current()"/>
+                            </ServiceId>
+                        </xsl:for-each>
+                        <xsl:for-each select="$RoutingFromFile-By-EventName/TargetServices/Service">
+                            <xsl:if test="count($RoutingFromFile-By-EventType/TargetServices/Service[.=current()])=0">
+                                <ServiceId>
+                                    <xsl:value-of select="current()"/>
+                                </ServiceId>
+                            </xsl:if>
+                        </xsl:for-each>
+                    </FindQueuesIn>
+                </xsl:when>
+                <xsl:otherwise>
+                    <FindQueuesIn>
+                        <xsl:for-each select="$RoutingFromFile-By-BusinessObject/TargetServices/Service">
+                            <ServiceId>
+                                <xsl:value-of select="."/>
+                            </ServiceId>
+                        </xsl:for-each>
+                    </FindQueuesIn>
+                </xsl:otherwise>
+            </xsl:choose>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_TraceAuditSenderAPI">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>1169</pd:x>
+        <pd:y>136</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CLEManagement/ARC_TraceAuditSenderAPI.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_TraceSenderAPI>
+                <CLETraceData>
+                    <EventCode>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Audit/GLB_End_Ok"/>
+                    </EventCode>
+                    <EventType>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Audit"/>
+                    </EventType>
+                    <MessageType>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                    </MessageType>
+                    <isResponse>
+                        <xsl:value-of select="false()"/>
+                    </isResponse>
+                    <xsl:choose>
+                        <xsl:when test="$Start/CDMMessage/ns12:TraceLevel">
+                            <xsl:if test="$Start/CDMMessage/ns12:TraceLevel">
+                                <TraceLevel>
+                                    <xsl:value-of select="$Start/CDMMessage/ns12:TraceLevel"/>
+                                </TraceLevel>
+                            </xsl:if>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <TraceLevel>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/TraceLevels/GLB_Critical"/>
+                            </TraceLevel>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <NameValue>
+                        <Name>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GENERIC_E2E_NUM_CHILDS"/>
+                        </Name>
+                        <Value>
+                            <xsl:value-of select="$index"/>
+                        </Value>
+                    </NameValue>
+                    <xsl:if test="local-name($Start/CDMMessage/Body/*)=&quot;Event&quot;">
+                        <NameValue>
+                            <Name>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/EVENTNAME"/>
+                            </Name>
+                            <Value>
+                                <xsl:value-of select="$Start/CDMMessage/Body/ns12:Event/EventName"/>
+                            </Value>
+                        </NameValue>
+                        <NameValue>
+                            <Name>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/EVENTYPE"/>
+                            </Name>
+                            <Value>
+                                <xsl:value-of select="$Start/CDMMessage/Body/ns12:Event/EventType"/>
+                            </Value>
+                        </NameValue>
+                    </xsl:if>
+                </CLETraceData>
+                <Body>
+                    <xsl:value-of select="tib:render-xml($Map-Data/ns12:Message)"/>
+                </Body>
+            </ARC_TraceSenderAPI>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch Error message">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>406</pd:x>
+        <pd:y>386</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>false</catchAll>
+            <fault>localname=ErrorMessage namespace=http://www.bbva.com/EAIFramework</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Catch Other Errors">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>403</pd:x>
+        <pd:y>463</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Generate Error">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>591</pd:x>
+        <pd:y>464</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns:ActivityInput>
+                <data>
+                    <ns12:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                        </ErrorCode>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/Msg)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                </ErrorDescription>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/MsgCode)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                <NativeErrorCode>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                </NativeErrorCode>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/Msg)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                </NativeErrorDescription>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/StackTrace)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                                <StackTrace>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                </StackTrace>
+                            </xsl:if>
+                        </xsl:if>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/ProcessStack)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                            </xsl:if>
+                        </xsl:if>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_FatalError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/CDMMessage)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </ns12:ErrorMessage>
+                </data>
+            </ns:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Generate-Error-1">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>518</pd:x>
+        <pd:y>252</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns:ActivityInput>
+                <data>
+                    <ns12:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_SameTypeDestination"/>
+                        </ErrorCode>
+                        <ErrorDescription>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/ErrorDescriptions/GLB_SameTypeDestinationDescription"/>
+                        </ErrorDescription>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/CDMMessage)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </ns12:ErrorMessage>
+                </data>
+            </ns:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Map Data">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>1030</pd:x>
+        <pd:y>136</pd:y>
+        <config>
+            <element ref="ns12:Message"/>
+        </config>
+        <pd:inputBindings>
+            <ns12:Message>
+                <xsl:copy-of select="$Start/CDMMessage/ns12:ArchitectureHeader"/>
+                <ns12:Body>
+                    <xsl:copy-of select="$Start/CDMMessage/Body/ancestor-or-self::*/namespace::node()"/>
+                    <xsl:copy-of select="$Start/CDMMessage/Body/@*"/>
+                    <xsl:copy-of select="$Start/CDMMessage/Body/node()"/>
+                </ns12:Body>
+            </ns12:Message>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Rethrow">
+        <pd:type>com.tibco.pe.core.RethrowActivity</pd:type>
+        <pd:resourceType>ae.activities.rethrow</pd:resourceType>
+        <pd:x>673</pd:x>
+        <pd:y>378</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="RoutingFromFile By BusinessObject">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>277</pd:x>
+        <pd:y>305</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_RoutingHelper/ARC_RoutingFromFileByServiceId.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_RoutingFromFileByServiceId>
+                <ServiceId>
+                    <xsl:value-of select="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:ServiceId"/>
+                </ServiceId>
+                <FileFolderRoute>
+                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/ADAPTERS/EVENTPUBLICATION/CFG_EPUB_XSL_FOLDER_ROUTE"/>
+                </FileFolderRoute>
+                <BusinessObject>
+                    <xsl:value-of select="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:BusinessObject"/>
+                </BusinessObject>
+            </ARC_RoutingFromFileByServiceId>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="RoutingFromFile By EventName">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>359</pd:x>
+        <pd:y>81</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_RoutingHelper/ARC_RoutingFromFileByServiceId.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_RoutingFromFileByServiceId>
+                <ServiceId>
+                    <xsl:value-of select="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:ServiceId"/>
+                </ServiceId>
+                <FileFolderRoute>
+                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/ADAPTERS/EVENTPUBLICATION/CFG_EPUB_XSL_FOLDER_ROUTE"/>
+                </FileFolderRoute>
+                <BusinessObject>
+                    <xsl:value-of select="$Start/CDMMessage/Body/ns12:Event/EventName"/>
+                </BusinessObject>
+            </ARC_RoutingFromFileByServiceId>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="RoutingFromFile By EventType">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>142</pd:x>
+        <pd:y>83</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_RoutingHelper/ARC_RoutingFromFileByServiceId.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_RoutingFromFileByServiceId>
+                <ServiceId>
+                    <xsl:value-of select="$Start/CDMMessage/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:ServiceId"/>
+                </ServiceId>
+                <FileFolderRoute>
+                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/ADAPTERS/EVENTPUBLICATION/CFG_EPUB_XSL_FOLDER_ROUTE"/>
+                </FileFolderRoute>
+                <BusinessObject>
+                    <xsl:value-of select="$Start/CDMMessage/Body/ns12:Event/EventType"/>
+                </BusinessObject>
+            </ARC_RoutingFromFileByServiceId>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>ARC_FindQueues</pd:from>
+        <pd:to>JMS Transaction</pd:to>
+        <pd:xpathDescription>All target services are the same type</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>count($ARC_FindQueues/ns12:QueuesCacheList/ns12:Destination[@DestinationType="Queue"])=count($ARC_FindQueues/ns12:QueuesCacheList/ns12:Destination) or count($ARC_FindQueues/ns12:QueuesCacheList/ns12:Destination[@DestinationType="Topic"])=count($ARC_FindQueues/ns12:QueuesCacheList/ns12:Destination)</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>JMS Transaction</pd:from>
+        <pd:to>Map Data</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Error message</pd:from>
+        <pd:to>Rethrow</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Other Errors</pd:from>
+        <pd:to>Generate Error</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_FindQueues</pd:from>
+        <pd:to>Generate-Error-1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>RoutingFromFile By EventType</pd:from>
+        <pd:to>RoutingFromFile By EventName</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>RoutingFromFile By EventType</pd:to>
+        <pd:xpathDescription>Name/Type</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>local-name($Start/CDMMessage/Body/*)="Event"</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>RoutingFromFile By EventName</pd:from>
+        <pd:to>ARC_FindQueues</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>RoutingFromFile By BusinessObject</pd:to>
+        <pd:xpathDescription>BusinessObject</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>false()</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>RoutingFromFile By BusinessObject</pd:from>
+        <pd:to>ARC_FindQueues</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Map Data</pd:from>
+        <pd:to>ARC_TraceAuditSenderAPI</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_TraceAuditSenderAPI</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

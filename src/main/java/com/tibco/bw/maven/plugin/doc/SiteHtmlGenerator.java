@@ -33,60 +33,10 @@ public class SiteHtmlGenerator {
     private final Map<String, String> nameToHtml = new LinkedHashMap<>();
     /** displayName / fullName segment → list of callers (models) */
     private final Map<String, List<ProcessDocModel>> calledByMap = new LinkedHashMap<>();
-    /** palette/plugin label → count of activities using it */
-    private final Map<String, Integer> paletteActivityCount = new LinkedHashMap<>();
-    /** palette/plugin label → set of process names using it */
-    private final Map<String, Set<String>> paletteProcesses = new LinkedHashMap<>();
-
-    // ── Palette detection table ──────────────────────────────────────────────
-    // Each entry: {prefix, displayLabel, emoji, description}
-    private static final String[][] PALETTES = {
-        {"httppalette.",           "HTTP",             "🌐", "HTTP event sources, requests and responses"},
-        {"ae.activities.JMS",      "JMS",              "📨", "JMS messaging – queues and topics"},
-        {"ae.shared.JMS",          "JMS",              "📨", "JMS messaging – queues and topics"},
-        {"ae.activities.JDBC",     "JDBC",             "🗄", "Database access via JDBC"},
-        {"ae.shared.JDBC",         "JDBC",             "🗄", "Database access via JDBC"},
-        {"ae.activities.File",     "File",             "📁", "File system read, write, copy, delete"},
-        {"ae.activities.SOAP",     "SOAP / Web Svcs",  "⚙", "SOAP web service invocation and hosting"},
-        {"ae.activities.XML",      "XML / XSLT",       "📄", "XML parsing, rendering and transformation"},
-        {"ae.activities.JSON",     "JSON",             "📋", "JSON rendering and parsing"},
-        {"ae.javapalette.",        "Java",             "☕", "Java method calls and inline Java code"},
-        {"ae.activities.Mail",     "Email / SMTP",     "✉", "Email send / receive via SMTP or IMAP"},
-        {"ae.activities.TCP",      "TCP",              "🔌", "TCP socket communication"},
-        {"ae.shared.TCP",          "TCP",              "🔌", "TCP socket communication"},
-        {"ae.activities.FTP",      "FTP",              "📤", "FTP file transfer"},
-        {"ae.activities.SFTP",     "SFTP",             "🔒", "Secure FTP file transfer"},
-        {"ae.rvpalette.",          "TIBCO RV",         "🔄", "TIBCO Rendezvous publish/subscribe"},
-        {"ae.shared.RV",           "TIBCO RV",         "🔄", "TIBCO Rendezvous publish/subscribe"},
-        {"ae.aepalette.",          "TIBCO AE / EMS",   "⚡", "TIBCO ActiveEnterprise and EMS"},
-        {"ae.eventsources.",       "Business Events",  "📡", "TIBCO BusinessEvents integration"},
-        {"plugin.bwmq.",           "IBM MQ",           "🏭", "IBM WebSphere MQ messaging"},
-        {"plugin.cicspi.",         "IBM CICS",         "🏦", "IBM CICS Transaction Gateway"},
-        {"hl7.",                   "HL7",              "🏥", "HL7 healthcare message processing"},
-        {"ae.activities.Salesforce","Salesforce",      "☁", "Salesforce CRM integration"},
-        {"ae.shared.Salesforce",   "Salesforce",       "☁", "Salesforce CRM integration"},
-        {"ae.activities.MongoDB",  "MongoDB",          "🍃", "MongoDB NoSQL database access"},
-        {"ae.shared.MongoDB",      "MongoDB",          "🍃", "MongoDB NoSQL database access"},
-        {"ae.activities.Kafka",    "Apache Kafka",     "⚡", "Apache Kafka streaming"},
-        {"ae.shared.Kafka",        "Apache Kafka",     "⚡", "Apache Kafka streaming"},
-        {"adswift.",               "SWIFT",            "💳", "SWIFT financial messaging"},
-        {"netsuite.",              "NetSuite",         "☁", "Oracle NetSuite ERP"},
-        {"sharepoint.",            "SharePoint",       "📁", "Microsoft SharePoint"},
-        {"ae.activities.oracle",   "Oracle EBS",       "🔶", "Oracle E-Business Suite"},
-        {"ae.activities.iProcess", "TIBCO iProcess",  "📊", "TIBCO iProcess Suite integration"},
-        {"form.flow.",             "iProcess Forms",  "📝", "TIBCO iProcess Forms"},
-        {"ae.shared.iProcess",     "TIBCO iProcess",  "📊", "TIBCO iProcess Suite integration"},
-        {"xref.",                  "Cross-Reference", "🔁", "TIBCO Cross-Reference tables"},
-        {"firefly.",               "Firefly",          "🔥", "Firefly data integration"},
-        {"workday.",               "Workday",          "👔", "Workday HCM/Finance integration"},
-        {"twitter.",               "Twitter/X",        "🐦", "Twitter/X social API"},
-        {"facebook.",              "Facebook",         "📘", "Facebook Graph API"},
-        {"pdfplugin.",             "PDF",              "📑", "PDF generation and parsing"},
-        {"wadlresource.",          "REST/WADL",        "🌐", "REST adapter via WADL"},
-        {"ae.activities.Rest",     "REST Adapter",     "🌐", "Generic REST adapter"},
-        {"ae.shared.Rest",         "REST Adapter",     "🌐", "Generic REST adapter"},
-        {"bw.jrmi.",               "Java RMI",         "☕", "Java Remote Method Invocation"},
-    };
+    /** plugin code → count of processes using it */
+    private final Map<String, Integer> pluginProcessCount = new LinkedHashMap<>();
+    /** plugin code → set of process display names using it */
+    private final Map<String, Set<String>> pluginProcesses = new LinkedHashMap<>();
 
     // ── Constructor ──────────────────────────────────────────────────────────
 
@@ -123,16 +73,16 @@ public class SiteHtmlGenerator {
             }
         }
 
-        // Build palette/technology map
+        // Build plugin map: scan all activity types, look up in PluginRegistry
         for (ProcessDocModel p : processes) {
-            Set<String> palettesInProcess = new LinkedHashSet<>();
+            Set<String> pluginsInProcess = new LinkedHashSet<>();
             for (ProcessDocModel.Activity a : p.allActivities()) {
-                String label = detectPalette(a.resourceType);
-                if (label != null) palettesInProcess.add(label);
+                String plugin = PluginRegistry.getPlugin(a.type);
+                if (plugin != null) pluginsInProcess.add(plugin);
             }
-            for (String label : palettesInProcess) {
-                paletteActivityCount.merge(label, 1, Integer::sum);
-                paletteProcesses.computeIfAbsent(label, k -> new LinkedHashSet<>()).add(p.displayName);
+            for (String plugin : pluginsInProcess) {
+                pluginProcessCount.merge(plugin, 1, Integer::sum);
+                pluginProcesses.computeIfAbsent(plugin, k -> new LinkedHashSet<>()).add(p.displayName);
             }
         }
 
@@ -186,34 +136,35 @@ public class SiteHtmlGenerator {
         writeStat(w, String.valueOf(starterCount), "Event Sources", "▶");
         writeStat(w, String.valueOf(totalActivities), "Activities", "⚙");
         writeStat(w, String.valueOf(totalTransitions), "Transitions", "→");
-        writeStat(w, String.valueOf(paletteActivityCount.size()), "Technologies", "🔧");
+        writeStat(w, String.valueOf(pluginProcessCount.size()), "Plugins", "🔌");
         w.write("</div>\n");
 
-        // ── Technology map ───────────────────────────────────────────────────
-        if (!paletteActivityCount.isEmpty()) {
+        // ── Required plugins ─────────────────────────────────────────────────
+        if (!pluginProcessCount.isEmpty()) {
             w.write("<section class=\"card\">\n");
-            w.write("  <h2>Technology Map</h2>\n");
-            w.write("  <p class=\"section-desc\">Palettes and external adapters detected across all processes.</p>\n");
+            w.write("  <h2>Required Plugins</h2>\n");
+            w.write("  <p class=\"section-desc\">Third-party TIBCO add-on plugins detected across all processes.</p>\n");
             w.write("  <div class=\"tech-grid\">\n");
 
             // Sort by process count desc
-            List<Map.Entry<String, Integer>> sorted = new ArrayList<>(paletteActivityCount.entrySet());
+            List<Map.Entry<String, Integer>> sorted = new ArrayList<>(pluginProcessCount.entrySet());
             sorted.sort((a, b) -> b.getValue() - a.getValue());
             for (Map.Entry<String, Integer> e : sorted) {
-                String label = e.getKey();
-                int count = e.getValue();
-                String[] info = paletteInfo(label);
-                String emoji = info[0];
-                String desc = info[1];
-                int procCount = paletteProcesses.getOrDefault(label, Collections.emptySet()).size();
+                String pluginCode = e.getKey();
+                String[] info = PluginRegistry.getPluginInfo(pluginCode);
+                String displayName = info[0];
+                String emoji      = info[1];
+                String desc       = info[2];
+                int procCount = pluginProcesses.getOrDefault(pluginCode, Collections.emptySet()).size();
                 w.write("    <div class=\"tech-card\">\n");
                 w.write("      <div class=\"tech-card-header\">\n");
                 w.write("        <span class=\"tech-emoji\">" + emoji + "</span>\n");
-                w.write("        <span class=\"tech-name\">" + esc(label) + "</span>\n");
+                w.write("        <span class=\"tech-name\">" + esc(displayName) + "</span>\n");
                 w.write("      </div>\n");
                 w.write("      <p class=\"tech-desc\">" + esc(desc) + "</p>\n");
                 w.write("      <div class=\"tech-badges\">\n");
                 w.write("        <span class=\"tech-badge\">" + procCount + " process" + (procCount != 1 ? "es" : "") + "</span>\n");
+                w.write("        <span class=\"tech-badge-code\">" + esc(pluginCode) + "</span>\n");
                 w.write("      </div>\n");
                 w.write("    </div>\n");
             }
@@ -285,6 +236,9 @@ public class SiteHtmlGenerator {
         w.write("  <div class=\"hero-text\">\n");
         w.write("    <h1>" + esc(model.displayName) + "</h1>\n");
         w.write("    <p class=\"hero-sub mono\">" + esc(fullDisplayName(model)) + "</p>\n");
+        if (model.description != null && !model.description.isEmpty()) {
+            w.write("    <p class=\"hero-desc\">" + esc(model.description) + "</p>\n");
+        }
         w.write("  </div>\n</div>\n");
 
         // Prev / Next navigation
@@ -328,35 +282,31 @@ public class SiteHtmlGenerator {
                 + "oninput=\"filterTable(this,'acts-" + safeId(model.displayName) + "')\">\n");
             w.write("  </div>\n");
             w.write("  <table class=\"data-table\" id=\"acts-" + safeId(model.displayName) + "\">\n");
-            w.write("    <thead><tr><th>#</th><th>Name</th><th>Type</th><th>Configuration / Link</th></tr></thead>\n");
+            w.write("    <thead><tr><th>#</th><th>Name</th><th>Type</th></tr></thead>\n");
             w.write("    <tbody>\n");
             int i = 1;
             for (ProcessDocModel.Activity a : acts) {
-                String typeLabel = "<span class=\"badge badge-type\">" + esc(a.shortType()) + "</span>";
-                String nameCell = esc(a.name);
-                String configCell;
-
-                // CallProcessActivity: add a link to the called process
+                String typeCell;
                 if (a.calledProcessPath != null) {
+                    // CallProcessActivity: embed link inside the type cell
                     ProcessDocModel target = resolveCalledProcess(a.calledProcessPath);
+                    String link;
                     if (target != null) {
                         String href = "../" + nameToHtml.getOrDefault(target.name, "#");
-                        configCell = "<a class=\"call-link\" href=\"" + href + "\">→ "
-                            + esc(fullDisplayName(target)) + "</a>";
+                        link = "(<a class=\"call-link\" href=\"" + href + "\">"
+                            + esc(fullDisplayName(target)) + "</a>)";
                     } else {
-                        // Unresolved: show path as text
-                        configCell = "<span class=\"unresolved\">→ " + esc(lastSegment(a.calledProcessPath)) + "</span>";
+                        link = "(<span class=\"unresolved\">" + esc(lastSegment(a.calledProcessPath)) + "</span>)";
                     }
+                    typeCell = "<span class=\"badge badge-type\">" + esc(a.shortType()) + "</span> " + link;
                 } else {
-                    configCell = "<span class=\"config-summary\">"
-                        + esc(a.configSummary != null ? a.configSummary : "") + "</span>";
+                    typeCell = "<span class=\"badge badge-type\">" + esc(a.shortType()) + "</span>";
                 }
 
                 w.write("    <tr>\n");
                 w.write("      <td class=\"num\">" + i++ + "</td>\n");
-                w.write("      <td class=\"act-name\">" + nameCell + "</td>\n");
-                w.write("      <td>" + typeLabel + "</td>\n");
-                w.write("      <td class=\"config-cell\">" + configCell + "</td>\n");
+                w.write("      <td class=\"act-name\">" + esc(a.name) + "</td>\n");
+                w.write("      <td class=\"type-cell\">" + typeCell + "</td>\n");
                 w.write("    </tr>\n");
             }
             w.write("    </tbody>\n  </table>\n</section>\n");
@@ -364,20 +314,27 @@ public class SiteHtmlGenerator {
 
         // ── Transitions ───────────────────────────────────────────────────────
         if (!model.transitions.isEmpty()) {
+            // Build name → activity lookup for icon resolution
+            Map<String, ProcessDocModel.Activity> actByName = new LinkedHashMap<>();
+            for (ProcessDocModel.Activity a : model.allActivities()) {
+                if (a.name != null) actByName.put(a.name, a);
+            }
+
             w.write("<section class=\"card\">\n");
             w.write("  <h2>Transitions <span class=\"count-badge\">" + model.transitions.size() + "</span></h2>\n");
-            w.write("  <table class=\"data-table\">\n");
-            w.write("    <thead><tr><th>From</th><th>To</th><th>Type</th><th>Condition</th></tr></thead>\n");
+            w.write("  <table class=\"data-table tr-visual-table\">\n");
+            w.write("    <thead><tr><th>Flow</th><th>Condition</th></tr></thead>\n");
             w.write("    <tbody>\n");
             for (ProcessDocModel.Transition tr : model.transitions) {
-                String ct = tr.conditionType != null ? tr.conditionType.toLowerCase() : "always";
-                w.write("    <tr class=\"tr-" + esc(ct) + "\">\n");
-                w.write("      <td class=\"mono\">" + esc(tr.from) + "</td>\n");
-                w.write("      <td class=\"mono\">" + esc(tr.to) + "</td>\n");
-                w.write("      <td><span class=\"badge cond-" + esc(ct) + "\">"
-                    + esc(tr.conditionType != null ? tr.conditionType : "always") + "</span></td>\n");
-                w.write("      <td>" + (tr.condition != null
-                    ? "<code>" + esc(tr.condition) + "</code>" : "") + "</td>\n");
+                String ct = tr.conditionType != null ? tr.conditionType.toLowerCase(java.util.Locale.ROOT) : "always";
+                // Only show the XPath expression when one is present; arrow colour already conveys type
+                String condCell = (tr.condition != null && !tr.condition.isEmpty())
+                    ? "<code class=\"tr-cond-expr\">" + esc(tr.condition) + "</code>"
+                    : "";
+                w.write("    <tr>\n");
+                w.write("      <td class=\"tr-flow-cell\">"
+                    + buildTransitionSvg(tr, actByName) + "</td>\n");
+                w.write("      <td class=\"tr-cond-cell\">" + condCell + "</td>\n");
                 w.write("    </tr>\n");
             }
             w.write("    </tbody>\n  </table>\n</section>\n");
@@ -407,20 +364,51 @@ public class SiteHtmlGenerator {
 
     // ── Shared HTML fragments ─────────────────────────────────────────────────
 
+    /** Official TIBCO wordmark SVG (tibco.com), recoloured white for dark topbar. */
+    private static final String TIBCO_LOGO_SVG =
+        "<svg class=\"tibco-logo\" viewBox=\"0 0 89 25\" fill=\"none\" "
+        + "xmlns=\"http://www.w3.org/2000/svg\" aria-label=\"TIBCO\" role=\"img\">\n"
+        + "  <g clip-path=\"url(#tbcl)\">\n"
+        // T
+        + "    <path d=\"M-3.8147e-05 3.04688V5.61855H7.03817V23.1021H9.73685V5.61855H16.7751V3.04688L-3.8147e-05 3.04688Z\" fill=\"white\"/>\n"
+        // I
+        + "    <path d=\"M22.6872 3.04688H19.9877V23.1021H22.6872V3.04688Z\" fill=\"white\"/>\n"
+        // B
+        + "    <path d=\"M41.7353 17.4231C41.7353 20.824 39.4539 23.1021 34.2798 23.1021H27.4315V3.04688H34.0841C38.9375 3.04688 41.0898 5.22847 41.0898 8.36987C41.0898 10.4234 39.9004 11.9313 37.6515 12.7663C40.3168 13.44 41.7328 15.1733 41.7328 17.4198M34.3123 5.54952H30.1668V11.839H33.8942C36.7861 11.839 38.3611 10.5556 38.3611 8.59527C38.3611 6.66984 36.9452 5.54619 34.3123 5.54619M34.1191 14.31H30.1668V20.5995H34.5372C37.5257 20.5995 39.0042 19.5399 39.0042 17.4547C39.0042 15.1434 36.9468 14.31 34.1191 14.31Z\" fill=\"white\"/>\n"
+        // C
+        + "    <path d=\"M59.5416 6.7061C57.9317 5.58041 56.0095 4.98569 54.0443 5.00523C49.6731 5.00523 46.7495 8.02187 46.7495 12.9955C46.7495 17.9692 49.7064 21.1464 54.1084 21.1464C56.1641 21.1128 58.1559 20.4271 59.7956 19.1885L60.2454 21.9166C58.3656 23.0187 56.2233 23.595 54.0434 23.585C48.1622 23.585 43.985 19.5096 43.985 13.1245C43.985 6.73937 48.1996 2.56663 54.0484 2.56663C56.2796 2.55325 58.4747 3.12912 60.4111 4.23589L59.5416 6.7061Z\" fill=\"white\"/>\n"
+        // O swoosh (3 paths)
+        + "    <path d=\"M76.9589 3.9795C76.659 3.79576 76.3489 3.62915 76.0301 3.48047C73.4048 8.50654 68.6338 14.4858 62.3227 17.8867C62.6751 18.6813 63.1353 19.4238 63.6904 20.0932C69.4169 15.9397 73.9845 10.3927 76.9589 3.9795Z\" fill=\"white\"/>\n"
+        + "    <path d=\"M75.7919 3.37496C74.413 2.78907 72.9276 2.49402 71.4291 2.50831C65.5253 2.50831 61.3507 7.05864 61.3507 13.0503C61.347 14.0096 61.451 14.9662 61.6605 15.9023C67.7051 13.4388 73.0741 8.02094 75.7919 3.37496Z\" fill=\"white\"/>\n"
+        + "    <path d=\"M77.1862 4.11719C74.6238 10.7732 70.6321 16.7878 65.492 21.738C67.2443 22.9166 69.3175 23.5279 71.4299 23.4887C77.3345 23.4887 81.5083 18.906 81.5083 12.9151C81.5083 8.94448 79.8624 5.86546 77.1904 4.11719\" fill=\"white\"/>\n"
+        // ® mark
+        + "    <path d=\"M81.5041 3.4566V3.4408C81.5002 2.0104 82.6583 0.847664 84.0908 0.84376C85.5233 0.839855 86.6877 1.99626 86.6916 3.42666V3.4408C86.6959 4.8712 85.5382 6.03431 84.1058 6.03867C82.6733 6.04303 81.5085 4.887 81.5041 3.4566ZM86.3934 3.4408V3.42666C86.4133 2.1604 85.4015 1.11777 84.1334 1.09788C82.8653 1.07799 81.8211 2.08838 81.8012 3.35464C81.8008 3.38336 81.8008 3.41208 81.8015 3.4408V3.4566C81.7821 4.72287 82.7944 5.76507 84.0625 5.78442C85.3306 5.80377 86.3743 4.79294 86.3937 3.52667C86.3941 3.49805 86.394 3.46942 86.3934 3.4408ZM83.0842 2.07179H84.2769C84.86 2.07179 85.2914 2.35457 85.2914 2.90351C85.3064 3.28334 85.0497 3.62051 84.6792 3.70778L85.3805 4.70584H84.77L84.1436 3.79761H83.5914V4.70667H83.085L83.0842 2.07179ZM84.2319 3.38175C84.5743 3.38175 84.7692 3.20293 84.7692 2.95009C84.7692 2.6673 84.5751 2.51842 84.2319 2.51842H83.5906V3.38175H84.2319Z\" fill=\"white\"/>\n"
+        + "  </g>\n"
+        + "  <defs>\n"
+        + "    <clipPath id=\"tbcl\">\n"
+        + "      <rect width=\"88.29\" height=\"24.9515\" fill=\"white\" transform=\"translate(-3.8147e-05 0.0234375)\"/>\n"
+        + "    </clipPath>\n"
+        + "  </defs>\n"
+        + "</svg>\n";
+
     private void writeTopbar(Writer w, String indexHref) throws IOException {
         w.write("<header class=\"topbar\">\n");
         w.write("  <button class=\"sidebar-toggle\" onclick=\"toggleSidebar()\" title=\"Toggle sidebar\">☰</button>\n");
+        // TIBCO logo + project name (left side)
         w.write("  <a href=\"" + indexHref + "\" class=\"brand\">\n");
-        w.write("    <span class=\"brand-logo\">BW</span>\n");
-        w.write("    <span class=\"brand-text\"><strong>5</strong> Documentation</span>\n");
+        w.write("    " + TIBCO_LOGO_SVG.replace("\n", "\n    ").trim() + "\n");
+        w.write("    <span class=\"brand-sep\"></span>\n");
+        w.write("    <span class=\"brand-project\">" + esc(project.getArtifactId()) + "</span>\n");
         w.write("  </a>\n");
+        // Global search (centre)
         w.write("  <div class=\"search-wrap\">\n");
         w.write("    <input id=\"globalSearch\" class=\"global-search\" type=\"search\" "
             + "placeholder=\"Search processes… (/)\" autocomplete=\"off\">\n");
         w.write("    <div id=\"searchDrop\" class=\"search-drop\"></div>\n");
         w.write("  </div>\n");
+        // Right side: tool ID + dark mode
         w.write("  <div class=\"topbar-end\">\n");
-        w.write("    <span class=\"topbar-project\">" + esc(project.getArtifactId()) + "</span>\n");
+        w.write("    <span class=\"topbar-tool\">bwdoc</span>\n");
         w.write("    <button class=\"btn-icon theme-btn\" onclick=\"toggleTheme()\" title=\"Toggle dark mode\">🌙</button>\n");
         w.write("  </div>\n");
         w.write("</header>\n");
@@ -463,6 +451,112 @@ public class SiteHtmlGenerator {
         w.write("</div>\n");
     }
 
+    /**
+     * Builds a compact inline SVG showing: [source icon + name] --arrow--> [target icon + name].
+     * Arrow colour matches the diagram transition colours.
+     */
+    private String buildTransitionSvg(ProcessDocModel.Transition tr,
+                                       Map<String, ProcessDocModel.Activity> actByName) {
+        // SVG layout constants
+        final int W = 320, H = 48;
+        final int ICON = 20, ICON_R = ICON / 2;  // icon size and radius
+        // Source zone centre x, Target zone centre x
+        final int SRC_X = 36, TGT_X = W - 36;
+        final int CY = 18;  // vertical centre for icon and arrow
+        final int NAME_Y = H - 6;  // name label baseline
+
+        String color = transitionSvgColor(tr.conditionType);
+        boolean isDash = tr.conditionType != null && "error".equalsIgnoreCase(tr.conditionType);
+
+        ProcessDocModel.Activity srcAct = actByName.get(tr.from);
+        ProcessDocModel.Activity tgtAct = actByName.get(tr.to);
+
+        // Arrow runs between icon edges
+        int arrowX1 = SRC_X + ICON_R + 4;
+        int arrowX2 = TGT_X - ICON_R - 4;
+        // Control points for a mild curve
+        int cx1 = arrowX1 + (arrowX2 - arrowX1) / 3;
+        int cx2 = arrowX2 - (arrowX2 - arrowX1) / 3;
+        // Arrowhead tip and base
+        int tipX = arrowX2, tipY = CY;
+        int ah = 5;  // arrowhead half-height
+        int ab = 8;  // arrowhead length
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" "
+            + "width=\"%d\" height=\"%d\" style=\"font-family:Arial,sans-serif;vertical-align:middle;\">",
+            W, H));
+
+        // Source icon
+        sb.append(activityMiniIcon(srcAct, tr.from, SRC_X, CY, ICON));
+        // Source name label (truncated)
+        sb.append(String.format(
+            "<text x=\"%d\" y=\"%d\" text-anchor=\"middle\" font-size=\"9\" fill=\"#333\">%s</text>",
+            SRC_X, NAME_Y, esc(truncate14(tr.from))));
+
+        // Arrow path (bezier, stops before arrowhead tip)
+        sb.append(String.format(
+            "<path d=\"M%d,%d C%d,%d %d,%d %d,%d\" fill=\"none\" stroke=\"%s\" stroke-width=\"1.5\"%s/>",
+            arrowX1, CY, cx1, CY, cx2, CY, tipX - ab, tipY,
+            color, isDash ? " stroke-dasharray=\"4,3\"" : ""));
+        // Arrowhead (filled triangle)
+        sb.append(String.format(
+            "<polygon points=\"%d,%d %d,%d %d,%d\" fill=\"%s\"/>",
+            tipX, tipY, tipX - ab, tipY - ah, tipX - ab, tipY + ah, color));
+
+        // Target icon
+        sb.append(activityMiniIcon(tgtAct, tr.to, TGT_X, CY, ICON));
+        // Target name label
+        sb.append(String.format(
+            "<text x=\"%d\" y=\"%d\" text-anchor=\"middle\" font-size=\"9\" fill=\"#333\">%s</text>",
+            TGT_X, NAME_Y, esc(truncate14(tr.to))));
+
+        sb.append("</svg>");
+        return sb.toString();
+    }
+
+    /** Returns the icon element for a mini transition SVG, or a plain circle for unknown activities. */
+    private String activityMiniIcon(ProcessDocModel.Activity act, String fallbackName,
+                                     int cx, int cy, int size) {
+        if (act == null) {
+            // Unknown activity (shouldn't happen, but fallback to a grey circle)
+            return String.format(
+                "<circle cx=\"%d\" cy=\"%d\" r=\"%d\" fill=\"#ccc\" stroke=\"#999\" stroke-width=\"1\"/>",
+                cx, cy, size / 2);
+        }
+        if (act.isEnd || "ae.process.stopstate".equals(act.resourceType)) {
+            return String.format(
+                "<circle cx=\"%d\" cy=\"%d\" r=\"%d\" fill=\"#c62828\" stroke=\"#7f0000\" stroke-width=\"1\"/>"
+                + "<circle cx=\"%d\" cy=\"%d\" r=\"3\" fill=\"#7f0000\"/>",
+                cx, cy, size / 2, cx, cy);
+        }
+        if ("act-startstate".equals(act.cssClass())) {
+            return String.format(
+                "<circle cx=\"%d\" cy=\"%d\" r=\"%d\" fill=\"#2e7d32\" stroke=\"#1b5e20\" stroke-width=\"1\"/>"
+                + "<circle cx=\"%d\" cy=\"%d\" r=\"3\" fill=\"#a5d6a7\"/>",
+                cx, cy, size / 2, cx, cy);
+        }
+        return ActivityIconRegistry.getImageElement(act.type, act.resourceType, cx, cy, size);
+    }
+
+    private String transitionSvgColor(String conditionType) {
+        if (conditionType == null) return "#888";
+        switch (conditionType.toLowerCase(java.util.Locale.ROOT)) {
+            case "error":                return "#e74c3c";
+            case "xpath":
+            case "successwithcondition": return "#e67e22";
+            case "otherwise":            return "#8e44ad";
+            case "success":              return "#27ae60";
+            default:                     return "#888";
+        }
+    }
+
+    private String truncate14(String s) {
+        if (s == null) return "";
+        return s.length() > 14 ? s.substring(0, 13) + "…" : s;
+    }
+
     private void writeLegend(Writer w, String color, String label) throws IOException {
         w.write("    <span class=\"legend-item\">"
             + "<span class=\"legend-dot\" style=\"background:" + color + "\"></span>"
@@ -492,6 +586,92 @@ public class SiteHtmlGenerator {
         w.write("</table>\n");
     }
 
+    // ── Mapper tree node ─────────────────────────────────────────────────────
+
+    private static class MTreeNode {
+        final String label;
+        final List<MTreeNode> children = new ArrayList<>();
+        /** Mapping indices that terminate at this node (can be multiple for shared paths). */
+        final List<Integer> mappingIdxs = new ArrayList<>();
+
+        MTreeNode(String label) { this.label = label; }
+
+        MTreeNode getOrCreate(String lbl) {
+            for (MTreeNode c : children) {
+                if (lbl.equals(c.label)) return c;
+            }
+            MTreeNode n = new MTreeNode(lbl);
+            children.add(n);
+            return n;
+        }
+
+        boolean isLeaf() { return children.isEmpty(); }
+    }
+
+    /**
+     * Returns true if the XPath expression is a direct variable path reference
+     * (no functions, operators, or predicates) — e.g. {@code $Start/param/field}.
+     */
+    private static boolean isSimplePath(String expr) {
+        if (expr == null || !expr.startsWith("$")) return false;
+        return !expr.contains("(") && !expr.contains("[")
+            && !expr.contains(" ")  && !expr.contains("+")
+            && !expr.contains("=")  && !expr.contains("!")
+            && !expr.contains("|")  && !expr.contains(",");
+    }
+
+    /** Build a prefix-trie from mapping source expressions (simple paths only). */
+    private MTreeNode buildSrcTree(List<ProcessDocModel.FieldMapping> mappings) {
+        MTreeNode root = new MTreeNode("");
+        for (int i = 0; i < mappings.size(); i++) {
+            ProcessDocModel.FieldMapping m = mappings.get(i);
+            if (m.isLiteral || !isSimplePath(m.sourceExpression)) continue;
+            MTreeNode cur = root;
+            for (String seg : m.sourceExpression.split("/")) cur = cur.getOrCreate(seg);
+            cur.mappingIdxs.add(i);
+        }
+        return root;
+    }
+
+    /** Build a prefix-trie from mapping target paths. */
+    private MTreeNode buildTgtTree(List<ProcessDocModel.FieldMapping> mappings) {
+        MTreeNode root = new MTreeNode("");
+        for (int i = 0; i < mappings.size(); i++) {
+            ProcessDocModel.FieldMapping m = mappings.get(i);
+            String path = m.targetPath != null ? m.targetPath : m.targetField;
+            if (path == null || path.isEmpty()) continue;
+            MTreeNode cur = root;
+            for (String seg : path.split("/")) cur = cur.getOrCreate(seg);
+            cur.mappingIdxs.add(i);
+        }
+        return root;
+    }
+
+    /** Render a trie as indented HTML rows; leaf nodes carry data-midxs for JS line drawing. */
+    private void renderMTree(Writer w, MTreeNode node, int depth) throws IOException {
+        for (MTreeNode child : node.children) {
+            boolean leaf = child.isLeaf();
+            String midxsAttr = "";
+            if (!child.mappingIdxs.isEmpty()) {
+                StringBuilder sb2 = new StringBuilder();
+                for (int i = 0; i < child.mappingIdxs.size(); i++) {
+                    if (i > 0) sb2.append(',');
+                    sb2.append(child.mappingIdxs.get(i));
+                }
+                midxsAttr = " data-midxs=\"" + sb2 + "\"";
+            }
+            w.write("<div class=\"mtree-node" + (leaf ? " mtree-leaf" : "") + "\""
+                + midxsAttr
+                + " style=\"padding-left:" + (depth * 14 + 6) + "px\">");
+            w.write("<span class=\"mtree-icon\">" + (leaf ? "&#9656;" : "&#9662;") + "</span>");
+            w.write("<span class=\"mtree-lbl\">" + esc(child.label) + "</span>");
+            w.write("</div>\n");
+            renderMTree(w, child, depth + 1);
+        }
+    }
+
+    // ── Data mapping section ──────────────────────────────────────────────────
+
     private void writeDataMappings(Writer w, ProcessDocModel model) throws IOException {
         boolean has = (model.starter != null && !model.starter.inputMappings.isEmpty())
             || model.activities.stream().anyMatch(a -> !a.inputMappings.isEmpty());
@@ -499,49 +679,99 @@ public class SiteHtmlGenerator {
 
         w.write("<section class=\"card\">\n");
         w.write("  <h2>Data Mappings</h2>\n");
-        w.write("  <p class=\"section-desc\">XSL input bindings for each activity.</p>\n");
+
+        int widgetIdx = 0;
         for (ProcessDocModel.Activity a : model.allActivities()) {
             if (a.inputMappings.isEmpty()) continue;
+            List<ProcessDocModel.FieldMapping> mappings = a.inputMappings;
+            String wid = "mw-" + widgetIdx++;
+
+            MTreeNode srcRoot = buildSrcTree(mappings);
+            MTreeNode tgtRoot = buildTgtTree(mappings);
+
             w.write("  <div class=\"mapping-block\">\n");
-            w.write("    <h3>" + esc(a.name) + "</h3>\n");
-            w.write("    <table class=\"mapping-table\">\n");
-            w.write("      <thead><tr><th>Target</th><th>Source / Expression</th><th>Flags</th></tr></thead>\n");
-            w.write("      <tbody>\n");
-            for (ProcessDocModel.FieldMapping m : a.inputMappings) {
-                w.write("      <tr>\n");
-                w.write("        <td><code class=\"field-target\">"
-                    + esc(m.targetPath != null ? m.targetPath : m.targetField) + "</code></td>\n");
-                if (m.isLiteral) {
-                    w.write("        <td><span class=\"literal-val\">\"" + esc(m.sourceExpression) + "\"</span></td>\n");
-                } else {
-                    w.write("        <td><code class=\"xpath\">" + esc(m.sourceExpression) + "</code></td>\n");
-                }
-                w.write("        <td>");
-                if (m.isLiteral) w.write("<span class=\"badge badge-lit\">literal</span> ");
-                if (m.isConditional) w.write("<span class=\"badge badge-cond-sm\">if</span> ");
-                w.write("</td>\n");
-                w.write("      </tr>\n");
+            w.write("    <div class=\"mapping-act-header\">" + esc(a.name) + "</div>\n");
+            w.write("    <div class=\"mapper-3col\" id=\"" + wid + "\">\n");
+
+            // ── Source column ────────────────────────────────────────────────
+            w.write("      <div class=\"mapper-col mapper-src\">\n");
+            w.write("        <div class=\"mapper-col-head\">Source</div>\n");
+            if (srcRoot.children.isEmpty()) {
+                w.write("        <div class=\"mtree mtree-empty\">&#8212;</div>\n");
+            } else {
+                w.write("        <div class=\"mtree\">\n");
+                renderMTree(w, srcRoot, 0);
+                w.write("        </div>\n");
             }
-            w.write("      </tbody>\n    </table>\n  </div>\n");
+            w.write("      </div>\n");
+
+            // ── Target column ────────────────────────────────────────────────
+            w.write("      <div class=\"mapper-col mapper-tgt\">\n");
+            w.write("        <div class=\"mapper-col-head\">Target</div>\n");
+            w.write("        <div class=\"mtree\">\n");
+            renderMTree(w, tgtRoot, 0);
+            w.write("        </div>\n");
+            w.write("      </div>\n");
+
+            // ── Condition / value column ─────────────────────────────────────
+            w.write("      <div class=\"mapper-col mapper-cond\">\n");
+            w.write("        <div class=\"mapper-col-head\">Value / Expression</div>\n");
+            for (int i = 0; i < mappings.size(); i++) {
+                ProcessDocModel.FieldMapping m = mappings.get(i);
+                String kind = m.conditionKind; // "if" | "when" | "otherwise" | null
+                w.write("        <div class=\"mapper-cond-item"
+                    + (kind != null ? " map-kind-" + kind : "") + "\" data-midx=\"" + i + "\">");
+                // Condition kind badge
+                if ("if".equals(kind)) {
+                    w.write("<span class=\"map-kw map-kw-if\">IF</span> ");
+                    if (m.condition != null && !m.condition.isEmpty()) {
+                        w.write("<code class=\"map-cond-expr\">" + esc(m.condition) + "</code> ");
+                    }
+                } else if ("when".equals(kind)) {
+                    w.write("<span class=\"map-kw map-kw-when\">WHEN</span> ");
+                    if (m.condition != null && !m.condition.isEmpty()) {
+                        w.write("<code class=\"map-cond-expr\">" + esc(m.condition) + "</code> ");
+                    }
+                } else if ("otherwise".equals(kind)) {
+                    w.write("<span class=\"map-kw map-kw-otherwise\">OTHERWISE</span> ");
+                }
+                // Value / expression
+                if (m.isLiteral) {
+                    w.write("<span class=\"map-literal\">\"" + esc(m.sourceExpression) + "\"</span>");
+                } else if (!isSimplePath(m.sourceExpression)
+                           && m.sourceExpression != null && !m.sourceExpression.isEmpty()) {
+                    w.write("<code class=\"map-xpath\">" + esc(m.sourceExpression) + "</code>");
+                }
+                w.write("</div>\n");
+            }
+            w.write("      </div>\n");
+
+            // SVG overlay — lines drawn by JS
+            w.write("      <svg class=\"mapper-svg\" xmlns=\"http://www.w3.org/2000/svg\"></svg>\n");
+
+            w.write("    </div>\n"); // mapper-3col
+            w.write("  </div>\n");   // mapping-block
         }
         w.write("</section>\n");
     }
 
     private void writeDependenciesSection(Writer w) throws IOException {
         Set<Artifact> artifacts = project.getArtifacts();
-        if (artifacts == null || artifacts.isEmpty()) return;
-        w.write("<section class=\"card\">\n<h2>Maven Dependencies</h2>\n");
-        w.write("<table class=\"data-table\">\n");
-        w.write("  <thead><tr><th>GroupId</th><th>ArtifactId</th><th>Version</th><th>Type</th><th>Scope</th></tr></thead>\n");
-        w.write("  <tbody>\n");
+        if (artifacts == null) return;
+        List<Artifact> projlibs = new ArrayList<>();
         for (Artifact a : artifacts) {
-            String typeClass = "projlib".equals(a.getType()) ? " class=\"dep-projlib\"" : "";
-            w.write("  <tr" + typeClass + ">\n");
+            if ("projlib".equals(a.getType())) projlibs.add(a);
+        }
+        if (projlibs.isEmpty()) return;
+        w.write("<section class=\"card\">\n<h2>Projlib Dependencies</h2>\n");
+        w.write("<table class=\"data-table\">\n");
+        w.write("  <thead><tr><th>GroupId</th><th>ArtifactId</th><th>Version</th><th>Scope</th></tr></thead>\n");
+        w.write("  <tbody>\n");
+        for (Artifact a : projlibs) {
+            w.write("  <tr class=\"dep-projlib\">\n");
             w.write("    <td>" + esc(a.getGroupId()) + "</td>\n");
             w.write("    <td><strong>" + esc(a.getArtifactId()) + "</strong></td>\n");
             w.write("    <td>" + esc(a.getVersion()) + "</td>\n");
-            w.write("    <td><span class=\"badge badge-type type-" + esc(a.getType()) + "\">"
-                + esc(a.getType()) + "</span></td>\n");
             w.write("    <td>" + esc(a.getScope()) + "</td>\n");
             w.write("  </tr>\n");
         }
@@ -629,22 +859,6 @@ public class SiteHtmlGenerator {
             if (lastName.equals(p.displayName)) return p;
         }
         return null;
-    }
-
-    /** Detect which palette/technology label an activity's resourceType belongs to. */
-    private String detectPalette(String resourceType) {
-        if (resourceType == null) return null;
-        for (String[] entry : PALETTES) {
-            if (resourceType.startsWith(entry[0])) return entry[1];
-        }
-        return null;
-    }
-
-    private String[] paletteInfo(String label) {
-        for (String[] entry : PALETTES) {
-            if (label.equals(entry[1])) return new String[]{entry[2], entry[3]};
-        }
-        return new String[]{"🔧", label};
     }
 
     // ── Utility ───────────────────────────────────────────────────────────────
@@ -772,12 +986,12 @@ public class SiteHtmlGenerator {
         + ".sidebar-toggle { background: none; border: none; color: white; font-size: 20px;"
         +   " cursor: pointer; padding: 6px; border-radius: 4px; line-height: 1; }\n"
         + ".sidebar-toggle:hover { background: rgba(255,255,255,.15); }\n"
-        + ".brand { display: flex; align-items: center; gap: 8px; color: white; font-size: 16px;"
+        + ".brand { display: flex; align-items: center; gap: 12px; color: white; font-size: 15px;"
         +   " font-weight: 600; white-space: nowrap; }\n"
         + ".brand:hover { text-decoration: none; }\n"
-        + ".brand-logo { background: white; color: var(--c-primary); border-radius: 6px;"
-        +   " font-weight: 900; font-size: 13px; padding: 3px 6px; letter-spacing: -.5px; }\n"
-        + ".brand-text strong { font-size: 17px; }\n"
+        + ".tibco-logo { height: 20px; width: auto; flex-shrink: 0; display: block; }\n"
+        + ".brand-sep { width: 1px; height: 20px; background: rgba(255,255,255,.3); flex-shrink: 0; }\n"
+        + ".brand-project { font-size: 14px; font-weight: 600; opacity: .9; }\n"
         + ".search-wrap { flex: 1; max-width: 440px; position: relative; }\n"
         + ".global-search { width: 100%; padding: 7px 14px; border-radius: 6px;"
         +   " border: none; background: rgba(255,255,255,.15); color: white; font-size: 13px;"
@@ -793,7 +1007,9 @@ public class SiteHtmlGenerator {
         + ".search-drop a:hover { background: var(--c-bg); text-decoration: none; }\n"
         + ".sr-folder { color: var(--c-text-3); font-size: 11px; }\n"
         + ".topbar-end { display: flex; align-items: center; gap: 10px; margin-left: auto; }\n"
-        + ".topbar-project { font-size: 12px; opacity: .7; white-space: nowrap; }\n"
+        + ".topbar-tool { font-size: 12px; font-family: var(--mono); background: rgba(255,255,255,.15);"
+        +   " border: 1px solid rgba(255,255,255,.25); border-radius: 4px; padding: 2px 8px;"
+        +   " white-space: nowrap; letter-spacing: .5px; }\n"
         + ".theme-btn { background: none; border: 1px solid rgba(255,255,255,.3);"
         +   " color: white; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 16px; }\n"
         + ".theme-btn:hover { background: rgba(255,255,255,.15); }\n"
@@ -879,6 +1095,8 @@ public class SiteHtmlGenerator {
         + ".tech-badges { display: flex; flex-wrap: wrap; gap: 6px; }\n"
         + ".tech-badge { background: var(--c-primary); color: white; border-radius: 10px;"
         +   " padding: 1px 8px; font-size: 11px; }\n"
+        + ".tech-badge-code { background: var(--c-bg); color: var(--c-text-3); border: 1px solid var(--c-border);"
+        +   " border-radius: 10px; padding: 1px 8px; font-size: 10px; font-family: var(--mono); }\n"
 
         // ── Tables ───────────────────────────────────────────────────────────
         + ".data-table { width: 100%; border-collapse: collapse; font-size: 13px; }\n"
@@ -893,7 +1111,8 @@ public class SiteHtmlGenerator {
         + ".data-table td.act-name { font-weight: 500; }\n"
         + ".config-cell { max-width: 380px; }\n"
         + ".config-summary { color: var(--c-text-2); font-size: 12px; }\n"
-        + ".call-link { color: var(--c-primary); font-weight: 600; }\n"
+        + ".type-cell { white-space: nowrap; }\n"
+        + ".call-link { color: var(--c-primary); font-weight: 500; font-size: 12px; }\n"
         + ".call-link:hover { text-decoration: underline; }\n"
         + ".unresolved { color: var(--c-text-3); font-style: italic; font-size: 12px; }\n"
         + ".table-filter { padding: 5px 10px; border: 1px solid var(--c-border); border-radius: 5px;"
@@ -909,7 +1128,7 @@ public class SiteHtmlGenerator {
         + ".badge-cond-sm { background: #FFF7ED; color: #C2410C; }\n"
         + ".cond-always, .cond-success { background: #DCFCE7; color: #15803D; }\n"
         + ".cond-error { background: #FEE2E2; color: var(--c-error); }\n"
-        + ".cond-successwithcondition { background: #FFF7ED; color: #C2410C; }\n"
+        + ".cond-xpath, .cond-successwithcondition { background: #FFF7ED; color: #C2410C; }\n"
         + ".cond-otherwise { background: #F3E8FF; color: #7C3AED; }\n"
 
         // ── Proc link in table ───────────────────────────────────────────────
@@ -932,14 +1151,66 @@ public class SiteHtmlGenerator {
         + ".legend-item { display: flex; align-items: center; gap: 5px; }\n"
         + ".legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }\n"
 
-        // ── Mappings ─────────────────────────────────────────────────────────
-        + ".mapping-block { margin-bottom: 22px; }\n"
-        + ".mapping-table { width: 100%; border-collapse: collapse; font-size: 12px; }\n"
-        + ".mapping-table th { background: var(--c-bg); padding: 6px 10px; text-align: left;"
-        +   " border-bottom: 1px solid var(--c-border); font-weight: 600; }\n"
-        + ".mapping-table td { padding: 5px 10px; border-bottom: 1px solid var(--c-border);"
-        +   " vertical-align: top; }\n"
-        + ".field-target { color: #1D4ED8; }\n"
+        // ── Mapper widget (3-column: Source | Target | Condition) ────────────
+        + ":root { --map-line:#1565c0; --map-lit-c:#6d28d9; }\n"
+        + "[data-theme='dark'] { --map-line:#60a5fa; --map-lit-c:#c4b5fd; }\n"
+        + ".mapping-block { margin-bottom: 28px; }\n"
+        + ".mapping-act-header { font-weight: 700; font-size: 13px; padding: 6px 10px;"
+        +   " background: var(--c-bg); border: 1px solid var(--c-border);"
+        +   " border-bottom: none; border-radius: 6px 6px 0 0; color: var(--c-text); }\n"
+        + ".mapper-3col { display: grid; grid-template-columns: 1fr 1fr 1fr;"
+        +   " border: 1px solid var(--c-border); border-radius: 0 0 6px 6px;"
+        +   " position: relative; font-size: 12px; overflow: hidden; }\n"
+        + ".mapper-col { display: flex; flex-direction: column; }\n"
+        + ".mapper-col-head { background: var(--c-bg2,#f1f5f9); padding: 5px 12px;"
+        +   " font-weight: 600; font-size: 11px; text-transform: uppercase;"
+        +   " letter-spacing: .04em; color: var(--c-text-2);"
+        +   " border-bottom: 1px solid var(--c-border); flex-shrink: 0; }\n"
+        + ".mapper-src { border-right: 1px solid var(--c-border); overflow: hidden; }\n"
+        + ".mapper-tgt { border-right: 1px solid var(--c-border); overflow: hidden; }\n"
+        + ".mapper-cond { position: relative; overflow: hidden; }\n"
+        // Tree
+        + ".mtree { padding: 4px 0; }\n"
+        + ".mtree-empty { padding: 8px 12px; color: var(--c-text-2); font-style: italic; }\n"
+        + ".mtree-node { display: flex; align-items: center; min-height: 26px;"
+        +   " padding-top: 2px; padding-bottom: 2px; white-space: nowrap; }\n"
+        + ".mtree-icon { color: var(--c-text-2); font-size: 9px;"
+        +   " margin-right: 4px; flex-shrink: 0; }\n"
+        + ".mtree-lbl { color: var(--c-text); overflow: hidden; text-overflow: ellipsis; }\n"
+        + ".mtree-leaf > .mtree-lbl { font-weight: 700; color: #1565c0; }\n"
+        + "[data-theme='dark'] .mtree-leaf > .mtree-lbl { color: #60a5fa; }\n"
+        // Condition column items — absolutely positioned by JS; nowrap to prevent height growth
+        + ".mapper-cond-item { position: absolute; left: 0; right: 0; padding: 0 10px;"
+        +   " display: flex; align-items: center; flex-wrap: nowrap; gap: 3px; overflow: hidden;"
+        +   " font-size: 11px; transform: translateY(-50%); }\n"
+        + ".map-xpath { color: #1565c0; font-family: monospace; overflow: hidden;"
+        +   " text-overflow: ellipsis; white-space: nowrap; min-width: 0; }\n"
+        + "[data-theme='dark'] .map-xpath { color: #60a5fa; }\n"
+        + ".map-literal { color: #6d28d9; font-style: italic; overflow: hidden;"
+        +   " text-overflow: ellipsis; white-space: nowrap; min-width: 0; }\n"
+        + "[data-theme='dark'] .map-literal { color: #c4b5fd; }\n"
+        + ".map-cond-expr { color: #c2410c; font-family: monospace; font-size: 10px;"
+        +   " overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }\n"
+        + "[data-theme='dark'] .map-cond-expr { color: #fb923c; }\n"
+        + ".map-badge { font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 700; }\n"
+        + ".map-if { background: #FFF7ED; color: #c2410c; }\n"
+        + "[data-theme='dark'] .map-if { background: #431407; color: #fb923c; }\n"
+        // Condition kind keywords
+        + ".map-kw { font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 3px;"
+        +   " letter-spacing: .03em; flex-shrink: 0; }\n"
+        + ".map-kw-if       { background: #FFF7ED; color: #c2410c; }\n"
+        + ".map-kw-when     { background: #EFF6FF; color: #1d4ed8; }\n"
+        + ".map-kw-otherwise{ background: #F5F3FF; color: #6d28d9; }\n"
+        + "[data-theme='dark'] .map-kw-if        { background: #431407; color: #fb923c; }\n"
+        + "[data-theme='dark'] .map-kw-when      { background: #1e3a5f; color: #93c5fd; }\n"
+        + "[data-theme='dark'] .map-kw-otherwise { background: #2e1065; color: #c4b5fd; }\n"
+        // Visual left-accent bar for when/otherwise rows (groups conditional alternatives)
+        + ".map-kind-when     { border-left: 3px solid #3b82f6; padding-left: 7px; }\n"
+        + ".map-kind-otherwise{ border-left: 3px solid #8b5cf6; padding-left: 7px; }\n"
+        + ".map-kind-if       { border-left: 3px solid #f97316; padding-left: 7px; }\n"
+        // SVG line overlay
+        + ".mapper-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+        +   " pointer-events: none; z-index: 2; overflow: visible; }\n"
         + ".xpath { color: #166534; }\n"
         + "[data-theme='dark'] .xpath { color: #86EFAC; }\n"
         + ".literal-val { color: #7C3AED; font-style: italic; }\n"
@@ -967,6 +1238,12 @@ public class SiteHtmlGenerator {
         // ── Called-by list ───────────────────────────────────────────────────
         + ".caller-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }\n"
         + ".caller-list a { color: var(--c-primary); font-size: 13px; }\n"
+
+        // ── Transition visual table ──────────────────────────────────────────
+        + ".tr-visual-table .tr-flow-cell { padding: 6px 10px; white-space: nowrap; }\n"
+        + ".tr-visual-table .tr-cond-cell { padding: 6px 12px; vertical-align: middle; min-width: 120px; }\n"
+        + ".tr-cond-expr { font-size: 11px; color: var(--c-text-2); display: block; margin-top: 4px;"
+        +   " white-space: normal; word-break: break-word; max-width: 280px; }\n"
 
         // ── Dependencies ─────────────────────────────────────────────────────
         + "tr.dep-projlib td { background: #F0FFF4; }\n"
@@ -1156,12 +1433,65 @@ public class SiteHtmlGenerator {
         + "  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');\n"
         + "}\n"
 
+        // ── Mapper: draw source→target lines and align condition items ────────
+        + "function drawMapperLines(){\n"
+        + "  document.querySelectorAll('.mapper-3col').forEach(function(widget){\n"
+        + "    var svgEl=widget.querySelector('.mapper-svg');\n"
+        + "    var condCol=widget.querySelector('.mapper-cond');\n"
+        + "    var srcCol=widget.querySelector('.mapper-src');\n"
+        + "    var tgtCol=widget.querySelector('.mapper-tgt');\n"
+        + "    var wr=widget.getBoundingClientRect();\n"
+        + "    if(!svgEl||wr.width===0||!srcCol||!tgtCol) return;\n"
+        // Right boundary of source column — used to clamp overflowing label text
+        + "    var srcColR=srcCol.getBoundingClientRect().right;\n"
+        + "    var paths=[];\n"
+        + "    widget.querySelectorAll('.mapper-tgt .mtree-leaf').forEach(function(tgtLeaf){\n"
+        + "      var midxsRaw=tgtLeaf.getAttribute('data-midxs'); if(!midxsRaw) return;\n"
+        + "      var tr=tgtLeaf.getBoundingClientRect();\n"
+        + "      var tgtMidY=(tr.top+tr.bottom)/2;\n"
+        + "      midxsRaw.split(',').map(Number).forEach(function(midx){\n"
+        + "        if(condCol){\n"
+        + "          var ci=condCol.querySelector('.mapper-cond-item[data-midx=\"'+midx+'\"]');\n"
+        + "          if(ci){ var cr=condCol.getBoundingClientRect(); ci.style.top=(tgtMidY-cr.top)+'px'; }\n"
+        + "        }\n"
+        + "        var srcLeaves=[].slice.call(widget.querySelectorAll('.mapper-src .mtree-leaf'));\n"
+        + "        var srcLeaf=null;\n"
+        + "        for(var i=0;i<srcLeaves.length;i++){\n"
+        + "          var sm=(srcLeaves[i].getAttribute('data-midxs')||'').split(',').map(Number);\n"
+        + "          if(sm.indexOf(midx)>=0){srcLeaf=srcLeaves[i];break;}\n"
+        + "        }\n"
+        + "        if(!srcLeaf) return;\n"
+        + "        var sr=srcLeaf.getBoundingClientRect();\n"
+        // x1 = right edge of source leaf label, clamped to column boundary
+        + "        var srcLbl=srcLeaf.querySelector('.mtree-lbl');\n"
+        + "        var srcLblR=srcLbl?srcLbl.getBoundingClientRect().right:sr.right;\n"
+        + "        var x1=Math.round(Math.min(srcLblR,srcColR)-wr.left);\n"
+        + "        var y1=Math.round((sr.top+sr.bottom)/2-wr.top);\n"
+        // x2 = left edge of target leaf icon (start of visible content, after indentation)
+        + "        var tgtIcon=tgtLeaf.querySelector('.mtree-icon');\n"
+        + "        var tgtIconL=tgtIcon?tgtIcon.getBoundingClientRect().left:tr.left;\n"
+        + "        var x2=Math.round(tgtIconL-wr.left);\n"
+        + "        var y2=Math.round(tgtMidY-wr.top);\n"
+        + "        var cx=Math.round((x1+x2)/2);\n"
+        + "        paths.push('<path d=\"M'+x1+','+y1+' C'+cx+','+y1+' '+cx+','+y2+' '+x2+','+y2+'\"'"
+        + "          +' fill=\"none\" stroke=\"#1565c0\" stroke-width=\"1.5\" opacity=\"0.7\"/>');\n"
+        + "        paths.push('<circle cx=\"'+x1+'\" cy=\"'+y1+'\" r=\"3\" fill=\"#1565c0\"/>');\n"
+        + "        paths.push('<circle cx=\"'+x2+'\" cy=\"'+y2+'\" r=\"3\" fill=\"#1565c0\"/>');\n"
+        + "      });\n"
+        + "    });\n"
+        + "    svgEl.setAttribute('viewBox','0 0 '+Math.round(wr.width)+' '+Math.round(wr.height));\n"
+        + "    svgEl.innerHTML=paths.join('');\n"
+        + "  });\n"
+        + "}\n"
+
         // ── Init ─────────────────────────────────────────────────────────────
         + "document.addEventListener('DOMContentLoaded',function(){\n"
         + "  buildNav();\n"
         + "  initSidebarFilter();\n"
         + "  initGlobalSearch();\n"
         + "  initDiagrams();\n"
+        + "  drawMapperLines();\n"
+        + "  window.addEventListener('resize',drawMapperLines);\n"
         + "});\n"
         + "})();\n";
 }

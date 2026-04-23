@@ -1,0 +1,465 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns2="http://www.tibco.com/namespaces/tnt/plugins/file/v2" xmlns:ns1="http://www.tibco.com/pe/EngineTypes" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns4="com/tibco/pe/commands" xmlns:ns="http://www.tibco.com/pe/DeployedVarsType" xmlns:ns3="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx2="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:pfx="http://www.bbva.com/EAIFramework">
+    <pd:name>ArchitectureServices/Business/InitProcess/S_ARC_CheckServiceIDsFromQueueFiles.process</pd:name>
+    <pd:startName>onStartup</pd:startName>
+    <pd:startX>0</pd:startX>
+    <pd:startY>0</pd:startY>
+    <pd:returnBindings/>
+    <pd:starter name="onStartup">
+        <pd:type>com.tibco.pe.core.OnStartupEventSource</pd:type>
+        <pd:resourceType>ae.activities.onStartup</pd:resourceType>
+        <pd:x>176</pd:x>
+        <pd:y>141</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:starter>
+    <pd:endName>End</pd:endName>
+    <pd:endX>833</pd:endX>
+    <pd:endY>139</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1385974710323</pd:targetNamespace>
+    <pd:activity name="ARC_FindQueues">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>333</pd:x>
+        <pd:y>140</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Queues/ARC_FindQueues.process</processName>
+        </config>
+        <pd:inputBindings>
+            <FindQueuesIn>
+                <xsl:for-each select="tib:tokenize($_globalVariables/ns:GlobalVariables/CFG/COMMON/ServiceIDs, &quot;|&quot;)">
+                    <xsl:if test="current()!=&quot;&quot;">
+                        <ServiceId>
+                            <xsl:value-of select="current()"/>
+                        </ServiceId>
+                    </xsl:if>
+                </xsl:for-each>
+            </FindQueuesIn>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>1220</pd:x>
+        <pd:y>135</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Parse XML">
+        <pd:type>com.tibco.plugin.xml.XMLParseActivity</pd:type>
+        <pd:resourceType>ae.activities.XMLParseActivity</pd:resourceType>
+        <pd:x>338</pd:x>
+        <pd:y>368</pd:y>
+        <config>
+            <inputStyle>text</inputStyle>
+            <xsdVersion>default</xsdVersion>
+            <validateOutput>false</validateOutput>
+            <term>
+                <xsd:element name="FilterQueuesIn">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="FindQueues">
+                                <xsd:complexType>
+                                    <xsd:sequence>
+                                        <xsd:element name="ServiceId" type="pfx:ServiceIdType" minOccurs="0" maxOccurs="unbounded"/>
+                                    </xsd:sequence>
+                                </xsd:complexType>
+                            </xsd:element>
+                            <xsd:element ref="pfx:QueuesCacheList"/>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+            </term>
+        </config>
+        <pd:inputBindings>
+            <xmlString>
+                <xsl:value-of select="$_error_ARC_FindQueues/pfx:ErrorMessage/ProcessInputMessage"/>
+            </xmlString>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Generate Error">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>578</pd:x>
+        <pd:y>369</pd:y>
+        <config>
+            <faultName/>
+        </config>
+        <pd:inputBindings>
+            <ns3:ActivityInput>
+                <message>
+                    <xsl:value-of select="concat(&#xA;&quot;SHUTDOWN por no encontrar en &quot;, $_globalVariables/ns:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_PATH,'Queues.xml',&#xA;&quot; los ServiceIDs: &quot;,&#xA;tib:concat-sequence-format($MapServiceIDsNotFound/root/ServiceIDsNotFound, &quot;&#xA;&quot;))"/>
+                </message>
+            </ns3:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="MapServiceIDsNotFound">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>448</pd:x>
+        <pd:y>368</pd:y>
+        <config>
+            <element>
+                <xsd:element name="root">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="ServiceIDsNotFound" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+            </element>
+        </config>
+        <pd:inputBindings>
+            <root>
+                <xsl:for-each select="$Parse-XML/FilterQueuesIn/FindQueues/ServiceId">
+                    <xsl:if test="string-length(../../pfx:QueuesCacheList/pfx:Destination[@ServiceId=current()])=0">
+                        <ServiceIDsNotFound>
+                            <xsl:value-of select="."/>
+                        </ServiceIDsNotFound>
+                    </xsl:if>
+                </xsl:for-each>
+            </root>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Log OK">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <pd:x>573</pd:x>
+        <pd:y>142</pd:y>
+        <config>
+            <role>User</role>
+        </config>
+        <pd:inputBindings>
+            <pfx2:ActivityInput>
+                <message>
+                    <xsl:value-of select="concat(&quot;ServiceIDs configurados OK: &quot;,&quot;&#xA;&quot;,&#xA;tib:concat-sequence-format(for $destination in $Map-Environment/root/Destinations &#xA;return concat($destination/ServiceId , &quot; - Destination: &quot;, $destination/Destination), &quot;&#xA;&quot;)&#xA;)"/>
+                </message>
+            </pfx2:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Engine Command">
+        <pd:type>com.tibco.pe.core.EngineCommandActivity</pd:type>
+        <pd:resourceType>ae.activities.enginecommand</pd:resourceType>
+        <pd:x>937</pd:x>
+        <pd:y>136</pd:y>
+        <config>
+            <command>Shutdown</command>
+        </config>
+        <pd:inputBindings>
+            <ns4:input/>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="TraceError">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>1074</pd:x>
+        <pd:y>135</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_TrackingManagement/ARC_TrackingErrorManagement.process</processName>
+        </config>
+        <pd:inputBindings>
+            <pfx:CLEMessage>
+                <CLEHeader>
+                    <E2EId>
+                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_InstancedIdNoInitialized"/>
+                    </E2EId>
+                    <E2EDeepness>
+                        <xsl:value-of select="0"/>
+                    </E2EDeepness>
+                    <InvocationUser>
+                        <xsl:value-of select="&quot;&quot;"/>
+                    </InvocationUser>
+                    <EventCode>
+                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_StartError"/>
+                    </EventCode>
+                    <EventType>
+                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Error"/>
+                    </EventType>
+                    <Timestamp>
+                        <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                    </Timestamp>
+                    <ServiceId>
+                        <xsl:value-of select="&quot;&quot;"/>
+                    </ServiceId>
+                    <InstanceId>
+                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_InstancedIdNoInitialized"/>
+                    </InstanceId>
+                    <ProjectName>
+                        <xsl:value-of select="$_processContext/ns1:ProcessContext/ProjectName"/>
+                    </ProjectName>
+                    <ProcessName>
+                        <xsl:value-of select="BW:getCurrentProcessName($_processContext/ns1:ProcessContext/ProcessId)"/>
+                    </ProcessName>
+                    <EngineName>
+                        <xsl:value-of select="$_processContext/ns1:ProcessContext/EngineName"/>
+                    </EngineName>
+                    <MachineName>
+                        <xsl:value-of select="&quot;&quot;"/>
+                    </MachineName>
+                    <ErrorHeader>
+                        <ErrorCode>
+                            <xsl:value-of select="$_error/ns1:ErrorReport/MsgCode"/>
+                        </ErrorCode>
+                        <ErrorDescription>
+                            <xsl:value-of select="&quot;ERROR-MONITORING_SERVICEIDs&quot;"/>
+                        </ErrorDescription>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <xsl:if test="$_error/ns1:ErrorReport/StackTrace">
+                            <StackProcess>
+                                <xsl:value-of select="$_error/ns1:ErrorReport/StackTrace"/>
+                            </StackProcess>
+                        </xsl:if>
+                        <Severity>
+                            <xsl:value-of select="1"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/EventType/ERR"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($_error/ns1:ErrorReport)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/MessageType/GLB_ProprietaryDataModel"/>
+                        </MessageType>
+                    </ErrorHeader>
+                </CLEHeader>
+                <Body>
+                    <xsl:value-of select="tib:render-xml($_error/ns1:ErrorReport)"/>
+                </Body>
+            </pfx:CLEMessage>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="TraceErrorARC">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>336</pd:x>
+        <pd:y>260</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_TrackingManagement/ARC_TrackingErrorManagement.process</processName>
+        </config>
+        <pd:inputBindings>
+            <pfx:CLEMessage>
+                <CLEHeader>
+                    <E2EId>
+                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_InstancedIdNoInitialized"/>
+                    </E2EId>
+                    <E2EDeepness>
+                        <xsl:value-of select="0"/>
+                    </E2EDeepness>
+                    <InvocationUser>
+                        <xsl:value-of select="&quot;&quot;"/>
+                    </InvocationUser>
+                    <EventCode>
+                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_QueuesNotFound"/>
+                    </EventCode>
+                    <EventType>
+                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Error"/>
+                    </EventType>
+                    <Timestamp>
+                        <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                    </Timestamp>
+                    <ServiceId>
+                        <xsl:value-of select="&quot;&quot;"/>
+                    </ServiceId>
+                    <InstanceId>
+                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_InstancedIdNoInitialized"/>
+                    </InstanceId>
+                    <ProjectName>
+                        <xsl:value-of select="$_processContext/ns1:ProcessContext/ProjectName"/>
+                    </ProjectName>
+                    <ProcessName>
+                        <xsl:value-of select="BW:getCurrentProcessName($_processContext/ns1:ProcessContext/ProcessId)"/>
+                    </ProcessName>
+                    <EngineName>
+                        <xsl:value-of select="$_processContext/ns1:ProcessContext/EngineName"/>
+                    </EngineName>
+                    <MachineName>
+                        <xsl:value-of select="&quot;&quot;"/>
+                    </MachineName>
+                    <ErrorHeader>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_QueuesNotFound"/>
+                        </ErrorCode>
+                        <xsl:if test="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_QueuesNotFound">
+                            <ErrorDescription>
+                                <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_QueuesNotFound"/>
+                            </ErrorDescription>
+                        </xsl:if>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <Severity>
+                            <xsl:value-of select="1"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/EventType/ERR"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($_error/ns1:ErrorReport)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/MessageType/GLB_ProprietaryDataModel"/>
+                        </MessageType>
+                    </ErrorHeader>
+                </CLEHeader>
+            </pfx:CLEMessage>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Generate-Error-1">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>452</pd:x>
+        <pd:y>255</pd:y>
+        <config>
+            <faultName/>
+        </config>
+        <pd:inputBindings>
+            <ns3:ActivityInput>
+                <message>
+                    <xsl:value-of select="concat(&#xA;&quot;SHUTDOWN porque en el fichero &quot;, $_globalVariables/ns:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_PATH,'Queues.xml hay algun ServiceId con Environment distinto a: ',$_globalVariables/ns:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_ENVIRONMENT_PREFIX, &quot;&#xA;&quot;,&#xA;&quot;ServiceIDs mal configurados: &quot;,&quot;&#xA;&quot;,&#xA;tib:concat-sequence-format(for $destination in $Map-Environment/root/Destinations[Environment!=$_globalVariables/ns:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_ENVIRONMENT_PREFIX] &#xA;return concat($destination/ServiceId , &quot; - Destination: &quot;, $destination/Destination), &quot;&#xA;&quot;) )"/>
+                </message>
+            </ns3:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Map Environment">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>451</pd:x>
+        <pd:y>140</pd:y>
+        <config>
+            <element>
+                <xsd:element name="root">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="Destinations" minOccurs="0" maxOccurs="unbounded">
+                                <xsd:complexType>
+                                    <xsd:sequence>
+                                        <xsd:element name="Destination" type="xsd:string"/>
+                                        <xsd:element name="Environment" type="xsd:string"/>
+                                        <xsd:element name="ServiceId" type="xsd:string"/>
+                                    </xsd:sequence>
+                                </xsd:complexType>
+                            </xsd:element>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+            </element>
+        </config>
+        <pd:inputBindings>
+            <root>
+                <xsl:for-each select="$ARC_FindQueues/pfx:QueuesCacheList/pfx:Destination">
+                    <Destinations>
+                        <Destination>
+                            <xsl:value-of select="current()"/>
+                        </Destination>
+                        <Environment>
+                            <xsl:value-of select="tib:tokenize(current(),'.')[4]"/>
+                        </Environment>
+                        <ServiceId>
+                            <xsl:value-of select="@ServiceId"/>
+                        </ServiceId>
+                    </Destinations>
+                </xsl:for-each>
+            </root>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>ARC_FindQueues</pd:from>
+        <pd:to>Map Environment</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>TraceError</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_FindQueues</pd:from>
+        <pd:to>TraceErrorARC</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65485</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Parse XML</pd:from>
+        <pd:to>MapServiceIDsNotFound</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>MapServiceIDsNotFound</pd:from>
+        <pd:to>Generate Error</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Log OK</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Engine Command</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>TraceError</pd:from>
+        <pd:to>Engine Command</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>TraceErrorARC</pd:from>
+        <pd:to>Parse XML</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Map Environment</pd:from>
+        <pd:to>Log OK</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Map Environment</pd:from>
+        <pd:to>Generate-Error-1</pd:to>
+        <pd:xpathDescription>Environment Error</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>count($Map-Environment/root/Destinations[Environment!=$_globalVariables/ns:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_ENVIRONMENT_PREFIX]/Destination)&gt;0</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>onStartup</pd:from>
+        <pd:to>ARC_FindQueues</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

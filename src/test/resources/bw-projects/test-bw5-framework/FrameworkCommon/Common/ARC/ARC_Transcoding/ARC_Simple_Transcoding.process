@@ -1,0 +1,579 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="www.tibco.com/plugin/java/JavaMethodActivityInput" xmlns:pfx1="http://www.tibco.com/schemas/sqlDirect/Esquemas/Schema.xsd" xmlns:ns5="http://schemas.tibco.com/bw/plugins/xml/5.0/xmlExceptions" xmlns:ns6="http://schemas.tibco.com/bw/plugins/java/5.0/javaExceptions" xmlns:pfx="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:ns2="www.tibco.com/plugin/java/JavaMethodActivityException" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="www.tibco.com/plugin/java/JavaMethodActivityOutput" xmlns:ns4="http://www.tibco.com/pe/EngineTypes" xmlns:ns3="http://www.tibco.com/pe/DeployedVarsType" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx2="http://www.bbva.com/EAIFramework">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_Transcoding/ARC_Simple_Transcoding.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="interface">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="simpleInterface">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="appSource" type="xsd:string"/>
+                                <xsd:element name="appDestination" type="xsd:string"/>
+                                <xsd:element name="entity" type="xsd:string"/>
+                                <xsd:element name="code" type="xsd:string"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>149</pd:startX>
+    <pd:startY>450</pd:startY>
+    <pd:returnBindings>
+        <xsl:choose>
+            <xsl:when test="$getDestinationCode/destinationCode/code">
+                <destinationCode>
+                    <xsl:value-of select="$getDestinationCode/destinationCode/code"/>
+                </destinationCode>
+            </xsl:when>
+            <xsl:when test="$getDestinationCodeDefault/destinationCode/code">
+                <destinationCode>
+                    <xsl:value-of select="$getDestinationCodeDefault/destinationCode/code"/>
+                </destinationCode>
+            </xsl:when>
+            <xsl:otherwise>
+                <destinationCode>
+                    <xsl:value-of select="$Get/Value"/>
+                </destinationCode>
+            </xsl:otherwise>
+        </xsl:choose>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="destinationCode" type="xsd:string"/>
+    </pd:endType>
+    <pd:endX>949</pd:endX>
+    <pd:endY>446</pd:endY>
+    <pd:errorSchemas>
+        <ErrorMessage ref="pfx2:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables>
+        <HashCode>
+            <xsd:element name="HashCode" type="xsd:string"/>
+        </HashCode>
+    </pd:processVariables>
+    <pd:targetNamespace>http://xmlns.example.com/1335458097603</pd:targetNamespace>
+    <pd:activity name="CatchJavaError">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>249</pd:x>
+        <pd:y>611</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>false</catchAll>
+            <fault>localname=ErrorMessage namespace=http://www.bbva.com/EAIFramework</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="getDestinationCode">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>729</pd:x>
+        <pd:y>195</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Transcoding/interface/simpleTranscodingIfz.process</processName>
+            <processNameXPath>concat($GetServiceIdAndPath/Data/Path,$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/Types/Transcoding/GLB_SIMPLE_IMPL)</processNameXPath>
+        </config>
+        <pd:inputBindings>
+            <getDestinationCode>
+                <sourceApplication>
+                    <xsl:value-of select="$Start/interface/simpleInterface/appSource"/>
+                </sourceApplication>
+                <destinationApplication>
+                    <xsl:value-of select="$Start/interface/simpleInterface/appDestination"/>
+                </destinationApplication>
+                <entity>
+                    <xsl:value-of select="$Start/interface/simpleInterface/entity"/>
+                </entity>
+                <value>
+                    <xsl:value-of select="$Start/interface/simpleInterface/code"/>
+                </value>
+            </getDestinationCode>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Rethrow">
+        <pd:type>com.tibco.pe.core.RethrowActivity</pd:type>
+        <pd:resourceType>ae.activities.rethrow</pd:resourceType>
+        <pd:x>346</pd:x>
+        <pd:y>611</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Catch">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>461</pd:x>
+        <pd:y>611</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Error in ARC_Simple_Transcoding">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>621</pd:x>
+        <pd:y>722</pd:y>
+        <config>
+            <faultName>ErrorMessage</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx:ActivityInput>
+                <data>
+                    <xsl:choose>
+                        <xsl:when test="$_error/ns4:ErrorReport/MsgCode=$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_BWENGINE-100017">
+                            <pfx2:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Transcoding/GLB_Not_Implementation"/>
+                                </ErrorCode>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Transcoding/GLB_Not_Implementation_Msg"/>
+                                </ErrorDescription>
+                                <xsl:if test="$_error/ns4:ErrorReport/MsgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error/ns4:ErrorReport/MsgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                                <xsl:if test="$_error/ns4:ErrorReport/Msg">
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$_error/ns4:ErrorReport/Msg"/>
+                                    </NativeErrorDescription>
+                                </xsl:if>
+                                <xsl:if test="$_error/ns4:ErrorReport/StackTrace">
+                                    <StackTrace>
+                                        <xsl:value-of select="$_error/ns4:ErrorReport/StackTrace"/>
+                                    </StackTrace>
+                                </xsl:if>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0, 0)"/>
+                                </ErrorDate>
+                                <xsl:if test="$_error/ns4:ErrorReport/ProcessStack">
+                                    <StackProcess>
+                                        <xsl:value-of select="$_error/ns4:ErrorReport/ProcessStack"/>
+                                    </StackProcess>
+                                </xsl:if>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                </Severity>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/interface)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx2:ErrorMessage>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <pfx2:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                </ErrorCode>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                </Severity>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/interface)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx2:ErrorMessage>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </data>
+            </pfx:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="GetServiceIdAndPath">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>497</pd:x>
+        <pd:y>194</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/ServiceIdAndPath.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="getDestinationCodeDefault">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>619</pd:x>
+        <pd:y>612</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Transcoding/interface/simpleTranscodingIfz.process</processName>
+            <processNameXPath>$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/Types/Transcoding/GLB_SIMPLE_DEFAULT_IMPL</processNameXPath>
+        </config>
+        <pd:inputBindings>
+            <getDestinationCode>
+                <sourceApplication>
+                    <xsl:value-of select="$Start/interface/simpleInterface/appSource"/>
+                </sourceApplication>
+                <destinationApplication>
+                    <xsl:value-of select="$Start/interface/simpleInterface/appDestination"/>
+                </destinationApplication>
+                <entity>
+                    <xsl:value-of select="$Start/interface/simpleInterface/entity"/>
+                </entity>
+                <value>
+                    <xsl:value-of select="$Start/interface/simpleInterface/code"/>
+                </value>
+            </getDestinationCode>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Assign">
+        <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+        <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+        <pd:x>289</pd:x>
+        <pd:y>450</pd:y>
+        <config>
+            <variableName>HashCode</variableName>
+        </config>
+        <pd:inputBindings>
+            <HashCode>
+                <xsl:value-of select="concat($Start/interface/simpleInterface/appSource, $Start/interface/simpleInterface/appDestination,$Start/interface/simpleInterface/entity,$Start/interface/simpleInterface/code)"/>
+            </HashCode>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Put">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:description>A value is placed in the cache</pd:description>
+        <pd:x>945</pd:x>
+        <pd:y>193</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Cache/ARC_Put_In_Cache.process</processName>
+        </config>
+        <pd:inputBindings>
+            <Put_In_Cache>
+                <Key>
+                    <xsl:value-of select="$HashCode/HashCode"/>
+                </Key>
+                <Value>
+                    <xsl:value-of select="$getDestinationCode/destinationCode/code"/>
+                </Value>
+                <Expiration>
+                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/CFG/ARCHITECTURE/TRANSCODING/CFG_CACHE_EXPIRATION"/>
+                </Expiration>
+            </Put_In_Cache>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Get">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>498</pd:x>
+        <pd:y>447</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Cache/ARC_Get_From_Cache.process</processName>
+        </config>
+        <pd:inputBindings>
+            <Key>
+                <xsl:value-of select="$HashCode/HashCode"/>
+            </Key>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Put_In_Cache">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>764</pd:x>
+        <pd:y>612</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Cache/ARC_Put_In_Cache.process</processName>
+        </config>
+        <pd:inputBindings>
+            <Put_In_Cache>
+                <Key>
+                    <xsl:value-of select="$HashCode/HashCode"/>
+                </Key>
+                <Value>
+                    <xsl:value-of select="$getDestinationCodeDefault/destinationCode/code"/>
+                </Value>
+                <Expiration>
+                    <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/CFG/ARCHITECTURE/TRANSCODING/CFG_CACHE_EXPIRATION"/>
+                </Expiration>
+            </Put_In_Cache>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>CatchJavaError</pd:from>
+        <pd:to>Rethrow</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>Error in ARC_Simple_Transcoding</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetServiceIdAndPath</pd:from>
+        <pd:to>getDestinationCode</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>getDestinationCodeDefault</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$_error/ns4:ErrorReport/MsgCode="BWENGINE-100017"</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>getDestinationCodeDefault</pd:from>
+        <pd:to>Put_In_Cache</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Assign</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Assign</pd:from>
+        <pd:to>Get</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get</pd:from>
+        <pd:to>GetServiceIdAndPath</pd:to>
+        <pd:xpathDescription>No value</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get</pd:from>
+        <pd:to>End</pd:to>
+        <pd:xpathDescription>Value</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>string-length($Get/Value)&gt;0</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>getDestinationCode</pd:from>
+        <pd:to>Put</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Put</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Put_In_Cache</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>getDestinationCodeDefault</pd:from>
+        <pd:to>Error in ARC_Simple_Transcoding</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65485</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:label>
+        <pd:name>Label (1)</pd:name>
+        <pd:description>Get the hash
+key for the
+cache memory</pd:description>
+        <pd:x>255</pd:x>
+        <pd:y>378</pd:y>
+        <pd:width>98</pd:width>
+        <pd:height>64</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-3407668</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (1)</pd:name>
+        <pd:description>Invoke dynamically to 
+the process that 
+returns the destination code</pd:description>
+        <pd:x>730</pd:x>
+        <pd:y>117</pd:y>
+        <pd:width>170</pd:width>
+        <pd:height>65</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-6710785</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (5)</pd:name>
+        <pd:description>Invoke the default process 
+if the previous process
+couldn´t be invoke</pd:description>
+        <pd:x>619</pd:x>
+        <pd:y>543</pd:y>
+        <pd:width>170</pd:width>
+        <pd:height>60</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-39220</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (8)</pd:name>
+        <pd:description>Get the process to be invoke dynamically.</pd:description>
+        <pd:x>514</pd:x>
+        <pd:y>132</pd:y>
+        <pd:width>140</pd:width>
+        <pd:height>48</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-39424</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (18)</pd:name>
+        <pd:description>Store the destination
+cocde in cache</pd:description>
+        <pd:x>885</pd:x>
+        <pd:y>602</pd:y>
+        <pd:width>156</pd:width>
+        <pd:height>48</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-16751002</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (19)</pd:name>
+        <pd:description>Store the destination
+XML in cache</pd:description>
+        <pd:x>1537</pd:x>
+        <pd:y>34</pd:y>
+        <pd:width>156</pd:width>
+        <pd:height>48</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-6697984</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (3) (1)</pd:name>
+        <pd:description>If the destination XML 
+is not stored in cache</pd:description>
+        <pd:x>1732</pd:x>
+        <pd:y>34</pd:y>
+        <pd:width>145</pd:width>
+        <pd:height>48</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-6711040</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (3) (2)</pd:name>
+        <pd:description>If the destination code 
+is stored in cache</pd:description>
+        <pd:x>738</pd:x>
+        <pd:y>381</pd:y>
+        <pd:width>145</pd:width>
+        <pd:height>48</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-13421569</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label</pd:name>
+        <pd:description>Get the destination
+code from the
+cache memory</pd:description>
+        <pd:x>426</pd:x>
+        <pd:y>378</pd:y>
+        <pd:width>133</pd:width>
+        <pd:height>64</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-13210</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (19) (1)</pd:name>
+        <pd:description>Store the destination
+code in cache</pd:description>
+        <pd:x>948</pd:x>
+        <pd:y>121</pd:y>
+        <pd:width>137</pd:width>
+        <pd:height>53</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-6697984</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (3) (3) (1) (1)</pd:name>
+        <pd:description>If the destination code 
+is not stored in cache</pd:description>
+        <pd:x>579</pd:x>
+        <pd:y>270</pd:y>
+        <pd:width>147</pd:width>
+        <pd:height>54</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-6711040</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+</pd:ProcessDefinition>

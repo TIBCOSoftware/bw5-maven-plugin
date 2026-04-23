@@ -1,0 +1,37 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>GLB_FLTR_Filter</name>
+			<value>/FilterMessage.process</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673975</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_FLTR_Folder</name>
+			<value>/Filter</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673890</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_FLTR_Split</name>
+			<value>/SplitMessage.process</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671222</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_FLTR_XSLTFilterPrefix</name>
+			<value>XSLTFilter</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1390837643439</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

@@ -116,30 +116,34 @@ public class PullMojo extends AbstractBw5Mojo {
         int skipped = 0;
 
         // Stage projlibs
-        List<StagedDep> staged = new ArrayList<>();
+        List<StagedDep> stagedProjlibs = new ArrayList<>();
         for (Artifact projlib : projlibs) {
             StagedDep dep = stage(projlib, "projlib");
-            staged.add(dep);
+            stagedProjlibs.add(dep);
             if (dep.wasCopied) copied++; else skipped++;
         }
 
-        // Stage JARs
+        // Stage JARs (for Designer classpath / FileAlias use)
+        List<StagedDep> stagedJars = new ArrayList<>();
         for (Artifact jar : jars) {
             StagedDep dep = stage(jar, "jar");
-            staged.add(dep);
+            stagedJars.add(dep);
             if (dep.wasCopied) copied++; else skipped++;
         }
 
         getLog().info("Staged: " + copied + " file(s) copied, " + skipped + " already up-to-date.");
 
-        // Update .designtimelibs in BW project source
+        // Update .designtimelibs in BW project source — projlibs only, Maven coordinate format
         if (libsSourceDir.exists()) {
-            updateDesigntimeLibs(libsSourceDir, projlibs, jars);
+            updateDesigntimeLibs(libsSourceDir, stagedProjlibs);
         } else {
             getLog().warn(".designtimelibs not written: BW project path does not exist: "
                 + libsSourceDir.getAbsolutePath()
                 + "\nRun bw5:designer-setup after the project source is in place, or set bw5.designtimeLibsDir.");
         }
+
+        // Generate target/.TIBCO/Designer5.prefs with FileAlias entries for all staged deps
+        writeDesigner5Prefs(stagedProjlibs, stagedJars);
 
         // Suggest .gitignore entry
         ensureGitignore();
@@ -147,6 +151,81 @@ public class PullMojo extends AbstractBw5Mojo {
         // Optionally launch Designer
         if (launchDesigner) {
             launchDesigner();
+        }
+    }
+
+    /**
+     * Generates {@code target/.TIBCO/Designer5.prefs} with {@code filealias.pref.N} entries
+     * pointing to the staged dependency files.
+     *
+     * <p>Reads {@code ~/.TIBCO/Designer5.prefs} for existing preferences (palette settings,
+     * recent projects, etc.), strips all {@code filealias.pref.*} lines, and re-appends them
+     * with the current Maven-resolved paths. The result is written to
+     * {@code target/.TIBCO/Designer5.prefs} — the real {@code ~/.TIBCO/} file is never touched,
+     * so multiple projects can be set up independently without interfering with each other.</p>
+     *
+     * <p>To make Designer read this file instead of {@code ~/.TIBCO/Designer5.prefs}, the
+     * {@code designer.tra} must contain {@code java.property.user.home=<project>/target},
+     * which translates to {@code -Duser.home=<project>/target} on the JVM. See
+     * {@link #prepareDesignerTra(File)}.</p>
+     */
+    private void writeDesigner5Prefs(List<StagedDep> stagedProjlibs, List<StagedDep> stagedJars)
+            throws MojoExecutionException {
+
+        // Base prefs on the real system file so palette/window settings are preserved
+        File systemPrefs = new File(System.getProperty("user.home"), ".TIBCO/Designer5.prefs");
+        List<String> lines = new ArrayList<>();
+        if (systemPrefs.exists()) {
+            try (BufferedReader r = new BufferedReader(
+                    new InputStreamReader(new FileInputStream(systemPrefs), StandardCharsets.ISO_8859_1))) {
+                String line;
+                while ((line = r.readLine()) != null) {
+                    if (!line.startsWith("filealias.pref.")) {
+                        lines.add(line);
+                    }
+                }
+            } catch (IOException e) {
+                getLog().warn("Could not read " + systemPrefs + ": " + e.getMessage()
+                    + " — generating prefs from scratch.");
+            }
+        }
+
+        // Append filealias entries: projlibs first, then JARs
+        int idx = 0;
+        for (StagedDep dep : stagedProjlibs) {
+            Artifact a = dep.artifact;
+            lines.add("filealias.pref." + idx + "="
+                + a.getGroupId() + ":" + a.getArtifactId() + ":" + a.getVersion() + ":projlib"
+                + "\\=" + dep.stagedFile.getAbsolutePath());
+            idx++;
+        }
+        for (StagedDep dep : stagedJars) {
+            Artifact a = dep.artifact;
+            lines.add("filealias.pref." + idx + "="
+                + a.getGroupId() + ":" + a.getArtifactId() + ":" + a.getVersion() + ":jar"
+                + "\\=" + dep.stagedFile.getAbsolutePath());
+            idx++;
+        }
+
+        File targetPrefs = new File(project.getBuild().getDirectory(), ".TIBCO/Designer5.prefs");
+        targetPrefs.getParentFile().mkdirs();
+        try (Writer w = new OutputStreamWriter(
+                new FileOutputStream(targetPrefs), StandardCharsets.ISO_8859_1)) {
+            for (String line : lines) {
+                w.write(line);
+                w.write("\n");
+            }
+        } catch (IOException e) {
+            throw new MojoExecutionException(
+                "Failed to write Designer5.prefs: " + e.getMessage(), e);
+        }
+
+        getLog().info("Generated: " + targetPrefs.getAbsolutePath()
+            + " (" + idx + " filealias entries)");
+        if (!launchDesigner) {
+            getLog().info("To open Designer with these aliases, run:");
+            getLog().info("  JAVA_TOOL_OPTIONS=\"-Duser.home=" + project.getBuild().getDirectory()
+                + "\" designer " + bwProjectPath.getAbsolutePath());
         }
     }
 
@@ -186,64 +265,66 @@ public class PullMojo extends AbstractBw5Mojo {
     /**
      * Writes or updates the {@code .designtimelibs} file in the BW project source directory.
      *
-     * <p>Format used (compatible with TIBCO Designer + bw-maven-plugin integration):</p>
+     * <p>Format used by TIBCO Designer with the bw-maven-plugin Designer integration:</p>
      * <pre>
      * #Design time libraries
      * #Format: #=File Alias=Description
      * #&lt;timestamp&gt;
-     * 0=groupId:artifactId:version:type\=
-     * 1=groupId:artifactId:version:type\=
+     * 0=groupId\:artifactId\:version\:projlib\=
+     * 1=groupId\:artifactId\:version\:projlib\=
      * </pre>
      *
-     * <p>Projlibs are listed first (index 0..N), then JARs continue the numbering.
-     * Existing entries not managed by this plugin are preserved.</p>
+     * <p>Only projlib entries are written — JAR dependencies are not listed here.
+     * Colons are escaped as {@code \:} and each entry ends with {@code \=} as required
+     * by the Java properties-like format TIBCO Designer reads.</p>
      */
-    private void updateDesigntimeLibs(File projectDir, List<Artifact> projlibs, List<Artifact> jars)
+    private void updateDesigntimeLibs(File projectDir, List<StagedDep> stagedProjlibs)
             throws MojoExecutionException {
 
         File designtimeLibsFile = new File(projectDir, ".designtimelibs");
 
-        // Read existing entries to preserve any manual entries not in our dependency list
-        Map<String, String> existingByCoord = readExistingEntries(designtimeLibsFile);
-
-        // Build new entry set: managed entries (all projlib+jar deps from pom)
-        // We rebuild the index from scratch to keep it clean
-        LinkedHashMap<String, String> entries = new LinkedHashMap<>();
-
-        // Add projlibs first
-        for (Artifact projlib : projlibs) {
-            String coord = projlib.getGroupId() + ":" + projlib.getArtifactId()
-                + ":" + projlib.getVersion() + ":projlib";
-            entries.put(coord, coord);
+        // Build the set of Maven coordinates for projlibs managed by this plugin
+        LinkedHashSet<String> managedCoords = new LinkedHashSet<>();
+        for (StagedDep dep : stagedProjlibs) {
+            Artifact a = dep.artifact;
+            managedCoords.add(a.getGroupId() + ":" + a.getArtifactId() + ":" + a.getVersion() + ":projlib");
         }
 
-        // Add JARs
-        for (Artifact jar : jars) {
-            String coord = jar.getGroupId() + ":" + jar.getArtifactId()
-                + ":" + jar.getVersion() + ":jar";
-            entries.put(coord, coord);
-        }
-
-        // Preserve manual entries not in our managed set
-        for (Map.Entry<String, String> existing : existingByCoord.entrySet()) {
-            if (!entries.containsKey(existing.getKey())) {
-                entries.put(existing.getKey(), existing.getValue());
-                getLog().debug("Preserving manual .designtimelibs entry: " + existing.getKey());
+        // Read existing entries; preserve manual ones (valid coord entries not in our managed set)
+        List<String> manualCoords = new ArrayList<>();
+        if (designtimeLibsFile.exists()) {
+            try (BufferedReader r = new BufferedReader(
+                    new InputStreamReader(new FileInputStream(designtimeLibsFile), StandardCharsets.ISO_8859_1))) {
+                String line;
+                while ((line = r.readLine()) != null) {
+                    line = line.trim();
+                    if (line.startsWith("#") || line.isEmpty()) continue;
+                    int eq = line.indexOf('=');
+                    if (eq < 0) continue;
+                    String value = line.substring(eq + 1);
+                    if (value.endsWith("\\=")) value = value.substring(0, value.length() - 2);
+                    value = value.replace("\\:", ":");
+                    if (!managedCoords.contains(value) && value.contains(":") && !value.startsWith("/")) {
+                        manualCoords.add(value);
+                        getLog().debug("Preserving manual .designtimelibs entry: " + value);
+                    }
+                }
+            } catch (IOException e) {
+                getLog().warn("Could not read existing .designtimelibs: " + e.getMessage());
             }
         }
 
-        // Write the file
         StringBuilder sb = new StringBuilder();
         sb.append("#Design time libraries\n");
         sb.append("#Format: #=File Alias=Description\n");
         sb.append("#").append(new java.util.Date()).append("\n");
 
         int idx = 0;
-        for (String coord : entries.keySet()) {
-            // Escape colons in the coordinate as per the format observed in real files
-            String escaped = coord.replace(":", "\\:");
-            sb.append(idx).append("=").append(escaped).append("\\=\n");
-            idx++;
+        for (String coord : managedCoords) {
+            sb.append(idx++).append("=").append(coord.replace(":", "\\:")).append("\\=\n");
+        }
+        for (String coord : manualCoords) {
+            sb.append(idx++).append("=").append(coord.replace(":", "\\:")).append("\\=\n");
         }
 
         try (Writer w = new OutputStreamWriter(
@@ -255,39 +336,7 @@ public class PullMojo extends AbstractBw5Mojo {
         }
 
         getLog().info("Updated: " + designtimeLibsFile.getAbsolutePath()
-            + " (" + entries.size() + " entries)");
-    }
-
-    /**
-     * Reads existing {@code .designtimelibs} entries into a map of {@code coord -> coord}.
-     * Returns empty map if file doesn't exist.
-     */
-    private Map<String, String> readExistingEntries(File file) {
-        Map<String, String> result = new LinkedHashMap<>();
-        if (!file.exists()) return result;
-
-        try (BufferedReader r = new BufferedReader(
-                new InputStreamReader(new FileInputStream(file), StandardCharsets.ISO_8859_1))) {
-            String line;
-            while ((line = r.readLine()) != null) {
-                line = line.trim();
-                if (line.startsWith("#") || line.isEmpty()) continue;
-                // Format: N=coord\=  or N=coord\:with\:colons\=
-                int eq = line.indexOf('=');
-                if (eq < 0) continue;
-                String value = line.substring(eq + 1);
-                // Remove trailing \=
-                if (value.endsWith("\\=")) {
-                    value = value.substring(0, value.length() - 2);
-                }
-                // Unescape colons
-                value = value.replace("\\:", ":");
-                result.put(value, value);
-            }
-        } catch (IOException e) {
-            getLog().warn("Could not read existing .designtimelibs: " + e.getMessage());
-        }
-        return result;
+            + " (" + (managedCoords.size() + manualCoords.size()) + " entries)");
     }
 
     /**
@@ -328,15 +377,27 @@ public class PullMojo extends AbstractBw5Mojo {
                 + "Expected location: <tibcoHome>/designer/5.*/bin/designer[.exe]");
         }
 
+        File binDir = executable.getParentFile();
+        String targetDir = project.getBuild().getDirectory();
+
+        // JAVA_TOOL_OPTIONS is injected into the JVM before any TRA properties are applied.
+        // Since designer.tra has no java.property.user.home entry, this sets user.home cleanly,
+        // causing Designer to read target/.TIBCO/Designer5.prefs instead of ~/.TIBCO/Designer5.prefs.
+        // This works with TIBCO's native embedded JVM launcher (JNI_CreateJavaVM honours it).
+        // No TIBCO installation files are modified.
+        String javaToolOptions = "-Duser.home=" + targetDir;
+
         getLog().info("Launching Designer: " + executable.getAbsolutePath());
         getLog().info("Project directory : " + bwProjectPath.getAbsolutePath());
+        getLog().info("JAVA_TOOL_OPTIONS  : " + javaToolOptions);
 
         try {
-            new ProcessBuilder(executable.getAbsolutePath(), bwProjectPath.getAbsolutePath())
-                .directory(bwProjectPath)
-                .inheritIO()
-                .start();
-            // Detached — we do not wait for Designer to exit
+            ProcessBuilder pb = new ProcessBuilder(
+                    executable.getAbsolutePath(), bwProjectPath.getAbsolutePath())
+                .directory(binDir)
+                .inheritIO();
+            pb.environment().put("JAVA_TOOL_OPTIONS", javaToolOptions);
+            pb.start();
             getLog().info("Designer launched (detached). You can continue working in the terminal.");
         } catch (IOException e) {
             throw new MojoExecutionException(

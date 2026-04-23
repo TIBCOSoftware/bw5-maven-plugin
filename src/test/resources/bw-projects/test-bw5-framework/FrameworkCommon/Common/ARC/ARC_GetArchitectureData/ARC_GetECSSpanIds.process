@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.bbva.com/EAIFramework" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:UUID="java://Framework.CommonResources.CustomFunctions.UUIDGenerator.UUIDGenerator" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType">
+    <pd:name>Common/ARC/ARC_GetArchitectureData/ARC_GetECSSpanIds.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ARC_GES_IN">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="generateNewSpanId" type="xsd:boolean"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>92</pd:startX>
+    <pd:startY>68</pd:startY>
+    <pd:returnBindings>
+        <group>
+            <xsl:if test="string-length($GetECSConfig/group/ns:ECSConfig/ns:namespace)>0">
+                <xsl:if test="$GetArchitectureHeaderData/FrameworkData/ns:ArchitectureHeader/ns:ECSHeader/ns:traceId">
+                    <traceId>
+                        <xsl:value-of select="$GetArchitectureHeaderData/FrameworkData/ns:ArchitectureHeader/ns:ECSHeader/ns:traceId"/>
+                    </traceId>
+                </xsl:if>
+            </xsl:if>
+            <xsl:if test="string-length($GetECSConfig/group/ns:ECSConfig/ns:namespace)>0">
+                <parentSpan>
+                    <xsl:value-of select="concat($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/NSToken,$GetECSConfig/group/ns:ECSConfig/ns:namespace,$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/MRSToken,$GetECSConfig/group/ns:ECSConfig/ns:mrId,$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/SpansToken,$GetArchitectureHeaderData/FrameworkData/ns:ArchitectureHeader/ns:ECSHeader/ns:spanId)"/>
+                </parentSpan>
+            </xsl:if>
+            <xsl:if test="$Start/ARC_GES_IN/generateNewSpanId=$_globalVariables/ns1:GlobalVariables/GeneralConstants/BooleanConstants/True&#xA;and&#xA;string-length($GetECSConfig/group/ns:ECSConfig/ns:namespace)>0">
+                <spanId>
+                    <xsl:value-of select="concat($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/SpanPrefix,tib:timestamp(),&quot;-&quot;,$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/ESBToken,&quot;-&quot;,UUID:generateUUID())"/>
+                </spanId>
+            </xsl:if>
+        </group>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="group">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="traceId" type="xsd:string" minOccurs="0"/>
+                    <xsd:element name="parentSpan" type="xsd:string" minOccurs="0"/>
+                    <xsd:element name="spanId" type="xsd:string" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>496</pd:endX>
+    <pd:endY>68</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1592497080788</pd:targetNamespace>
+    <pd:activity name="GetArchitectureHeaderData">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>218</pd:x>
+        <pd:y>67</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/Architecture Internal Data.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="GetECSConfig">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>357</pd:x>
+        <pd:y>68</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/ECSConfig.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>GetArchitectureHeaderData</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetArchitectureHeaderData</pd:from>
+        <pd:to>GetECSConfig</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetECSConfig</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

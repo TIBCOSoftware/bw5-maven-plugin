@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/DeployedVarsType" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <pd:name>Common/ARC/ARC_Cache/ARC_Get_From_Cache.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="Key" type="xsd:string"/>
+    </pd:startType>
+    <pd:startX>131</pd:startX>
+    <pd:startY>110</pd:startY>
+    <pd:returnBindings>
+        <Value>
+            <xsl:value-of select="$Get_From_Coherence_Cache/javaCodeActivityOutput/Value"/>
+        </Value>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="Value" type="xsd:string"/>
+    </pd:endType>
+    <pd:endX>459</pd:endX>
+    <pd:endY>111</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1338227484956</pd:targetNamespace>
+    <pd:activity name="Get_From_Coherence_Cache">
+        <pd:type>com.tibco.plugin.java.JavaActivity</pd:type>
+        <pd:resourceType>ae.javapalette.javaActivity</pd:resourceType>
+        <pd:x>285</pd:x>
+        <pd:y>110</pd:y>
+        <config>
+            <fileName>ARC_Get_From_CacheGet_From_Coherence_Cache</fileName>
+            <packageName>Common.ARC.ARC_Cache.ARC_Get_From_Cache</packageName>
+            <fullsource>package Common.ARC.ARC_Cache.ARC_Get_From_Cache;
+import java.util.*;
+import java.io.*;
+import com.tangosol.net.CacheFactory;
+import com.tangosol.net.NamedCache;
+
+public class ARC_Get_From_CacheGet_From_Coherence_Cache{
+/****** START SET/GET METHOD, DO NOT MODIFY *****/
+	protected String CacheName = "";
+	protected String Key = "";
+	protected String Value = "";
+	public String getCacheName() {
+		return CacheName;
+	}
+	public void setCacheName(String val) {
+		CacheName = val;
+	}
+	public String getKey() {
+		return Key;
+	}
+	public void setKey(String val) {
+		Key = val;
+	}
+	public String getValue() {
+		return Value;
+	}
+	public void setValue(String val) {
+		Value = val;
+	}
+/****** END SET/GET METHOD, DO NOT MODIFY *****/
+	public ARC_Get_From_CacheGet_From_Coherence_Cache() {
+	}
+	public void invoke() throws Exception {
+/* Available Variables: DO NOT MODIFY
+	In  : String CacheName
+	In  : String Key
+	Out : String Value
+* Available Variables: DO NOT MODIFY *****/
+
+	NamedCache cache=CacheFactory.getCache(CacheName);
+	Value=(String)cache.get(Key);
+
+
+}
+}
+</fullsource>
+            <javaArchive>/SharedResources/JavaLibraries/ArchitectureJavaLibrary.aliaslib</javaArchive>
+            <outputData>
+                <row>
+                    <fieldName>Value</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>optional</fieldRequired>
+                </row>
+            </outputData>
+            <inputData>
+                <row>
+                    <fieldName>CacheName</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>required</fieldRequired>
+                </row>
+                <row>
+                    <fieldName>Key</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>required</fieldRequired>
+                </row>
+            </inputData>
+            <byteCode>
+                <class>
+                    <name>ARC_Get_From_CacheGet_From_Coherence_Cache</name>
+                    <byteCode>yv66vgAAADIAMwkACQAgCQAJACEJAAkAIgoACgAjCAAkCgAlACYLACcAKAcAKQcAKgcAKwEACUNhY2hlTmFtZQEAEkxqYXZhL2xhbmcvU3RyaW5nOwEAA0tleQEABVZhbHVlAQAMZ2V0Q2FjaGVOYW1lAQAUKClMamF2YS9sYW5nL1N0cmluZzsBAARDb2RlAQAPTGluZU51bWJlclRhYmxlAQAMc2V0Q2FjaGVOYW1lAQAVKExqYXZhL2xhbmcvU3RyaW5nOylWAQAGZ2V0S2V5AQAGc2V0S2V5AQAIZ2V0VmFsdWUBAAhzZXRWYWx1ZQEABjxpbml0PgEAAygpVgEABmludm9rZQEACkV4Y2VwdGlvbnMHACwBAApTb3VyY2VGaWxlAQAvQVJDX0dldF9Gcm9tX0NhY2hlR2V0X0Zyb21fQ29oZXJlbmNlX0NhY2hlLmphdmEMAAsADAwADQAMDAAOAAwMABkAGgEAAAcALQwALgAvBwAwDAAxADIBABBqYXZhL2xhbmcvU3RyaW5nAQBSQ29tbW9uL0FSQy9BUkNfQ2FjaGUvQVJDX0dldF9Gcm9tX0NhY2hlL0FSQ19HZXRfRnJvbV9DYWNoZUdldF9Gcm9tX0NvaGVyZW5jZV9DYWNoZQEAEGphdmEvbGFuZy9PYmplY3QBABNqYXZhL2xhbmcvRXhjZXB0aW9uAQAdY29tL3Rhbmdvc29sL25ldC9DYWNoZUZhY3RvcnkBAAhnZXRDYWNoZQEAMShMamF2YS9sYW5nL1N0cmluZzspTGNvbS90YW5nb3NvbC9uZXQvTmFtZWRDYWNoZTsBABtjb20vdGFuZ29zb2wvbmV0L05hbWVkQ2FjaGUBAANnZXQBACYoTGphdmEvbGFuZy9PYmplY3Q7KUxqYXZhL2xhbmcvT2JqZWN0OwAhAAkACgAAAAMABAALAAwAAAAEAA0ADAAAAAQADgAMAAAACAABAA8AEAABABEAAAAdAAEAAQAAAAUqtAABsAAAAAEAEgAAAAYAAQAAAA0AAQATABQAAQARAAAAIgACAAIAAAAGKiu1AAGxAAAAAQASAAAACgACAAAAEAAFABEAAQAVABAAAQARAAAAHQABAAEAAAAFKrQAArAAAAABABIAAAAGAAEAAAATAAEAFgAUAAEAEQAAACIAAgACAAAABiortQACsQAAAAEAEgAAAAoAAgAAABYABQAXAAEAFwAQAAEAEQAAAB0AAQABAAAABSq0AAOwAAAAAQASAAAABgABAAAAGQABABgAFAABABEAAAAiAAIAAgAAAAYqK7UAA7EAAAABABIAAAAKAAIAAAAcAAUAHQABABkAGgABABEAAAA/AAIAAQAAABcqtwAEKhIFtQABKhIFtQACKhIFtQADsQAAAAEAEgAAABYABQAAAB8ABAAJAAoACgAQAAsAFgAgAAEAGwAaAAIAEQAAADoAAwACAAAAGiq0AAG4AAZMKisqtAACuQAHAgDAAAi1AAOxAAAAAQASAAAADgADAAAAKAAIACkAGQAsABwAAAAEAAEAHQABAB4AAAACAB8=</byteCode>
+                </class>
+            </byteCode>
+        </config>
+        <pd:inputBindings>
+            <javaCodeActivityInput>
+                <CacheName>
+                    <xsl:value-of select="$_globalVariables/ns:GlobalVariables/CFG/ARCHITECTURE/TRANSCODING/CFG_DB_CACHE_NAME"/>
+                </CacheName>
+                <Key>
+                    <xsl:value-of select="$Start/Key"/>
+                </Key>
+            </javaCodeActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Get_From_Coherence_Cache</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get_From_Coherence_Cache</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

@@ -1,0 +1,72 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>CFG_DELIVERY_MODE</name>
+			<value>PERSISTENT</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1612807062504</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_JMS_EXPIRATION</name>
+			<value>0</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1612807062591</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_JMS_PASSWORD</name>
+			<value>#!pXmh2UGovToZOITXgB0TQg==</value>
+			<description>Password del servidor EMS de auditoría</description>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Password</type>
+			<modTime>1622713355809</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_JMS_QCONN_FACTORY</name>
+			<value>QueueConnectionFactory</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1445332647595</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_JMS_TCONN_FACTORY</name>
+			<value>TopicConnectionFactory</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1445332647657</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_JMS_URL</name>
+			<value></value>
+			<description>URL de conexión al servidor EMS de auditoria</description>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1622713356007</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_JMS_USER</name>
+			<value></value>
+			<description>Usuario del servidor EMS de auditoría</description>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1622713356117</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_PRIORITY</name>
+			<value>4</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1612807062417</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

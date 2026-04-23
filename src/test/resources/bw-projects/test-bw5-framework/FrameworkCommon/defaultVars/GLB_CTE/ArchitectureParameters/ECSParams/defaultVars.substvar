@@ -1,0 +1,21 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>ListServicesNotSendECSHeader</name>
+			<value>no value</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1607016050172</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>ListServicesNotSetECSHeader</name>
+			<value>no value</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1607016050250</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

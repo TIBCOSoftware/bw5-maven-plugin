@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:pfx="http://www.bbva.com/EAIFramework">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_SetAdditionalArchitectureHeaderData/ARC_SetAdditionalArchitectureHeaderData.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ARC_SetAdditionalArchitectureHeaderData">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="BBVAUser" type="pfx:UserType" minOccurs="0"/>
+                    <xsd:element name="Externald" type="xsd:string" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>150</pd:startX>
+    <pd:startY>78</pd:startY>
+    <pd:returnBindings/>
+    <pd:endName>End</pd:endName>
+    <pd:endX>672</pd:endX>
+    <pd:endY>78</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1331749571006</pd:targetNamespace>
+    <pd:activity name="SetVariable">
+        <pd:type>com.tibco.pe.core.SetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.setSharedVariable</pd:resourceType>
+        <pd:x>291</pd:x>
+        <pd:y>77</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/AdditionalArchitectureHeaderData.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings>
+            <AdditionalArchitectureHeaderData>
+                <xsl:if test="string-length($Start/ARC_SetAdditionalArchitectureHeaderData/BBVAUser)>0 and string-length($Start/ARC_SetAdditionalArchitectureHeaderData/BBVAUser)&lt;=8">
+                    <xsl:if test="$Start/ARC_SetAdditionalArchitectureHeaderData/BBVAUser">
+                        <BBVAUser>
+                            <xsl:value-of select="$Start/ARC_SetAdditionalArchitectureHeaderData/BBVAUser"/>
+                        </BBVAUser>
+                    </xsl:if>
+                </xsl:if>
+                <xsl:if test="string-length($Start/ARC_SetAdditionalArchitectureHeaderData/Externald)>0">
+                    <xsl:if test="$Start/ARC_SetAdditionalArchitectureHeaderData/Externald">
+                        <ExternalId>
+                            <xsl:value-of select="$Start/ARC_SetAdditionalArchitectureHeaderData/Externald"/>
+                        </ExternalId>
+                    </xsl:if>
+                </xsl:if>
+            </AdditionalArchitectureHeaderData>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="SetVariable-1">
+        <pd:type>com.tibco.pe.core.SetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.setSharedVariable</pd:resourceType>
+        <pd:x>557</pd:x>
+        <pd:y>77</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/Architecture Internal Data.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings>
+            <FrameworkData>
+                <xsl:if test="$ARC_GetArchitectureInternalData/FrameworkData/InvocationsNumber">
+                    <InvocationsNumber>
+                        <xsl:value-of select="$ARC_GetArchitectureInternalData/FrameworkData/InvocationsNumber"/>
+                    </InvocationsNumber>
+                </xsl:if>
+                <pfx:ArchitectureHeader>
+                    <xsl:copy-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:AuditHeader"/>
+                    <xsl:copy-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:ECSHeader"/>
+                    <pfx:RequestHeader>
+                        <xsl:choose xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+                            <xsl:when test="string-length($Start/ARC_SetAdditionalArchitectureHeaderData/BBVAUser)>0 and string-length($Start/ARC_SetAdditionalArchitectureHeaderData/BBVAUser)&lt;=8">
+                                <pfx:BBVAUser>
+                                    <xsl:value-of select="$Start/ARC_SetAdditionalArchitectureHeaderData/BBVAUser"/>
+                                </pfx:BBVAUser>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <pfx:BBVAUser>
+                                    <xsl:value-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:BBVAUser"/>
+                                </pfx:BBVAUser>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <xsl:choose>
+                            <xsl:when test="string-length($Start/ARC_SetAdditionalArchitectureHeaderData/Externald)>0">
+                                <xsl:if test="$Start/ARC_SetAdditionalArchitectureHeaderData/Externald">
+                                    <pfx:ExternalId>
+                                        <xsl:value-of select="$Start/ARC_SetAdditionalArchitectureHeaderData/Externald"/>
+                                    </pfx:ExternalId>
+                                </xsl:if>
+                            </xsl:when>
+                            <xsl:when test="string-length($ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:ExternalId)>0">
+                                <pfx:ExternalId>
+                                    <xsl:value-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:ExternalId"/>
+                                </pfx:ExternalId>
+                            </xsl:when>
+                            <xsl:otherwise/>
+                        </xsl:choose>
+                        <pfx:BatchId>
+                            <xsl:value-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:BatchId"/>
+                        </pfx:BatchId>
+                        <pfx:BusinessObject>
+                            <xsl:value-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:BusinessObject"/>
+                        </pfx:BusinessObject>
+                        <pfx:StartTimestamp>
+                            <xsl:value-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:StartTimestamp"/>
+                        </pfx:StartTimestamp>
+                        <pfx:ServiceIdStarter>
+                            <xsl:value-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:ServiceIdStarter"/>
+                        </pfx:ServiceIdStarter>
+                    </pfx:RequestHeader>
+                    <xsl:copy-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:ErrorHeader"/>
+                    <xsl:copy-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:ReprocessingHeader"/>
+                    <xsl:copy-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:SecurityHeader"/>
+                    <xsl:copy-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:RoutingHeader"/>
+                    <xsl:if test="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:FunctionalData">
+                        <xsl:copy-of select="$ARC_GetArchitectureInternalData/FrameworkData/pfx:ArchitectureHeader/pfx:FunctionalData"/>
+                    </xsl:if>
+                </pfx:ArchitectureHeader>
+                <xsl:if test="$ARC_GetArchitectureInternalData/FrameworkData/SaveMessage">
+                    <SaveMessage>
+                        <xsl:value-of select="$ARC_GetArchitectureInternalData/FrameworkData/SaveMessage"/>
+                    </SaveMessage>
+                </xsl:if>
+            </FrameworkData>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_GetArchitectureInternalData">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>419</pd:x>
+        <pd:y>76</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_GetArchitectureData/ARC_GetArchitectureInternalData.process</processName>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>SetVariable</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>SetVariable-1</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>SetVariable</pd:from>
+        <pd:to>ARC_GetArchitectureInternalData</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_GetArchitectureInternalData</pd:from>
+        <pd:to>SetVariable-1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

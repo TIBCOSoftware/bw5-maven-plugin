@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:pfx3="http://www.bbva.com/EAIFramework" xmlns:pfx2="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd">
+    
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC_DPTC/Functionals/FUN_DPTC_GetBusinessObject.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:any processContents="skip"/>
+    </pd:startType>
+    <pd:startX>128</pd:startX>
+    <pd:startY>88</pd:startY>
+    <pd:returnBindings>
+        <BusinessObject>
+            <xsl:value-of select="$Start/pfx:ArchitectureHeader/pfx:RequestHeader/pfx:BusinessObject"/>
+        </BusinessObject>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="BusinessObject" type="xsd:string"/>
+    </pd:endType>
+    <pd:endX>356</pd:endX>
+    <pd:endY>89</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx3:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1328782915078</pd:targetNamespace>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

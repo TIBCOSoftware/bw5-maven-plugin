@@ -77,11 +77,11 @@ public class InitMojo extends AbstractMojo {
 
     /**
      * Maven {@code groupId} for the generated project.
-     * This is the only required parameter — it has no sensible default.
+     * Defaults to {@code com.tibco} when not specified.
      *
      * <p>Example: {@code com.example}, {@code com.acme.bw5}</p>
      */
-    @Parameter(property = "groupId")
+    @Parameter(property = "groupId", defaultValue = "com.tibco")
     private String groupId;
 
     /**
@@ -111,9 +111,7 @@ public class InitMojo extends AbstractMojo {
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (groupId == null || groupId.trim().isEmpty()) {
-            throw new MojoExecutionException(
-                "groupId is required. Specify it on the command line:\n"
-                + "  mvn bw5:init -DgroupId=com.example");
+            groupId = "com.tibco";
         }
 
         if (!projectDir.exists() || !projectDir.isDirectory()) {
@@ -223,9 +221,18 @@ public class InitMojo extends AbstractMojo {
             return new DetectionResult("projlib", toArtifactId(name), libBuilderFile.getName());
         }
 
+        // 3. AESchemas/ folder or vcrepo.dat → recognised BW5 project without explicit descriptor;
+        //    default to bwear using the directory name as artifactId.
+        if (new File(dir, "AESchemas").isDirectory() || new File(dir, "vcrepo.dat").isFile()) {
+            getLog().info("No .archive or .libbuilder found — detected BW5 project via AESchemas/vcrepo.dat."
+                + " Defaulting to bwear packaging.");
+            return new DetectionResult("bwear", toArtifactId(dir.getName()), null);
+        }
+
         throw new MojoExecutionException(
             "Cannot detect BW5 project type in: " + dir.getAbsolutePath() + "\n"
-            + "Expected a .archive file (for bwear) or a .libbuilder file (for projlib).\n"
+            + "Expected a .archive file (for bwear), a .libbuilder file (for projlib),\n"
+            + "or an AESchemas/ folder / vcrepo.dat (generic BW5 project).\n"
             + "Make sure bw5.init.projectDir points to a valid BW5 project directory.");
     }
 

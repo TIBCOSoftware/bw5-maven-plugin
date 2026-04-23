@@ -1,0 +1,23 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>GLB_CommonDataModel</name>
+			<value>CDM</value>
+			<description>Constante para el tipo de mensaje del modulo común de datos</description>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673189</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_ProprietaryDataModel</name>
+			<value>PDM</value>
+			<description>Constante para el modelo propietario de datos</description>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671104</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

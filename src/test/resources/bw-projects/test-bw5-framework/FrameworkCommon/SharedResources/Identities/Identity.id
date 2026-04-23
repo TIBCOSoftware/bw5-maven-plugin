@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Repository:repository xmlns:Repository="http://www.tibco.com/xmlns/repo/types/2002">
+    <identity>
+        <objectType>url</objectType>
+        <name>Identity</name>
+        <designer/>
+        <fileType>PKCS12</fileType>
+        <url>%%CFG/ARCHITECTURE/HTTPS/CFG_HTTPS_ID_URL%%</url>
+        <passPhrase>%%CFG/ARCHITECTURE/HTTPS/CFG_HTTPS_ID_PASS%%</passPhrase>
+    </identity>
+</Repository:repository>

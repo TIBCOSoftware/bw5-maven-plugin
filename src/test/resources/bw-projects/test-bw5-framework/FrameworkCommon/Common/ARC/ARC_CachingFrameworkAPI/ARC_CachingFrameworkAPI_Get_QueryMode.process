@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:ns2="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType" xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:ns4="http://schemas.tibco.com/bw/plugins/jms/5.0/jmsExceptions" xmlns:ns3="http://www.tibco.com/pe/EngineTypes" xmlns:ns0="www.tibco.com/plugin/Sleep" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx2="http://www.tibco.com/ns/no_namespace_schema_location/SharedResources/Schemas/XSD/CachingFramework/esb-querys-structure.xsd" xmlns:ns5="http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions" xmlns:pfx="http://www.bbva.com/EAIFramework">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <xsd:import namespace="http://www.tibco.com/ns/no_namespace_schema_location/SharedResources/Schemas/XSD/CachingFramework/esb-querys-structure.xsd" schemaLocation="/SharedResources/Schemas/XSD/CachingFramework/esb-querys-structure.xsd"/>
+    <pd:name>Common/ARC/ARC_CachingFrameworkAPI/ARC_CachingFrameworkAPI_Get_QueryMode.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="GetData">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="GetMessage">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="RepositoryName" type="xsd:string"/>
+                                <xsd:choice>
+                                    <xsd:element name="queryXML" type="xsd:string"/>
+                                    <xsd:element name="QueryElements">
+                                        <xsd:complexType>
+                                            <xsd:sequence>
+                                                <xsd:element name="Entidad" minOccurs="0" maxOccurs="unbounded">
+                                                    <xsd:complexType>
+                                                        <xsd:sequence>
+                                                            <xsd:element name="Nombre" type="xsd:string"/>
+                                                            <xsd:element ref="pfx2:field-op"/>
+                                                        </xsd:sequence>
+                                                    </xsd:complexType>
+                                                </xsd:element>
+                                                <xsd:element name="Sentencia" type="xsd:token"/>
+                                            </xsd:sequence>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                    <xsd:element name="List">
+                                        <xsd:complexType>
+                                            <xsd:sequence>
+                                                <xsd:element name="Id" type="xsd:string" maxOccurs="unbounded"/>
+                                            </xsd:sequence>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                </xsd:choice>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>42</pd:startX>
+    <pd:startY>174</pd:startY>
+    <pd:returnBindings>
+        <xsl:copy-of select="$ARC_CachingFrameworkAPI_QueueRequestQueryMode/CachingMSG/ReturnList"/>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="ReturnList">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="Result" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>928</pd:endX>
+    <pd:endY>171</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables>
+        <Query ref="pfx2:query"/>
+    </pd:processVariables>
+    <pd:targetNamespace>http://xmlns.example.com/1365601767147</pd:targetNamespace>
+    <pd:activity name="Assign Query">
+        <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+        <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+        <pd:x>408</pd:x>
+        <pd:y>174</pd:y>
+        <config>
+            <variableName>Query</variableName>
+        </config>
+        <pd:inputBindings>
+            <xsl:choose>
+                <xsl:when test="exists($Start/GetData/GetMessage/QueryElements)">
+                    <xsl:copy-of select="$QueryToXML/query"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:copy-of select="$Parse-XML/query"/>
+                </xsl:otherwise>
+            </xsl:choose>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch  Other Error">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>404</pd:x>
+        <pd:y>487</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Catch Controlled Error">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>403</pd:x>
+        <pd:y>412</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <fault>localname=ErrorMessage namespace=http://www.bbva.com/EAIFramework</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="check Query Type">
+        <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+        <pd:resourceType>ae.activities.null</pd:resourceType>
+        <pd:x>129</pd:x>
+        <pd:y>175</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="checkError">
+        <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+        <pd:resourceType>ae.activities.null</pd:resourceType>
+        <pd:x>821</pd:x>
+        <pd:y>173</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Error Cache Adapter">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>821</pd:x>
+        <pd:y>358</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns2:ActivityInput>
+                <data>
+                    <xsl:copy-of select="$ARC_CachingFrameworkAPI_QueueRequestQueryMode/CachingMSG/pfx:ErrorMessage"/>
+                </data>
+            </ns2:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Generate Error">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>543</pd:x>
+        <pd:y>489</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns2:ActivityInput>
+                <data>
+                    <pfx:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                        </ErrorCode>
+                        <ErrorDescription>
+                            <xsl:value-of select="&quot;Unexpected Error&quot;"/>
+                        </ErrorDescription>
+                        <xsl:if test="$_error/ns3:ErrorReport/MsgCode">
+                            <NativeErrorCode>
+                                <xsl:value-of select="$_error/ns3:ErrorReport/MsgCode"/>
+                            </NativeErrorCode>
+                        </xsl:if>
+                        <xsl:if test="$_error/ns3:ErrorReport/Msg">
+                            <NativeErrorDescription>
+                                <xsl:value-of select="$_error/ns3:ErrorReport/Msg"/>
+                            </NativeErrorDescription>
+                        </xsl:if>
+                        <StackTrace>
+                            <xsl:value-of select="$_error/ns3:ErrorReport/StackTrace"/>
+                        </StackTrace>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <xsl:if test="$_error/ns3:ErrorReport/ProcessStack">
+                            <StackProcess>
+                                <xsl:value-of select="$_error/ns3:ErrorReport/ProcessStack"/>
+                            </StackProcess>
+                        </xsl:if>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/GetData)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                        <FunctionalErrorData>
+                            <xsl:copy-of select="$_error/ns3:ErrorReport"/>
+                        </FunctionalErrorData>
+                    </pfx:ErrorMessage>
+                </data>
+            </ns2:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Parse XML">
+        <pd:type>com.tibco.plugin.xml.XMLParseActivity</pd:type>
+        <pd:resourceType>ae.activities.XMLParseActivity</pd:resourceType>
+        <pd:x>280</pd:x>
+        <pd:y>172</pd:y>
+        <config>
+            <inputStyle>text</inputStyle>
+            <xsdVersion>default</xsdVersion>
+            <validateOutput>true</validateOutput>
+            <term ref="pfx2:query"/>
+        </config>
+        <pd:inputBindings>
+            <xmlString>
+                <xsl:value-of select="$Start/GetData/GetMessage/queryXML"/>
+            </xmlString>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="QueryToXML">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>278</pd:x>
+        <pd:y>280</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CachingFrameworkAPI/QueryToXML/ConditionalQuery_StringToXML.process</processName>
+        </config>
+        <pd:inputBindings>
+            <xsl:copy-of select="$Start/GetData/GetMessage/QueryElements"/>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="RepositoryCFG">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>545</pd:x>
+        <pd:y>174</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CachingFrameworkAPI/ARC_RepositoryManagement/FindRepositoryConfig.process</processName>
+        </config>
+        <pd:inputBindings>
+            <RepositoryName>
+                <xsl:value-of select="$Start/GetData/GetMessage/RepositoryName"/>
+            </RepositoryName>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Rethrow">
+        <pd:type>com.tibco.pe.core.RethrowActivity</pd:type>
+        <pd:resourceType>ae.activities.rethrow</pd:resourceType>
+        <pd:x>547</pd:x>
+        <pd:y>405</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Continue">
+        <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+        <pd:resourceType>ae.activities.null</pd:resourceType>
+        <pd:x>335</pd:x>
+        <pd:y>71</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="ARC_CachingFrameworkAPI_QueueRequestQueryMode">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>678</pd:x>
+        <pd:y>170</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CachingFrameworkAPI/ARC_CachingFrameworkAPI_QueueRequestQueryMode.process</processName>
+            <processNameXPath>concat($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_mockRoot,"/Common/ARC/ARC_CachingFrameworkAPI/ARC_CachingFrameworkAPI_QueueRequestQueryMode.process")</processNameXPath>
+        </config>
+        <pd:inputBindings>
+            <Data>
+                <Operation>
+                    <xsl:choose>
+                        <xsl:when test="exists($Start/GetData/GetMessage/List)">
+                            <GetByIdMessage>
+                                <cacheName>
+                                    <xsl:value-of select="$Start/GetData/GetMessage/RepositoryName"/>
+                                </cacheName>
+                                <xsl:for-each select="$Start/GetData/GetMessage/List/Id">
+                                    <Id>
+                                        <xsl:value-of select="."/>
+                                    </Id>
+                                </xsl:for-each>
+                            </GetByIdMessage>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <GetMessage>
+                                <xsl:copy-of select="$Query/query"/>
+                                <cacheName>
+                                    <xsl:value-of select="$Start/GetData/GetMessage/RepositoryName"/>
+                                </cacheName>
+                            </GetMessage>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </Operation>
+                <queueName>
+                    <xsl:value-of select="$RepositoryCFG/pfx:RepoCfg/QueueName"/>
+                </queueName>
+            </Data>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>check Query Type</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>checkError</pd:from>
+        <pd:to>End</pd:to>
+        <pd:xpathDescription>OK</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>checkError</pd:from>
+        <pd:to>Error Cache Adapter</pd:to>
+        <pd:xpathDescription>Error</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-52429</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>exists($ARC_CachingFrameworkAPI_QueueRequestQueryMode/CachingMSG/pfx:ErrorMessage)</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Controlled Error</pd:from>
+        <pd:to>Rethrow</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch  Other Error</pd:from>
+        <pd:to>Generate Error</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>check Query Type</pd:from>
+        <pd:to>QueryToXML</pd:to>
+        <pd:xpathDescription>Convertir Query</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>exists($Start/GetData/GetMessage/QueryElements)</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>QueryToXML</pd:from>
+        <pd:to>Assign Query</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>check Query Type</pd:from>
+        <pd:to>Parse XML</pd:to>
+        <pd:xpathDescription>Query Xml</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Assign Query</pd:from>
+        <pd:to>RepositoryCFG</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Parse XML</pd:from>
+        <pd:to>Assign Query</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>check Query Type</pd:from>
+        <pd:to>Continue</pd:to>
+        <pd:xpathDescription>Id List</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>exists($Start/GetData/GetMessage/List)</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Continue</pd:from>
+        <pd:to>RepositoryCFG</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>RepositoryCFG</pd:from>
+        <pd:to>ARC_CachingFrameworkAPI_QueueRequestQueryMode</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_CachingFrameworkAPI_QueueRequestQueryMode</pd:from>
+        <pd:to>checkError</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

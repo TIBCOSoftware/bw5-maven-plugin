@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx="http://www.bbva.com/EAIFramework">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_CachingFrameworkAPI/ARC_RepositoryManagement/FindRepositoryConfig.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="RepositoryName" type="xsd:string"/>
+    </pd:startType>
+    <pd:startX>81</pd:startX>
+    <pd:startY>192</pd:startY>
+    <pd:returnBindings>
+        <xsl:copy-of select="$ProcessVariables/pfx:RepoCfg"/>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType ref="pfx:RepoCfg"/>
+    <pd:endX>642</pd:endX>
+    <pd:endY>196</pd:endY>
+    <pd:errorSchemas>
+        <ErrorRepositoryNotFound ref="pfx:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables>
+        <ProcessVariables ref="pfx:RepoCfg"/>
+    </pd:processVariables>
+    <pd:targetNamespace>http://xmlns.example.com/1331218077342</pd:targetNamespace>
+    <pd:activity name="Catch">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>201</pd:x>
+        <pd:y>535</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Catch Controlled Error">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>201</pd:x>
+        <pd:y>458</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <fault>localname=ErrorMessage namespace=http://www.bbva.com/EAIFramework</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Error RepositoryNotFound">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>638</pd:x>
+        <pd:y>358</pd:y>
+        <config>
+            <faultName>ErrorRepositoryNotFound</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns:ActivityInput>
+                <data>
+                    <pfx:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RepositoryNotFound"/>
+                        </ErrorCode>
+                        <ErrorDescription>
+                            <xsl:value-of select="concat($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_Configuration_for_repository_not_found, $Start/RepositoryName)"/>
+                        </ErrorDescription>
+                        <StackTrace>
+                            <xsl:value-of select="BW:getCurrentActivityName($_processContext/ns2:ProcessContext/ProcessId)"/>
+                        </StackTrace>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <StackProcess>
+                            <xsl:value-of select="BW:getCurrentActivityName($_processContext/ns2:ProcessContext/ProcessId)"/>
+                        </StackProcess>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/RepositoryName )"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </pfx:ErrorMessage>
+                </data>
+            </ns:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Generic Error  QueueNotFound">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>416</pd:x>
+        <pd:y>543</pd:y>
+        <config>
+            <faultName>ErrorRepositoryNotFound</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns:ActivityInput>
+                <data>
+                    <pfx:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RepositoryNotFound"/>
+                        </ErrorCode>
+                        <ErrorDescription>
+                            <xsl:value-of select="concat($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_Configuration_for_repository_not_found, $Start/RepositoryName)"/>
+                        </ErrorDescription>
+                        <StackTrace>
+                            <xsl:value-of select="BW:getCurrentActivityName($_processContext/ns2:ProcessContext/ProcessId)"/>
+                        </StackTrace>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <StackProcess>
+                            <xsl:value-of select="BW:getCurrentActivityName($_processContext/ns2:ProcessContext/ProcessId)"/>
+                        </StackProcess>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/RepositoryName )"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </pfx:ErrorMessage>
+                </data>
+            </ns:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Get queues in list">
+        <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+        <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+        <pd:x>416</pd:x>
+        <pd:y>198</pd:y>
+        <config>
+            <variableName>ProcessVariables</variableName>
+        </config>
+        <pd:inputBindings>
+            <xsl:choose>
+                <xsl:when test="exists($GetVariable/pfx:RepositoryCacheList/pfx:RepoCfg)">
+                    <pfx:RepoCfg>
+                        <RepositoryName>
+                            <xsl:value-of select="$GetVariable/pfx:RepositoryCacheList/pfx:RepoCfg[ RepositoryName= $Start/RepositoryName]/RepositoryName"/>
+                        </RepositoryName>
+                        <xsl:if test="$GetVariable/pfx:RepositoryCacheList/pfx:RepoCfg[ RepositoryName= $Start/RepositoryName]/QueueName">
+                            <QueueName>
+                                <xsl:value-of select="$GetVariable/pfx:RepositoryCacheList/pfx:RepoCfg[ RepositoryName= $Start/RepositoryName]/QueueName"/>
+                            </QueueName>
+                        </xsl:if>
+                        <CallJMS>
+                            <xsl:value-of select="$GetVariable/pfx:RepositoryCacheList/pfx:RepoCfg[ RepositoryName= $Start/RepositoryName]/CallJMS"/>
+                        </CallJMS>
+                    </pfx:RepoCfg>
+                </xsl:when>
+                <xsl:otherwise>
+                    <pfx:RepoCfg>
+                        <RepositoryName>
+                            <xsl:value-of select="$GetVariable-1/pfx:RepositoryCacheList/pfx:RepoCfg[ RepositoryName= $Start/RepositoryName]/RepositoryName"/>
+                        </RepositoryName>
+                        <xsl:if test="$GetVariable-1/pfx:RepositoryCacheList/pfx:RepoCfg[ RepositoryName= $Start/RepositoryName]/QueueName">
+                            <QueueName>
+                                <xsl:value-of select="$GetVariable-1/pfx:RepositoryCacheList/pfx:RepoCfg[ RepositoryName= $Start/RepositoryName]/QueueName"/>
+                            </QueueName>
+                        </xsl:if>
+                        <CallJMS>
+                            <xsl:value-of select="$GetVariable-1/pfx:RepositoryCacheList/pfx:RepoCfg[ RepositoryName= $Start/RepositoryName]/CallJMS"/>
+                        </CallJMS>
+                    </pfx:RepoCfg>
+                </xsl:otherwise>
+            </xsl:choose>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="GetVariable">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>201</pd:x>
+        <pd:y>195</pd:y>
+        <config>
+            <variableConfig>/SharedResources/SharedVariables/Repository Queue List.sharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="GetVariable-1">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>416</pd:x>
+        <pd:y>357</pd:y>
+        <config>
+            <variableConfig>/SharedResources/SharedVariables/Repository Queue List.sharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="LoadRepositoryList">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>201</pd:x>
+        <pd:y>357</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CachingFrameworkAPI/ARC_RepositoryManagement/LoadRepositoryListCache.process</processName>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Rethrow">
+        <pd:type>com.tibco.pe.core.RethrowActivity</pd:type>
+        <pd:resourceType>ae.activities.rethrow</pd:resourceType>
+        <pd:x>416</pd:x>
+        <pd:y>450</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>GetVariable</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetVariable</pd:from>
+        <pd:to>Get queues in list</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get queues in list</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get queues in list</pd:from>
+        <pd:to>Error RepositoryNotFound</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65485</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>string-length($ProcessVariables/pfx:RepoCfg/RepositoryName)=0</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetVariable</pd:from>
+        <pd:to>LoadRepositoryList</pd:to>
+        <pd:xpathDescription>No hay Service Ids cargados</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>count($GetVariable/pfx:RepositoryCacheList/pfx:RepoCfg)=0</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>LoadRepositoryList</pd:from>
+        <pd:to>GetVariable-1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetVariable-1</pd:from>
+        <pd:to>Get queues in list</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>Generic Error  QueueNotFound</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Controlled Error</pd:from>
+        <pd:to>Rethrow</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:label>
+        <pd:name>Label</pd:name>
+        <pd:description>No service Ids</pd:description>
+        <pd:x>317</pd:x>
+        <pd:y>38</pd:y>
+        <pd:width>199</pd:width>
+        <pd:height>33</pd:height>
+        <pd:fontColor>-16737895</pd:fontColor>
+        <pd:color>-3407872</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+</pd:ProcessDefinition>

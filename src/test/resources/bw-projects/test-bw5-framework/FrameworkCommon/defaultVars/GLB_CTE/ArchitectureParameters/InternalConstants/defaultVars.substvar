@@ -1,0 +1,117 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>GLB_BWENGINE-100017</name>
+			<value>BWENGINE-100017</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673324</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Configuration_for_repository_not_found</name>
+			<value>Configuration for repository not found </value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672943</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Error_Parsing_the</name>
+			<value>Error Parsing the content of the file to the required outbound XML</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672237</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Error_Reading_the_File</name>
+			<value>Error Reading the File</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673174</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Error_Reading_the_XSL_File</name>
+			<value>Error Reading the XSL File</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864674114</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Error_Transforming_the_Inbound_XML_with_the_XSL</name>
+			<value>Error Transforming the Inbound XML with the XSL</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672266</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Error_because_the_routing_XML</name>
+			<value>Error because the routing XML is not correct after making XSL</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673708</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_FrameworkNamespace</name>
+			<value>http://www.bbva.com/EAIFramework</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671266</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Generic_Error_RoutingFromFileByServiceId</name>
+			<value>Error not identified in RoutingFromFileByServiceId</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672130</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_InstancedIdNoInitialized</name>
+			<value>00000000000000000000000000000000</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864674079</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_NOK</name>
+			<value>NOK</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672783</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_OK</name>
+			<value>OK</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672283</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Queue_not_found_for_service_id</name>
+			<value>Queue not found for service id</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671322</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Some_problem_getting_queu...</name>
+			<value>Some problem getting queues in :</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864671125</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

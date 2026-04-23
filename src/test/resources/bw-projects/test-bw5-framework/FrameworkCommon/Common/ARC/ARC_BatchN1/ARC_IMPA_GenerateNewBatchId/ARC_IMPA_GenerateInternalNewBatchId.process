@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:UUID="java://Framework.CommonResources.CustomFunctions.UUIDGenerator.UUIDGenerator" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx2="http://www.bbva.com/EAIFramework" xmlns:pfx="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_BatchN1/ARC_IMPA_GenerateNewBatchId/ARC_IMPA_GenerateInternalNewBatchId.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ARC_IMPA_GenerateNewBatchId">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="ServiceId" type="xsd:string"/>
+                    <xsd:element name="Tracelevel" type="xsd:string" minOccurs="0"/>
+                    <xsd:element ref="pfx2:ArchitectureHeader" minOccurs="0"/>
+                    <xsd:element name="Body" minOccurs="0">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:any/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>41</pd:startX>
+    <pd:startY>67</pd:startY>
+    <pd:returnBindings>
+        <OUT_GenerateInternalNewBatchId>
+            <BatchId>
+                <xsl:value-of select="$ARC_SetNewBatchId/OUT_SetNewBatchId/BatchId"/>
+            </BatchId>
+            <TimeStampUUID>
+                <xsl:value-of select="$ARC_SetNewBatchId/OUT_SetNewBatchId/TimeStampUUID"/>
+            </TimeStampUUID>
+        </OUT_GenerateInternalNewBatchId>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="OUT_GenerateInternalNewBatchId">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="BatchId" type="xsd:string"/>
+                    <xsd:element name="TimeStampUUID" type="xsd:long"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>744</pd:endX>
+    <pd:endY>66</pd:endY>
+    <pd:errorSchemas>
+        <Schema0 ref="pfx2:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1328870255630</pd:targetNamespace>
+    <pd:activity name="ARC_IMPA_SendNewBatch">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>599</pd:x>
+        <pd:y>67</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_BatchN1/BatchAudit/ARC_IMPA_SendInternalNewBatch.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_IMPA_SendEndBatch>
+                <xsl:choose>
+                    <xsl:when test="$Start/ARC_IMPA_GenerateNewBatchId/pfx2:ArchitectureHeader">
+                        <xsl:copy-of select="$Start/ARC_IMPA_GenerateNewBatchId/pfx2:ArchitectureHeader"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <pfx2:ArchitectureHeader>
+                            <pfx2:AuditHeader>
+                                <pfx2:E2EId>
+                                    <xsl:value-of select="$ARC_SetNewBatchId/OUT_SetNewBatchId/BatchId"/>
+                                </pfx2:E2EId>
+                                <pfx2:InstanceId>
+                                    <xsl:value-of select="$ARC_SetNewBatchId/OUT_SetNewBatchId/BatchId"/>
+                                </pfx2:InstanceId>
+                                <pfx2:Deepness>
+                                    <xsl:value-of select="0"/>
+                                </pfx2:Deepness>
+                                <pfx2:ServiceId>
+                                    <xsl:value-of select="$Start/ARC_IMPA_GenerateNewBatchId/ServiceId"/>
+                                </pfx2:ServiceId>
+                                <pfx2:ServiceType>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_BatchN21"/>
+                                </pfx2:ServiceType>
+                            </pfx2:AuditHeader>
+                            <xsl:if test="string-length($GetECSConfig/group/pfx2:ECSConfig/pfx2:namespace)>0">
+                                <pfx2:ECSHeader>
+                                    <pfx2:traceId>
+                                        <xsl:value-of select="concat($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/TracePrefix,$ARC_SetNewBatchId/OUT_SetNewBatchId/TimeStampUUID,&quot;-&quot;,$ARC_SetNewBatchId/OUT_SetNewBatchId/BatchId)"/>
+                                    </pfx2:traceId>
+                                    <pfx2:spanId>
+                                        <xsl:value-of select="concat($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/SpanPrefix,$ARC_SetNewBatchId/OUT_SetNewBatchId/TimeStampUUID,&quot;-&quot;,$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/ESBToken,&quot;-&quot;,$ARC_SetNewBatchId/OUT_SetNewBatchId/BatchId)"/>
+                                    </pfx2:spanId>
+                                </pfx2:ECSHeader>
+                            </xsl:if>
+                            <pfx2:RequestHeader>
+                                <pfx2:BBVAUser>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_Generic_User"/>
+                                </pfx2:BBVAUser>
+                                <pfx2:BatchId>
+                                    <xsl:value-of select="$ARC_SetNewBatchId/OUT_SetNewBatchId/BatchId"/>
+                                </pfx2:BatchId>
+                                <pfx2:StartTimestamp>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </pfx2:StartTimestamp>
+                                <pfx2:ServiceIdStarter>
+                                    <xsl:value-of select="$Start/ARC_IMPA_GenerateNewBatchId/ServiceId"/>
+                                </pfx2:ServiceIdStarter>
+                            </pfx2:RequestHeader>
+                            <pfx2:ErrorHeader>
+                                <pfx2:IsError>
+                                    <xsl:value-of select="0"/>
+                                </pfx2:IsError>
+                            </pfx2:ErrorHeader>
+                        </pfx2:ArchitectureHeader>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <BatchId>
+                    <xsl:value-of select="$ARC_SetNewBatchId/OUT_SetNewBatchId/BatchId"/>
+                </BatchId>
+                <ServiceId>
+                    <xsl:value-of select="$Start/ARC_IMPA_GenerateNewBatchId/ServiceId"/>
+                </ServiceId>
+                <xsl:if test="$Start/ARC_IMPA_GenerateNewBatchId/Tracelevel">
+                    <TraceLevel>
+                        <xsl:value-of select="$Start/ARC_IMPA_GenerateNewBatchId/Tracelevel"/>
+                    </TraceLevel>
+                </xsl:if>
+                <xsl:if test="$Start/ARC_IMPA_GenerateNewBatchId/Body">
+                    <xsl:copy-of select="$Start/ARC_IMPA_GenerateNewBatchId/Body"/>
+                </xsl:if>
+                <TimeStampUUID>
+                    <xsl:value-of select="$ARC_SetNewBatchId/OUT_SetNewBatchId/TimeStampUUID"/>
+                </TimeStampUUID>
+            </ARC_IMPA_SendEndBatch>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_SetNewBatchId">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>265</pd:x>
+        <pd:y>68</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_BatchN1/UsingBatchIdVariable/ARC_SetNewBatchId.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ServiceId>
+                <xsl:value-of select="$Start/ARC_IMPA_GenerateNewBatchId/ServiceId"/>
+            </ServiceId>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>333</pd:x>
+        <pd:y>198</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Generate Error">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>458</pd:x>
+        <pd:y>199</pd:y>
+        <config>
+            <faultName>Schema0</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns:ActivityInput>
+                <data>
+                    <pfx2:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_GenerateNewBatchId"/>
+                        </ErrorCode>
+                        <ErrorDescription>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/ErrorDescriptions/GLB_GenerateNewBatchIdDescription"/>
+                        </ErrorDescription>
+                        <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                            <NativeErrorCode>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                            </NativeErrorCode>
+                        </xsl:if>
+                        <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                            <NativeErrorDescription>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                            </NativeErrorDescription>
+                        </xsl:if>
+                        <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                            <StackTrace>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                            </StackTrace>
+                        </xsl:if>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                            <StackProcess>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                            </StackProcess>
+                        </xsl:if>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/ARC_IMPA_GenerateNewBatchId)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </pfx2:ErrorMessage>
+                </data>
+            </ns:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="GetECSConfig">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>126</pd:x>
+        <pd:y>68</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/ECSConfig.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="ARC_SetPropertiesECSConfig">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>425</pd:x>
+        <pd:y>114</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_SetAdditionalArchitectureHeaderData/ARC_SetPropertiesECSConfig.process</processName>
+        </config>
+        <pd:inputBindings>
+            <group>
+                <pfx2:ECSConfig>
+                    <pfx2:namespace>
+                        <xsl:value-of select="$GetECSConfig/group/pfx2:ECSConfig/pfx2:namespace"/>
+                    </pfx2:namespace>
+                    <pfx2:mrId>
+                        <xsl:value-of select="$GetECSConfig/group/pfx2:ECSConfig/pfx2:mrId"/>
+                    </pfx2:mrId>
+                    <pfx2:genMetrics>
+                        <xsl:value-of select="$GetECSConfig/group/pfx2:ECSConfig/pfx2:genMetrics"/>
+                    </pfx2:genMetrics>
+                    <pfx2:properties>
+                        <pfx2:property>
+                            <pfx2:key>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/E2EIdKey"/>
+                            </pfx2:key>
+                            <pfx2:value>
+                                <xsl:value-of select="$ARC_SetNewBatchId/OUT_SetNewBatchId/BatchId"/>
+                            </pfx2:value>
+                            <pfx2:spreadE2E>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                            </pfx2:spreadE2E>
+                        </pfx2:property>
+                        <pfx2:property>
+                            <pfx2:key>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/InstanceIdKey"/>
+                            </pfx2:key>
+                            <pfx2:value>
+                                <xsl:value-of select="$ARC_SetNewBatchId/OUT_SetNewBatchId/BatchId"/>
+                            </pfx2:value>
+                            <pfx2:spreadE2E>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                            </pfx2:spreadE2E>
+                        </pfx2:property>
+                    </pfx2:properties>
+                </pfx2:ECSConfig>
+            </group>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>ARC_IMPA_SendNewBatch</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>GetECSConfig</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SetNewBatchId</pd:from>
+        <pd:to>ARC_SetPropertiesECSConfig</pd:to>
+        <pd:xpathDescription>ECS</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>string-length($GetECSConfig/group/pfx2:ECSConfig/pfx2:namespace)&gt;0</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>Generate Error</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetECSConfig</pd:from>
+        <pd:to>ARC_SetNewBatchId</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SetPropertiesECSConfig</pd:from>
+        <pd:to>ARC_IMPA_SendNewBatch</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SetNewBatchId</pd:from>
+        <pd:to>ARC_IMPA_SendNewBatch</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

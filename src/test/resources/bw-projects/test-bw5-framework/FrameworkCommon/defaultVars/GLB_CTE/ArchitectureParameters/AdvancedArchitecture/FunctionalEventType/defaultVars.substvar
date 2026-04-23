@@ -1,0 +1,45 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>GLB_Alarm</name>
+			<value>3</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1386864673822</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Error</name>
+			<value>2</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1386864673857</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Heartbeat</name>
+			<value>4</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1386864674167</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Info</name>
+			<value>1</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1386864672898</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_NoDeclarated</name>
+			<value>0</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1386864673624</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

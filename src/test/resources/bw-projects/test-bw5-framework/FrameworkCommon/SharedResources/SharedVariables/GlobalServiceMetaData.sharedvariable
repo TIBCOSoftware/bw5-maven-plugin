@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BWSharedResource xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:pfx="http://www.bbva.com/EAIFramework">
+    <import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <name>GlobalServiceMetaData</name>
+    <resourceType>ae.shared.sharedVariable</resourceType>
+    <config xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <persistent>false</persistent>
+        <multi-engine>false</multi-engine>
+        <initialValue>byRef</initialValue>
+        <initialValueData>&lt;?xml version="1.0" encoding="UTF-8"?&gt; &lt;eai:QueuesCacheList xmlns:eai="http://www.bbva.com/EAIFramework" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.bbva.com/EAIFramework ../SharedResources/Schemas/XSD/ArchitectureSchema.xsd"&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PruebaS-CC2S-CHAA"&gt;pruebaSincCHAA-COMS-2SIMS.CHAA&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PruebaS-CC2S-SIMS"&gt;pruebaSincCHAA-COMS-2SIMS.SIMS&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PruebaS-CC2S-CMS"&gt;pruebaSincCHAA-COMS-2SIMS.COMS&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PS-CC2S-1Ok-CHAA"&gt;pruebaSincCHAA-COMS-2SIMS-1Ok.CHAA&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PS-CC2S-1Ok-CMS"&gt;pruebaSincCHAA-COMS-2SIMS-1Ok.COMS&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PS-CC2S-1Ok-SIMSFail"&gt;pruebaSincCHAA-COMS-2SIMS-1Ok.SIMSFail&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PS-CC2S-1Ok-SIMSOk"&gt;pruebaSincCHAA-COMS-2SIMS-1Ok.SIMSOk&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PruebaS-CS-CHAA"&gt;pruebaSincCHAA-SIMS.CHAA&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PruebaS-CS-SIMS"&gt;pruebaSincCHAA-SIMS.SIMS&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="Prueba5C"&gt;pruebaExportacion5C&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PruebaIMP2"&gt;dispatcher.salida2.5C&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PruebaIMP3"&gt;dispatcher.salida3.5C&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PruebaIMP4"&gt;dispatcher.salida4.5C&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PruebaIMP5"&gt;dispatcher.salida5.5C&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PruebaExpError"&gt;pruebaExportacionErrorExp&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PruebaEXPNone"&gt;pruebaExportacionNone&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PruebaEXP2D3C"&gt;pruebaExportacion2D3C&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PruebaIMP12D3C"&gt;dispatcher.salida1.2D3C&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PruebaIMP22D3C"&gt;dispatcher.salida2.2D3C&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PruebaIMP32D3C"&gt;dispatcher.salida3.2D3C&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PruebaIMP42D3C"&gt;dispatcher.salida4.2D3C&lt;/eai:Destination&gt;     &lt;eai:Destination DestinationType="Queue" ServiceId="PruebaIMP52D3C"&gt;dispatcher.salida5.2D3C&lt;/eai:Destination&gt; &lt;/eai:QueuesCacheList&gt;</initialValueData>
+        <initialValueRef>/SharedResources/Schemas/XML/Architecture/GlobalServiceMetaData.xml</initialValueRef>
+        <xsdString>
+            <xsd:element name="GlobalServiceMetaData">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="Data" maxOccurs="unbounded">
+                            <xsd:complexType>
+                                <xsd:sequence>
+                                    <xsd:element name="Name" type="xsd:string"/>
+                                    <xsd:element name="Value" type="xsd:string"/>
+                                </xsd:sequence>
+                            </xsd:complexType>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </xsdString>
+    </config>
+</BWSharedResource>

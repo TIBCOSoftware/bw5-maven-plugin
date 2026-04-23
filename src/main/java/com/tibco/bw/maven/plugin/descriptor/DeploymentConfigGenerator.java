@@ -187,7 +187,7 @@ public class DeploymentConfigGenerator {
         sb.append("# Tool        : bw5-maven-plugin\n");
         sb.append("#\n");
         sb.append("# Pass this file to the dp-bw5ce-app Helm chart:\n");
-        sb.append("#   helm install ").append(appName.toLowerCase(Locale.ROOT)).append(" dp/dp-bw5ce-app -f values.yaml\n");
+        sb.append("#   helm install ").append(appName.toLowerCase(Locale.ROOT)).append(" dp/dp-bw5ce-app -f ").append(appName).append("-values.yaml\n");
         sb.append("#\n");
         sb.append("# Variables are listed alphabetically within each substvar profile.\n");
         sb.append("# appProps  : non-password global variables\n");

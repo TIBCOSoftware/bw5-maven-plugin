@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:ns2="http://www.tibco.com/pe/DeployedVarsType" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:ns1="http://www.tibco.com/pe/EngineTypes" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:ns3="http://www.bbva.com/EAIFramework" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:UUID="java://Framework.CommonResources.CustomFunctions.UUIDGenerator.UUIDGenerator" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:GetIP="java://EAIFramework.Processes.Private.Common.HeaderManagement.IPAddress.IPAddress" xmlns:pfx3="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx2="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd">
+    
+    
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC_BA1N/PostActions/ARC_BA1N_PostAction.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ARC_BA1N_PostAction_IN">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="ns3:ArchitectureHeader"/>
+                    <xsd:element name="Body">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:any processContents="skip"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="NumberMessagesSent" type="xsd:string"/>
+                    <xsd:element ref="ns3:TraceLevel" minOccurs="0"/>
+                    <xsd:element ref="ns3:ECSServiceHeader" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>108</pd:startX>
+    <pd:startY>101</pd:startY>
+    <pd:returnBindings>
+        <xsl:copy-of select="$Start/root/Message/pfx:ArchitectureHeader"/>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endX>653</pd:endX>
+    <pd:endY>101</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1324409765610</pd:targetNamespace>
+    <pd:activity name="ARC_CLESenderAPI">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>487</pd:x>
+        <pd:y>101</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CLEManagement/ARC_TraceAuditSenderAPI.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_TraceSenderAPI>
+                <CLETraceData>
+                    <EventCode>
+                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Audit/GLB_EndBatch"/>
+                    </EventCode>
+                    <EventType>
+                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Audit"/>
+                    </EventType>
+                    <MessageType>
+                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/MessageType/GLB_ProprietaryDataModel"/>
+                    </MessageType>
+                    <isResponse>
+                        <xsl:value-of select="false()"/>
+                    </isResponse>
+                    <xsl:choose>
+                        <xsl:when test="$Start/ARC_BA1N_PostAction_IN/ns3:TraceLevel">
+                            <TraceLevel>
+                                <xsl:value-of select="$Start/ARC_BA1N_PostAction_IN/ns3:TraceLevel"/>
+                            </TraceLevel>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <TraceLevel>
+                                <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit"/>
+                            </TraceLevel>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <NameValue>
+                        <Name>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/BATCH1N_NUM_MSG_SENT"/>
+                        </Name>
+                        <Value>
+                            <xsl:value-of select="$Start/ARC_BA1N_PostAction_IN/NumberMessagesSent"/>
+                        </Value>
+                    </NameValue>
+                    <xsl:copy-of select="$Start/ARC_BA1N_PostAction_IN/ns3:ArchitectureHeader"/>
+                </CLETraceData>
+                <Body>
+                    <xsl:value-of select="tib:render-xml($Map-Data/ns3:Message)"/>
+                </Body>
+            </ARC_TraceSenderAPI>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Map Data">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>225</pd:x>
+        <pd:y>101</pd:y>
+        <config>
+            <element ref="ns3:Message"/>
+        </config>
+        <pd:inputBindings>
+            <ns3:Message>
+                <xsl:copy-of select="$Start/ARC_BA1N_PostAction_IN/ns3:ArchitectureHeader"/>
+                <ns3:Body>
+                    <xsl:copy-of select="$Start/ARC_BA1N_PostAction_IN/Body/ancestor-or-self::*/namespace::node()"/>
+                    <xsl:copy-of select="$Start/ARC_BA1N_PostAction_IN/Body/@*"/>
+                    <xsl:copy-of select="$Start/ARC_BA1N_PostAction_IN/Body/node()"/>
+                </ns3:Body>
+            </ns3:Message>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_SetPropertiesECSConfig">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>351</pd:x>
+        <pd:y>212</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_SetAdditionalArchitectureHeaderData/ARC_SetPropertiesECSConfig.process</processName>
+        </config>
+        <pd:inputBindings>
+            <group>
+                <ns3:ECSConfig>
+                    <ns3:namespace>
+                        <xsl:value-of select="$Start/ARC_BA1N_PostAction_IN/ns3:ECSServiceHeader/ns3:namespace"/>
+                    </ns3:namespace>
+                    <ns3:mrId>
+                        <xsl:value-of select="$Start/ARC_BA1N_PostAction_IN/ns3:ECSServiceHeader/ns3:mrId"/>
+                    </ns3:mrId>
+                    <ns3:genMetrics>
+                        <xsl:value-of select="$Start/ARC_BA1N_PostAction_IN/ns3:ECSServiceHeader/ns3:genMetrics"/>
+                    </ns3:genMetrics>
+                    <xsl:if test="$Start/ARC_BA1N_PostAction_IN/ns3:ArchitectureHeader/ns3:AuditHeader">
+                        <ns3:properties>
+                            <ns3:property>
+                                <ns3:key>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/InstanceIdKey"/>
+                                </ns3:key>
+                                <ns3:value>
+                                    <xsl:value-of select="$Start/ARC_BA1N_PostAction_IN/ns3:ArchitectureHeader/ns3:AuditHeader/ns3:InstanceId"/>
+                                </ns3:value>
+                                <ns3:spreadE2E>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                </ns3:spreadE2E>
+                            </ns3:property>
+                            <xsl:if test="string-length($Start/ARC_BA1N_PostAction_IN/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:BusinessObject)>0">
+                                <ns3:property>
+                                    <ns3:key>
+                                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/EntitytKey"/>
+                                    </ns3:key>
+                                    <ns3:value>
+                                        <xsl:value-of select="$Start/ARC_BA1N_PostAction_IN/ns3:ArchitectureHeader/ns3:RequestHeader/ns3:BusinessObject"/>
+                                    </ns3:value>
+                                    <ns3:spreadE2E>
+                                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                    </ns3:spreadE2E>
+                                </ns3:property>
+                            </xsl:if>
+                        </ns3:properties>
+                    </xsl:if>
+                </ns3:ECSConfig>
+            </group>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>ARC_CLESenderAPI</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Map Data</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Map Data</pd:from>
+        <pd:to>ARC_CLESenderAPI</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Map Data</pd:from>
+        <pd:to>ARC_SetPropertiesECSConfig</pd:to>
+        <pd:xpathDescription>ECS</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$Start/ARC_BA1N_PostAction_IN/ns3:ArchitectureHeader/ns3:ECSHeader</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SetPropertiesECSConfig</pd:from>
+        <pd:to>ARC_CLESenderAPI</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

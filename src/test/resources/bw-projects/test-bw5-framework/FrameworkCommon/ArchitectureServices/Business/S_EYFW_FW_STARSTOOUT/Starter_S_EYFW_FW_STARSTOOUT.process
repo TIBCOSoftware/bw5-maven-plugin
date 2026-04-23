@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:ns2="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:ns="com/tibco/pe/commands" xmlns:ns3="http://www.tibco.com/pe/EngineTypes" xmlns:pfx5="http://www.bbva.com/EAIFramework" xmlns:pfx4="http://com.bbva.cib/EYFW/MngServ" xmlns:pfx3="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/ServiceParameters/SCS/Schema.xsd" xmlns:pfx2="http://www.tibco.com/pe/SignalInActivitySchema" xmlns:pfx="http://com.bbva.cib/EYFW/Management">
+    <xs:import xmlns:xs="http://www.w3.org/2001/XMLSchema" namespace="http://com.bbva.cib/EYFW/Management" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/ManagementServiceCommon.xsd"/>
+    <xs:import xmlns:xs="http://www.w3.org/2001/XMLSchema" namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <xs:import xmlns:xs="http://www.w3.org/2001/XMLSchema" namespace="http://com.bbva.cib/EYFW/MngServ"/>
+    <pd:name>ArchitectureServices/Business/S_EYFW_FW_STARSTOOUT/Starter_S_EYFW_FW_STARSTOOUT.process</pd:name>
+    <pd:startName>JMS Topic Subscriber</pd:startName>
+    <pd:startX>0</pd:startX>
+    <pd:startY>0</pd:startY>
+    <pd:returnBindings/>
+    <pd:starter name="JMS Topic Subscriber">
+        <pd:type>com.tibco.plugin.jms.JMSTopicEventSource</pd:type>
+        <pd:resourceType>ae.activities.JMSTopicEventSource</pd:resourceType>
+        <pd:x>67</pd:x>
+        <pd:y>86</pd:y>
+        <config>
+            <PermittedMessageType>XML Text</PermittedMessageType>
+            <SessionAttributes>
+                <transacted>false</transacted>
+                <acknowledgeMode>1</acknowledgeMode>
+                <maxSessions>1</maxSessions>
+                <destination>%%GLB_CTE/ArchitectureParameters/FrameworkQueues/Prefix/GLB_ArchitecturePrefix%%.%%CFG/ARCHITECTURE/ENVIRONMENT/CFG_ENVIRONMENT_PREFIX%%.%%GLB_CTE/ArchitectureParameters/FrameworkQueues/GLB_BW-PROCESS%%</destination>
+                <durable>false</durable>
+            </SessionAttributes>
+            <ConfigurableHeaders>
+                <JMSDeliveryMode>PERSISTENT</JMSDeliveryMode>
+                <JMSExpiration>0</JMSExpiration>
+                <JMSPriority>4</JMSPriority>
+            </ConfigurableHeaders>
+            <ConnectionReference>/SharedResources/Connections/JMSConnections/Business/BusinessConnection.sharedjmscon</ConnectionReference>
+            <OutDataxsdString ref="pfx5:Message"/>
+        </config>
+        <pd:inputBindings/>
+    </pd:starter>
+    <pd:endName>End</pd:endName>
+    <pd:endX>380</pd:endX>
+    <pd:endY>80</pd:endY>
+    <pd:errorSchemas>
+        <ErrosSchema ref="pfx5:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1330435164013</pd:targetNamespace>
+    <pd:activity name="ARC_SIMS_Main">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>215</pd:x>
+        <pd:y>80</pd:y>
+        <config>
+            <processName>/Common/ARC_SIMS/ARC_SIMS_SimpleObject_Main.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_SIMS_Main_IN>
+                <xsl:copy-of select="$JMS-Topic-Subscriber/ns1:ActivityOutput/Body/pfx5:Message"/>
+                <pfx5:SimpleServiceParameters>
+                    <ProcessName>
+                        <xsl:value-of select="BW:getCurrentProcessName($_processContext/ns3:ProcessContext/ProcessId)"/>
+                    </ProcessName>
+                    <JMS_MessageId>
+                        <xsl:value-of select="$JMS-Topic-Subscriber/ns1:ActivityOutput/JMSHeaders/ns1:JMSMessageID"/>
+                    </JMS_MessageId>
+                    <JMS_ReplyToDestination>
+                        <xsl:value-of select="$JMS-Topic-Subscriber/ns1:ActivityOutput/JMSHeaders/ns1:JMSReplyTo"/>
+                    </JMS_ReplyToDestination>
+                    <IsReceiverTopic>
+                        <xsl:value-of select="1"/>
+                    </IsReceiverTopic>
+                </pfx5:SimpleServiceParameters>
+            </ARC_SIMS_Main_IN>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>JMS Topic Subscriber</pd:from>
+        <pd:to>ARC_SIMS_Main</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SIMS_Main</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

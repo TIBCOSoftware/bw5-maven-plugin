@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/pe/EngineTypes" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/DeployedVarsType" xmlns:UUID="java://Framework.CommonResources.CustomFunctions.UUIDGenerator.UUIDGenerator" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx3="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd4" xmlns:pfx2="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd2" xmlns:ns12="http://www.bbva.com/EAIFramework" xmlns:pfx="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd">
+    
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_BatchN1/UsingBatchIdVariable/ARC_SetNewBatchId.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ServiceId" type="xsd:string"/>
+    </pd:startType>
+    <pd:startX>62</pd:startX>
+    <pd:startY>120</pd:startY>
+    <pd:returnBindings>
+        <OUT_SetNewBatchId>
+            <BatchId>
+                <xsl:value-of select="$New-BatchId/BatchData/BatchId"/>
+            </BatchId>
+            <TimeStampUUID>
+                <xsl:value-of select="$New-BatchId/BatchData/TimeStampUUID"/>
+            </TimeStampUUID>
+        </OUT_SetNewBatchId>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="OUT_SetNewBatchId">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="BatchId" type="xsd:string"/>
+                    <xsd:element name="TimeStampUUID" type="xsd:long"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>982</pd:endX>
+    <pd:endY>131</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables>
+        <New-BatchId>
+            <xsd:element name="BatchData">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="BatchId" type="xsd:string"/>
+                        <xsd:element name="TimeStampUUID" type="xsd:long"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </New-BatchId>
+    </pd:processVariables>
+    <pd:targetNamespace>http://xmlns.example.com/1330331673802</pd:targetNamespace>
+    <pd:activity name="Catch">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>357</pd:x>
+        <pd:y>349</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Assign New-BatchId">
+        <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+        <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+        <pd:x>169</pd:x>
+        <pd:y>122</pd:y>
+        <config>
+            <variableName>New-BatchId</variableName>
+        </config>
+        <pd:inputBindings>
+            <BatchData>
+                <BatchId>
+                    <xsl:value-of select="UUID:generateUUID()"/>
+                </BatchId>
+                <TimeStampUUID>
+                    <xsl:value-of select="tib:timestamp()"/>
+                </TimeStampUUID>
+            </BatchData>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Map-Data New ServiceIdBatchId">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>311</pd:x>
+        <pd:y>128</pd:y>
+        <config>
+            <element ref="ns12:Service"/>
+        </config>
+        <pd:inputBindings>
+            <ns12:Service>
+                <ServiceId>
+                    <xsl:value-of select="$Start/ServiceId"/>
+                </ServiceId>
+                <BatchId>
+                    <xsl:value-of select="$New-BatchId/BatchData/BatchId"/>
+                </BatchId>
+                <TimeStampUUID>
+                    <xsl:value-of select="$New-BatchId/BatchData/TimeStampUUID"/>
+                </TimeStampUUID>
+            </ns12:Service>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:group name="Group">
+        <pd:type>com.tibco.pe.core.CriticalSectionGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>433</pd:x>
+        <pd:y>1</pd:y>
+        <pd:width>495</pd:width>
+        <pd:height>222</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>criticalSection</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:scope>single</pd:scope>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>GetVariable</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>SetVariable</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>GetVariable</pd:from>
+            <pd:to>Map Data</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>xpath</pd:conditionType>
+            <pd:xpath>$GetVariable/ns12:BatchN1Data/Service[ServiceId=$Start/ServiceId]</pd:xpath>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Map Data</pd:from>
+            <pd:to>SetVariable</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>GetVariable</pd:from>
+            <pd:to>SetVariable</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>otherwise</pd:conditionType>
+        </pd:transition>
+        <pd:activity name="GetVariable">
+            <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+            <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+            <pd:x>495</pd:x>
+            <pd:y>148</pd:y>
+            <config>
+                <variableConfig>/SharedResources/SharedVariables/Shared-Variable( BatchId).sharedvariable</variableConfig>
+            </config>
+            <pd:inputBindings/>
+        </pd:activity>
+        <pd:activity name="Map Data">
+            <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+            <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+            <pd:x>654</pd:x>
+            <pd:y>65</pd:y>
+            <config>
+                <element ref="ns12:BatchN1Data"/>
+            </config>
+            <pd:inputBindings>
+                <ns12:BatchN1Data>
+                    <xsl:variable name="var" select="$Start/ServiceId"/>
+                    <xsl:copy-of select="$GetVariable/ns12:BatchN1Data/Service[ServiceId!=$var]"/>
+                </ns12:BatchN1Data>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="SetVariable">
+            <pd:type>com.tibco.pe.core.SetSharedVariableActivity</pd:type>
+            <pd:resourceType>ae.activities.setSharedVariable</pd:resourceType>
+            <pd:x>847</pd:x>
+            <pd:y>147</pd:y>
+            <config>
+                <variableConfig>/SharedResources/SharedVariables/Shared-Variable( BatchId).sharedvariable</variableConfig>
+            </config>
+            <pd:inputBindings>
+                <xsl:choose>
+                    <xsl:when test="$Map-Data">
+                        <ns12:BatchN1Data>
+                            <xsl:copy-of select="$Map-Data/ns12:BatchN1Data/Service"/>
+                            <Service>
+                                <xsl:copy-of select="$Map-Data-New-ServiceIdBatchId/ns12:Service/ancestor-or-self::*/namespace::node()"/>
+                                <xsl:copy-of select="$Map-Data-New-ServiceIdBatchId/ns12:Service/@*"/>
+                                <xsl:copy-of select="$Map-Data-New-ServiceIdBatchId/ns12:Service/node()"/>
+                            </Service>
+                        </ns12:BatchN1Data>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <ns12:BatchN1Data>
+                            <xsl:copy-of select="$GetVariable/ns12:BatchN1Data/Service"/>
+                            <Service>
+                                <xsl:copy-of select="$Map-Data-New-ServiceIdBatchId/ns12:Service/ancestor-or-self::*/namespace::node()"/>
+                                <xsl:copy-of select="$Map-Data-New-ServiceIdBatchId/ns12:Service/@*"/>
+                                <xsl:copy-of select="$Map-Data-New-ServiceIdBatchId/ns12:Service/node()"/>
+                            </Service>
+                        </ns12:BatchN1Data>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </pd:inputBindings>
+        </pd:activity>
+    </pd:group>
+    <pd:activity name="Rethrow">
+        <pd:type>com.tibco.pe.core.RethrowActivity</pd:type>
+        <pd:resourceType>ae.activities.rethrow</pd:resourceType>
+        <pd:x>509</pd:x>
+        <pd:y>352</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Assign New-BatchId</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Assign New-BatchId</pd:from>
+        <pd:to>Map-Data New ServiceIdBatchId</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Map-Data New ServiceIdBatchId</pd:from>
+        <pd:to>Group</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Group</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>Rethrow</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

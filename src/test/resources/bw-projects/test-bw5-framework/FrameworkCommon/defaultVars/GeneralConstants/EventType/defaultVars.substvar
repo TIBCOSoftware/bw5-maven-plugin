@@ -1,0 +1,45 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>ALM</name>
+			<value>ALM</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1440491397774</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>AUD</name>
+			<value>AUD</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1440491397805</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CUS</name>
+			<value>CUS</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1440491397727</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>ERR</name>
+			<value>ERR</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1391019908741</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>TRC</name>
+			<value>TRC</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1391019908677</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

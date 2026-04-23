@@ -1,0 +1,708 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:UUID1="java://Framework.CommonResources.CustomFunctions.UUIDGenerator.UUIDGenerator" xmlns:ns="http://www.tibco.com/pe/DeployedVarsType" xmlns:generate="java://EAIFramework.Processes.Private.Common.HeaderManagement.UIDGenerator.UIDGeneratorUIDGenerator" xmlns:UUID="java://EAIFramework.Processes.Private.Common.HeaderManagement.UUIDGenerator.UUIDGenerator" xmlns:Inc="java://EAIFramework.Processes.Private.Common.HeaderManagement.Incrementator.Incrementator" xmlns:pfx="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:ns2="com/tibco/pe/commands" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/pe/EngineTypes" xmlns:ns4="http://www.tibco.com/schemas/FrameworkIntegracion/EAI-Framework/Resources/Public/Schemas/XSD/MCD/Schema.xsd" xmlns:pfx5="http://www.bbva.com/EAIFramework" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:GetIP="java://EAIFramework.Processes.Private.Common.HeaderManagement.IPAddress.IPAddress" xmlns:pfx4="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx3="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:pfx2="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx6="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:Resources="java://Resources">
+    
+    
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_HeaderManagement/ARC_FrameworkHeaderManagement.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ARC_FHM_IN">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="pfx5:ArchitectureHeader" minOccurs="0"/>
+                    <xsd:element name="ServiceId" type="xsd:string"/>
+                    <xsd:element name="ServiceType" type="xsd:string"/>
+                    <xsd:element name="BatchId" type="xsd:string" minOccurs="0"/>
+                    <xsd:element name="StarTimestamp" type="xsd:dateTime" minOccurs="0"/>
+                    <xsd:element name="E2EControl" type="xsd:boolean" minOccurs="0"/>
+                    <xsd:element ref="pfx5:ECSServiceHeader" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>101</pd:startX>
+    <pd:startY>67</pd:startY>
+    <pd:returnBindings>
+        <pfx5:ArchitectureHeader>
+            <xsl:choose>
+                <xsl:when test="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:AuditHeader">
+                    <pfx5:AuditHeader>
+                        <pfx5:E2EId>
+                            <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:AuditHeader/pfx5:E2EId"/>
+                        </pfx5:E2EId>
+                        <xsl:if test="string-length($Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:AuditHeader/pfx5:ParentInstanceId)>0">
+                            <pfx5:ParentInstanceId>
+                                <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:AuditHeader/pfx5:ParentInstanceId"/>
+                            </pfx5:ParentInstanceId>
+                        </xsl:if>
+                        <pfx5:InstanceId>
+                            <xsl:value-of select="$NewUUID/UUID"/>
+                        </pfx5:InstanceId>
+                        <xsl:choose>
+                            <xsl:when test="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:ReprocessingHeader">
+                                <pfx5:Deepness>
+                                    <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:AuditHeader/pfx5:Deepness"/>
+                                </pfx5:Deepness>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <pfx5:Deepness>
+                                    <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:AuditHeader/pfx5:Deepness+1"/>
+                                </pfx5:Deepness>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <pfx5:ServiceId>
+                            <xsl:value-of select="$Start/ARC_FHM_IN/ServiceId"/>
+                        </pfx5:ServiceId>
+                        <pfx5:ServiceType>
+                            <xsl:value-of select="$Start/ARC_FHM_IN/ServiceType"/>
+                        </pfx5:ServiceType>
+                        <xsl:if test="string-length(string($Start/ARC_FHM_IN/E2EControl))>0">
+                            <xsl:if test="$Start/ARC_FHM_IN/E2EControl">
+                                <pfx5:E2EControl>
+                                    <xsl:value-of select="$Start/ARC_FHM_IN/E2EControl"/>
+                                </pfx5:E2EControl>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length(string($Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:AuditHeader/pfx5:ParentE2EControl))>0">
+                            <pfx5:ParentE2EControl>
+                                <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:AuditHeader/pfx5:ParentE2EControl"/>
+                            </pfx5:ParentE2EControl>
+                        </xsl:if>
+                    </pfx5:AuditHeader>
+                </xsl:when>
+                <xsl:otherwise>
+                    <pfx5:AuditHeader>
+                        <pfx5:E2EId>
+                            <xsl:value-of select="$NewUUID/UUID"/>
+                        </pfx5:E2EId>
+                        <pfx5:InstanceId>
+                            <xsl:value-of select="$NewUUID/UUID"/>
+                        </pfx5:InstanceId>
+                        <pfx5:Deepness>
+                            <xsl:value-of select="0"/>
+                        </pfx5:Deepness>
+                        <pfx5:ServiceId>
+                            <xsl:value-of select="$Start/ARC_FHM_IN/ServiceId"/>
+                        </pfx5:ServiceId>
+                        <pfx5:ServiceType>
+                            <xsl:value-of select="$Start/ARC_FHM_IN/ServiceType"/>
+                        </pfx5:ServiceType>
+                        <xsl:if test="string-length($Start/ARC_FHM_IN/E2EControl)>0">
+                            <xsl:if test="$Start/ARC_FHM_IN/E2EControl">
+                                <pfx5:E2EControl>
+                                    <xsl:value-of select="$Start/ARC_FHM_IN/E2EControl"/>
+                                </pfx5:E2EControl>
+                            </xsl:if>
+                        </xsl:if>
+                        <pfx5:ParentE2EControl>
+                            <xsl:value-of select="false()"/>
+                        </pfx5:ParentE2EControl>
+                    </pfx5:AuditHeader>
+                </xsl:otherwise>
+            </xsl:choose>
+            <xsl:if test="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:ECSHeader&#xA;or&#xA;($Start/ARC_FHM_IN/pfx5:ECSServiceHeader&#xA;and&#xA;string((tib:tokenize($_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSParams/ListServicesNotSetECSHeader, &quot;,&quot;)=$Start/ARC_FHM_IN/ServiceId))=$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False&#xA;and&#xA;$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSParams/ListServicesNotSetECSHeader!=$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/ALLServices)">
+                <xsl:variable name="timeStampECS" select="tib:timestamp()"/>
+                <xsl:choose>
+                    <xsl:when test="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:ECSHeader">
+                        <xsl:for-each select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:ECSHeader">
+                            <pfx5:ECSHeader>
+                                <pfx5:traceId>
+                                    <xsl:value-of select="pfx5:traceId"/>
+                                </pfx5:traceId>
+                                <xsl:if test="string-length(pfx5:parentSpan)>0">
+                                    <xsl:if test="pfx5:parentSpan">
+                                        <pfx5:parentSpan>
+                                            <xsl:value-of select="pfx5:parentSpan"/>
+                                        </pfx5:parentSpan>
+                                    </xsl:if>
+                                </xsl:if>
+                                <pfx5:spanId>
+                                    <xsl:value-of select="concat($_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/SpanPrefix,$timeStampECS,&quot;-&quot;,$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/ESBToken,&quot;-&quot;,$NewUUID/UUID)"/>
+                                </pfx5:spanId>
+                                <xsl:if test="count(pfx5:properties/pfx5:property)>0&#xA;or&#xA;count(../../pfx5:ECSServiceHeader/pfx5:properties/pfx5:property[pfx5:spreadE2E=$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/True])>0">
+                                    <pfx5:properties>
+                                        <xsl:for-each-group select="../../pfx5:ECSServiceHeader/pfx5:properties/pfx5:property[pfx5:spreadE2E=$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/True]" group-by="pfx5:key">
+                                            <pfx5:property>
+                                                <pfx5:key>
+                                                    <xsl:value-of select="pfx5:key"/>
+                                                </pfx5:key>
+                                                <xsl:choose>
+                                                    <xsl:when test="pfx5:boolean_value">
+                                                        <pfx5:boolean_value>
+                                                            <xsl:value-of select="pfx5:boolean_value"/>
+                                                        </pfx5:boolean_value>
+                                                    </xsl:when>
+                                                    <xsl:when test="pfx5:number_value">
+                                                        <pfx5:number_value>
+                                                            <xsl:value-of select="pfx5:number_value"/>
+                                                        </pfx5:number_value>
+                                                    </xsl:when>
+                                                    <xsl:otherwise>
+                                                        <pfx5:value>
+                                                            <xsl:value-of select="pfx5:value"/>
+                                                        </pfx5:value>
+                                                    </xsl:otherwise>
+                                                </xsl:choose>
+                                            </pfx5:property>
+                                        </xsl:for-each-group>
+                                        <xsl:for-each-group select="pfx5:properties/pfx5:property" group-by="pfx5:key">
+                                            <xsl:if test="count(../../../../pfx5:ECSServiceHeader/pfx5:properties/pfx5:property[pfx5:key=current-group()/pfx5:key and pfx5:spreadE2E=$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/True])=0">
+                                                <xsl:copy-of select="." copy-namespaces="no"/>
+                                            </xsl:if>
+                                        </xsl:for-each-group>
+                                    </pfx5:properties>
+                                </xsl:if>
+                            </pfx5:ECSHeader>
+                        </xsl:for-each>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <pfx5:ECSHeader>
+                            <xsl:choose>
+                                <xsl:when test="string-length($Start/ARC_FHM_IN/pfx5:ECSServiceHeader/pfx5:traceData/pfx5:traceId)>0">
+                                    <pfx5:traceId>
+                                        <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ECSServiceHeader/pfx5:traceData/pfx5:traceId"/>
+                                    </pfx5:traceId>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <pfx5:traceId>
+                                        <xsl:value-of select="concat($_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/TracePrefix,$timeStampECS,&quot;-&quot;,$NewUUID/UUID)"/>
+                                    </pfx5:traceId>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                            <xsl:if test="string-length($Start/ARC_FHM_IN/pfx5:ECSServiceHeader/pfx5:traceData/pfx5:parentSpan)>0">
+                                <pfx5:parentSpan>
+                                    <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ECSServiceHeader/pfx5:traceData/pfx5:parentSpan"/>
+                                </pfx5:parentSpan>
+                            </xsl:if>
+                            <pfx5:spanId>
+                                <xsl:value-of select="concat($_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/SpanPrefix,$timeStampECS,&quot;-&quot;,$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/ESBToken,&quot;-&quot;,$NewUUID/UUID)"/>
+                            </pfx5:spanId>
+                            <xsl:if test="count($Start/ARC_FHM_IN/pfx5:ECSServiceHeader/pfx5:properties/pfx5:property[pfx5:spreadE2E=$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/True])>0">
+                                <pfx5:properties>
+                                    <xsl:for-each-group select="$Start/ARC_FHM_IN/pfx5:ECSServiceHeader/pfx5:properties/pfx5:property[pfx5:spreadE2E=$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/True]" group-by="pfx5:key">
+                                        <pfx5:property>
+                                            <pfx5:key>
+                                                <xsl:value-of select="pfx5:key"/>
+                                            </pfx5:key>
+                                            <xsl:choose>
+                                                <xsl:when test="pfx5:boolean_value">
+                                                    <pfx5:boolean_value>
+                                                        <xsl:value-of select="pfx5:boolean_value"/>
+                                                    </pfx5:boolean_value>
+                                                </xsl:when>
+                                                <xsl:when test="pfx5:number_value">
+                                                    <pfx5:number_value>
+                                                        <xsl:value-of select="pfx5:number_value"/>
+                                                    </pfx5:number_value>
+                                                </xsl:when>
+                                                <xsl:otherwise>
+                                                    <pfx5:value>
+                                                        <xsl:value-of select="pfx5:value"/>
+                                                    </pfx5:value>
+                                                </xsl:otherwise>
+                                            </xsl:choose>
+                                        </pfx5:property>
+                                    </xsl:for-each-group>
+                                </pfx5:properties>
+                            </xsl:if>
+                        </pfx5:ECSHeader>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:if>
+            <xsl:choose>
+                <xsl:when test="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:RequestHeader">
+                    <pfx5:RequestHeader>
+                        <pfx5:BBVAUser>
+                            <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:RequestHeader/pfx5:BBVAUser"/>
+                        </pfx5:BBVAUser>
+                        <xsl:if test="string-length($Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:RequestHeader/pfx5:ExternalId)>0">
+                            <xsl:if test="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:RequestHeader/pfx5:ExternalId">
+                                <pfx5:ExternalId>
+                                    <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:RequestHeader/pfx5:ExternalId"/>
+                                </pfx5:ExternalId>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($Start/ARC_FHM_IN/BatchId)>0">
+                            <xsl:if test="$Start/ARC_FHM_IN/BatchId">
+                                <pfx5:BatchId>
+                                    <xsl:value-of select="$Start/ARC_FHM_IN/BatchId"/>
+                                </pfx5:BatchId>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:RequestHeader/pfx5:BusinessObject)>0">
+                            <xsl:if test="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:RequestHeader/pfx5:BusinessObject">
+                                <pfx5:BusinessObject>
+                                    <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:RequestHeader/pfx5:BusinessObject"/>
+                                </pfx5:BusinessObject>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:choose>
+                            <xsl:when test="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:ReprocessingHeader and $Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:AuditHeader/pfx5:Deepness=0">
+                                <pfx5:StartTimestamp>
+                                    <xsl:value-of select="$Start/ARC_FHM_IN/StarTimestamp"/>
+                                </pfx5:StartTimestamp>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <pfx5:StartTimestamp>
+                                    <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:RequestHeader/pfx5:StartTimestamp"/>
+                                </pfx5:StartTimestamp>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <pfx5:ServiceIdStarter>
+                            <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:RequestHeader/pfx5:ServiceIdStarter"/>
+                        </pfx5:ServiceIdStarter>
+                    </pfx5:RequestHeader>
+                </xsl:when>
+                <xsl:otherwise>
+                    <pfx5:RequestHeader>
+                        <pfx5:BBVAUser>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_Generic_User"/>
+                        </pfx5:BBVAUser>
+                        <xsl:if test="string-length($Start/ARC_FHM_IN/BatchId)>0">
+                            <xsl:if test="$Start/ARC_FHM_IN/BatchId">
+                                <pfx5:BatchId>
+                                    <xsl:value-of select="$Start/ARC_FHM_IN/BatchId"/>
+                                </pfx5:BatchId>
+                            </xsl:if>
+                        </xsl:if>
+                        <pfx5:BusinessObject>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_Generic_Object"/>
+                        </pfx5:BusinessObject>
+                        <pfx5:StartTimestamp>
+                            <xsl:value-of select="$Start/ARC_FHM_IN/StarTimestamp"/>
+                        </pfx5:StartTimestamp>
+                        <pfx5:ServiceIdStarter>
+                            <xsl:value-of select="$Start/ARC_FHM_IN/ServiceId"/>
+                        </pfx5:ServiceIdStarter>
+                    </pfx5:RequestHeader>
+                </xsl:otherwise>
+            </xsl:choose>
+            <pfx5:ErrorHeader>
+                <pfx5:IsError>
+                    <xsl:value-of select="0"/>
+                </pfx5:IsError>
+            </pfx5:ErrorHeader>
+            <xsl:copy-of select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:ReprocessingHeader"/>
+            <xsl:copy-of select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:SecurityHeader"/>
+            <xsl:if test="count($Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:RoutingHeader)>0">
+                <xsl:copy-of select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:RoutingHeader"/>
+            </xsl:if>
+            <xsl:copy-of select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:FunctionalData"/>
+        </pfx5:ArchitectureHeader>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType ref="pfx5:ArchitectureHeader"/>
+    <pd:endX>515</pd:endX>
+    <pd:endY>72</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx5:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables>
+        <NewUUID>
+            <xsd:element name="UUID" type="xsd:string"/>
+        </NewUUID>
+    </pd:processVariables>
+    <pd:targetNamespace>http://xmlns.example.com/1324383380261</pd:targetNamespace>
+    <pd:activity name="Assign">
+        <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+        <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+        <pd:x>254</pd:x>
+        <pd:y>69</pd:y>
+        <config>
+            <variableName>NewUUID</variableName>
+        </config>
+        <pd:inputBindings>
+            <xsl:choose>
+                <xsl:when test="$Start/ARC_FHM_IN/ServiceType=$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_Batch12N">
+                    <UUID>
+                        <xsl:value-of select="$Start/ARC_FHM_IN/BatchId"/>
+                    </UUID>
+                </xsl:when>
+                <xsl:otherwise>
+                    <UUID>
+                        <xsl:value-of select="UUID1:generateUUID()"/>
+                    </UUID>
+                </xsl:otherwise>
+            </xsl:choose>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>103</pd:x>
+        <pd:y>190</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Error in ARC_FrameworkHeaderManagement">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>302</pd:x>
+        <pd:y>199</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx3:ActivityInput>
+                <data>
+                    <pfx5:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                        </ErrorCode>
+                        <xsl:if test="string-length($_error/ns1:ErrorReport/Msg)>0">
+                            <xsl:if test="$_error/ns1:ErrorReport/Msg">
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_error/ns1:ErrorReport/Msg"/>
+                                </ErrorDescription>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns1:ErrorReport/MsgCode)>0">
+                            <xsl:if test="$_error/ns1:ErrorReport/MsgCode">
+                                <NativeErrorCode>
+                                    <xsl:value-of select="$_error/ns1:ErrorReport/MsgCode"/>
+                                </NativeErrorCode>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns1:ErrorReport/Msg)>0">
+                            <xsl:if test="$_error/ns1:ErrorReport/Msg">
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$_error/ns1:ErrorReport/Msg"/>
+                                </NativeErrorDescription>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns1:ErrorReport/StackTrace)>0">
+                            <xsl:if test="$_error/ns1:ErrorReport/StackTrace">
+                                <StackTrace>
+                                    <xsl:value-of select="$_error/ns1:ErrorReport/StackTrace"/>
+                                </StackTrace>
+                            </xsl:if>
+                        </xsl:if>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <xsl:if test="string-length($_error/ns1:ErrorReport/ProcessStack)>0">
+                            <xsl:if test="$_error/ns1:ErrorReport/ProcessStack">
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns1:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                            </xsl:if>
+                        </xsl:if>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/Errors/Severities/GLB_FatalError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/ARC_FHM_IN)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/MessageType/GLB_ProprietaryDataModel"/>
+                        </MessageType>
+                    </pfx5:ErrorMessage>
+                </data>
+            </pfx3:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="SetVariable">
+        <pd:type>com.tibco.pe.core.SetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.setSharedVariable</pd:resourceType>
+        <pd:x>386</pd:x>
+        <pd:y>139</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/ECSConfig.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings>
+            <group>
+                <pfx5:ECSConfig>
+                    <pfx5:namespace>
+                        <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ECSServiceHeader/pfx5:namespace"/>
+                    </pfx5:namespace>
+                    <pfx5:mrId>
+                        <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ECSServiceHeader/pfx5:mrId"/>
+                    </pfx5:mrId>
+                    <pfx5:genMetrics>
+                        <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ECSServiceHeader/pfx5:genMetrics"/>
+                    </pfx5:genMetrics>
+                    <xsl:choose>
+                        <xsl:when test="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:AuditHeader">
+                            <pfx5:properties>
+                                <pfx5:property>
+                                    <pfx5:key>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/PlatformKey"/>
+                                    </pfx5:key>
+                                    <pfx5:value>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/ESBToken"/>
+                                    </pfx5:value>
+                                    <pfx5:spreadE2E>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                    </pfx5:spreadE2E>
+                                </pfx5:property>
+                                <pfx5:property>
+                                    <pfx5:key>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/E2EIdKey"/>
+                                    </pfx5:key>
+                                    <pfx5:value>
+                                        <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:AuditHeader/pfx5:E2EId"/>
+                                    </pfx5:value>
+                                    <pfx5:spreadE2E>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                    </pfx5:spreadE2E>
+                                </pfx5:property>
+                                <pfx5:property>
+                                    <pfx5:key>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/ServiceIdKey"/>
+                                    </pfx5:key>
+                                    <pfx5:value>
+                                        <xsl:value-of select="$Start/ARC_FHM_IN/ServiceId"/>
+                                    </pfx5:value>
+                                    <pfx5:spreadE2E>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                    </pfx5:spreadE2E>
+                                </pfx5:property>
+                                <pfx5:property>
+                                    <pfx5:key>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/InstanceIdKey"/>
+                                    </pfx5:key>
+                                    <pfx5:value>
+                                        <xsl:value-of select="$NewUUID/UUID"/>
+                                    </pfx5:value>
+                                    <pfx5:spreadE2E>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                    </pfx5:spreadE2E>
+                                </pfx5:property>
+                                <pfx5:property>
+                                    <pfx5:key>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/UUAAKey"/>
+                                    </pfx5:key>
+                                    <pfx5:value>
+                                        <xsl:value-of select="tib:tokenize($Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:AuditHeader/pfx5:ServiceId, &quot;_&quot;)[2]"/>
+                                    </pfx5:value>
+                                    <pfx5:spreadE2E>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                    </pfx5:spreadE2E>
+                                </pfx5:property>
+                                <xsl:choose>
+                                    <xsl:when test="string-length($Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:RequestHeader/pfx5:BusinessObject)>0">
+                                        <pfx5:property>
+                                            <pfx5:key>
+                                                <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/EntitytKey"/>
+                                            </pfx5:key>
+                                            <pfx5:value>
+                                                <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:RequestHeader/pfx5:BusinessObject"/>
+                                            </pfx5:value>
+                                            <pfx5:spreadE2E>
+                                                <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                            </pfx5:spreadE2E>
+                                        </pfx5:property>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <pfx5:property>
+                                            <pfx5:key>
+                                                <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/EntitytKey"/>
+                                            </pfx5:key>
+                                            <pfx5:value>
+                                                <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_Generic_Object"/>
+                                            </pfx5:value>
+                                            <pfx5:spreadE2E>
+                                                <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                            </pfx5:spreadE2E>
+                                        </pfx5:property>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <pfx5:property>
+                                    <pfx5:key>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/HostKey"/>
+                                    </pfx5:key>
+                                    <pfx5:value>
+                                        <xsl:value-of select="BW:getHostName()"/>
+                                    </pfx5:value>
+                                    <pfx5:spreadE2E>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                    </pfx5:spreadE2E>
+                                </pfx5:property>
+                                <xsl:if test="$Start/ARC_FHM_IN/pfx5:ECSServiceHeader/pfx5:genMetrics=$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/True">
+                                    <pfx5:property>
+                                        <pfx5:key>
+                                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/MetricsKey"/>
+                                        </pfx5:key>
+                                        <pfx5:boolean_value>
+                                            <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ECSServiceHeader/pfx5:genMetrics"/>
+                                        </pfx5:boolean_value>
+                                        <pfx5:spreadE2E>
+                                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                        </pfx5:spreadE2E>
+                                    </pfx5:property>
+                                </xsl:if>
+                                <xsl:if test="count($Start/ARC_FHM_IN/pfx5:ECSServiceHeader/pfx5:properties/pfx5:property[pfx5:spreadE2E=$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False])>0">
+                                    <xsl:for-each-group select="$Start/ARC_FHM_IN/pfx5:ECSServiceHeader/pfx5:properties/pfx5:property[pfx5:spreadE2E=$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False]" group-by="pfx5:key">
+                                        <xsl:copy-of select="."/>
+                                    </xsl:for-each-group>
+                                </xsl:if>
+                            </pfx5:properties>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <pfx5:properties>
+                                <pfx5:property>
+                                    <pfx5:key>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/PlatformKey"/>
+                                    </pfx5:key>
+                                    <pfx5:value>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/ESBToken"/>
+                                    </pfx5:value>
+                                    <pfx5:spreadE2E>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                    </pfx5:spreadE2E>
+                                </pfx5:property>
+                                <pfx5:property>
+                                    <pfx5:key>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/E2EIdKey"/>
+                                    </pfx5:key>
+                                    <pfx5:value>
+                                        <xsl:value-of select="$NewUUID/UUID"/>
+                                    </pfx5:value>
+                                    <pfx5:spreadE2E>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                    </pfx5:spreadE2E>
+                                </pfx5:property>
+                                <pfx5:property>
+                                    <pfx5:key>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/ServiceIdKey"/>
+                                    </pfx5:key>
+                                    <pfx5:value>
+                                        <xsl:value-of select="$Start/ARC_FHM_IN/ServiceId"/>
+                                    </pfx5:value>
+                                    <pfx5:spreadE2E>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                    </pfx5:spreadE2E>
+                                </pfx5:property>
+                                <pfx5:property>
+                                    <pfx5:key>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/InstanceIdKey"/>
+                                    </pfx5:key>
+                                    <pfx5:value>
+                                        <xsl:value-of select="$NewUUID/UUID"/>
+                                    </pfx5:value>
+                                    <pfx5:spreadE2E>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                    </pfx5:spreadE2E>
+                                </pfx5:property>
+                                <pfx5:property>
+                                    <pfx5:key>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/UUAAKey"/>
+                                    </pfx5:key>
+                                    <pfx5:value>
+                                        <xsl:value-of select="tib:tokenize($Start/ARC_FHM_IN/ServiceId, &quot;_&quot;)[2]"/>
+                                    </pfx5:value>
+                                    <pfx5:spreadE2E>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                    </pfx5:spreadE2E>
+                                </pfx5:property>
+                                <xsl:choose>
+                                    <xsl:when test="string-length($Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:RequestHeader/pfx5:BusinessObject)>0">
+                                        <pfx5:property>
+                                            <pfx5:key>
+                                                <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/EntitytKey"/>
+                                            </pfx5:key>
+                                            <pfx5:value>
+                                                <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ArchitectureHeader/pfx5:RequestHeader/pfx5:BusinessObject"/>
+                                            </pfx5:value>
+                                            <pfx5:spreadE2E>
+                                                <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                            </pfx5:spreadE2E>
+                                        </pfx5:property>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <pfx5:property>
+                                            <pfx5:key>
+                                                <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/EntitytKey"/>
+                                            </pfx5:key>
+                                            <pfx5:value>
+                                                <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_Generic_Object"/>
+                                            </pfx5:value>
+                                            <pfx5:spreadE2E>
+                                                <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                            </pfx5:spreadE2E>
+                                        </pfx5:property>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <pfx5:property>
+                                    <pfx5:key>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/HostKey"/>
+                                    </pfx5:key>
+                                    <pfx5:value>
+                                        <xsl:value-of select="BW:getHostName()"/>
+                                    </pfx5:value>
+                                    <pfx5:spreadE2E>
+                                        <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                    </pfx5:spreadE2E>
+                                </pfx5:property>
+                                <xsl:if test="$Start/ARC_FHM_IN/pfx5:ECSServiceHeader/pfx5:genMetrics=$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/True">
+                                    <pfx5:property>
+                                        <pfx5:key>
+                                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/MetricsKey"/>
+                                        </pfx5:key>
+                                        <pfx5:boolean_value>
+                                            <xsl:value-of select="$Start/ARC_FHM_IN/pfx5:ECSServiceHeader/pfx5:genMetrics"/>
+                                        </pfx5:boolean_value>
+                                        <pfx5:spreadE2E>
+                                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False"/>
+                                        </pfx5:spreadE2E>
+                                    </pfx5:property>
+                                </xsl:if>
+                                <xsl:if test="count($Start/ARC_FHM_IN/pfx5:ECSServiceHeader/pfx5:properties/pfx5:property[pfx5:spreadE2E=$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False])>0">
+                                    <xsl:for-each-group select="$Start/ARC_FHM_IN/pfx5:ECSServiceHeader/pfx5:properties/pfx5:property[pfx5:spreadE2E=$_globalVariables/ns:GlobalVariables/GeneralConstants/BooleanConstants/False]" group-by="pfx5:key">
+                                        <xsl:copy-of select="."/>
+                                    </xsl:for-each-group>
+                                </xsl:if>
+                            </pfx5:properties>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </pfx5:ECSConfig>
+            </group>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Assign</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>Error in ARC_FrameworkHeaderManagement</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Assign</pd:from>
+        <pd:to>SetVariable</pd:to>
+        <pd:xpathDescription>ECS</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$Start/ARC_FHM_IN/pfx5:ECSServiceHeader</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>SetVariable</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Assign</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

@@ -1,0 +1,45 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>JMS_PROPERTY_INSTANCEID</name>
+			<value>InstanceId</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1617111210800</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>LlamadaDirectaActiva</name>
+			<value>NO</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673924</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>NombreCacheCalendar</name>
+			<value>com.bbva.kytl.cache.Calendars</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1402418614081</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>NombreFicheroCfgCaching</name>
+			<value>CachingConfigurations.cfg</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672673</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>RutaFicheroCfgCaching</name>
+			<value></value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1622713469040</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

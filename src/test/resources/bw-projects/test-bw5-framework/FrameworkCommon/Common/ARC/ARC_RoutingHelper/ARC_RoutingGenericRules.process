@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/schemas/Servicios Test Framework/Schemas/AppA/Schema.xsd" xmlns:pfx14="http://www.tibco.com/schemas/Servicios Test Framework/Schemas/CompuestoAppABC/Schema.xsd" xmlns:pfx13="http://www.bbva.com/EAIFramework" xmlns:pfx12="http://www.tibco.com/ns/no_namespace_schema_location/CommonResources/Schemas/XSD/MUREX/MXML.dtd" xmlns:pfx11="http://www.tibco.com/ns/no_namespace_schema_location/EAI-Framework/Public/Resources/Schemas/XSD/MUREX/MXML.dtd" xmlns:pfx10="http://www.tibco.com/schemas/FrameworkIntegracion/EAI-Framework/Resources/Public/Schemas/XSD/MCD/Schema.xsd" xmlns:ns12="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:pfx="http://www.example.org/BBVACabecera" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/schemas/Servicios Test Framework/Schemas/AppB/Schema.xsd" xmlns:ns4="http://www.tibco.com/schemas/Servicios Test Framework/Schemas/AppC/Schema.xsd" xmlns:ns3="http://www.tibco.com/pe/DeployedVarsType" xmlns:pfx5="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC_EXP_RecursosComunes/Esquemas/Schema.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx4="http://www.tibco.com/ns/no_namespace_schema_location/ASINC_EXP_RecursosComunes/Esquemas/Patron_Asincrono/Export Adapter/MXML.dtd" xmlns:pfx3="http://www.tibco.com/ns/no_namespace_schema_location/ASINC_EXP_RecursosComunes/Esquemas/Patron_Asincrono/Modelo Comun/main/ForwardDealsEvent.xsd" xmlns:pfx2="http://www.tibco.com/ns/no_namespace_schema_location/ASINC_EXP_RecursosComunes/Esquemas/Patron_Asincrono/Modelo Comun/deals/ForwardDeals.xsd" xmlns:pfx9="http://www.tibco.com/ns/no_namespace_schema_location/EAI-Framework/Resources/Public/Schemas/XSD/MUREX/MXML.dtd" xmlns:pfx8="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/Schemas/Schema.xsd" xmlns:pfx7="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:pfx6="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC_EXP_RecursosComunes/Esquemas/Schema.xsd3">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_RoutingHelper/ARC_RoutingGenericRules.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="IN_GetTargetServices">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="ServiceId" type="xsd:string"/>
+                    <xsd:element ref="pfx13:Messages"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>129</pd:startX>
+    <pd:startY>59</pd:startY>
+    <pd:returnBindings>
+        <OUT_GetTargetServices>
+            <TargetServices>
+                <pfx13:RoutingService>
+                    <pfx13:ServiceId>
+                        <xsl:value-of select="&quot;&quot;"/>
+                    </pfx13:ServiceId>
+                    <pfx13:ServiceType>
+                        <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_ImportationAdapter"/>
+                    </pfx13:ServiceType>
+                </pfx13:RoutingService>
+            </TargetServices>
+            <Body>
+                <xsl:copy-of select="$Start/IN_GetTargetServices/pfx13:Messages/pfx13:Message/pfx13:Body/*"/>
+            </Body>
+        </OUT_GetTargetServices>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="OUT_GetTargetServices">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="TargetServices">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element ref="pfx13:RoutingService" minOccurs="0" maxOccurs="unbounded"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="Body">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:any/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>681</pd:endX>
+    <pd:endY>56</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx13:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1292831667099</pd:targetNamespace>
+    <pd:activity name="Catch">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>281</pd:x>
+        <pd:y>130</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Generate Error">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>446</pd:x>
+        <pd:y>133</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns12:ActivityInput>
+                <data>
+                    <pfx13:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                        </ErrorCode>
+                        <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                            <ErrorDescription>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                            </ErrorDescription>
+                        </xsl:if>
+                        <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                            <NativeErrorCode>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                            </NativeErrorCode>
+                        </xsl:if>
+                        <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                            <NativeErrorDescription>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                            </NativeErrorDescription>
+                        </xsl:if>
+                        <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                            <StackTrace>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                            </StackTrace>
+                        </xsl:if>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0, 0)"/>
+                        </ErrorDate>
+                        <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                            <StackProcess>
+                                <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                            </StackProcess>
+                        </xsl:if>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/Errors/Severities/GLB_FatalError"/>
+                        </Severity>
+                        <OriginalMessage>
+                            <xsl:value-of select="tib:render-xml($Start/*)"/>
+                        </OriginalMessage>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Functional"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/*)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns3:GlobalVariables/GeneralConstants/MessageType/GLB_ProprietaryDataModel"/>
+                        </MessageType>
+                    </pfx13:ErrorMessage>
+                </data>
+            </ns12:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>Generate Error</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:label>
+        <pd:name>Label (2)</pd:name>
+        <pd:description>Rellenar los campos:
+- código del error
+- severidad</pd:description>
+        <pd:x>570</pd:x>
+        <pd:y>135</pd:y>
+        <pd:width>137</pd:width>
+        <pd:height>66</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-6684673</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+</pd:ProcessDefinition>

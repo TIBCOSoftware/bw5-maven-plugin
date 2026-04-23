@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns12="http://www.bbva.com/EAIFramework" xmlns:ns13="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema">
+    <pd:name>ArchitectureServices/Business/InitProcess/Process/InitGlobalQueues.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startX>84</pd:startX>
+    <pd:startY>118</pd:startY>
+    <pd:returnBindings>
+        <Data>
+            <Destinations>
+                <xsl:for-each select="$Obtener-Queues-JMS/javaCodeActivityOutput/queues">
+                    <Destination>
+                        <xsl:value-of select="."/>
+                    </Destination>
+                </xsl:for-each>
+            </Destinations>
+        </Data>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="Data">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="Destinations">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="Destination" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>558</pd:endX>
+    <pd:endY>120</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1431510796232</pd:targetNamespace>
+    <pd:activity name="Obtener Queues JMS">
+        <pd:type>com.tibco.plugin.java.JavaActivity</pd:type>
+        <pd:resourceType>ae.javapalette.javaActivity</pd:resourceType>
+        <pd:x>238</pd:x>
+        <pd:y>119</pd:y>
+        <config>
+            <fullsource>package ArchitectureServices.Business.InitProcess.Process.InitGlobalQueues;
+import java.util.*;
+import java.io.*;
+import com.tibco.tibjms.admin.*;
+import com.tibco.pe.plugin.PluginProperties;
+
+public class InitGlobalQueuesObtenerQueuesJMS{
+/****** START SET/GET METHOD, DO NOT MODIFY *****/
+	protected String url_JMS = "";
+	protected String proyect = "";
+	protected String[] queues = null;
+	protected String error = "";
+	public String geturl_JMS() {
+		return url_JMS;
+	}
+	public void seturl_JMS(String val) {
+		url_JMS = val;
+	}
+	public String getproyect() {
+		return proyect;
+	}
+	public void setproyect(String val) {
+		proyect = val;
+	}
+	public String[] getqueues() {
+		return queues;
+	}
+	public void setqueues(String[] val) {
+		queues = val;
+	}
+	public String geterror() {
+		return error;
+	}
+	public void seterror(String val) {
+		error = val;
+	}
+/****** END SET/GET METHOD, DO NOT MODIFY *****/
+	public InitGlobalQueuesObtenerQueuesJMS() {
+	}
+	public void invoke() throws Exception {
+/* Available Variables: DO NOT MODIFY
+	In  : String url_JMS
+	In  : String proyect
+	Out : String[] queues
+	Out : String error
+* Available Variables: DO NOT MODIFY *****/
+
+		org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger("bw.logger");
+
+		try
+		{
+			TibjmsAdmin admin = new TibjmsAdmin(url_JMS,
+                                                                                                    PluginProperties.getProperty("tibco.clientVar.CFG/ARCHITECTURE/JMS/MONITOR/CFG_JMS_USER", ""),
+                                                                                                    PluginProperties.getProperty("tibco.clientVar.CFG/ARCHITECTURE/JMS/MONITOR/CFG_JMS_PASSWORD", ""));
+			ConnectionInfo[] conns = admin.getConnections();
+			long connectionID = 1;
+	
+			for (ConnectionInfo conn : conns) {
+				if (conn.getClientID()!= null &amp;&amp; conn.getClientID().contains("BW-BusinessConnection-queue-" + proyect))
+				{
+					connectionID = conn.getID();
+					break;
+				}
+			}
+			
+			QueueInfo queue = new QueueInfo("&gt;");
+			ConsumerInfo[] consumers = admin.getConsumers(connectionID, null, queue, false, 0);
+
+			String[] colas = new String[consumers.length];
+
+			int i = 0;
+			for (ConsumerInfo consumer : consumers) {
+				if (consumer.getConnectionID()!= 0 &amp;&amp; consumer.getConnectionID() == connectionID)
+				{
+					colas[i] = consumer.getDestinationName();
+					i++;
+				}
+			}
+
+			queues =  colas;
+
+		}catch (Exception e) {
+			error = e.toString();
+			logger.info("Error Java Code inesperado: " + e);
+		}
+}
+}
+</fullsource>
+            <fileName>InitGlobalQueuesObtenerQueuesJMS</fileName>
+            <packageName>ArchitectureServices.Business.InitProcess.Process.InitGlobalQueues</packageName>
+            <outputData>
+                <row>
+                    <fieldName>queues</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>repeating</fieldRequired>
+                </row>
+                <row>
+                    <fieldName>error</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>optional</fieldRequired>
+                </row>
+            </outputData>
+            <inputData>
+                <row>
+                    <fieldName>url_JMS</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>required</fieldRequired>
+                </row>
+                <row>
+                    <fieldName>proyect</fieldName>
+                    <fieldType>string</fieldType>
+                    <fieldRequired>required</fieldRequired>
+                </row>
+            </inputData>
+            <byteCode>
+                <class>
+                    <name>InitGlobalQueuesObtenerQueuesJMS</name>
+                    <byteCode>yv66vgAAADMAkAkAJABJCQAkAEoJACQASwkAJABMCgAlAE0IAE4IAE8KAFAAUQcAUggAUwoAVABVCABWCgAJAFcKAAkAWAoAWQBaBwBbCgAQAE0IAFwKABAAXQoAEABeCgAcAF8KAFkAYAcAYQgAYgoAFwBjCgBkAGUKAAkAZgcAZwoAaABpCgBoAGoHAGsKAB8AXggAbAoAEABtCgBQAG4HAG8HAHABAAd1cmxfSk1TAQASTGphdmEvbGFuZy9TdHJpbmc7AQAHcHJveWVjdAEABnF1ZXVlcwEAE1tMamF2YS9sYW5nL1N0cmluZzsBAAVlcnJvcgEACmdldHVybF9KTVMBABQoKUxqYXZhL2xhbmcvU3RyaW5nOwEABENvZGUBAA9MaW5lTnVtYmVyVGFibGUBAApzZXR1cmxfSk1TAQAVKExqYXZhL2xhbmcvU3RyaW5nOylWAQAKZ2V0cHJveWVjdAEACnNldHByb3llY3QBAAlnZXRxdWV1ZXMBABUoKVtMamF2YS9sYW5nL1N0cmluZzsBAAlzZXRxdWV1ZXMBABYoW0xqYXZhL2xhbmcvU3RyaW5nOylWAQAIZ2V0ZXJyb3IBAAhzZXRlcnJvcgEABjxpbml0PgEAAygpVgEABmludm9rZQEADVN0YWNrTWFwVGFibGUHAG8HAHEHAFIHAHIHAGEHAHMHACoHAGsBAApFeGNlcHRpb25zAQAKU291cmNlRmlsZQEAJUluaXRHbG9iYWxRdWV1ZXNPYnRlbmVyUXVldWVzSk1TLmphdmEMACYAJwwAKAAnDAApACoMACsAJwwAOgA7AQAAAQAJYncubG9nZ2VyBwBxDAB0AHUBACJjb20vdGliY28vdGliam1zL2FkbWluL1RpYmptc0FkbWluAQA5dGliY28uY2xpZW50VmFyLkNGRy9BUkNISVRFQ1RVUkUvSk1TL01PTklUT1IvQ0ZHX0pNU19VU0VSBwB2DAB3AHgBAD10aWJjby5jbGllbnRWYXIuQ0ZHL0FSQ0hJVEVDVFVSRS9KTVMvTU9OSVRPUi9DRkdfSk1TX1BBU1NXT1JEDAA6AHkMAHoAewcAfAwAfQAtAQAXamF2YS9sYW5nL1N0cmluZ0J1aWxkZXIBABxCVy1CdXNpbmVzc0Nvbm5lY3Rpb24tcXVldWUtDAB+AH8MAIAALQwAgQCCDACDAIQBACBjb20vdGliY28vdGliam1zL2FkbWluL1F1ZXVlSW5mbwEAAT4MADoAMQcAhQwAhgCHDACIAIkBABBqYXZhL2xhbmcvU3RyaW5nBwCKDACLAIQMAIwALQEAE2phdmEvbGFuZy9FeGNlcHRpb24BABxFcnJvciBKYXZhIENvZGUgaW5lc3BlcmFkbzogDAB+AI0MAI4AjwEAY0FyY2hpdGVjdHVyZVNlcnZpY2VzL0J1c2luZXNzL0luaXRQcm9jZXNzL1Byb2Nlc3MvSW5pdEdsb2JhbFF1ZXVlcy9Jbml0R2xvYmFsUXVldWVzT2J0ZW5lclF1ZXVlc0pNUwEAEGphdmEvbGFuZy9PYmplY3QBABdvcmcvYXBhY2hlL2xvZzRqL0xvZ2dlcgEAKFtMY29tL3RpYmNvL3RpYmptcy9hZG1pbi9Db25uZWN0aW9uSW5mbzsBACZbTGNvbS90aWJjby90aWJqbXMvYWRtaW4vQ29uc3VtZXJJbmZvOwEACWdldExvZ2dlcgEALShMamF2YS9sYW5nL1N0cmluZzspTG9yZy9hcGFjaGUvbG9nNGovTG9nZ2VyOwEAJGNvbS90aWJjby9wZS9wbHVnaW4vUGx1Z2luUHJvcGVydGllcwEAC2dldFByb3BlcnR5AQA4KExqYXZhL2xhbmcvU3RyaW5nO0xqYXZhL2xhbmcvU3RyaW5nOylMamF2YS9sYW5nL1N0cmluZzsBADkoTGphdmEvbGFuZy9TdHJpbmc7TGphdmEvbGFuZy9TdHJpbmc7TGphdmEvbGFuZy9TdHJpbmc7KVYBAA5nZXRDb25uZWN0aW9ucwEAKigpW0xjb20vdGliY28vdGliam1zL2FkbWluL0Nvbm5lY3Rpb25JbmZvOwEAJWNvbS90aWJjby90aWJqbXMvYWRtaW4vQ29ubmVjdGlvbkluZm8BAAtnZXRDbGllbnRJRAEABmFwcGVuZAEALShMamF2YS9sYW5nL1N0cmluZzspTGphdmEvbGFuZy9TdHJpbmdCdWlsZGVyOwEACHRvU3RyaW5nAQAIY29udGFpbnMBABsoTGphdmEvbGFuZy9DaGFyU2VxdWVuY2U7KVoBAAVnZXRJRAEAAygpSgEADmphdmEvbGFuZy9Mb25nAQAHdmFsdWVPZgEAEyhKKUxqYXZhL2xhbmcvTG9uZzsBAAxnZXRDb25zdW1lcnMBAHQoTGphdmEvbGFuZy9Mb25nO0xqYXZhL2xhbmcvU3RyaW5nO0xjb20vdGliY28vdGliam1zL2FkbWluL0Rlc3RpbmF0aW9uSW5mbztaSSlbTGNvbS90aWJjby90aWJqbXMvYWRtaW4vQ29uc3VtZXJJbmZvOwEAI2NvbS90aWJjby90aWJqbXMvYWRtaW4vQ29uc3VtZXJJbmZvAQAPZ2V0Q29ubmVjdGlvbklEAQASZ2V0RGVzdGluYXRpb25OYW1lAQAtKExqYXZhL2xhbmcvT2JqZWN0OylMamF2YS9sYW5nL1N0cmluZ0J1aWxkZXI7AQAEaW5mbwEAFShMamF2YS9sYW5nL09iamVjdDspVgAhACQAJQAAAAQABAAmACcAAAAEACgAJwAAAAQAKQAqAAAABAArACcAAAAKAAEALAAtAAEALgAAAB0AAQABAAAABSq0AAGwAAAAAQAvAAAABgABAAAADgABADAAMQABAC4AAAAiAAIAAgAAAAYqK7UAAbEAAAABAC8AAAAKAAIAAAARAAUAEgABADIALQABAC4AAAAdAAEAAQAAAAUqtAACsAAAAAEALwAAAAYAAQAAABQAAQAzADEAAQAuAAAAIgACAAIAAAAGKiu1AAKxAAAAAQAvAAAACgACAAAAFwAFABgAAQA0ADUAAQAuAAAAHQABAAEAAAAFKrQAA7AAAAABAC8AAAAGAAEAAAAaAAEANgA3AAEALgAAACIAAgACAAAABiortQADsQAAAAEALwAAAAoAAgAAAB0ABQAeAAEAOAAtAAEALgAAAB0AAQABAAAABSq0AASwAAAAAQAvAAAABgABAAAAIAABADkAMQABAC4AAAAiAAIAAgAAAAYqK7UABLEAAAABAC8AAAAKAAIAAAAjAAUAJAABADoAOwABAC4AAABIAAIAAQAAABwqtwAFKhIGtQABKhIGtQACKgG1AAMqEga1AASxAAAAAQAvAAAAGgAGAAAAJgAEAAkACgAKABAACwAVAAwAGwAnAAEAPAA7AAIALgAAAecABgAOAAABDBIHuAAITLsACVkqtAABEgoSBrgACxIMEga4AAu3AA1NLLYADk4KNwQtOgYZBr42BwM2CBUIFQeiAEMZBhUIMjoJGQm2AA/GAC4ZCbYAD7sAEFm3ABESErYAEyq0AAK2ABO2ABS2ABWZAA0ZCbYAFjcEpwAJhAgBp/+8uwAXWRIYtwAZOgYsFgS4ABoBGQYDA7YAGzoHGQe+vQAcOggDNgkZBzoKGQq+NgsDNgwVDBULogAyGQoVDDI6DRkNtgAdCZSZABsZDbYAHRYElJoAEBkIFQkZDbYAHlOECQGEDAGn/80qGQi1AAOnACNNKiy2ACC1AAQruwAQWbcAERIhtgATLLYAIrYAFLYAI7EAAQAGAOgA6wAfAAIALwAAAGIAGAAAADAABgA0ACAANwAlADgAKAA6AEEAOwBqAD0AcQA+AHQAOgB6AEIAhQBDAJUARQCdAEcAoABIALoASQDPAEsA2QBMANwASADiAFAA6ABVAOsAUgDsAFMA9ABUAQsAVgA9AAAAWQAI/wAzAAgHAD4HAD8HAEAHAEEEBwBBAQEAAPsAQPgABf8AMQAMBwA+BwA/BwBABwBBBAcAQgcAQwcARAEHAEMBAQAAL/gABf8ACAACBwA+BwA/AAEHAEUfAEYAAAAEAAEAHwABAEcAAAACAEg=</byteCode>
+                </class>
+            </byteCode>
+        </config>
+        <pd:inputBindings>
+            <javaCodeActivityInput>
+                <url_JMS>
+                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/SERVICES/CFG_JMS_URL"/>
+                </url_JMS>
+                <proyect>
+                    <xsl:value-of select="$_processContext/ns2:ProcessContext/EngineName"/>
+                </proyect>
+            </javaCodeActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="TraceError">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>556</pd:x>
+        <pd:y>251</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_TrackingManagement/ARC_TrackingErrorManagement.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ns12:CLEMessage>
+                <CLEHeader>
+                    <E2EId>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_InstancedIdNoInitialized"/>
+                    </E2EId>
+                    <E2EDeepness>
+                        <xsl:value-of select="0"/>
+                    </E2EDeepness>
+                    <InvocationUser>
+                        <xsl:value-of select="&quot;&quot;"/>
+                    </InvocationUser>
+                    <EventCode>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_StartError"/>
+                    </EventCode>
+                    <EventType>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Error"/>
+                    </EventType>
+                    <Timestamp>
+                        <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                    </Timestamp>
+                    <ServiceId>
+                        <xsl:value-of select="&quot;&quot;"/>
+                    </ServiceId>
+                    <InstanceId>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_InstancedIdNoInitialized"/>
+                    </InstanceId>
+                    <ProjectName>
+                        <xsl:value-of select="$_processContext/ns2:ProcessContext/ProjectName"/>
+                    </ProjectName>
+                    <ProcessName>
+                        <xsl:value-of select="BW:getCurrentProcessName($_processContext/ns2:ProcessContext/ProcessId)"/>
+                    </ProcessName>
+                    <EngineName>
+                        <xsl:value-of select="$_processContext/ns2:ProcessContext/EngineName"/>
+                    </EngineName>
+                    <MachineName>
+                        <xsl:value-of select="&quot;&quot;"/>
+                    </MachineName>
+                    <ErrorHeader>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_StartError"/>
+                        </ErrorCode>
+                        <ErrorDescription>
+                            <xsl:value-of select="&quot;ERROR-MONITORING_QUEUE&quot;"/>
+                        </ErrorDescription>
+                        <StackTrace>
+                            <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                        </StackTrace>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <Severity>
+                            <xsl:value-of select="1"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($_error/ns2:ErrorReport)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="tib:render-xml($_error/ns2:ErrorReport)"/>
+                        </MessageType>
+                    </ErrorHeader>
+                </CLEHeader>
+                <Body>
+                    <xsl:value-of select="tib:render-xml($_error/ns2:ErrorReport)"/>
+                </Body>
+            </ns12:CLEMessage>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Generate Error">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>240</pd:x>
+        <pd:y>257</pd:y>
+        <config>
+            <faultName/>
+        </config>
+        <pd:inputBindings>
+            <ns13:ActivityInput>
+                <xsl:if test="$Obtener-Queues-JMS/javaCodeActivityOutput/error">
+                    <message>
+                        <xsl:value-of select="$Obtener-Queues-JMS/javaCodeActivityOutput/error"/>
+                    </message>
+                </xsl:if>
+            </ns13:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>419</pd:x>
+        <pd:y>251</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="LogMonitoringQueuesOK">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <pd:x>405</pd:x>
+        <pd:y>118</pd:y>
+        <config>
+            <role>User</role>
+        </config>
+        <pd:inputBindings>
+            <ns:ActivityInput>
+                <message>
+                    <xsl:value-of select="if (count($Obtener-Queues-JMS/javaCodeActivityOutput/queues)=0) &#xA;then&#xA;'Queue Receivers JMS not found'&#xA;else&#xA;concat(&quot;Queue Receivers JMS: &quot;, &quot;&#xA;&quot;,&#xA;tib:concat-sequence-format(&#xA;for $queue  in $Obtener-Queues-JMS/javaCodeActivityOutput/queues return &#xA;concat('Destination: &quot;' , $queue, '&quot;'),&#xA;&quot;&#xA;&quot;))"/>
+                </message>
+            </ns:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Obtener Queues JMS</pd:from>
+        <pd:to>Generate Error</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Obtener Queues JMS</pd:from>
+        <pd:to>LogMonitoringQueuesOK</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>LogMonitoringQueuesOK</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>TraceError</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>TraceError</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Obtener Queues JMS</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

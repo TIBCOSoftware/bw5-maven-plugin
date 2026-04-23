@@ -1,0 +1,29 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>GLB_ServiceId_Max_Length</name>
+			<value>20</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1386864671575</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_mockRoot</name>
+			<value></value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1442403247949</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_root</name>
+			<value>/Business/</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864673115</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

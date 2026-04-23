@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pfx="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/SignalInActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/EngineTypes">
+    <pd:name>Client.process</pd:name>
+    <pd:startName>Timer</pd:startName>
+    <pd:startX>0</pd:startX>
+    <pd:startY>0</pd:startY>
+    <pd:returnBindings/>
+    <pd:starter name="Timer">
+        <pd:type>com.tibco.plugin.timer.TimerEventSource</pd:type>
+        <pd:resourceType>ae.activities.timer</pd:resourceType>
+        <pd:x>109</pd:x>
+        <pd:y>48</pd:y>
+        <config>
+            <StartTime>1312960784000</StartTime>
+            <Frequency>true</Frequency>
+            <TimeInterval>1</TimeInterval>
+            <FrequencyIndex>Second</FrequencyIndex>
+        </config>
+        <pd:inputBindings/>
+    </pd:starter>
+    <pd:endName>End</pd:endName>
+    <pd:endX>439</pd:endX>
+    <pd:endY>48</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1305802768509</pd:targetNamespace>
+    <pd:activity name="Send HTTP Request">
+        <pd:type>com.tibco.plugin.http.client.HttpRequestActivity</pd:type>
+        <pd:resourceType>httppalette.httpRequest</pd:resourceType>
+        <pd:x>264</pd:x>
+        <pd:y>47</pd:y>
+        <config>
+            <inputOutputVersion>5.3.0</inputOutputVersion>
+            <newMimeSupport>true</newMimeSupport>
+            <serverhost>%%MachineName%%</serverhost>
+            <serverport>%%MachinePort%%</serverport>
+            <authScheme>NONE</authScheme>
+            <InputHeaders>
+                <xsd:element name="root">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="Accept" type="xsd:string" minOccurs="0"/>
+                            <xsd:element name="Accept-Charset" type="xsd:string" minOccurs="0"/>
+                            <xsd:element name="Accept-Encoding" type="xsd:string" minOccurs="0"/>
+                            <xsd:element name="Content-Type" type="xsd:string" minOccurs="0"/>
+                            <xsd:element name="Cookie" type="xsd:string" minOccurs="0"/>
+                            <xsd:element name="Pragma" type="xsd:string" minOccurs="0"/>
+                            <xsd:element name="ArrayData" type="xsd:string" maxOccurs="unbounded"/>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+            </InputHeaders>
+            <OutputHeaders>
+                <xsd:element name="root">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="Allow" type="xsd:string" minOccurs="0"/>
+                            <xsd:element name="Content-Type" type="xsd:string" minOccurs="0"/>
+                            <xsd:element name="Content-Length" type="xsd:string" minOccurs="0"/>
+                            <xsd:element name="Content-Encoding" type="xsd:string" minOccurs="0"/>
+                            <xsd:element name="Date" type="xsd:string" minOccurs="0"/>
+                            <xsd:element name="Location" type="xsd:string" minOccurs="0"/>
+                            <xsd:element name="Set-Cookie" type="xsd:string" minOccurs="0"/>
+                            <xsd:element name="Pragma" type="xsd:string" minOccurs="0"/>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+            </OutputHeaders>
+        </config>
+        <pd:inputBindings>
+            <RequestActivityInput>
+                <PostData>
+                    <xsl:value-of select="&quot;Sending Request&quot;"/>
+                </PostData>
+                <Headers>
+                    <Content-Type>
+                        <xsl:value-of select="&quot;image/jpeg&quot;"/>
+                    </Content-Type>
+                    <ArrayData>
+                        <xsl:value-of select="&quot;2&quot;"/>
+                    </ArrayData>
+                    <ArrayData>
+                        <xsl:value-of select="&quot;1&quot;"/>
+                    </ArrayData>
+                </Headers>
+                <DynamicHeaders>
+                    <Header>
+                        <Name>
+                            <xsl:value-of select="&quot;Content-Type1&quot;"/>
+                        </Name>
+                        <Value>
+                            <xsl:value-of select="&quot;found_ContentType1_firstTime&quot;"/>
+                        </Value>
+                    </Header>
+                    <Header>
+                        <Name>
+                            <xsl:value-of select="&quot;Content-Type1&quot;"/>
+                        </Name>
+                        <Value>
+                            <xsl:value-of select="&quot;found_ContentType1_SecondTime&quot;"/>
+                        </Value>
+                    </Header>
+                    <Header>
+                        <Name>
+                            <xsl:value-of select="&quot;Content-Type&quot;"/>
+                        </Name>
+                        <Value>
+                            <xsl:value-of select="&quot;text/plain&quot;"/>
+                        </Value>
+                    </Header>
+                    <Header>
+                        <Name>
+                            <xsl:value-of select="&quot;ArrayData&quot;"/>
+                        </Name>
+                        <Value>
+                            <xsl:value-of select="&quot;3&quot;"/>
+                        </Value>
+                    </Header>
+                </DynamicHeaders>
+            </RequestActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Timer</pd:from>
+        <pd:to>Send HTTP Request</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Send HTTP Request</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

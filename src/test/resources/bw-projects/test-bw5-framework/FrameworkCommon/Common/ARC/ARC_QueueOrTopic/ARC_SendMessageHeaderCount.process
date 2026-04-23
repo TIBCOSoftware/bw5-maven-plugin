@@ -1,0 +1,1265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pfx6="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:pfx7="http://www.tibco.com/schemas/FrameworkIntegracion/EAI-Framework/Resources/Private/Schemas/SINC_SimpleService/Schema.xsd" xmlns:pfx8="http://www.tibco.com/ns/no_namespace_schema_location/EAI-Framework/Public/Resources/Schemas/XSD/MUREX/MXML.dtd" xmlns:pfx9="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/ServiceParameters/SR/Schema.xsd" xmlns:pfx="http://www.example.com/PROCESO_SINCRONO" xmlns:pfx2="http://xmlns.example.com/PROCESO_SINCRONO" xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:pfx3="http://www.tibco.com/schemas/AW_ArquitecturaComun/RecursosComunes/Esquemas/EsquemasArquitectura/AW_gestionErrores/Schema.xsd" xmlns:pfx4="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:pfx5="http://www.tibco.com/ns/no_namespace_schema_location/SINC_CONS_RecursosComunes/Esquemas/XSD/Patron_Sincrono/ModeloComun/MLC/NM_MLC.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:ns1="http://www.example.org/BBVACabecera" xmlns:ns4="http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions" xmlns:ns3="http://www.tibco.com/pe/SignalInActivitySchema" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns6="http://www.tibco.com/pe/DeployedVarsType" xmlns:ns5="http://schemas.tibco.com/bw/plugins/jms/5.0/jmsExceptions" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:ns7="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:ns12="http://www.bbva.com/EAIFramework" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:pfx11="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx10="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_QueueOrTopic/ARC_SendMessageHeaderCount.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ARC_REQS_Main_IN">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="Body">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:any processContents="skip"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="JMsReplyTo" type="xsd:string" minOccurs="0"/>
+                    <xsd:element name="JMSCorrelationId" type="xsd:string" minOccurs="0"/>
+                    <xsd:element name="Service">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:choice>
+                                    <xsd:element name="ServiceId" type="xsd:string"/>
+                                    <xsd:element name="JMSDestination" type="xsd:string"/>
+                                </xsd:choice>
+                                <xsd:element name="ServiceType" type="xsd:string"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="TimeOut" type="xsd:string" minOccurs="0"/>
+                    <xsd:element name="Sync" type="xsd:string"/>
+                    <xsd:element name="UpdateHeaderParameters" minOccurs="0">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="ControlE2E" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="ParentControlE2E" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="IsLight" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="SaveMessage" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="ActiveHeaderNonCompatibility" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="JMSHeaderParameters" minOccurs="0">
+                                    <xsd:complexType>
+                                        <xsd:sequence>
+                                            <xsd:element name="JMSDeliveryMode" type="xsd:string" minOccurs="0"/>
+                                            <xsd:element name="JMSTimeStamp" type="xsd:int" minOccurs="0"/>
+                                            <xsd:element name="JMSExpiration" type="xsd:int" minOccurs="0"/>
+                                            <xsd:element name="JMSRedelivered" type="xsd:boolean" minOccurs="0"/>
+                                            <xsd:element name="JMSPriority" type="xsd:int" minOccurs="0"/>
+                                            <xsd:element name="JMSType" type="xsd:string" minOccurs="0"/>
+                                            <xsd:element name="NameValue" minOccurs="0" maxOccurs="unbounded">
+                                                <xsd:complexType>
+                                                    <xsd:sequence>
+                                                        <xsd:element name="Name" type="xsd:string"/>
+                                                        <xsd:element name="Value" type="xsd:string"/>
+                                                    </xsd:sequence>
+                                                </xsd:complexType>
+                                            </xsd:element>
+                                        </xsd:sequence>
+                                    </xsd:complexType>
+                                </xsd:element>
+                                <xsd:element name="JMSPropertiesParameters" minOccurs="0">
+                                    <xsd:complexType>
+                                        <xsd:sequence>
+                                            <xsd:element name="JMSXUserID" type="xsd:string" minOccurs="0"/>
+                                            <xsd:element name="JMSXAppID" type="xsd:string" minOccurs="0"/>
+                                            <xsd:element name="JMSXProducerTXID" type="xsd:string" minOccurs="0"/>
+                                            <xsd:element name="JMSXConsumerTXID" type="xsd:string" minOccurs="0"/>
+                                            <xsd:element name="JMSXRcvTimestamp" type="xsd:int" minOccurs="0"/>
+                                            <xsd:element name="JMSDeliveryCount" type="xsd:int" minOccurs="0"/>
+                                            <xsd:element name="JMSXGroupID" type="xsd:string" minOccurs="0"/>
+                                            <xsd:element name="JMSXGroupSeq" type="xsd:int" minOccurs="0"/>
+                                            <xsd:element name="NameValue" minOccurs="0" maxOccurs="unbounded">
+                                                <xsd:complexType>
+                                                    <xsd:sequence>
+                                                        <xsd:element name="Name" type="xsd:string"/>
+                                                        <xsd:element name="Value" type="xsd:string"/>
+                                                    </xsd:sequence>
+                                                </xsd:complexType>
+                                            </xsd:element>
+                                        </xsd:sequence>
+                                    </xsd:complexType>
+                                </xsd:element>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>43</pd:startX>
+    <pd:startY>94</pd:startY>
+    <pd:returnBindings>
+        <OUTPUT_SendMessage>
+            <xsl:if test="$ARC_RequestMessage2QueueOrTopic">
+                <xsl:copy-of select="$ARC_RequestMessage2QueueOrTopic/ns12:Message"/>
+            </xsl:if>
+        </OUTPUT_SendMessage>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="OUTPUT_SendMessage">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="ns12:Message" minOccurs="0"/>
+                    <xsd:element name="JMSHeaderParameters" minOccurs="0">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="JMSReplyTo" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="JMSDeliveryMode" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="JMSMessageID" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="JMSTimeStamp" type="xsd:int" minOccurs="0"/>
+                                <xsd:element name="JMSExpiration" type="xsd:int" minOccurs="0"/>
+                                <xsd:element name="JMSRedelivered" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="JMSPriority" type="xsd:int" minOccurs="0"/>
+                                <xsd:element name="JMSCorrelationID" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="JMSType" type="xsd:string" minOccurs="0"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="JMSPropertyParameters" minOccurs="0">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="JMSXUserID" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="JMSXAppID" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="JMSXProducerTXID" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="JMSXConsumerTXID" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="JMSXRcvTimestamp" type="xsd:int" minOccurs="0"/>
+                                <xsd:element name="JMSXDeliveryCount" type="xsd:int" minOccurs="0"/>
+                                <xsd:element name="JMSXGroupID" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="JMSXGroupSeq" type="xsd:int" minOccurs="0"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>28</pd:endX>
+    <pd:endY>412</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema>
+            <xsd:element name="group">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element ref="ns12:ErrorMessage"/>
+                        <xsd:element name="Body" minOccurs="0">
+                            <xsd:complexType>
+                                <xsd:sequence>
+                                    <xsd:any processContents="skip"/>
+                                </xsd:sequence>
+                            </xsd:complexType>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </ErrorSchema>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1292404027083</pd:targetNamespace>
+    <pd:activity name="ARC_FindQueue">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>557</pd:x>
+        <pd:y>99</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_Queues/ARC_FindQueue.process</processName>
+        </config>
+        <pd:inputBindings>
+            <FindQueueIn>
+                <ServiceId>
+                    <xsl:value-of select="$Start/ARC_REQS_Main_IN/Service/ServiceId"/>
+                </ServiceId>
+            </FindQueueIn>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_RequestMessage2QueueOrTopic">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>407</pd:x>
+        <pd:y>302</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_QueueOrTopic/ARC_RequestMessage2QueueOrTopic.process</processName>
+            <processNameXPath>concat($_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_mockRoot, "/Common/ARC/ARC_QueueOrTopic/ARC_RequestMessage2QueueOrTopic.process")</processNameXPath>
+        </config>
+        <pd:inputBindings>
+            <IN_SendMessage2QueueOrTopic>
+                <xsl:choose>
+                    <xsl:when test="$ARC_FindQueue">
+                        <TargetName>
+                            <xsl:value-of select="$ARC_FindQueue/ns12:Destination"/>
+                        </TargetName>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <TargetName>
+                            <xsl:value-of select="$Start/ARC_REQS_Main_IN/Service/JMSDestination"/>
+                        </TargetName>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <xsl:choose>
+                    <xsl:when test="$ARC_FindQueue">
+                        <xsl:choose>
+                            <xsl:when test="$ARC_FindQueue/ns12:Destination/@DestinationType='Topic'">
+                                <IsTopic>
+                                    <xsl:value-of select="1"/>
+                                </IsTopic>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <IsTopic>
+                                    <xsl:value-of select="0"/>
+                                </IsTopic>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <IsTopic>
+                            <xsl:value-of select="0"/>
+                        </IsTopic>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <ns12:Message>
+                    <ns12:ArchitectureHeader>
+                        <ns12:AuditHeader>
+                            <ns12:E2EId>
+                                <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EId"/>
+                            </ns12:E2EId>
+                            <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:InstanceId">
+                                <ns12:ParentInstanceId>
+                                    <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:InstanceId"/>
+                                </ns12:ParentInstanceId>
+                            </xsl:if>
+                            <ns12:InstanceId>
+                                <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:InstanceId"/>
+                            </ns12:InstanceId>
+                            <ns12:Deepness>
+                                <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:Deepness"/>
+                            </ns12:Deepness>
+                            <ns12:ServiceId>
+                                <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:ServiceId"/>
+                            </ns12:ServiceId>
+                            <ns12:ServiceType>
+                                <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:ServiceType"/>
+                            </ns12:ServiceType>
+                            <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EControl">
+                                <ns12:E2EControl>
+                                    <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EControl"/>
+                                </ns12:E2EControl>
+                            </xsl:if>
+                            <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EControl">
+                                <ns12:ParentE2EControl>
+                                    <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EControl"/>
+                                </ns12:ParentE2EControl>
+                            </xsl:if>
+                            <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/ActiveHeaderNonCompatibility=&quot;true&quot;">
+                                <xsl:if test="count($Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:isLight)>0">
+                                    <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:isLight">
+                                        <ns12:isLight>
+                                            <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:isLight"/>
+                                        </ns12:isLight>
+                                    </xsl:if>
+                                </xsl:if>
+                            </xsl:if>
+                            <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/ActiveHeaderNonCompatibility=&quot;true&quot;">
+                                <xsl:if test="count($Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:SaveMessage)>0">
+                                    <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:SaveMessage">
+                                        <ns12:SaveMessage>
+                                            <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:SaveMessage"/>
+                                        </ns12:SaveMessage>
+                                    </xsl:if>
+                                </xsl:if>
+                            </xsl:if>
+                        </ns12:AuditHeader>
+                        <xsl:if test="string-length($Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:traceId)>0&#xA;and&#xA;(string(((tib:tokenize($_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSParams/ListServicesNotSendECSHeader, &quot;,&quot;)=$ARC_FindQueue/ns12:Destination/@ServiceId)))=$_globalVariables/ns6:GlobalVariables/GeneralConstants/BooleanConstants/False&#xA;and&#xA;$_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSParams/ListServicesNotSendECSHeader!=$_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/ALLServices)">
+                            <ns12:ECSHeader>
+                                <ns12:traceId>
+                                    <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:traceId"/>
+                                </ns12:traceId>
+                                <xsl:if test="string-length($GetECSConfig/group/ns12:ECSConfig/ns12:namespace)>0">
+                                    <ns12:parentSpan>
+                                        <xsl:value-of select="concat($_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/NSToken,$GetECSConfig/group/ns12:ECSConfig/ns12:namespace,$_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/MRSToken,$GetECSConfig/group/ns12:ECSConfig/ns12:mrId,$_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/SpansToken,$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:spanId)"/>
+                                    </ns12:parentSpan>
+                                </xsl:if>
+                                <ns12:spanId>
+                                    <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:spanId"/>
+                                </ns12:spanId>
+                                <xsl:if test="count($Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:properties/ns12:property)>0">
+                                    <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:properties"/>
+                                </xsl:if>
+                            </ns12:ECSHeader>
+                        </xsl:if>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:RequestHeader"/>
+                        <ns12:ErrorHeader>
+                            <ns12:IsError>
+                                <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:IsError"/>
+                            </ns12:IsError>
+                            <xsl:if test="exists($Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage)">
+                                <ns12:ErrorMessage>
+                                    <ErrorCode>
+                                        <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage/ErrorCode"/>
+                                    </ErrorCode>
+                                    <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage/ErrorDescription">
+                                        <ErrorDescription>
+                                            <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage/ErrorDescription"/>
+                                        </ErrorDescription>
+                                    </xsl:if>
+                                    <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage/NativeErrorCode">
+                                        <NativeErrorCode>
+                                            <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage/NativeErrorCode"/>
+                                        </NativeErrorCode>
+                                    </xsl:if>
+                                    <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage/NativeErrorDescription">
+                                        <NativeErrorDescription>
+                                            <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage/NativeErrorDescription"/>
+                                        </NativeErrorDescription>
+                                    </xsl:if>
+                                    <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage/StackTrace">
+                                        <StackTrace>
+                                            <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage/StackTrace"/>
+                                        </StackTrace>
+                                    </xsl:if>
+                                    <ErrorDate>
+                                        <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage/ErrorDate"/>
+                                    </ErrorDate>
+                                    <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage/StackProcess">
+                                        <StackProcess>
+                                            <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage/StackProcess"/>
+                                        </StackProcess>
+                                    </xsl:if>
+                                    <Severity>
+                                        <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage/Severity"/>
+                                    </Severity>
+                                    <Category>
+                                        <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage/Category"/>
+                                    </Category>
+                                    <ProcessInputMessage>
+                                        <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage/ProcessInputMessage"/>
+                                    </ProcessInputMessage>
+                                    <IsResponse>
+                                        <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage/IsResponse"/>
+                                    </IsResponse>
+                                    <MessageType>
+                                        <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage/MessageType"/>
+                                    </MessageType>
+                                </ns12:ErrorMessage>
+                            </xsl:if>
+                        </ns12:ErrorHeader>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ReprocessingHeader"/>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:SecurityHeader"/>
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/ActiveHeaderNonCompatibility=&quot;true&quot;">
+                            <ns12:RoutingHeader>
+                                <ns12:Origin>
+                                    <ns12:Services>
+                                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:RoutingHeader/ns12:Origin/ns12:Services/ns12:Service"/>
+                                        <xsl:if test="not($Start/ARC_REQS_Main_IN/Service/ServiceType=&quot;ORCH&quot;)">
+                                            <ns12:Service>
+                                                <ns12:ServiceId>
+                                                    <xsl:value-of select="$Start/ARC_REQS_Main_IN/Service/ServiceId"/>
+                                                </ns12:ServiceId>
+                                                <xsl:if test="$Start/ARC_REQS_Main_IN/Service/JMSDestination">
+                                                    <ns12:JMSInputDestinationName>
+                                                        <xsl:value-of select="$Start/ARC_REQS_Main_IN/Service/JMSDestination"/>
+                                                    </ns12:JMSInputDestinationName>
+                                                </xsl:if>
+                                                <ns12:ServiceType>
+                                                    <xsl:value-of select="$Start/ARC_REQS_Main_IN/Service/ServiceType"/>
+                                                </ns12:ServiceType>
+                                            </ns12:Service>
+                                        </xsl:if>
+                                    </ns12:Services>
+                                </ns12:Origin>
+                                <xsl:if test="count($Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:RoutingHeader/ns12:Target/ns12:Services/ns12:Service ) >0 and $Start/ARC_REQS_Main_IN/Service/ServiceType=$_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_RoutingGatewayAdapter">
+                                    <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:RoutingHeader/ns12:Target"/>
+                                </xsl:if>
+                            </ns12:RoutingHeader>
+                        </xsl:if>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:FunctionalData"/>
+                    </ns12:ArchitectureHeader>
+                    <ns12:Body>
+                        <xsl:copy-of select="$Start/ARC_REQS_Main_IN/Body/ancestor-or-self::*/namespace::node()"/>
+                        <xsl:copy-of select="$Start/ARC_REQS_Main_IN/Body/@*"/>
+                        <xsl:copy-of select="$Start/ARC_REQS_Main_IN/Body/node()"/>
+                    </ns12:Body>
+                </ns12:Message>
+                <xsl:if test="string-length(string($Start/ARC_REQS_Main_IN/TimeOut))>0">
+                    <TimeOut>
+                        <xsl:value-of select="$Start/ARC_REQS_Main_IN/TimeOut"/>
+                    </TimeOut>
+                </xsl:if>
+                <JMSHeaderParameters>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/JMsReplyTo) >0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/JMsReplyTo">
+                            <JMSReplyTo>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/JMsReplyTo"/>
+                            </JMSReplyTo>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSDeliveryMode) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSDeliveryMode">
+                            <JMSDeliveryMode>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSDeliveryMode"/>
+                            </JMSDeliveryMode>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSTimeStamp) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSTimeStamp">
+                            <JMSTimeStamp>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSTimeStamp"/>
+                            </JMSTimeStamp>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSExpiration) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSExpiration">
+                            <JMSExpiration>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSExpiration"/>
+                            </JMSExpiration>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSRedelivered) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSRedelivered">
+                            <JMSRedelivered>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSRedelivered"/>
+                            </JMSRedelivered>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSPriority) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSPriority">
+                            <JMSPriority>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSPriority"/>
+                            </JMSPriority>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/JMSCorrelationId) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/JMSCorrelationId">
+                            <JMSCorrelationID>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/JMSCorrelationId"/>
+                            </JMSCorrelationID>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSType) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSType">
+                            <JMSType>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSType"/>
+                            </JMSType>
+                        </xsl:if>
+                    </xsl:if>
+                </JMSHeaderParameters>
+                <JMSPropertyParameters>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXUserID) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXUserID">
+                            <JMSXUserID>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXUserID"/>
+                            </JMSXUserID>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXAppID) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXAppID">
+                            <JMSXAppID>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXAppID"/>
+                            </JMSXAppID>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXProducerTXID) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXProducerTXID">
+                            <JMSXProducerTXID>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXProducerTXID"/>
+                            </JMSXProducerTXID>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXConsumerTXID)> 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXConsumerTXID">
+                            <JMSXConsumerTXID>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXConsumerTXID"/>
+                            </JMSXConsumerTXID>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXRcvTimestamp) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXRcvTimestamp">
+                            <JMSXRcvTimestamp>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXRcvTimestamp"/>
+                            </JMSXRcvTimestamp>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSDeliveryCount) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSDeliveryCount">
+                            <JMSXDeliveryCount>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSDeliveryCount"/>
+                            </JMSXDeliveryCount>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupID) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupID">
+                            <JMSXGroupID>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupID"/>
+                            </JMSXGroupID>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupSeq) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupSeq">
+                            <JMSXGroupSeq>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupSeq"/>
+                            </JMSXGroupSeq>
+                        </xsl:if>
+                    </xsl:if>
+                </JMSPropertyParameters>
+            </IN_SendMessage2QueueOrTopic>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch Error message">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>755</pd:x>
+        <pd:y>548</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>false</catchAll>
+            <fault>localname=ErrorMessage namespace=http://www.bbva.com/EAIFramework</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Catch Other Errors">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>542</pd:x>
+        <pd:y>672</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Catch-Error-GroupMessage">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>362</pd:x>
+        <pd:y>585</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>false</catchAll>
+            <fault>localname=group</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Generate ErrorMessage">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>448</pd:x>
+        <pd:y>672</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx4:ActivityInput>
+                <data>
+                    <group>
+                        <xsl:choose>
+                            <xsl:when test="string-length($Catch-Error-message/ns12:ErrorMessage/ErrorCode)>0">
+                                <ns12:ErrorMessage>
+                                    <ErrorCode>
+                                        <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorCode"/>
+                                    </ErrorCode>
+                                    <xsl:if test="$Catch-Error-message/ns12:ErrorMessage/ErrorDescription">
+                                        <ErrorDescription>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorDescription"/>
+                                        </ErrorDescription>
+                                    </xsl:if>
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/NativeErrorCode"/>
+                                    </NativeErrorCode>
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/NativeErrorDescription"/>
+                                    </NativeErrorDescription>
+                                    <StackTrace>
+                                        <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/StackTrace"/>
+                                    </StackTrace>
+                                    <ErrorDate>
+                                        <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorDate"/>
+                                    </ErrorDate>
+                                    <StackProcess>
+                                        <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/StackProcess"/>
+                                    </StackProcess>
+                                    <Severity>
+                                        <xsl:value-of select="$_globalVariables/ns6:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                    </Severity>
+                                    <OriginalMessage>
+                                        <xsl:value-of select="tib:render-xml($Start/ARC_REQS_Main_IN)"/>
+                                    </OriginalMessage>
+                                    <Category>
+                                        <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/Category"/>
+                                    </Category>
+                                    <ProcessInputMessage>
+                                        <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ProcessInputMessage"/>
+                                    </ProcessInputMessage>
+                                    <IsResponse>
+                                        <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/IsResponse"/>
+                                    </IsResponse>
+                                    <MessageType>
+                                        <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/MessageType"/>
+                                    </MessageType>
+                                    <PreviousErrorMessage>
+                                        <xsl:copy-of select="$Catch-Error-message/ns12:ErrorMessage/ancestor-or-self::*/namespace::node()"/>
+                                        <xsl:copy-of select="$Catch-Error-message/ns12:ErrorMessage/@*"/>
+                                        <xsl:copy-of select="$Catch-Error-message/ns12:ErrorMessage/node()"/>
+                                    </PreviousErrorMessage>
+                                    <xsl:copy-of select="$Catch-Error-message/ns12:ErrorMessage/FunctionalErrorData"/>
+                                </ns12:ErrorMessage>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <ns12:ErrorMessage>
+                                    <ErrorCode>
+                                        <xsl:value-of select="$_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                    </ErrorCode>
+                                    <ErrorDescription>
+                                        <xsl:value-of select="$_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                    </ErrorDescription>
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                    </NativeErrorCode>
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                    </NativeErrorDescription>
+                                    <StackTrace>
+                                        <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                    </StackTrace>
+                                    <ErrorDate>
+                                        <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                    </ErrorDate>
+                                    <StackProcess>
+                                        <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                    </StackProcess>
+                                    <Severity>
+                                        <xsl:value-of select="$_globalVariables/ns6:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                    </Severity>
+                                    <OriginalMessage>
+                                        <xsl:value-of select="tib:render-xml($Start/ARC_REQS_Main_IN)"/>
+                                    </OriginalMessage>
+                                    <Category>
+                                        <xsl:value-of select="$_globalVariables/ns6:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                    </Category>
+                                    <ProcessInputMessage>
+                                        <xsl:value-of select="tib:render-xml($Start/ARC_REQS_Main_IN)"/>
+                                    </ProcessInputMessage>
+                                    <IsResponse>
+                                        <xsl:value-of select="0"/>
+                                    </IsResponse>
+                                    <MessageType>
+                                        <xsl:value-of select="$_globalVariables/ns6:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                    </MessageType>
+                                </ns12:ErrorMessage>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <Body>
+                            <xsl:copy-of select="$Start/ARC_REQS_Main_IN/Body/*"/>
+                        </Body>
+                    </group>
+                </data>
+            </pfx4:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Get Framework Context">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>139</pd:x>
+        <pd:y>101</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/Architecture Internal Data.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Get-Framework-Context-1">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>542</pd:x>
+        <pd:y>539</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/Architecture Internal Data.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Rethrow">
+        <pd:type>com.tibco.pe.core.RethrowActivity</pd:type>
+        <pd:resourceType>ae.activities.rethrow</pd:resourceType>
+        <pd:x>91</pd:x>
+        <pd:y>585</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Set Framework Context">
+        <pd:type>com.tibco.pe.core.SetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.setSharedVariable</pd:resourceType>
+        <pd:x>226</pd:x>
+        <pd:y>421</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/Architecture Internal Data.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings>
+            <FrameworkData>
+                <xsl:choose>
+                    <xsl:when test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/ControlE2E=&quot;false&quot;">
+                        <xsl:if test="$Get-Framework-Context/FrameworkData/InvocationsNumber">
+                            <InvocationsNumber>
+                                <xsl:value-of select="$Get-Framework-Context/FrameworkData/InvocationsNumber"/>
+                            </InvocationsNumber>
+                        </xsl:if>
+                    </xsl:when>
+                    <xsl:when test="$Start/ARC_REQS_Main_IN/Sync=&quot;true&quot;">
+                        <xsl:if test="$Get-Framework-Context/FrameworkData/InvocationsNumber">
+                            <InvocationsNumber>
+                                <xsl:value-of select="$Get-Framework-Context/FrameworkData/InvocationsNumber"/>
+                            </InvocationsNumber>
+                        </xsl:if>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:if test="$Get-Framework-Context/FrameworkData/InvocationsNumber">
+                            <InvocationsNumber>
+                                <xsl:value-of select="$Get-Framework-Context/FrameworkData/InvocationsNumber+1"/>
+                            </InvocationsNumber>
+                        </xsl:if>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <ns12:ArchitectureHeader>
+                    <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader"/>
+                    <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader">
+                        <xsl:choose>
+                            <xsl:when test="$ARC_RequestMessage2QueueOrTopic/ns12:Message/ns12:ArchitectureHeader/ns12:ECSHeader">
+                                <ns12:ECSHeader>
+                                    <ns12:traceId>
+                                        <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:traceId"/>
+                                    </ns12:traceId>
+                                    <xsl:if test="string-length($Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:parentSpan)>0">
+                                        <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:parentSpan">
+                                            <ns12:parentSpan>
+                                                <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:parentSpan"/>
+                                            </ns12:parentSpan>
+                                        </xsl:if>
+                                    </xsl:if>
+                                    <ns12:spanId>
+                                        <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:spanId"/>
+                                    </ns12:spanId>
+                                    <xsl:if test="count($Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:properties/ns12:property)>0&#xA;or&#xA;count($ARC_RequestMessage2QueueOrTopic/ns12:Message/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:properties/ns12:property)>0">
+                                        <ns12:properties>
+                                            <xsl:for-each-group select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:properties/ns12:property" group-by="ns12:key">
+                                                <xsl:copy-of select="."/>
+                                            </xsl:for-each-group>
+                                            <xsl:if test="count($ARC_RequestMessage2QueueOrTopic/ns12:Message/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:properties/ns12:property)>0">
+                                                <xsl:for-each-group select="$ARC_RequestMessage2QueueOrTopic/ns12:Message/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:properties/ns12:property" group-by="ns12:key">
+                                                    <xsl:if test="count($Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:properties/ns12:property[ns12:key=current-group()/ns12:key])=0">
+                                                        <xsl:copy-of select="."/>
+                                                    </xsl:if>
+                                                </xsl:for-each-group>
+                                            </xsl:if>
+                                        </ns12:properties>
+                                    </xsl:if>
+                                </ns12:ECSHeader>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:if>
+                    <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:RequestHeader"/>
+                    <xsl:choose>
+                        <xsl:when test="$ARC_RequestMessage2QueueOrTopic/ns12:Message/ns12:ArchitectureHeader/ns12:ErrorHeader">
+                            <xsl:copy-of select="$ARC_RequestMessage2QueueOrTopic/ns12:Message/ns12:ArchitectureHeader/ns12:ErrorHeader"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ReprocessingHeader"/>
+                    <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:SecurityHeader"/>
+                    <ns12:RoutingHeader>
+                        <ns12:Origin>
+                            <ns12:Services>
+                                <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:RoutingHeader/ns12:Origin/ns12:Services/ns12:Service"/>
+                                <ns12:Service>
+                                    <ns12:ServiceId>
+                                        <xsl:value-of select="$Start/ARC_REQS_Main_IN/Service/ServiceId"/>
+                                    </ns12:ServiceId>
+                                    <xsl:if test="$Start/ARC_REQS_Main_IN/Service/JMSDestination">
+                                        <ns12:JMSInputDestinationName>
+                                            <xsl:value-of select="$Start/ARC_REQS_Main_IN/Service/JMSDestination"/>
+                                        </ns12:JMSInputDestinationName>
+                                    </xsl:if>
+                                    <ns12:ServiceType>
+                                        <xsl:value-of select="$Start/ARC_REQS_Main_IN/Service/ServiceType"/>
+                                    </ns12:ServiceType>
+                                </ns12:Service>
+                            </ns12:Services>
+                        </ns12:Origin>
+                    </ns12:RoutingHeader>
+                    <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:FunctionalData"/>
+                </ns12:ArchitectureHeader>
+                <xsl:if test="string-length($Get-Framework-Context/FrameworkData/SaveMessage)>0">
+                    <xsl:if test="$Get-Framework-Context/FrameworkData/SaveMessage">
+                        <SaveMessage>
+                            <xsl:value-of select="$Get-Framework-Context/FrameworkData/SaveMessage"/>
+                        </SaveMessage>
+                    </xsl:if>
+                </xsl:if>
+            </FrameworkData>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_SendMessage2QueueOrTopic">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>736</pd:x>
+        <pd:y>411</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_QueueOrTopic/ARC_SendCDMReplyTo2QueueOrTopic.process</processName>
+            <processNameXPath>concat($_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_mockRoot, "/Common/ARC/ARC_QueueOrTopic/ARC_SendCDMReplyTo2QueueOrTopic.process")</processNameXPath>
+        </config>
+        <pd:inputBindings>
+            <IN_SendReply2QueueOrTopic>
+                <xsl:choose>
+                    <xsl:when test="$ARC_FindQueue">
+                        <TargetName>
+                            <xsl:value-of select="$ARC_FindQueue/ns12:Destination"/>
+                        </TargetName>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <TargetName>
+                            <xsl:value-of select="$Start/ARC_REQS_Main_IN/Service/JMSDestination"/>
+                        </TargetName>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <xsl:choose>
+                    <xsl:when test="$ARC_FindQueue">
+                        <xsl:choose>
+                            <xsl:when test="$ARC_FindQueue/ns12:Destination/@DestinationType='Topic'">
+                                <IsTopic>
+                                    <xsl:value-of select="1"/>
+                                </IsTopic>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <IsTopic>
+                                    <xsl:value-of select="0"/>
+                                </IsTopic>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <IsTopic>
+                            <xsl:value-of select="0"/>
+                        </IsTopic>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <xsl:if test="$Start/ARC_REQS_Main_IN/JMSCorrelationId">
+                    <CorrelationId>
+                        <xsl:value-of select="$Start/ARC_REQS_Main_IN/JMSCorrelationId"/>
+                    </CorrelationId>
+                </xsl:if>
+                <xsl:if test="string-length($Start/ARC_REQS_Main_IN/JMsReplyTo) > 0">
+                    <xsl:if test="$Start/ARC_REQS_Main_IN/JMsReplyTo">
+                        <ReplyTo>
+                            <xsl:value-of select="$Start/ARC_REQS_Main_IN/JMsReplyTo"/>
+                        </ReplyTo>
+                    </xsl:if>
+                </xsl:if>
+                <ns12:Message>
+                    <ns12:ArchitectureHeader>
+                        <ns12:AuditHeader>
+                            <ns12:E2EId>
+                                <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EId"/>
+                            </ns12:E2EId>
+                            <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:InstanceId">
+                                <ns12:ParentInstanceId>
+                                    <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:InstanceId"/>
+                                </ns12:ParentInstanceId>
+                            </xsl:if>
+                            <ns12:InstanceId>
+                                <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:InstanceId"/>
+                            </ns12:InstanceId>
+                            <ns12:Deepness>
+                                <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:Deepness"/>
+                            </ns12:Deepness>
+                            <ns12:ServiceId>
+                                <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:ServiceId"/>
+                            </ns12:ServiceId>
+                            <ns12:ServiceType>
+                                <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:ServiceType"/>
+                            </ns12:ServiceType>
+                            <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EControl">
+                                <ns12:E2EControl>
+                                    <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EControl"/>
+                                </ns12:E2EControl>
+                            </xsl:if>
+                            <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EControl">
+                                <ns12:ParentE2EControl>
+                                    <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EControl"/>
+                                </ns12:ParentE2EControl>
+                            </xsl:if>
+                            <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/ActiveHeaderNonCompatibility=&quot;true&quot;">
+                                <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:isLight">
+                                    <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:isLight">
+                                        <ns12:isLight>
+                                            <xsl:value-of select="count($Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:isLight)>0"/>
+                                        </ns12:isLight>
+                                    </xsl:if>
+                                </xsl:if>
+                            </xsl:if>
+                            <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/ActiveHeaderNonCompatibility=&quot;true&quot;">
+                                <xsl:if test="count($Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:SaveMessage)>0">
+                                    <xsl:if test="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:SaveMessage">
+                                        <ns12:SaveMessage>
+                                            <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:SaveMessage"/>
+                                        </ns12:SaveMessage>
+                                    </xsl:if>
+                                </xsl:if>
+                            </xsl:if>
+                        </ns12:AuditHeader>
+                        <xsl:if test="string-length($Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:traceId)>0&#xA;and&#xA;(string(((tib:tokenize($_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSParams/ListServicesNotSendECSHeader, &quot;,&quot;)=$ARC_FindQueue/ns12:Destination/@ServiceId)))=$_globalVariables/ns6:GlobalVariables/GeneralConstants/BooleanConstants/False&#xA;and&#xA;$_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSParams/ListServicesNotSendECSHeader!=$_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/ALLServices)">
+                            <ns12:ECSHeader>
+                                <ns12:traceId>
+                                    <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:traceId"/>
+                                </ns12:traceId>
+                                <xsl:if test="string-length($GetECSConfig/group/ns12:ECSConfig/ns12:namespace)>0">
+                                    <ns12:parentSpan>
+                                        <xsl:value-of select="concat($_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/NSToken,$GetECSConfig/group/ns12:ECSConfig/ns12:namespace,$_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/MRSToken,$GetECSConfig/group/ns12:ECSConfig/ns12:mrId,$_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/SpansToken,$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:spanId)"/>
+                                    </ns12:parentSpan>
+                                </xsl:if>
+                                <ns12:spanId>
+                                    <xsl:value-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:spanId"/>
+                                </ns12:spanId>
+                                <xsl:if test="count($Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:properties/ns12:property)>0">
+                                    <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:properties"/>
+                                </xsl:if>
+                            </ns12:ECSHeader>
+                        </xsl:if>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:RequestHeader"/>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ErrorHeader"/>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ReprocessingHeader"/>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:SecurityHeader"/>
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/ActiveHeaderNonCompatibility=&quot;true&quot;">
+                            <ns12:RoutingHeader>
+                                <ns12:Origin>
+                                    <ns12:Services>
+                                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:RoutingHeader/ns12:Origin/ns12:Services/ns12:Service"/>
+                                        <xsl:if test="not($Start/ARC_REQS_Main_IN/Service/ServiceType=&quot;ORCH&quot;)">
+                                            <ns12:Service>
+                                                <ns12:ServiceId>
+                                                    <xsl:value-of select="$Start/ARC_REQS_Main_IN/Service/ServiceId"/>
+                                                </ns12:ServiceId>
+                                                <xsl:if test="$Start/ARC_REQS_Main_IN/Service/JMSDestination">
+                                                    <ns12:JMSInputDestinationName>
+                                                        <xsl:value-of select="$Start/ARC_REQS_Main_IN/Service/JMSDestination"/>
+                                                    </ns12:JMSInputDestinationName>
+                                                </xsl:if>
+                                                <ns12:ServiceType>
+                                                    <xsl:value-of select="$Start/ARC_REQS_Main_IN/Service/ServiceType"/>
+                                                </ns12:ServiceType>
+                                            </ns12:Service>
+                                        </xsl:if>
+                                    </ns12:Services>
+                                </ns12:Origin>
+                                <xsl:if test="count($Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:RoutingHeader/ns12:Target/ns12:Services/ns12:Service ) >0 and $Start/ARC_REQS_Main_IN/Service/ServiceType=$_globalVariables/ns6:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_RoutingGatewayAdapter">
+                                    <ns12:Target>
+                                        <ns12:Services>
+                                            <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:RoutingHeader/ns12:Target/ns12:Services/ns12:Service"/>
+                                        </ns12:Services>
+                                    </ns12:Target>
+                                </xsl:if>
+                            </ns12:RoutingHeader>
+                        </xsl:if>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:FunctionalData"/>
+                    </ns12:ArchitectureHeader>
+                    <ns12:Body>
+                        <xsl:copy-of select="$Start/ARC_REQS_Main_IN/Body/ancestor-or-self::*/namespace::node()"/>
+                        <xsl:copy-of select="$Start/ARC_REQS_Main_IN/Body/@*"/>
+                        <xsl:copy-of select="$Start/ARC_REQS_Main_IN/Body/node()"/>
+                    </ns12:Body>
+                </ns12:Message>
+                <JMSPropertiesParameter>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXUserID) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXUserID">
+                            <JMSXUserID>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXUserID"/>
+                            </JMSXUserID>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXAppID) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXAppID">
+                            <JMSXAppID>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXAppID"/>
+                            </JMSXAppID>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXProducerTXID) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXProducerTXID">
+                            <JMSXProducerTXID>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXProducerTXID"/>
+                            </JMSXProducerTXID>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXConsumerTXID) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXConsumerTXID">
+                            <JMSXConsumerTXID>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXConsumerTXID"/>
+                            </JMSXConsumerTXID>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXRcvTimestamp) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXRcvTimestamp">
+                            <JMSXRcvTimstamp>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXRcvTimestamp"/>
+                            </JMSXRcvTimstamp>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSDeliveryCount) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSDeliveryCount">
+                            <JMSXDeliveryCount>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSDeliveryCount"/>
+                            </JMSXDeliveryCount>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupID) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupID">
+                            <JMSGroupID>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupID"/>
+                            </JMSGroupID>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupSeq) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupSeq">
+                            <JMSGroupSeq>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSPropertiesParameters/JMSXGroupSeq"/>
+                            </JMSGroupSeq>
+                        </xsl:if>
+                    </xsl:if>
+                </JMSPropertiesParameter>
+                <JMSHeader_Parameter>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSDeliveryMode) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSDeliveryMode">
+                            <JMSDeliveryMode>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSDeliveryMode"/>
+                            </JMSDeliveryMode>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSTimeStamp) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSTimeStamp">
+                            <JMSTimestamp>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSTimeStamp"/>
+                            </JMSTimestamp>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSExpiration) > 0">
+                        <JMSExpiration>
+                            <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSExpiration"/>
+                        </JMSExpiration>
+                    </xsl:if>
+                    <xsl:if test="string-length( $Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSRedelivered) >0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSRedelivered">
+                            <JMSRedelivered>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSRedelivered"/>
+                            </JMSRedelivered>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSPriority) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSPriority">
+                            <JMSPriority>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSPriority"/>
+                            </JMSPriority>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSType) > 0">
+                        <xsl:if test="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSType">
+                            <JMSType>
+                                <xsl:value-of select="$Start/ARC_REQS_Main_IN/UpdateHeaderParameters/JMSHeaderParameters/JMSType"/>
+                            </JMSType>
+                        </xsl:if>
+                    </xsl:if>
+                </JMSHeader_Parameter>
+            </IN_SendReply2QueueOrTopic>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="JMS">
+        <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+        <pd:resourceType>ae.activities.null</pd:resourceType>
+        <pd:x>323</pd:x>
+        <pd:y>96</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="TipoPublicacion">
+        <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+        <pd:resourceType>ae.activities.null</pd:resourceType>
+        <pd:x>556</pd:x>
+        <pd:y>217</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="NotifyErrorResponse">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <pd:x>231</pd:x>
+        <pd:y>305</pd:y>
+        <config>
+            <role>User</role>
+        </config>
+        <pd:inputBindings>
+            <ns7:ActivityInput>
+                <message>
+                    <xsl:value-of select="&quot;Received Error Response from sync service&quot;"/>
+                </message>
+            </ns7:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Generate Error">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>232</pd:x>
+        <pd:y>204</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx4:ActivityInput>
+                <data>
+                    <group>
+                        <xsl:copy-of select="$ARC_RequestMessage2QueueOrTopic/ns12:Message/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:ErrorMessage"/>
+                        <Body>
+                            <xsl:copy-of select="$ARC_RequestMessage2QueueOrTopic/ns12:Message/ns12:Body/ancestor-or-self::*/namespace::node()"/>
+                            <xsl:copy-of select="$ARC_RequestMessage2QueueOrTopic/ns12:Message/ns12:Body/@*"/>
+                            <xsl:copy-of select="$ARC_RequestMessage2QueueOrTopic/ns12:Message/ns12:Body/node()"/>
+                        </Body>
+                    </group>
+                </data>
+            </pfx4:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="GetECSConfig">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>235</pd:x>
+        <pd:y>96</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/ECSConfig.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Catch-Error-GroupMessage</pd:from>
+        <pd:to>Rethrow</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Get Framework Context</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Set Framework Context</pd:from>
+        <pd:to>NotifyErrorResponse</pd:to>
+        <pd:xpathDescription>syncError</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$ARC_RequestMessage2QueueOrTopic/ns12:Message/ns12:ArchitectureHeader/ns12:ErrorHeader/ns12:IsError="true"</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Set Framework Context</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Other Errors</pd:from>
+        <pd:to>Get-Framework-Context-1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Error message</pd:from>
+        <pd:to>Get-Framework-Context-1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get-Framework-Context-1</pd:from>
+        <pd:to>Generate ErrorMessage</pd:to>
+        <pd:lineType>One Bend</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_RequestMessage2QueueOrTopic</pd:from>
+        <pd:to>Set Framework Context</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SendMessage2QueueOrTopic</pd:from>
+        <pd:to>Set Framework Context</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get Framework Context</pd:from>
+        <pd:to>GetECSConfig</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>JMS</pd:from>
+        <pd:to>ARC_FindQueue</pd:to>
+        <pd:xpathDescription>ServiceId</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>TipoPublicacion</pd:from>
+        <pd:to>ARC_RequestMessage2QueueOrTopic</pd:to>
+        <pd:xpathDescription>sync</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$Start/ARC_REQS_Main_IN/Sync="true"</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>TipoPublicacion</pd:from>
+        <pd:to>ARC_SendMessage2QueueOrTopic</pd:to>
+        <pd:xpathDescription>async</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>JMS</pd:from>
+        <pd:to>TipoPublicacion</pd:to>
+        <pd:xpathDescription>JMSQueue</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>count($Start/ARC_REQS_Main_IN/Service/JMSDestination)&gt;0</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_FindQueue</pd:from>
+        <pd:to>TipoPublicacion</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>NotifyErrorResponse</pd:from>
+        <pd:to>Generate Error</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetECSConfig</pd:from>
+        <pd:to>JMS</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

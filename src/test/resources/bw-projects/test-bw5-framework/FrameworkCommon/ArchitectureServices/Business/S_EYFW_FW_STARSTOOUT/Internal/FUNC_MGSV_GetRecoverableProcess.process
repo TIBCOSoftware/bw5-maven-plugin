@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="com/tibco/pe/commands" xmlns:pfx="http://www.tibco.com/schemas/ProyectoServiciosVisor/SharedResources/Schemas/ManagementServices/XSD/Schema.xsd2" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:ns3="http://com.bbva.cib/EYFW/Libraries" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:pfx5="http://com.bbva.cib/EYFW/MngServ" xmlns:pfx4="http://com.bbva.cib/EYFW/Management" xmlns:pfx3="http://com.bbva.cib/EYFW/SchemaEngine" xmlns:pfx2="http://com.bbva.cib/EYFW/ManagementServices" xmlns:pfx6="http://com.bbva.cib/EYFW/Engine">
+    <xsd:import namespace="http://com.bbva.cib/EYFW/ManagementServices" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/ManagementServices.xsd"/>
+    <xsd:import namespace="http://com.bbva.cib/EYFW/SchemaEngine" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/SchemaEngine.xsd"/>
+    <xsd:import namespace="http://com.bbva.cib/EYFW/Management" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/ManagementServiceCommon.xsd"/>
+    <xsd:import namespace="http://com.bbva.cib/EYFW/Engine" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/S_EngineCommandService.xsd"/>
+    <xsd:import namespace="http://com.bbva.cib/EYFW/MngServ" schemaLocation="/SharedResources/Schemas/ManagementServices/XSD/MngServCommon.xsd"/>
+    <pd:name>ArchitectureServices/Business/S_EYFW_FW_STARSTOOUT/Internal/FUNC_MGSV_GetRecoverableProcess.process</pd:name>
+    <pd:description>Suspends the specified process starter. 
+</pd:description>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="Message">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="Body">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="MessageID" type="xsd:string"/>
+                                <xsd:element ref="pfx5:RequestEngine"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>29</pd:startX>
+    <pd:startY>109</pd:startY>
+    <pd:returnBindings>
+        <root>
+            <xsl:for-each select="$EngineCommand-1-1-1/ns:output/ns:GetRecoverableProcesses">
+                <GetRecoverableProcess>
+                    <xsl:if test="Status">
+                        <Status>
+                            <xsl:value-of select="Status"/>
+                        </Status>
+                    </xsl:if>
+                    <xsl:if test="CustomId">
+                        <CustomId>
+                            <xsl:value-of select="CustomId"/>
+                        </CustomId>
+                    </xsl:if>
+                    <xsl:if test="TrackingId">
+                        <TrackingId>
+                            <xsl:value-of select="TrackingId"/>
+                        </TrackingId>
+                    </xsl:if>
+                    <xsl:if test="ProcessDefinitionName">
+                        <ProcessDefinitionName>
+                            <xsl:value-of select="ProcessDefinitionName"/>
+                        </ProcessDefinitionName>
+                    </xsl:if>
+                    <xsl:if test="ProcessId">
+                        <ProcessId>
+                            <xsl:value-of select="ProcessId"/>
+                        </ProcessId>
+                    </xsl:if>
+                    <xsl:if test="RestartActivityName">
+                        <RestartActivityName>
+                            <xsl:value-of select="RestartActivityName"/>
+                        </RestartActivityName>
+                    </xsl:if>
+                </GetRecoverableProcess>
+            </xsl:for-each>
+        </root>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="root">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="GetRecoverableProcess" minOccurs="0" maxOccurs="unbounded">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="Status" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="CustomId" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="TrackingId" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="ProcessDefinitionName" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="ProcessId" type="xsd:long" minOccurs="0"/>
+                                <xsd:element name="RestartActivityName" type="xsd:string" minOccurs="0"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>278</pd:endX>
+    <pd:endY>108</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1330453645326</pd:targetNamespace>
+    <pd:activity name="EngineCommand-1-1-1">
+        <pd:type>com.tibco.pe.core.EngineCommandActivity</pd:type>
+        <pd:resourceType>ae.activities.enginecommand</pd:resourceType>
+        <pd:description>GetProcessRecover
+</pd:description>
+        <pd:x>147</pd:x>
+        <pd:y>110</pd:y>
+        <config>
+            <command>GetRecoverableProcesses</command>
+            <processDefinition/>
+        </config>
+        <pd:inputBindings>
+            <ns:input>
+                <ProcessDefinitionName>
+                    <xsl:value-of select="$Start/pfx5:RequestEngine/pfx5:AppRunTime"/>
+                </ProcessDefinitionName>
+            </ns:input>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>EngineCommand-1-1-1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>EngineCommand-1-1-1</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

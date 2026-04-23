@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	 xmlns:tns="http://com.bbva.cib/EYFW/MngServ"
+	 targetNamespace="http://com.bbva.cib/EYFW/MngServ"
+	 elementFormDefault="qualified"
+	 attributeFormDefault="unqualified">
+	<xs:element name="RequestEngine" type="tns:RequestEngine_type"/>
+	<xs:complexType name="RequestEngine_type">
+		<xs:sequence>
+			<xs:element name="Service_id" type="xs:string"/>
+			<xs:element name="AppRunTime" type="xs:string"/>
+			<xs:element name="OperationType" type="xs:string"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="ListRespond" type="tns:ListRespond_type"/>
+	<xs:complexType name="ListRespond_type">
+		<xs:sequence>
+			<xs:element name="messageId" type="xs:string" minOccurs="0"/>
+			<xs:element ref="tns:EngineCommandRespond" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="EngineCommandRespond" type="tns:EngineCommandRespond_type"/>
+	<xs:complexType name="EngineCommandRespond_type">
+		<xs:sequence>
+			<xs:element name="MachineName" type="xs:string" minOccurs="0"/>
+			<xs:element name="ExecutedCommand" type="xs:string" minOccurs="0"/>
+			<xs:element name="ProcessId" type="xs:string" minOccurs="0"/>
+			<xs:element name="ProcessName" type="xs:string" minOccurs="0"/>
+			<xs:element name="ExecutedResult" type="xs:string" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+</xs:schema>

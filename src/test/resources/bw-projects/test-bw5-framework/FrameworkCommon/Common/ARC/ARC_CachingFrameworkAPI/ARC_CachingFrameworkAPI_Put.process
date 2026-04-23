@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns2="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType" xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:ns4="http://schemas.tibco.com/bw/plugins/jms/5.0/jmsExceptions" xmlns:ns3="http://www.tibco.com/pe/EngineTypes" xmlns:ns0="www.tibco.com/plugin/Sleep" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns5="http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions" xmlns:pfx="http://www.bbva.com/EAIFramework">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_CachingFrameworkAPI/ARC_CachingFrameworkAPI_Put.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="PutData">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="TransactionalMode" type="xsd:boolean" minOccurs="0"/>
+                    <xsd:element name="RepositoryName" type="xsd:string"/>
+                    <xsd:element name="isConditional" type="xsd:boolean" minOccurs="0"/>
+                    <xsd:element name="putMessage" maxOccurs="unbounded">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="xmlContent" type="xsd:string"/>
+                                <xsd:element name="msgKey" type="xsd:string"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>72</pd:startX>
+    <pd:startY>169</pd:startY>
+    <pd:returnBindings>
+        <ErrorList>
+            <xsl:for-each select="$ARC_CatchingFrameworkAPI_QueueRequestPut/CachingMSG/ReturnList/Result">
+                <Error>
+                    <xsl:value-of select="."/>
+                </Error>
+            </xsl:for-each>
+        </ErrorList>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="ErrorList">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="Error" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>792</pd:endX>
+    <pd:endY>173</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1365601767147</pd:targetNamespace>
+    <pd:activity name="Catch  Other Error">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>143</pd:x>
+        <pd:y>441</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Catch Controlled Error">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>142</pd:x>
+        <pd:y>366</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <fault>localname=ErrorMessage namespace=http://www.bbva.com/EAIFramework</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="checkError">
+        <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+        <pd:resourceType>ae.activities.null</pd:resourceType>
+        <pd:x>685</pd:x>
+        <pd:y>173</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Error Cache Adapter">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>685</pd:x>
+        <pd:y>358</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns2:ActivityInput>
+                <data>
+                    <xsl:copy-of select="$ARC_CatchingFrameworkAPI_QueueRequestPut/CachingMSG/pfx:ErrorMessage"/>
+                </data>
+            </ns2:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Generate Error">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>282</pd:x>
+        <pd:y>443</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns2:ActivityInput>
+                <data>
+                    <pfx:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                        </ErrorCode>
+                        <ErrorDescription>
+                            <xsl:value-of select="&quot;Unexpected Error&quot;"/>
+                        </ErrorDescription>
+                        <xsl:if test="$_error/ns3:ErrorReport/MsgCode">
+                            <NativeErrorCode>
+                                <xsl:value-of select="$_error/ns3:ErrorReport/MsgCode"/>
+                            </NativeErrorCode>
+                        </xsl:if>
+                        <xsl:if test="$_error/ns3:ErrorReport/Msg">
+                            <NativeErrorDescription>
+                                <xsl:value-of select="$_error/ns3:ErrorReport/Msg"/>
+                            </NativeErrorDescription>
+                        </xsl:if>
+                        <StackTrace>
+                            <xsl:value-of select="$_error/ns3:ErrorReport/StackTrace"/>
+                        </StackTrace>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <xsl:if test="$_error/ns3:ErrorReport/ProcessStack">
+                            <StackProcess>
+                                <xsl:value-of select="$_error/ns3:ErrorReport/ProcessStack"/>
+                            </StackProcess>
+                        </xsl:if>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/PutData)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                        <FunctionalErrorData>
+                            <xsl:copy-of select="$_error/ns3:ErrorReport"/>
+                        </FunctionalErrorData>
+                    </pfx:ErrorMessage>
+                </data>
+            </ns2:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="RepositoryCFG">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>202</pd:x>
+        <pd:y>168</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CachingFrameworkAPI/ARC_RepositoryManagement/FindRepositoryConfig.process</processName>
+        </config>
+        <pd:inputBindings>
+            <RepositoryName>
+                <xsl:value-of select="$Start/PutData/RepositoryName"/>
+            </RepositoryName>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Rethrow">
+        <pd:type>com.tibco.pe.core.RethrowActivity</pd:type>
+        <pd:resourceType>ae.activities.rethrow</pd:resourceType>
+        <pd:x>286</pd:x>
+        <pd:y>359</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="ARC_CatchingFrameworkAPI_QueueRequestPut">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>434</pd:x>
+        <pd:y>170</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CachingFrameworkAPI/ARC_CatchingFrameworkAPI_QueueRequestPut.process</processName>
+            <processNameXPath>concat($_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_mockRoot,"/Common/ARC/ARC_CachingFrameworkAPI/ARC_CatchingFrameworkAPI_QueueRequestPut.process")</processNameXPath>
+        </config>
+        <pd:inputBindings>
+            <Data>
+                <xsl:choose>
+                    <xsl:when test="($Start/PutData/TransactionalMode)&#xA;or&#xA;(count($Start/PutData/putMessage)=1)">
+                        <Operation>
+                            <PutTransactionalData>
+                                <RepositoryName>
+                                    <xsl:value-of select="$Start/PutData/RepositoryName"/>
+                                </RepositoryName>
+                                <xsl:if test="$Start/PutData/isConditional">
+                                    <isConditional>
+                                        <xsl:value-of select="$Start/PutData/isConditional"/>
+                                    </isConditional>
+                                </xsl:if>
+                                <xsl:copy-of select="$Start/PutData/putMessage"/>
+                            </PutTransactionalData>
+                        </Operation>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <Operation>
+                            <PutData>
+                                <RepositoryName>
+                                    <xsl:value-of select="$Start/PutData/RepositoryName"/>
+                                </RepositoryName>
+                                <xsl:if test="$Start/PutData/isConditional">
+                                    <isConditional>
+                                        <xsl:value-of select="$Start/PutData/isConditional"/>
+                                    </isConditional>
+                                </xsl:if>
+                                <xsl:copy-of select="$Start/PutData/putMessage"/>
+                            </PutData>
+                        </Operation>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <QueueName>
+                    <xsl:value-of select="$RepositoryCFG/pfx:RepoCfg/QueueName"/>
+                </QueueName>
+            </Data>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>RepositoryCFG</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>checkError</pd:from>
+        <pd:to>End</pd:to>
+        <pd:xpathDescription>OK</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>checkError</pd:from>
+        <pd:to>Error Cache Adapter</pd:to>
+        <pd:xpathDescription>Error</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-52429</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>exists($ARC_CatchingFrameworkAPI_QueueRequestPut/CachingMSG/pfx:ErrorMessage)</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Controlled Error</pd:from>
+        <pd:to>Rethrow</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch  Other Error</pd:from>
+        <pd:to>Generate Error</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>RepositoryCFG</pd:from>
+        <pd:to>ARC_CatchingFrameworkAPI_QueueRequestPut</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_CatchingFrameworkAPI_QueueRequestPut</pd:from>
+        <pd:to>checkError</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

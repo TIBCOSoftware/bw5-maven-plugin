@@ -1,0 +1,56 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>CFG_JMS_CNTX_FACTORY_</name>
+			<value>no value</value>
+			<description></description>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1386864672570</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_JMS_PASSWORD</name>
+			<value>#!J7AZDlWHt2ai4aUe5YcHeA==</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Password</type>
+			<modTime>1622713356261</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_JMS_QCONN_FACTORY</name>
+			<value>QueueConnectionFactory</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1445332647704</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_JMS_TCONN_FACTORY</name>
+			<value>TopicConnectionFactory</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<constraint></constraint>
+			<modTime>1445332647736</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_JMS_URL</name>
+			<value></value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1622713356381</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>CFG_JMS_USER</name>
+			<value></value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<constraint></constraint>
+			<modTime>1622713356474</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

@@ -1,0 +1,510 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/file" xmlns:pfx10="http://www.tibco.com/namespaces/tnt/plugins/mail" xmlns:ns12="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns2="http://www.tibco.com/pe/DeployedVarsType" xmlns:ns1="http://www.tibco.com/pe/EngineTypes" xmlns:ns3="http://xmlns.tibco.com/body" xmlns:pfx5="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC_EXP_RecursosComunes/Esquemas/Schema.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:GetIP="java://EAIFramework.Processes.Private.Common.HeaderManagement.IPAddress.IPAddress" xmlns:pfx4="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC_EXP_RecursosComunes/Esquemas/Schema.xsd2" xmlns:pfx3="http://www.tibco.com/schemas/Auditoria/Schema.xsd" xmlns:pfx2="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:pfx9="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx8="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:pfx7="http://www.bbva.com/EAIFramework" xmlns:pfx6="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC_Log/ARC_FormatLogManagement.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="Log">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="Message" type="xsd:string"/>
+                    <xsd:element name="Role">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="Info" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="User" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="Debug" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="Warn" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="Error" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="Splunk" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="Custom" type="xsd:boolean" minOccurs="0"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="LogConfig">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="ProcessName" type="xsd:string"/>
+                                <xsd:element name="ActivityName" type="xsd:string"/>
+                                <xsd:element name="Id" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="TraceCode" type="xsd:string" minOccurs="0"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="AditionalInfo" minOccurs="0">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="Parameter" minOccurs="0" maxOccurs="unbounded">
+                                    <xsd:complexType>
+                                        <xsd:sequence>
+                                            <xsd:element name="Name" type="xsd:string"/>
+                                            <xsd:element name="Value" type="xsd:string"/>
+                                        </xsd:sequence>
+                                    </xsd:complexType>
+                                </xsd:element>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>32</pd:startX>
+    <pd:startY>262</pd:startY>
+    <pd:returnBindings>
+        <root>
+            <xsl:copy-of select="$Start/root/pfx6:Header"/>
+        </root>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endX>1080</pd:endX>
+    <pd:endY>262</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables>
+        <VarTraceLevel>
+            <xsd:element name="Info">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="ServiceId" type="xsd:string"/>
+                        <xsd:element name="TraceLevel" type="xsd:int"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </VarTraceLevel>
+    </pd:processVariables>
+    <pd:targetNamespace>http://xmlns.example.com/1292425961510</pd:targetNamespace>
+    <pd:activity name="BuildNValue">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>430</pd:x>
+        <pd:y>262</pd:y>
+        <config>
+            <element>
+                <xsd:element name="Data">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="NValuePair" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+            </element>
+        </config>
+        <pd:inputBindings>
+            <Data>
+                <xsl:for-each select="$Start/Log/AditionalInfo/Parameter">
+                    <NValuePair>
+                        <xsl:value-of select="concat(current()/Name,&quot;=&quot;,current()/Value)"/>
+                    </NValuePair>
+                </xsl:for-each>
+            </Data>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>1079</pd:x>
+        <pd:y>437</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="CUSTOM-ROLE">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <pd:x>809</pd:x>
+        <pd:y>109</pd:y>
+        <config>
+            <role>%%CFG/ARCHITECTURE/ENVIRONMENT/CFG_CUSTOM_ROLE%%</role>
+            <suppressHeader>true</suppressHeader>
+        </config>
+        <pd:inputBindings>
+            <pfx2:ActivityInput>
+                <message>
+                    <xsl:value-of select="$FormatLog/TraceLog"/>
+                </message>
+            </pfx2:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="DEBUG-ROLE">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <pd:x>811</pd:x>
+        <pd:y>190</pd:y>
+        <config>
+            <role>Debug</role>
+            <suppressHeader>true</suppressHeader>
+        </config>
+        <pd:inputBindings>
+            <pfx2:ActivityInput>
+                <message>
+                    <xsl:value-of select="$FormatLog/TraceLog"/>
+                </message>
+            </pfx2:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="EndRole">
+        <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+        <pd:resourceType>ae.activities.null</pd:resourceType>
+        <pd:x>959</pd:x>
+        <pd:y>262</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="ERROR-ROLE">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <pd:x>810</pd:x>
+        <pd:y>466</pd:y>
+        <config>
+            <role>Error</role>
+            <suppressHeader>true</suppressHeader>
+        </config>
+        <pd:inputBindings>
+            <pfx2:ActivityInput>
+                <message>
+                    <xsl:value-of select="$FormatLog/TraceLog"/>
+                </message>
+            </pfx2:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="FormatLog">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>533</pd:x>
+        <pd:y>262</pd:y>
+        <config>
+            <element>
+                <xsd:element name="TraceLog" type="xsd:string"/>
+            </element>
+        </config>
+        <pd:inputBindings>
+            <TraceLog>
+                <xsl:value-of select="concat(&quot;###&quot;,&#xA;BW:getHostName(),&quot;###Job-&quot;,&#xA;$_processContext/ns1:ProcessContext/ProcessId,&quot;###&quot;&#xA;,$Start/Log/LogConfig/ProcessName,&quot;/&quot;,$Start/Log/LogConfig/ActivityName,&quot;###&quot;&#xA;,$Start/Log/Message,&quot;###&quot;,&#xA;$Start/Log/LogConfig/TraceCode,&quot;###&quot;,&#xA;$Start/Log/LogConfig/Id,&quot;###&quot;,&#xA;$VarTraceLevel/Info/ServiceId,&quot;###&quot;,&#xA;$VarTraceLevel/Info/TraceLevel,&quot;###&quot;,&#xA;&#xA;tib:concat-sequence-format($BuildNValue/Data/NValuePair, &quot;#@#&quot;))"/>
+            </TraceLog>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="GetVariableServiceId">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>242</pd:x>
+        <pd:y>161</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/ServiceIdAndPath.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="GetVariableTraceLevel">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>129</pd:x>
+        <pd:y>161</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/TraceAuditData.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="INFO-ROLE">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <pd:x>808</pd:x>
+        <pd:y>262</pd:y>
+        <config>
+            <role>Info</role>
+            <suppressHeader>true</suppressHeader>
+        </config>
+        <pd:inputBindings>
+            <pfx2:ActivityInput>
+                <message>
+                    <xsl:value-of select="$FormatLog/TraceLog"/>
+                </message>
+            </pfx2:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="SetTraceLevel">
+        <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+        <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+        <pd:x>333</pd:x>
+        <pd:y>262</pd:y>
+        <config>
+            <variableName>VarTraceLevel</variableName>
+        </config>
+        <pd:inputBindings>
+            <xsl:choose>
+                <xsl:when test="$_globalVariables/ns2:GlobalVariables/CFG/ARCHITECTURE/Name=&quot;FrameworkCommon&quot;">
+                    <Info>
+                        <ServiceId>
+                            <xsl:value-of select="$GetVariableServiceId/Data/ServiceId"/>
+                        </ServiceId>
+                        <TraceLevel>
+                            <xsl:value-of select="$GetVariableTraceLevel/TraceAuditData/pfx7:TraceLevel"/>
+                        </TraceLevel>
+                    </Info>
+                </xsl:when>
+                <xsl:otherwise>
+                    <Info>
+                        <ServiceId>
+                            <xsl:value-of select="&quot;&quot;"/>
+                        </ServiceId>
+                        <TraceLevel>
+                            <xsl:value-of select="0"/>
+                        </TraceLevel>
+                    </Info>
+                </xsl:otherwise>
+            </xsl:choose>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="SPLUNK-ROLE">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <pd:x>808</pd:x>
+        <pd:y>35</pd:y>
+        <config>
+            <role>Splunk</role>
+            <suppressHeader>true</suppressHeader>
+        </config>
+        <pd:inputBindings>
+            <pfx2:ActivityInput>
+                <message>
+                    <xsl:value-of select="$FormatLog/TraceLog"/>
+                </message>
+            </pfx2:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="StartRole">
+        <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+        <pd:resourceType>ae.activities.null</pd:resourceType>
+        <pd:x>641</pd:x>
+        <pd:y>262</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="USER-ROLE">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <pd:x>809</pd:x>
+        <pd:y>367</pd:y>
+        <config>
+            <role>User</role>
+            <suppressHeader>true</suppressHeader>
+        </config>
+        <pd:inputBindings>
+            <pfx2:ActivityInput>
+                <message>
+                    <xsl:value-of select="$FormatLog/TraceLog"/>
+                </message>
+            </pfx2:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="WARN-ROLE">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <pd:x>810</pd:x>
+        <pd:y>564</pd:y>
+        <config>
+            <role>Warn</role>
+            <suppressHeader>true</suppressHeader>
+        </config>
+        <pd:inputBindings>
+            <pfx2:ActivityInput>
+                <message>
+                    <xsl:value-of select="$FormatLog/TraceLog"/>
+                </message>
+            </pfx2:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Catch</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>StartRole</pd:from>
+        <pd:to>INFO-ROLE</pd:to>
+        <pd:xpathDescription>TRC_INFO</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$Start/Log/Role/Info="true" or
+($Start/Log/Role/Splunk ="false" 
+and $Start/Log/Role/Custom ="false"
+and $Start/Log/Role/Debug ="false"
+and $Start/Log/Role/User ="false"
+and $Start/Log/Role/Error ="false"
+and $Start/Log/Role/Warn ="false")
+
+or
+
+$Start/Log/Role/Info="true" or
+(not(exists($Start/Log/Role/Splunk )) 
+and (not(exists($Start/Log/Role/Custom))
+and (not(exists($Start/Log/Role/Debug ))
+and (not(exists($Start/Log/Role/User ))
+and (not(exists($Start/Log/Role/Error ))
+and (not(exists($Start/Log/Role/Warn))))))))</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>StartRole</pd:from>
+        <pd:to>DEBUG-ROLE</pd:to>
+        <pd:xpathDescription>TRC-DEBUG</pd:xpathDescription>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$Start/Log/Role/Debug="true"</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>StartRole</pd:from>
+        <pd:to>USER-ROLE</pd:to>
+        <pd:xpathDescription>TRC-USER</pd:xpathDescription>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$Start/Log/Role/User="true"</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>DEBUG-ROLE</pd:from>
+        <pd:to>EndRole</pd:to>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>INFO-ROLE</pd:from>
+        <pd:to>EndRole</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>USER-ROLE</pd:from>
+        <pd:to>EndRole</pd:to>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>EndRole</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>StartRole</pd:from>
+        <pd:to>ERROR-ROLE</pd:to>
+        <pd:xpathDescription>ERR-</pd:xpathDescription>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$Start/Log/Role/Error="true"</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>StartRole</pd:from>
+        <pd:to>WARN-ROLE</pd:to>
+        <pd:xpathDescription>ALM-</pd:xpathDescription>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$Start/Log/Role/Warn="true"</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>WARN-ROLE</pd:from>
+        <pd:to>EndRole</pd:to>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ERROR-ROLE</pd:from>
+        <pd:to>EndRole</pd:to>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>StartRole</pd:from>
+        <pd:to>CUSTOM-ROLE</pd:to>
+        <pd:xpathDescription>CUSTOM</pd:xpathDescription>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$Start/Log/Role/Custom="true"</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>CUSTOM-ROLE</pd:from>
+        <pd:to>EndRole</pd:to>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>StartRole</pd:from>
+        <pd:to>SPLUNK-ROLE</pd:to>
+        <pd:xpathDescription>SPLUNK</pd:xpathDescription>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$Start/Log/Role/Splunk="true"</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>SPLUNK-ROLE</pd:from>
+        <pd:to>EndRole</pd:to>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>SetTraceLevel</pd:from>
+        <pd:to>BuildNValue</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>BuildNValue</pd:from>
+        <pd:to>FormatLog</pd:to>
+        <pd:lineType>One Bend</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FormatLog</pd:from>
+        <pd:to>StartRole</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetVariableTraceLevel</pd:from>
+        <pd:to>GetVariableServiceId</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>GetVariableTraceLevel</pd:to>
+        <pd:xpathDescription>FrameworkCommon</pd:xpathDescription>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$_globalVariables/ns2:GlobalVariables/CFG/ARCHITECTURE/Name="FrameworkCommon"</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>SetTraceLevel</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GetVariableServiceId</pd:from>
+        <pd:to>SetTraceLevel</pd:to>
+        <pd:lineType>Multiple Bends</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

@@ -1,0 +1,540 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/file/v2" xmlns:ns5="http://schemas.tibco.com/bw/plugins/xml/5.0/xmlExceptions" xmlns:pfx="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC_EXP_RecursosComunes/Esquemas/Schema.xsd2" xmlns:ns2="http://www.tibco.com/pe/DeployedVarsType" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/file" xmlns:ns4="http://schemas.tibco.com/bw/plugins/file/5.0/fileExceptions" xmlns:ns3="http://www.tibco.com/pe/EngineTypes" xmlns:pfx5="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx4="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx3="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:pfx2="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC_EXP_RecursosComunes/Esquemas/Schema.xsd" xmlns:pfx8="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:pfx7="http://www.tibco.com/schemas/FrameworkCommon/SharedResources/Schemas/XSD/ServiceParameters/Schema.xsd" xmlns:pfx6="http://www.bbva.com/EAIFramework">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_RoutingHelper/ARC_RoutingFromFileByServiceId.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ARC_RoutingFromFileByServiceId">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="ServiceId" type="pfx6:ServiceIdType"/>
+                    <xsd:element name="FileFolderRoute" type="xsd:string"/>
+                    <xsd:element name="BusinessObject" type="xsd:string"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>100</pd:startX>
+    <pd:startY>111</pd:startY>
+    <pd:returnBindings>
+        <xsl:choose>
+            <xsl:when test="$Parse-XML/Dispatcher/ObjectDispatcher[BusinessObject=$Start/ARC_RoutingFromFileByServiceId/BusinessObject]">
+                <TargetServices>
+                    <xsl:for-each select="$Parse-XML/Dispatcher/ObjectDispatcher[BusinessObject=$Start/ARC_RoutingFromFileByServiceId/BusinessObject]/Services/ServiceId">
+                        <Service>
+                            <xsl:value-of select="."/>
+                        </Service>
+                    </xsl:for-each>
+                </TargetServices>
+            </xsl:when>
+            <xsl:otherwise>
+                <TargetServices/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="TargetServices">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="Service" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>678</pd:endX>
+    <pd:endY>115</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx6:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables>
+        <RouteVariable>
+            <xsd:element name="FileRoute" type="xsd:string"/>
+        </RouteVariable>
+    </pd:processVariables>
+    <pd:targetNamespace>http://xmlns.example.com/1323970667070</pd:targetNamespace>
+    <pd:activity name="Catch Error Message">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>113</pd:x>
+        <pd:y>277</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>false</catchAll>
+            <fault>localname=ErrorMessage namespace=http://www.bbva.com/EAIFramework</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Catch others Erros">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>100</pd:x>
+        <pd:y>388</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Creating File Route">
+        <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+        <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+        <pd:x>286</pd:x>
+        <pd:y>119</pd:y>
+        <config>
+            <variableName>RouteVariable</variableName>
+        </config>
+        <pd:inputBindings>
+            <FileRoute>
+                <xsl:value-of select="concat($Start/ARC_RoutingFromFileByServiceId/FileFolderRoute,$Start/ARC_RoutingFromFileByServiceId/ServiceId,&quot;.rut&quot;)"/>
+            </FileRoute>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Generate ErrorMessage">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>309</pd:x>
+        <pd:y>396</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx8:ActivityInput>
+                <data>
+                    <pfx6:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                        </ErrorCode>
+                        <ErrorDescription>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_Generic_Error_RoutingFromFileByServiceId"/>
+                        </ErrorDescription>
+                        <xsl:if test="string-length($_error/ns3:ErrorReport/MsgCode)>0">
+                            <xsl:if test="$_error/ns3:ErrorReport/MsgCode">
+                                <NativeErrorCode>
+                                    <xsl:value-of select="$_error/ns3:ErrorReport/MsgCode"/>
+                                </NativeErrorCode>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns3:ErrorReport/Msg)>0">
+                            <xsl:if test="$_error/ns3:ErrorReport/Msg">
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$_error/ns3:ErrorReport/Msg"/>
+                                </NativeErrorDescription>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns3:ErrorReport/StackTrace)>0">
+                            <xsl:if test="$_error/ns3:ErrorReport/StackTrace">
+                                <StackTrace>
+                                    <xsl:value-of select="$_error/ns3:ErrorReport/StackTrace"/>
+                                </StackTrace>
+                            </xsl:if>
+                        </xsl:if>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <xsl:if test="string-length($_error/ns3:ErrorReport/ProcessStack)>0">
+                            <xsl:if test="$_error/ns3:ErrorReport/ProcessStack">
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns3:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                            </xsl:if>
+                        </xsl:if>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/ARC_RoutingFromFileByServiceId)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </pfx6:ErrorMessage>
+                </data>
+            </pfx8:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Generate ErrorMessage 1">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>420</pd:x>
+        <pd:y>277</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx8:ActivityInput>
+                <data>
+                    <pfx6:ErrorMessage>
+                        <xsl:choose>
+                            <xsl:when test="$_error_Read-File/ActivityErrors/ns4:FileNotFoundException">
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Routing/GLB_RoutingFileIOException"/>
+                                </ErrorCode>
+                            </xsl:when>
+                            <xsl:when test="$_error_Read-File/ActivityErrors/ns4:UnsupportedEncodingException">
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Routing/GLB_RoutingFileUnsupportedEncodingException"/>
+                                </ErrorCode>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/AdvancedArchitecture/Routing/GLB_RoutingFileIOException"/>
+                                </ErrorCode>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <ErrorDescription>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_Error_Reading_the_File"/>
+                        </ErrorDescription>
+                        <xsl:choose>
+                            <xsl:when test="$_error_Read-File/ActivityErrors/ns4:FileNotFoundException">
+                                <xsl:if test="$_error_Read-File/ActivityErrors/ns4:FileNotFoundException/msgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error_Read-File/ActivityErrors/ns4:FileNotFoundException/msgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                            </xsl:when>
+                            <xsl:when test="$_error_Read-File/ActivityErrors/ns4:UnsupportedEncodingException">
+                                <xsl:if test="$_error_Read-File/ActivityErrors/ns4:UnsupportedEncodingException/msgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error_Read-File/ActivityErrors/ns4:UnsupportedEncodingException/msgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:if test="$_error_Read-File/ActivityErrors/ns4:FileIOException/msgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error_Read-File/ActivityErrors/ns4:FileIOException/msgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <xsl:choose>
+                            <xsl:when test="$_error_Read-File/ActivityErrors/ns4:FileNotFoundException">
+                                <xsl:if test="$_error_Read-File/ActivityErrors/ns4:FileNotFoundException/msg">
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$_error_Read-File/ActivityErrors/ns4:FileNotFoundException/msg"/>
+                                    </NativeErrorDescription>
+                                </xsl:if>
+                            </xsl:when>
+                            <xsl:when test="$_error_Read-File/ActivityErrors/ns4:UnsupportedEncodingException">
+                                <xsl:if test="$_error_Read-File/ActivityErrors/ns4:UnsupportedEncodingException/msg">
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$_error_Read-File/ActivityErrors/ns4:UnsupportedEncodingException/msg"/>
+                                    </NativeErrorDescription>
+                                </xsl:if>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:if test="$_error_Read-File/ActivityErrors/ns4:FileIOException/msg">
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$_error_Read-File/ActivityErrors/ns4:FileIOException/msg"/>
+                                    </NativeErrorDescription>
+                                </xsl:if>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <xsl:if test="string-length($_error/ns3:ErrorReport/StackTrace)>0">
+                            <xsl:if test="$_error/ns3:ErrorReport/StackTrace">
+                                <StackTrace>
+                                    <xsl:value-of select="$_error/ns3:ErrorReport/StackTrace"/>
+                                </StackTrace>
+                            </xsl:if>
+                        </xsl:if>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <xsl:if test="string-length($_error/ns3:ErrorReport/ProcessStack)>0">
+                            <xsl:if test="$_error/ns3:ErrorReport/ProcessStack">
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns3:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                            </xsl:if>
+                        </xsl:if>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/ARC_RoutingFromFileByServiceId)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </pfx6:ErrorMessage>
+                </data>
+            </pfx8:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Generate ErrorMessage 2">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>530</pd:x>
+        <pd:y>277</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx8:ActivityInput>
+                <data>
+                    <pfx6:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                        </ErrorCode>
+                        <ErrorDescription>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_Error_Parsing_the"/>
+                        </ErrorDescription>
+                        <xsl:choose>
+                            <xsl:when test="$_error_Parse-XML/ActivityErrors/ns5:XMLParseException">
+                                <xsl:if test="$_error_Parse-XML/ActivityErrors/ns5:XMLParseException/msgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:XMLParseException/msgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                            </xsl:when>
+                            <xsl:when test="$_error_Parse-XML/ActivityErrors/ns5:UnsupportedEncodingException">
+                                <xsl:if test="$_error_Parse-XML/ActivityErrors/ns5:UnsupportedEncodingException/msgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:UnsupportedEncodingException/msgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                            </xsl:when>
+                            <xsl:when test="$_error_Parse-XML/ActivityErrors/ns5:MissingByteCountException">
+                                <xsl:if test="$_error_Parse-XML/ActivityErrors/ns5:MissingByteCountException/msgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:MissingByteCountException/msgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:if test="$_error_Parse-XML/ActivityErrors/ns5:ValidationException/msgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:ValidationException/msgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <xsl:choose>
+                            <xsl:when test="$_error_Parse-XML/ActivityErrors/ns5:XMLParseException">
+                                <xsl:if test="$_error_Parse-XML/ActivityErrors/ns5:XMLParseException/msg">
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:XMLParseException/msg"/>
+                                    </NativeErrorDescription>
+                                </xsl:if>
+                            </xsl:when>
+                            <xsl:when test="$_error_Parse-XML/ActivityErrors/ns5:UnsupportedEncodingException">
+                                <xsl:if test="$_error_Parse-XML/ActivityErrors/ns5:UnsupportedEncodingException/msg">
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:UnsupportedEncodingException/msg"/>
+                                    </NativeErrorDescription>
+                                </xsl:if>
+                            </xsl:when>
+                            <xsl:when test="$_error_Parse-XML/ActivityErrors/ns5:MissingByteCountException">
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:MissingByteCountException/msg"/>
+                                </NativeErrorDescription>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:if test="$_error_Parse-XML/ActivityErrors/ns5:ValidationException/msg">
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$_error_Parse-XML/ActivityErrors/ns5:ValidationException/msg"/>
+                                    </NativeErrorDescription>
+                                </xsl:if>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <xsl:if test="string-length($_error/ns3:ErrorReport/StackTrace)>0">
+                            <xsl:if test="$_error/ns3:ErrorReport/StackTrace">
+                                <StackTrace>
+                                    <xsl:value-of select="$_error/ns3:ErrorReport/StackTrace"/>
+                                </StackTrace>
+                            </xsl:if>
+                        </xsl:if>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <xsl:if test="string-length($_error/ns3:ErrorReport/ProcessStack)>0">
+                            <xsl:if test="$_error/ns3:ErrorReport/ProcessStack">
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns3:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                            </xsl:if>
+                        </xsl:if>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/ARC_RoutingFromFileByServiceId)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </pfx6:ErrorMessage>
+                </data>
+            </pfx8:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Parse XML">
+        <pd:type>com.tibco.plugin.xml.XMLParseActivity</pd:type>
+        <pd:resourceType>ae.activities.XMLParseActivity</pd:resourceType>
+        <pd:x>530</pd:x>
+        <pd:y>111</pd:y>
+        <config>
+            <inputStyle>text</inputStyle>
+            <xsdVersion>default</xsdVersion>
+            <validateOutput>true</validateOutput>
+            <term>
+                <xsd:element name="Dispatcher">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="ObjectDispatcher" minOccurs="0" maxOccurs="unbounded">
+                                <xsd:complexType>
+                                    <xsd:sequence>
+                                        <xsd:element name="BusinessObject" type="xsd:string"/>
+                                        <xsd:element name="Services">
+                                            <xsd:complexType>
+                                                <xsd:sequence>
+                                                    <xsd:element name="ServiceId" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+                                                </xsd:sequence>
+                                            </xsd:complexType>
+                                        </xsd:element>
+                                    </xsd:sequence>
+                                </xsd:complexType>
+                            </xsd:element>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+            </term>
+        </config>
+        <pd:inputBindings>
+            <xmlString>
+                <xsl:value-of select="$Read-File/ns1:ReadActivityOutputTextClass/fileContent/textContent"/>
+            </xmlString>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Read File">
+        <pd:type>com.tibco.plugin.file.FileReadActivity</pd:type>
+        <pd:resourceType>ae.activities.FileReadActivity</pd:resourceType>
+        <pd:x>420</pd:x>
+        <pd:y>111</pd:y>
+        <config>
+            <encoding>text</encoding>
+        </config>
+        <pd:inputBindings>
+            <ns:ReadActivityInputClass>
+                <fileName>
+                    <xsl:value-of select="$RouteVariable/FileRoute"/>
+                </fileName>
+            </ns:ReadActivityInputClass>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Rethrow">
+        <pd:type>com.tibco.pe.core.RethrowActivity</pd:type>
+        <pd:resourceType>ae.activities.rethrow</pd:resourceType>
+        <pd:x>306</pd:x>
+        <pd:y>269</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Creating File Route</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Creating File Route</pd:from>
+        <pd:to>Read File</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Read File</pd:from>
+        <pd:to>Parse XML</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch others Erros</pd:from>
+        <pd:to>Generate ErrorMessage</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Read File</pd:from>
+        <pd:to>Generate ErrorMessage 1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65536</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Parse XML</pd:from>
+        <pd:to>Generate ErrorMessage 2</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65536</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Error Message</pd:from>
+        <pd:to>Rethrow</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Parse XML</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:label>
+        <pd:name>Label</pd:name>
+        <pd:description>If there is any mistake try to read the file maybe is 
+because you don't realize of:
+-The file is form such as: FolderRoute+ ServiceId+."rut"</pd:description>
+        <pd:x>292</pd:x>
+        <pd:y>31</pd:y>
+        <pd:width>323</pd:width>
+        <pd:height>61</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-13369600</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+    <pd:label>
+        <pd:name>Label (1)</pd:name>
+        <pd:description>If there is any mistake try to ParseXML  is 
+because the xml of the file is wrong.
+You check the example file.</pd:description>
+        <pd:x>609</pd:x>
+        <pd:y>37</pd:y>
+        <pd:width>263</pd:width>
+        <pd:height>63</pd:height>
+        <pd:fontName>Dialog.bold-plain-12</pd:fontName>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-16724737</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+</pd:ProcessDefinition>

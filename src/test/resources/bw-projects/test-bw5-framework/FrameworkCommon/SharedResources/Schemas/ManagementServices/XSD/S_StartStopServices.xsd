@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	 xmlns:tns="http://com.bbva.cib/EYFW/MngServ"
+	 targetNamespace="http://com.bbva.cib/EYFW/MngServ"
+	 elementFormDefault="qualified"
+	 attributeFormDefault="unqualified">
+	<xs:element name="StartStopRequest" type="tns:StarStopRequest_type"/>
+	<xs:complexType name="StarStopRequest_type">
+		<xs:sequence>
+			<xs:element name="Service_Id">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:minLength value="1"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="AppRunTime">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:minLength value="1"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="OperationType">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="KILL"/>
+						<xs:enumeration value="RESTART"/>
+						<xs:enumeration value="RESUME_PROCESS"/>
+						<xs:enumeration value="SUSPEND"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+</xs:schema>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BWSharedResource>
+    <name>OracleConnection</name>
+    <resourceType>ae.shared.JDBCSharedResource</resourceType>
+    <config>
+        <driver>oracle.jdbc.driver.OracleDriver (thin)</driver>
+        <maxConnections>%%CFG/ARCHITECTURE/DB/ORACLE/CFG_DB_MAX_CONNECTIONS%%</maxConnections>
+        <loginTimeout>%%CFG/ARCHITECTURE/DB/ORACLE/CFG_DB_LOGINTIMEOUT%%</loginTimeout>
+        <connectionType>JDBC</connectionType>
+        <UseSharedJndiConfig>false</UseSharedJndiConfig>
+        <location>%%CFG/ARCHITECTURE/DB/ORACLE/CFG_DB_URL%%</location>
+        <user>%%CFG/ARCHITECTURE/DB/ORACLE/CFG_DB_USER%%</user>
+        <password>%%CFG/ARCHITECTURE/DB/ORACLE/CFG_DB_PASSWORD%%</password>
+    </config>
+</BWSharedResource>

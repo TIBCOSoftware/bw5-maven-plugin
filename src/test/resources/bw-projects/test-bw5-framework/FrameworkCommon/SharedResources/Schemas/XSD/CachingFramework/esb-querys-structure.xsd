@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	 elementFormDefault="unqualified"
+	 attributeFormDefault="unqualified">
+	<xs:element name="query" type="Query"/>
+	<xs:complexType name="Query">
+		<xs:sequence>
+			<xs:element ref="operation"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="Operation" abstract="true"/>
+	<xs:element name="operation" type="Operation" abstract="true"/>
+	<xs:complexType name="LogicOp">
+		<xs:complexContent>
+			<xs:extension base="Operation">
+				<xs:sequence>
+					<xs:element ref="operation" maxOccurs="unbounded"/>
+				</xs:sequence>
+				<xs:attribute name="type" type="logicOpSimpleType" use="required"/>
+				<xs:attribute name="component" type="xs:string"/>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="logicOp" type="LogicOp" substitutionGroup="operation"/>
+	<xs:simpleType name="logicOpSimpleType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="and"/>
+			<xs:enumeration value="or"/>
+			<xs:enumeration value="not"/>
+			<xs:enumeration value="association"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="Field-op">
+		<xs:complexContent>
+			<xs:extension base="Operation">
+				<xs:sequence>
+					<xs:element name="fvalue" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+				</xs:sequence>
+				<xs:attribute name="optype" type="Optype"/>
+				<xs:attribute name="fname" type="xs:string" use="required"/>
+				<xs:attribute name="ftype" type="Ftype" use="required"/>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:element name="field-op" type="Field-op" substitutionGroup="operation"/>
+	<xs:simpleType name="Optype">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="between"/>
+			<xs:enumeration value="contains"/>
+			<xs:enumeration value="containsAny"/>
+			<xs:enumeration value="containsAll"/>
+			<xs:enumeration value="equals"/>
+			<xs:enumeration value="notEqual"/>
+			<xs:enumeration value="greater"/>
+			<xs:enumeration value="greaterEqual"/>
+			<xs:enumeration value="less"/>
+			<xs:enumeration value="lessEqual"/>
+			<xs:enumeration value="notIn"/>
+			<xs:enumeration value="in"/>
+			<xs:enumeration value="like"/>
+			<xs:enumeration value="isNull"/>
+			<xs:enumeration value="isNotNull"/>
+			<xs:enumeration value="associationElement"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="Ftype">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="integer"/>
+			<xs:enumeration value="double"/>
+			<xs:enumeration value="boolean"/>
+			<xs:enumeration value="string"/>
+			<xs:enumeration value="date"/>
+			<xs:enumeration value="object"/>
+		</xs:restriction>
+	</xs:simpleType>
+</xs:schema>

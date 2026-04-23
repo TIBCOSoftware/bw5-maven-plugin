@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pfx="http://www.bbva.com/EAIFramework" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:ns="http://www.tibco.com/pe/DeployedVarsType" xmlns:ns12="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns1="http://www.tibco.com/pe/EngineTypes">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_Queues/ARC_QueuesManagement/FilterQueuesByServiceId.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="FilterQueuesIn">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="FindQueues">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="ServiceId" type="pfx:ServiceIdType" minOccurs="0" maxOccurs="unbounded"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element ref="pfx:QueuesCacheList"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>55</pd:startX>
+    <pd:startY>60</pd:startY>
+    <pd:returnBindings>
+        <xsl:copy-of select="$ProcessVariables/pfx:QueuesCacheList"/>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType ref="pfx:QueuesCacheList"/>
+    <pd:endX>583</pd:endX>
+    <pd:endY>60</pd:endY>
+    <pd:errorSchemas>
+        <QueuesNotFound ref="pfx:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables>
+        <ProcessVariables ref="pfx:QueuesCacheList"/>
+    </pd:processVariables>
+    <pd:targetNamespace>http://xmlns.example.com/1333021564758</pd:targetNamespace>
+    <pd:activity name="Equal number of destinations">
+        <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+        <pd:resourceType>ae.activities.null</pd:resourceType>
+        <pd:x>301</pd:x>
+        <pd:y>68</pd:y>
+        <config/>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Generate Error No ids">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>305</pd:x>
+        <pd:y>241</pd:y>
+        <config>
+            <faultName>QueuesNotFound</faultName>
+        </config>
+        <pd:inputBindings>
+            <ns12:ActivityInput>
+                <message/>
+                <data>
+                    <pfx:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_QueuesNotFound"/>
+                        </ErrorCode>
+                        <ErrorDescription>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/ErrorDescriptions/GLB_QueuesNotFoundDescription"/>
+                        </ErrorDescription>
+                        <NativeErrorDescription>
+                            <xsl:value-of select="BW:getCurrentProcessName($_processContext/ns1:ProcessContext/ProcessId)"/>
+                        </NativeErrorDescription>
+                        <StackTrace>
+                            <xsl:value-of select="BW:getCurrentActivityName($_processContext/ns1:ProcessContext/ProcessId)"/>
+                        </StackTrace>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <StackProcess>
+                            <xsl:value-of select="BW:getCurrentProcessName($_processContext/ns1:ProcessContext/ProcessId)"/>
+                        </StackProcess>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/FilterQueuesIn )"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </pfx:ErrorMessage>
+                </data>
+            </ns12:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Get queues in Service Id list">
+        <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+        <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+        <pd:x>175</pd:x>
+        <pd:y>68</pd:y>
+        <config>
+            <variableName>ProcessVariables</variableName>
+        </config>
+        <pd:inputBindings>
+            <pfx:QueuesCacheList>
+                <xsl:for-each xmlns:xsl="http://www.w3.org/1999/XSL/Transform" select="$Start/FilterQueuesIn/FindQueues/ServiceId">
+                    <xsl:if test="not(empty(../../pfx:QueuesCacheList/pfx:Destination[@ServiceId=current()]))">
+                        <pfx:Destination>
+                            <xsl:attribute name="ServiceId">
+                                <xsl:value-of select="current()"/>
+                            </xsl:attribute>
+                            <xsl:attribute name="DestinationType">
+                                <xsl:value-of select="../../pfx:QueuesCacheList/pfx:Destination[@ServiceId=current()]/@DestinationType"/>
+                            </xsl:attribute>
+                            <xsl:value-of select="../../pfx:QueuesCacheList/pfx:Destination[@ServiceId=current()]"/>
+                        </pfx:Destination>
+                    </xsl:if>
+                </xsl:for-each>
+            </pfx:QueuesCacheList>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Order By Destination Type ECS">
+        <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+        <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+        <pd:x>452</pd:x>
+        <pd:y>75</pd:y>
+        <config>
+            <variableName>ProcessVariables</variableName>
+        </config>
+        <pd:inputBindings>
+            <xsl:choose>
+                <!--Cuando existe un envio a PSI, se ordena de manera Descendente (PSI el ultimo)-->
+                <xsl:when test="count($ProcessVariables/pfx:QueuesCacheList/pfx:Destination[@DestinationType=&quot;Psi&quot;])=1">
+                    <pfx:QueuesCacheList>
+                        <xsl:for-each select="$ProcessVariables/pfx:QueuesCacheList/pfx:Destination">
+                            <xsl:sort select="@DestinationType" order="descending"/>
+                            <pfx:Destination>
+                                <xsl:if test="@ServiceId">
+                                    <xsl:attribute name="ServiceId">
+                                        <xsl:value-of select="@ServiceId"/>
+                                    </xsl:attribute>
+                                </xsl:if>
+                                <xsl:if test="@PatternGroupNameRef">
+                                    <xsl:attribute name="PatternGroupNameRef">
+                                        <xsl:value-of select="@PatternGroupNameRef"/>
+                                    </xsl:attribute>
+                                </xsl:if>
+                                <xsl:if test="@DestinationType">
+                                    <xsl:attribute name="DestinationType">
+                                        <xsl:value-of select="@DestinationType"/>
+                                    </xsl:attribute>
+                                </xsl:if>
+                                <xsl:value-of select="."/>
+                            </pfx:Destination>
+                        </xsl:for-each>
+                        <xsl:copy-of select="$ProcessVariables/pfx:QueuesCacheList/pfx:DestinationServiceMonitoring"/>
+                    </pfx:QueuesCacheList>
+                </xsl:when>
+                <!--Sino se ordena de manera Ascendente (Upsilon el ultimo)-->
+                <xsl:otherwise>
+                    <pfx:QueuesCacheList>
+                        <xsl:for-each select="$ProcessVariables/pfx:QueuesCacheList/pfx:Destination">
+                            <xsl:sort select="@DestinationType" order="ascending"/>
+                            <pfx:Destination>
+                                <xsl:if test="@ServiceId">
+                                    <xsl:attribute name="ServiceId">
+                                        <xsl:value-of select="@ServiceId"/>
+                                    </xsl:attribute>
+                                </xsl:if>
+                                <xsl:if test="@PatternGroupNameRef">
+                                    <xsl:attribute name="PatternGroupNameRef">
+                                        <xsl:value-of select="@PatternGroupNameRef"/>
+                                    </xsl:attribute>
+                                </xsl:if>
+                                <xsl:if test="@DestinationType">
+                                    <xsl:attribute name="DestinationType">
+                                        <xsl:value-of select="@DestinationType"/>
+                                    </xsl:attribute>
+                                </xsl:if>
+                                <xsl:value-of select="."/>
+                            </pfx:Destination>
+                        </xsl:for-each>
+                        <xsl:copy-of select="$ProcessVariables/pfx:QueuesCacheList/pfx:DestinationServiceMonitoring"/>
+                    </pfx:QueuesCacheList>
+                </xsl:otherwise>
+            </xsl:choose>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Get queues in Service Id list</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get queues in Service Id list</pd:from>
+        <pd:to>Equal number of destinations</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Equal number of destinations</pd:from>
+        <pd:to>Generate Error No ids</pd:to>
+        <pd:xpathDescription/>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Equal number of destinations</pd:from>
+        <pd:to>Order By Destination Type ECS</pd:to>
+        <pd:xpathDescription>Check Num Destination</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>(count($ProcessVariables/pfx:QueuesCacheList/pfx:Destination)=count($Start/FilterQueuesIn/FindQueues/ServiceId)) and 
+(count($ProcessVariables/pfx:QueuesCacheList/pfx:Destination[@DestinationType="Psi"|"Upsilon"])&lt;=1)
+and
+((count($ProcessVariables/pfx:QueuesCacheList/pfx:Destination[@DestinationType="Topic"|"Psi"|"Upsilon"])=count($Start/FilterQueuesIn/FindQueues/ServiceId)) or 
+(count($ProcessVariables/pfx:QueuesCacheList/pfx:Destination[@DestinationType="Queue"|"Psi"|"Upsilon"])=count($Start/FilterQueuesIn/FindQueues/ServiceId)))</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Order By Destination Type ECS</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:label>
+        <pd:name>Label</pd:name>
+        <pd:description>Todos los destination tienen que ser del mismo tipo, con la posibilidad de tener 0 o 1 envio a Psi o 0 o 1 envio a Upsilon (pero nunca Psi+Upsilon). Se ordenan para que la ultima ejecucion siempre sea el envio a Psi/Upsilon para garantizar la transaccionalidad</pd:description>
+        <pd:x>770</pd:x>
+        <pd:y>83</pd:y>
+        <pd:width>273</pd:width>
+        <pd:height>112</pd:height>
+        <pd:fontColor>-16777216</pd:fontColor>
+        <pd:color>-13369600</pd:color>
+        <pd:type>solid</pd:type>
+        <pd:thickness>0</pd:thickness>
+        <pd:fade>true</pd:fade>
+    </pd:label>
+</pd:ProcessDefinition>

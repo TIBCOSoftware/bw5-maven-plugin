@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx3="http://www.bbva.com/EAIFramework" xmlns:pfx2="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd">
+    
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_FunctionalErrorValidation/ARC_FunctionalErrorValidation.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="root">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="pfx3:ErrorMessage" minOccurs="0"/>
+                    <xsd:element name="ErrorReport" minOccurs="0">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="StackTrace" type="xsd:string"/>
+                                <xsd:element name="Msg" type="xsd:string"/>
+                                <xsd:element name="FullClass" type="xsd:string"/>
+                                <xsd:element name="Class" type="xsd:string"/>
+                                <xsd:element name="ProcessStack" type="xsd:string"/>
+                                <xsd:element name="MsgCode" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="Data" minOccurs="0">
+                                    <xsd:complexType>
+                                        <xsd:sequence>
+                                            <xsd:any processContents="skip"/>
+                                        </xsd:sequence>
+                                    </xsd:complexType>
+                                </xsd:element>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>170</pd:startX>
+    <pd:startY>193</pd:startY>
+    <pd:returnBindings>
+        <xsl:copy-of select="$FuntionalError/pfx3:ErrorMessage"/>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType ref="pfx3:ErrorMessage"/>
+    <pd:endX>407</pd:endX>
+    <pd:endY>330</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx3:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables>
+        <FuntionalError ref="pfx3:ErrorMessage"/>
+    </pd:processVariables>
+    <pd:targetNamespace>http://xmlns.example.com/1327342370896</pd:targetNamespace>
+    <pd:activity name="Assign FunctionalError">
+        <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+        <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+        <pd:x>405</pd:x>
+        <pd:y>201</pd:y>
+        <config>
+            <variableName>FuntionalError</variableName>
+        </config>
+        <pd:coercions>
+            <pd:coercion xpath="$Start/root/ErrorReport/Data/*" element="pfx3:ErrorMessage"/>
+        </pd:coercions>
+        <pd:inputBindings>
+            <xsl:choose>
+                <xsl:when test="$Start/root/pfx3:ErrorMessage">
+                    <xsl:copy-of select="$Start/root/pfx3:ErrorMessage"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:copy-of select="$Start/root/ErrorReport/Data/pfx3:ErrorMessage"/>
+                </xsl:otherwise>
+            </xsl:choose>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Assign Predefine FunctionalError">
+        <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+        <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+        <pd:x>171</pd:x>
+        <pd:y>339</pd:y>
+        <config>
+            <variableName>FuntionalError</variableName>
+        </config>
+        <pd:inputBindings>
+            <pfx3:ErrorMessage>
+                <ErrorCode>
+                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ErrorDealingError"/>
+                </ErrorCode>
+                <ErrorDescription>
+                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/ErrorDescriptions/GLB_ErrorDealingErrorDescription"/>
+                </ErrorDescription>
+                <xsl:if test="string-length($Start/root/ErrorReport/MsgCode)>0">
+                    <xsl:if test="$Start/root/ErrorReport/MsgCode">
+                        <NativeErrorCode>
+                            <xsl:value-of select="$Start/root/ErrorReport/MsgCode"/>
+                        </NativeErrorCode>
+                    </xsl:if>
+                </xsl:if>
+                <xsl:if test="string-length($Start/root/ErrorReport/Msg)>0">
+                    <xsl:if test="$Start/root/ErrorReport/Msg">
+                        <NativeErrorDescription>
+                            <xsl:value-of select="$Start/root/ErrorReport/Msg"/>
+                        </NativeErrorDescription>
+                    </xsl:if>
+                </xsl:if>
+                <xsl:if test="string-length($Start/root/ErrorReport/StackTrace)>0">
+                    <xsl:if test="$Start/root/ErrorReport/StackTrace">
+                        <StackTrace>
+                            <xsl:value-of select="$Start/root/ErrorReport/StackTrace"/>
+                        </StackTrace>
+                    </xsl:if>
+                </xsl:if>
+                <ErrorDate>
+                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                </ErrorDate>
+                <xsl:if test="string-length($Start/root/ErrorReport/ProcessStack)>0">
+                    <xsl:if test="$Start/root/ErrorReport/ProcessStack">
+                        <StackProcess>
+                            <xsl:value-of select="$Start/root/ErrorReport/ProcessStack"/>
+                        </StackProcess>
+                    </xsl:if>
+                </xsl:if>
+                <Severity>
+                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_FatalError"/>
+                </Severity>
+                <OriginalMessage>
+                    <xsl:value-of select="tib:render-xml($Start/root/ErrorReport/Data)"/>
+                </OriginalMessage>
+                <Category>
+                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Functional"/>
+                </Category>
+                <ProcessInputMessage>
+                    <xsl:value-of select="tib:render-xml($Start/root)"/>
+                </ProcessInputMessage>
+                <IsResponse>
+                    <xsl:value-of select="0"/>
+                </IsResponse>
+                <MessageType>
+                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                </MessageType>
+            </pfx3:ErrorMessage>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Assign FunctionalError</pd:to>
+        <pd:xpathDescription>It is ErrorMessage or Error Report with ErrorMessage</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$Start/root/pfx3:ErrorMessage or tib:index-of(tib:render-xml($Start/root/ErrorReport/Data/*), "ErrorMessage")!=-1</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Assign FunctionalError</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Assign Predefine FunctionalError</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Assign Predefine FunctionalError</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

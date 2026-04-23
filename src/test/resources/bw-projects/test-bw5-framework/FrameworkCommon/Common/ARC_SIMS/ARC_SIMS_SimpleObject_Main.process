@@ -1,0 +1,1895 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pfx61="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC_EXP_RecursosComunes/Esquemas/Schema.xsd2" xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:pfx11="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/ServiceParameters/SR/Schema.xsd" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:pfx41="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC_EXP_RecursosComunes/Esquemas/Schema.xsd" xmlns:pfx10="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:ns21="http://www.tibco.com/namespaces/tnt/plugins/file" xmlns:pfx81="http://www.tibco.com/schemas/FrameworkIntegracion/EAI-Framework/Resources/Private/ASINC_IMP_CommonResources/Schemas/Schema.xsd" xmlns:pfx31="http://www.tibco.com/ns/no_namespace_schema_location/ASINC_IMP_RecursosComunes/Esquemas/Patron_Asincrono/Import Adapter/AsyncrhonousImporterSchema.xsd" xmlns:pfx5="http://www.tibco.com/ns/no_namespace_schema_location/SINC_CONS_RecursosComunes/Esquemas/XSD/Patron_Sincrono/ModeloComun/MLC/NM_MLC.xsd" xmlns:pfx4="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx3="http://www.tibco.com/schemas/AW_ArquitecturaComun/RecursosComunes/Esquemas/EsquemasArquitectura/AW_gestionErrores/Schema.xsd" xmlns:pfx2="http://xmlns.example.com/PROCESO_SINCRONO" xmlns:pfx9="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd" xmlns:pfx8="http://www.tibco.com/ns/no_namespace_schema_location/EAI-Framework/Public/Resources/Schemas/XSD/MUREX/MXML.dtd" xmlns:pfx7="http://www.tibco.com/schemas/FrameworkIntegracion/EAI-Framework/Resources/Private/Schemas/SINC_SimpleService/Schema.xsd" xmlns:pfx6="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns5="http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions" xmlns:ns12="http://www.bbva.com/EAIFramework" xmlns:ns6="http://schemas.tibco.com/bw/plugins/jms/5.0/jmsExceptions" xmlns:pfx="http://www.example.com/PROCESO_SINCRONO" xmlns:pfx71="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/ASINC_IMP/ASINC_IMP_RecursosComunes/Esquemas/Schema.xsd" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:ns1="http://www.example.org/BBVACabecera" xmlns:ns4="http://www.tibco.com/pe/DeployedVarsType" xmlns:ns3="http://www.tibco.com/pe/SignalInActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:pfx21="http://www.tibco.com/ns/no_namespace_schema_location/ASINC_IMP_RecursosComunes/Esquemas/Patron_Asincrono/Modelo Comun/main/ForwardDealsEvent.xsd">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC_SIMS/ARC_SIMS_SimpleObject_Main.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ARC_SIMS_Main_IN">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="ns12:Message"/>
+                    <xsd:element ref="ns12:SimpleServiceParameters"/>
+                    <xsd:element ref="ns12:TraceLevel" minOccurs="0"/>
+                    <xsd:element ref="ns12:ECSConfig" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>58</pd:startX>
+    <pd:startY>51</pd:startY>
+    <pd:returnBindings>
+        <xsl:choose>
+            <xsl:when test="$FUN_SIMS_OutboundMessageUserErrorManagement">
+                <ns12:Message>
+                    <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader"/>
+                    <ns12:Body>
+                        <xsl:copy-of select="$FUN_SIMS_OutboundMessageUserErrorManagement/*"/>
+                    </ns12:Body>
+                </ns12:Message>
+            </xsl:when>
+            <xsl:otherwise>
+                <ns12:Message>
+                    <xsl:copy-of select="$ARC_SIMS_PreGoingAction/ns12:ArchitectureHeader"/>
+                    <ns12:Body>
+                        <xsl:copy-of select="$FUN_SIMS_OutboundFunctional/*"/>
+                    </ns12:Body>
+                </ns12:Message>
+            </xsl:otherwise>
+        </xsl:choose>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endX>55</pd:endX>
+    <pd:endY>417</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="ns12:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1292404027083</pd:targetNamespace>
+    <pd:activity name="ARC_CLESenderAPI">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>256</pd:x>
+        <pd:y>540</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CLEManagement/ARC_TraceAuditSenderAPI.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_TraceSenderAPI>
+                <CLETraceData>
+                    <xsl:choose>
+                        <xsl:when test="string-length($Catch-Error-message/ns12:ErrorMessage/ErrorCode)>0">
+                            <EventCode>
+                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorCode"/>
+                            </EventCode>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <EventCode>
+                                <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                            </EventCode>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <EventType>
+                        <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Error"/>
+                    </EventType>
+                    <MessageType>
+                        <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                    </MessageType>
+                    <isResponse>
+                        <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/AuditParameters/IsResponse"/>
+                    </isResponse>
+                    <TraceLevel>
+                        <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/TraceLevels/GLB_Trace"/>
+                    </TraceLevel>
+                </CLETraceData>
+                <xsl:choose>
+                    <xsl:when test="string-length($Catch-Error-message/ns12:ErrorMessage/ErrorCode)>0">
+                        <ns12:ErrorMessage>
+                            <ErrorCode>
+                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorCode"/>
+                            </ErrorCode>
+                            <xsl:if test="$Catch-Error-message/ns12:ErrorMessage/ErrorDescription">
+                                <ErrorDescription>
+                                    <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorDescription"/>
+                                </ErrorDescription>
+                            </xsl:if>
+                            <xsl:if test="$Catch-Error-message/ns12:ErrorMessage/NativeErrorCode">
+                                <NativeErrorCode>
+                                    <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/NativeErrorCode"/>
+                                </NativeErrorCode>
+                            </xsl:if>
+                            <xsl:if test="$Catch-Error-message/ns12:ErrorMessage/NativeErrorDescription">
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/NativeErrorDescription"/>
+                                </NativeErrorDescription>
+                            </xsl:if>
+                            <xsl:if test="$Catch-Error-message/ns12:ErrorMessage/StackTrace">
+                                <StackTrace>
+                                    <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/StackTrace"/>
+                                </StackTrace>
+                            </xsl:if>
+                            <ErrorDate>
+                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorDate"/>
+                            </ErrorDate>
+                            <xsl:if test="$Catch-Error-message/ns12:ErrorMessage/StackProcess">
+                                <StackProcess>
+                                    <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/StackProcess"/>
+                                </StackProcess>
+                            </xsl:if>
+                            <Severity>
+                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/Severity"/>
+                            </Severity>
+                            <OriginalMessage>
+                                <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                            </OriginalMessage>
+                            <Category>
+                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/Category"/>
+                            </Category>
+                            <ProcessInputMessage>
+                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ProcessInputMessage"/>
+                            </ProcessInputMessage>
+                            <IsResponse>
+                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/IsResponse"/>
+                            </IsResponse>
+                            <MessageType>
+                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/MessageType"/>
+                            </MessageType>
+                            <xsl:copy-of select="$Catch-Error-message/ns12:ErrorMessage/PreviousErrorMessage"/>
+                            <xsl:copy-of select="$Catch-Error-message/ns12:ErrorMessage/FunctionalErrorData"/>
+                        </ns12:ErrorMessage>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <ns12:ErrorMessage>
+                            <ErrorCode>
+                                <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                            </ErrorCode>
+                            <xsl:if test="string-length($_error/ns2:ErrorReport/Msg)>0">
+                                <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                    <ErrorDescription>
+                                        <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                    </ErrorDescription>
+                                </xsl:if>
+                            </xsl:if>
+                            <xsl:if test="string-length($_error/ns2:ErrorReport/MsgCode)>0">
+                                <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                            </xsl:if>
+                            <xsl:if test="string-length($_error/ns2:ErrorReport/Msg)>0">
+                                <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                    <NativeErrorDescription>
+                                        <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                    </NativeErrorDescription>
+                                </xsl:if>
+                            </xsl:if>
+                            <xsl:if test="string-length($_error/ns2:ErrorReport/StackTrace)>0">
+                                <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                                    <StackTrace>
+                                        <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                    </StackTrace>
+                                </xsl:if>
+                            </xsl:if>
+                            <ErrorDate>
+                                <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                            </ErrorDate>
+                            <xsl:if test="string-length($_error/ns2:ErrorReport/ProcessStack)>0">
+                                <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                                    <StackProcess>
+                                        <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                    </StackProcess>
+                                </xsl:if>
+                            </xsl:if>
+                            <Severity>
+                                <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                            </Severity>
+                            <OriginalMessage>
+                                <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                            </OriginalMessage>
+                            <Category>
+                                <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                            </Category>
+                            <ProcessInputMessage>
+                                <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN)"/>
+                            </ProcessInputMessage>
+                            <IsResponse>
+                                <xsl:value-of select="0"/>
+                            </IsResponse>
+                            <MessageType>
+                                <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                            </MessageType>
+                        </ns12:ErrorMessage>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </ARC_TraceSenderAPI>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_CLESenderAPI-1">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>465</pd:x>
+        <pd:y>676</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CLEManagement/ARC_TraceAuditSenderAPI.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_TraceSenderAPI>
+                <CLETraceData>
+                    <xsl:choose>
+                        <xsl:when test="$ARC_FunctionalErrorValidation-1">
+                            <EventCode>
+                                <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/ErrorCode"/>
+                            </EventCode>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <EventCode>
+                                <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/ErrorCode"/>
+                            </EventCode>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <EventType>
+                        <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Error"/>
+                    </EventType>
+                    <MessageType>
+                        <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/MessageType/GLB_ProprietaryDataModel"/>
+                    </MessageType>
+                    <isResponse>
+                        <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/AuditParameters/IsResponse"/>
+                    </isResponse>
+                    <TraceLevel>
+                        <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/CFG/ARCHITECTURE/ENVIRONMENT/CFG_TRACEABILITY_LEVEL"/>
+                    </TraceLevel>
+                </CLETraceData>
+                <Body>
+                    <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                </Body>
+                <xsl:choose>
+                    <xsl:when test="$ARC_FunctionalErrorValidation-1">
+                        <ns12:ErrorMessage>
+                            <ErrorCode>
+                                <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/ErrorCode"/>
+                            </ErrorCode>
+                            <xsl:if test="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/ErrorDescription">
+                                <ErrorDescription>
+                                    <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/ErrorDescription"/>
+                                </ErrorDescription>
+                            </xsl:if>
+                            <xsl:if test="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/NativeErrorCode">
+                                <NativeErrorCode>
+                                    <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/NativeErrorCode"/>
+                                </NativeErrorCode>
+                            </xsl:if>
+                            <xsl:if test="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/NativeErrorDescription">
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/NativeErrorDescription"/>
+                                </NativeErrorDescription>
+                            </xsl:if>
+                            <xsl:if test="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/StackTrace">
+                                <StackTrace>
+                                    <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/StackTrace"/>
+                                </StackTrace>
+                            </xsl:if>
+                            <ErrorDate>
+                                <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/ErrorDate"/>
+                            </ErrorDate>
+                            <xsl:if test="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/StackProcess">
+                                <StackProcess>
+                                    <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/StackProcess"/>
+                                </StackProcess>
+                            </xsl:if>
+                            <Severity>
+                                <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/Severity"/>
+                            </Severity>
+                            <OriginalMessage>
+                                <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                            </OriginalMessage>
+                            <Category>
+                                <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/Category"/>
+                            </Category>
+                            <ProcessInputMessage>
+                                <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/ProcessInputMessage"/>
+                            </ProcessInputMessage>
+                            <IsResponse>
+                                <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/IsResponse"/>
+                            </IsResponse>
+                            <MessageType>
+                                <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/MessageType"/>
+                            </MessageType>
+                            <xsl:choose>
+                                <xsl:when test="string-length($Catch-Error-message/ns12:ErrorMessage/ErrorCode)>0">
+                                    <PreviousErrorMessage>
+                                        <ErrorCode>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorCode"/>
+                                        </ErrorCode>
+                                        <xsl:if test="$Catch-Error-message/ns12:ErrorMessage/ErrorDescription">
+                                            <ErrorDescription>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorDescription"/>
+                                            </ErrorDescription>
+                                        </xsl:if>
+                                        <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                            <NativeErrorCode>
+                                                <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                            </NativeErrorCode>
+                                        </xsl:if>
+                                        <xsl:if test="$Catch-Error-message/ns12:ErrorMessage/NativeErrorCode">
+                                            <NativeErrorDescription>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/NativeErrorCode"/>
+                                            </NativeErrorDescription>
+                                        </xsl:if>
+                                        <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                                            <StackTrace>
+                                                <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                            </StackTrace>
+                                        </xsl:if>
+                                        <ErrorDate>
+                                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                        </ErrorDate>
+                                        <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                                            <StackProcess>
+                                                <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                            </StackProcess>
+                                        </xsl:if>
+                                        <Severity>
+                                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                        </Severity>
+                                        <OriginalMessage>
+                                            <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                                        </OriginalMessage>
+                                        <Category>
+                                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                        </Category>
+                                        <ProcessInputMessage>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ProcessInputMessage"/>
+                                        </ProcessInputMessage>
+                                        <IsResponse>
+                                            <xsl:value-of select="0"/>
+                                        </IsResponse>
+                                        <MessageType>
+                                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                        </MessageType>
+                                    </PreviousErrorMessage>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <PreviousErrorMessage>
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                        </ErrorCode>
+                                        <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                            <ErrorDescription>
+                                                <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                            </ErrorDescription>
+                                        </xsl:if>
+                                        <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                            <NativeErrorCode>
+                                                <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                            </NativeErrorCode>
+                                        </xsl:if>
+                                        <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                            <NativeErrorDescription>
+                                                <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                            </NativeErrorDescription>
+                                        </xsl:if>
+                                        <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                                            <StackTrace>
+                                                <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                            </StackTrace>
+                                        </xsl:if>
+                                        <ErrorDate>
+                                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                        </ErrorDate>
+                                        <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                                            <StackProcess>
+                                                <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                            </StackProcess>
+                                        </xsl:if>
+                                        <Severity>
+                                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                        </Severity>
+                                        <OriginalMessage>
+                                            <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                                        </OriginalMessage>
+                                        <Category>
+                                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                        </Category>
+                                        <ProcessInputMessage>
+                                            <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN)"/>
+                                        </ProcessInputMessage>
+                                        <IsResponse>
+                                            <xsl:value-of select="0"/>
+                                        </IsResponse>
+                                        <MessageType>
+                                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                        </MessageType>
+                                    </PreviousErrorMessage>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                            <xsl:copy-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/FunctionalErrorData"/>
+                        </ns12:ErrorMessage>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <ns12:ErrorMessage>
+                            <ErrorCode>
+                                <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/ErrorCode"/>
+                            </ErrorCode>
+                            <xsl:if test="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/ErrorDescription">
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/ErrorDescription"/>
+                                </ErrorDescription>
+                            </xsl:if>
+                            <xsl:if test="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/NativeErrorCode">
+                                <NativeErrorCode>
+                                    <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/NativeErrorCode"/>
+                                </NativeErrorCode>
+                            </xsl:if>
+                            <xsl:if test="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/NativeErrorDescription">
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/NativeErrorDescription"/>
+                                </NativeErrorDescription>
+                            </xsl:if>
+                            <xsl:if test="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/StackTrace">
+                                <StackTrace>
+                                    <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/StackTrace"/>
+                                </StackTrace>
+                            </xsl:if>
+                            <ErrorDate>
+                                <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/ErrorDate"/>
+                            </ErrorDate>
+                            <xsl:if test="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/StackProcess">
+                                <StackProcess>
+                                    <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/StackProcess"/>
+                                </StackProcess>
+                            </xsl:if>
+                            <Severity>
+                                <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/Severity"/>
+                            </Severity>
+                            <OriginalMessage>
+                                <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                            </OriginalMessage>
+                            <Category>
+                                <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/Category"/>
+                            </Category>
+                            <ProcessInputMessage>
+                                <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/ProcessInputMessage"/>
+                            </ProcessInputMessage>
+                            <IsResponse>
+                                <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/IsResponse"/>
+                            </IsResponse>
+                            <MessageType>
+                                <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/MessageType"/>
+                            </MessageType>
+                            <xsl:choose>
+                                <xsl:when test="$ARC_FunctionalErrorValidation-1">
+                                    <PreviousErrorMessage>
+                                        <ErrorCode>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorCode"/>
+                                        </ErrorCode>
+                                        <xsl:if test="$Catch-Error-message/ns12:ErrorMessage/ErrorDescription">
+                                            <ErrorDescription>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorDescription"/>
+                                            </ErrorDescription>
+                                        </xsl:if>
+                                        <xsl:if test="$Catch-Error-message/ns12:ErrorMessage/NativeErrorCode">
+                                            <NativeErrorCode>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/NativeErrorCode"/>
+                                            </NativeErrorCode>
+                                        </xsl:if>
+                                        <xsl:if test="$Catch-Error-message/ns12:ErrorMessage/NativeErrorDescription">
+                                            <NativeErrorDescription>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/NativeErrorDescription"/>
+                                            </NativeErrorDescription>
+                                        </xsl:if>
+                                        <xsl:if test="$Catch-Error-message/ns12:ErrorMessage/StackTrace">
+                                            <StackTrace>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/StackTrace"/>
+                                            </StackTrace>
+                                        </xsl:if>
+                                        <ErrorDate>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorDate"/>
+                                        </ErrorDate>
+                                        <xsl:if test="$Catch-Error-message/ns12:ErrorMessage/StackProcess">
+                                            <StackProcess>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/StackProcess"/>
+                                            </StackProcess>
+                                        </xsl:if>
+                                        <Severity>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/Severity"/>
+                                        </Severity>
+                                        <OriginalMessage>
+                                            <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                                        </OriginalMessage>
+                                        <Category>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/Category"/>
+                                        </Category>
+                                        <ProcessInputMessage>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ProcessInputMessage"/>
+                                        </ProcessInputMessage>
+                                        <IsResponse>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/IsResponse"/>
+                                        </IsResponse>
+                                        <MessageType>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/MessageType"/>
+                                        </MessageType>
+                                    </PreviousErrorMessage>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <PreviousErrorMessage>
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                        </ErrorCode>
+                                        <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                            <ErrorDescription>
+                                                <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                            </ErrorDescription>
+                                        </xsl:if>
+                                        <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                            <NativeErrorCode>
+                                                <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                            </NativeErrorCode>
+                                        </xsl:if>
+                                        <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                            <NativeErrorDescription>
+                                                <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                            </NativeErrorDescription>
+                                        </xsl:if>
+                                        <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                                            <StackTrace>
+                                                <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                            </StackTrace>
+                                        </xsl:if>
+                                        <ErrorDate>
+                                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                        </ErrorDate>
+                                        <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                                            <StackProcess>
+                                                <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                            </StackProcess>
+                                        </xsl:if>
+                                        <Severity>
+                                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                        </Severity>
+                                        <OriginalMessage>
+                                            <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                                        </OriginalMessage>
+                                        <Category>
+                                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                        </Category>
+                                        <ProcessInputMessage>
+                                            <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN)"/>
+                                        </ProcessInputMessage>
+                                        <IsResponse>
+                                            <xsl:value-of select="0"/>
+                                        </IsResponse>
+                                        <MessageType>
+                                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                        </MessageType>
+                                    </PreviousErrorMessage>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </ns12:ErrorMessage>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </ARC_TraceSenderAPI>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_FunctionalErrorValidation">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>567</pd:x>
+        <pd:y>250</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_FunctionalErrorValidation/ARC_FunctionalErrorValidation.process</processName>
+        </config>
+        <pd:inputBindings>
+            <root>
+                <xsl:choose>
+                    <xsl:when test="$_error_FUN_SIMS_ApplyXSLT">
+                        <xsl:copy-of select="$_error_FUN_SIMS_ApplyXSLT/ns12:ErrorMessage"/>
+                    </xsl:when>
+                    <xsl:when test="$_error_FUN_SIMS_InboundFunctional">
+                        <xsl:copy-of select="$_error_FUN_SIMS_InboundFunctional/ns12:ErrorMessage"/>
+                    </xsl:when>
+                    <xsl:when test="$_error_FUN_SIMS_Request2BackEnd">
+                        <xsl:copy-of select="$_error_FUN_SIMS_Request2BackEnd/ns12:ErrorMessage"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:copy-of select="$_error_FUN_SIMS_OutboundFunctional/ns12:ErrorMessage"/>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <ErrorReport>
+                    <xsl:copy-of select="$_error/ns2:ErrorReport/ancestor-or-self::*/namespace::node()"/>
+                    <xsl:copy-of select="$_error/ns2:ErrorReport/@*"/>
+                    <xsl:copy-of select="$_error/ns2:ErrorReport/node()"/>
+                </ErrorReport>
+            </root>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_FunctionalErrorValidation-1">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>666</pd:x>
+        <pd:y>678</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_FunctionalErrorValidation/ARC_FunctionalErrorValidation.process</processName>
+        </config>
+        <pd:inputBindings>
+            <root>
+                <xsl:copy-of select="$_error_FUN_SIMS_OutboundMessageUserErrorManagement/ns12:ErrorMessage"/>
+                <ErrorReport>
+                    <xsl:copy-of select="$_error/ns2:ErrorReport/ancestor-or-self::*/namespace::node()"/>
+                    <xsl:copy-of select="$_error/ns2:ErrorReport/@*"/>
+                    <xsl:copy-of select="$_error/ns2:ErrorReport/node()"/>
+                </ErrorReport>
+            </root>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_GetServiceId">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>226</pd:x>
+        <pd:y>52</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_ServiceIdManagement/ARC_GetServiceId.process</processName>
+        </config>
+        <pd:inputBindings>
+            <pathGetCurrentProcess>
+                <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:SimpleServiceParameters/ProcessName"/>
+            </pathGetCurrentProcess>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_SendCDM2QueueOrTopic">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>464</pd:x>
+        <pd:y>539</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_QueueOrTopic/ARC_SendCDM2QueueOrTopic.process</processName>
+            <processNameXPath>concat($_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/GLB_mockRoot, "/Common/ARC/ARC_QueueOrTopic/ARC_SendCDM2QueueOrTopic.process")</processNameXPath>
+        </config>
+        <pd:inputBindings>
+            <IN_SendReply2QueueOrTopic>
+                <TargetName>
+                    <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:SimpleServiceParameters/JMS_ReplyToDestination"/>
+                </TargetName>
+                <IsTopic>
+                    <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:SimpleServiceParameters/IsReceiverTopic"/>
+                </IsTopic>
+                <CorrelationId>
+                    <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:SimpleServiceParameters/JMS_MessageId"/>
+                </CorrelationId>
+                <ns12:Message>
+                    <ns12:ArchitectureHeader>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:AuditHeader"/>
+                        <xsl:if test="string-length($Start/ARC_SIMS_Main_IN/ns12:Message/ns12:ArchitectureHeader/ns12:ECSHeader/ns12:traceId)>0">
+                            <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ECSHeader"/>
+                        </xsl:if>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:RequestHeader"/>
+                        <ns12:ErrorHeader>
+                            <ns12:IsError>
+                                <xsl:value-of select="1"/>
+                            </ns12:IsError>
+                            <xsl:choose>
+                                <xsl:when test="string-length($Catch-Error-message/ns12:ErrorMessage/ErrorCode)>0">
+                                    <ns12:ErrorMessage>
+                                        <ErrorCode>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorCode"/>
+                                        </ErrorCode>
+                                        <ErrorDescription>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorDescription"/>
+                                        </ErrorDescription>
+                                        <NativeErrorCode>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/NativeErrorCode"/>
+                                        </NativeErrorCode>
+                                        <NativeErrorDescription>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/NativeErrorDescription"/>
+                                        </NativeErrorDescription>
+                                        <StackTrace>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/StackTrace"/>
+                                        </StackTrace>
+                                        <ErrorDate>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorDate"/>
+                                        </ErrorDate>
+                                        <StackProcess>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/StackProcess"/>
+                                        </StackProcess>
+                                        <Severity>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/Severity"/>
+                                        </Severity>
+                                        <OriginalMessage>
+                                            <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                                        </OriginalMessage>
+                                        <Category>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/Category"/>
+                                        </Category>
+                                        <ProcessInputMessage>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ProcessInputMessage"/>
+                                        </ProcessInputMessage>
+                                        <IsResponse>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/IsResponse"/>
+                                        </IsResponse>
+                                        <MessageType>
+                                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/MessageType"/>
+                                        </MessageType>
+                                        <FunctionalErrorData>
+                                            <xsl:copy-of select="$FUN_SIMS_OutboundMessageUserErrorManagement/*"/>
+                                        </FunctionalErrorData>
+                                    </ns12:ErrorMessage>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <ns12:ErrorMessage>
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                        </ErrorCode>
+                                        <xsl:if test="string-length($_error/ns2:ErrorReport/Msg)>0">
+                                            <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                                <ErrorDescription>
+                                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                                </ErrorDescription>
+                                            </xsl:if>
+                                        </xsl:if>
+                                        <xsl:if test="string-length($_error/ns2:ErrorReport/MsgCode)>0">
+                                            <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                                <NativeErrorCode>
+                                                    <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                                </NativeErrorCode>
+                                            </xsl:if>
+                                        </xsl:if>
+                                        <xsl:if test="string-length($_error/ns2:ErrorReport/Msg)>0">
+                                            <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                                <NativeErrorDescription>
+                                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                                </NativeErrorDescription>
+                                            </xsl:if>
+                                        </xsl:if>
+                                        <xsl:if test="string-length($_error/ns2:ErrorReport/StackTrace)>0">
+                                            <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                                                <StackTrace>
+                                                    <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                                </StackTrace>
+                                            </xsl:if>
+                                        </xsl:if>
+                                        <ErrorDate>
+                                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                        </ErrorDate>
+                                        <xsl:if test="string-length($_error/ns2:ErrorReport/ProcessStack)>0">
+                                            <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                                                <StackProcess>
+                                                    <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                                </StackProcess>
+                                            </xsl:if>
+                                        </xsl:if>
+                                        <Severity>
+                                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                        </Severity>
+                                        <OriginalMessage>
+                                            <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                                        </OriginalMessage>
+                                        <Category>
+                                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                        </Category>
+                                        <ProcessInputMessage>
+                                            <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN)"/>
+                                        </ProcessInputMessage>
+                                        <IsResponse>
+                                            <xsl:value-of select="0"/>
+                                        </IsResponse>
+                                        <MessageType>
+                                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                        </MessageType>
+                                        <FunctionalErrorData>
+                                            <xsl:copy-of select="$FUN_SIMS_OutboundMessageUserErrorManagement/*"/>
+                                        </FunctionalErrorData>
+                                    </ns12:ErrorMessage>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </ns12:ErrorHeader>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:ReprocessingHeader"/>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:SecurityHeader"/>
+                        <xsl:copy-of select="$Get-Framework-Context/FrameworkData/ns12:ArchitectureHeader/ns12:FunctionalData"/>
+                    </ns12:ArchitectureHeader>
+                    <ns12:Body>
+                        <xsl:copy-of select="$FUN_SIMS_OutboundMessageUserErrorManagement/*"/>
+                    </ns12:Body>
+                </ns12:Message>
+            </IN_SendReply2QueueOrTopic>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_SIMS_PostBackAction">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>293</pd:x>
+        <pd:y>419</pd:y>
+        <config>
+            <processName>/Common/ARC_SIMS/PostActions/ARC_SIMS_PostBackAction.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ARC_SIMS_PostBackAction>
+                <ns12:Message>
+                    <xsl:copy-of select="$Start/ARC_SIMS_Main_IN/ns12:Message/ns12:ArchitectureHeader"/>
+                    <ns12:Body>
+                        <xsl:copy-of select="$FUN_SIMS_OutboundFunctional/*"/>
+                    </ns12:Body>
+                </ns12:Message>
+                <SendReplyData>
+                    <ReplyMessageTo>
+                        <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:SimpleServiceParameters/JMS_ReplyToDestination"/>
+                    </ReplyMessageTo>
+                    <CorrelationId>
+                        <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:SimpleServiceParameters/JMS_MessageId"/>
+                    </CorrelationId>
+                    <IsTopic>
+                        <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:SimpleServiceParameters/IsReceiverTopic"/>
+                    </IsTopic>
+                </SendReplyData>
+                <StartServiceTimeStamp>
+                    <xsl:value-of select="$ARC_SIMS_PreGoingAction/group/StarServiceTimeStamp"/>
+                </StartServiceTimeStamp>
+                <xsl:choose>
+                    <xsl:when test="$Start/ARC_SIMS_Main_IN/ns12:TraceLevel">
+                        <ns12:TraceLevel>
+                            <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:TraceLevel"/>
+                        </ns12:TraceLevel>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:if test="$_globalVariables/ns4:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit">
+                            <ns12:TraceLevel>
+                                <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit"/>
+                            </ns12:TraceLevel>
+                        </xsl:if>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </ARC_SIMS_PostBackAction>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_SIMS_PostGoingAction">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>878</pd:x>
+        <pd:y>54</pd:y>
+        <config>
+            <processName>/Common/ARC_SIMS/PostActions/ARC_SIMS_PostGoingAction.process</processName>
+        </config>
+        <pd:inputBindings>
+            <root>
+                <ns12:Message>
+                    <xsl:copy-of select="$ARC_SIMS_PreGoingAction/group/ns12:ArchitectureHeader"/>
+                    <ns12:Body>
+                        <xsl:copy-of select="$FUN_SIMS_InboundFunctional/*"/>
+                    </ns12:Body>
+                </ns12:Message>
+                <xsl:choose>
+                    <xsl:when test="$Start/ARC_SIMS_Main_IN/ns12:TraceLevel">
+                        <ns12:TraceLevel>
+                            <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:TraceLevel"/>
+                        </ns12:TraceLevel>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:if test="$_globalVariables/ns4:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit">
+                            <ns12:TraceLevel>
+                                <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit"/>
+                            </ns12:TraceLevel>
+                        </xsl:if>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </root>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_SIMS_PreBackAction">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>818</pd:x>
+        <pd:y>418</pd:y>
+        <config>
+            <processName>/Common/ARC_SIMS/PreActions/ARC_SIMS_PreBackAction.process</processName>
+        </config>
+        <pd:inputBindings>
+            <root>
+                <ns12:Message>
+                    <xsl:copy-of select="$ARC_SIMS_PreGoingAction/group/ns12:ArchitectureHeader"/>
+                    <ns12:Body>
+                        <xsl:copy-of select="$FUN_SIMS_Request2BackEnd/*"/>
+                    </ns12:Body>
+                </ns12:Message>
+                <xsl:choose>
+                    <xsl:when test="$Start/ARC_SIMS_Main_IN/ns12:TraceLevel">
+                        <ns12:TraceLevel>
+                            <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:TraceLevel"/>
+                        </ns12:TraceLevel>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <ns12:TraceLevel>
+                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit"/>
+                        </ns12:TraceLevel>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </root>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_SIMS_PreGoingAction">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>397</pd:x>
+        <pd:y>50</pd:y>
+        <config>
+            <processName>/Common/ARC_SIMS/PreActions/ARC_SIMS_PreGoingAction.process</processName>
+        </config>
+        <pd:inputBindings>
+            <group>
+                <CDMMessage>
+                    <xsl:copy-of select="$Start/ARC_SIMS_Main_IN/ns12:Message/ns12:ArchitectureHeader"/>
+                    <Body>
+                        <xsl:copy-of select="$Start/ARC_SIMS_Main_IN/ns12:Message/ns12:Body/ancestor-or-self::*/namespace::node()"/>
+                        <xsl:copy-of select="$Start/ARC_SIMS_Main_IN/ns12:Message/ns12:Body/@*"/>
+                        <xsl:copy-of select="$Start/ARC_SIMS_Main_IN/ns12:Message/ns12:Body/node()"/>
+                    </Body>
+                </CDMMessage>
+                <ServiceId>
+                    <xsl:value-of select="$ARC_GetServiceId/GetServiceIdParams/ServiceId"/>
+                </ServiceId>
+                <xsl:choose>
+                    <xsl:when test="$Start/ARC_SIMS_Main_IN/ns12:TraceLevel">
+                        <ns12:TraceLevel>
+                            <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:TraceLevel"/>
+                        </ns12:TraceLevel>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <ns12:TraceLevel>
+                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/TraceLevels/GLB_ZeroAudit"/>
+                        </ns12:TraceLevel>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <xsl:copy-of select="$Start/ARC_SIMS_Main_IN/ns12:ECSConfig"/>
+            </group>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="ARC_TrackingErrorManagement">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>849</pd:x>
+        <pd:y>680</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_TrackingManagement/ARC_TrackingErrorManagement.process</processName>
+        </config>
+        <pd:inputBindings>
+            <ns12:CLEMessage>
+                <CLEHeader>
+                    <E2EId>
+                        <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:Message/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:E2EId"/>
+                    </E2EId>
+                    <E2EDeepness>
+                        <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:Message/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:Deepness+1"/>
+                    </E2EDeepness>
+                    <InvocationUser>
+                        <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:Message/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:BBVAUser"/>
+                    </InvocationUser>
+                    <EventCode>
+                        <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_StartError"/>
+                    </EventCode>
+                    <EventType>
+                        <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Error"/>
+                    </EventType>
+                    <Timestamp>
+                        <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                    </Timestamp>
+                    <xsl:choose>
+                        <xsl:when test="string-length($ARC_GetServiceId/GetServiceIdParams/ServiceId)>0">
+                            <ServiceId>
+                                <xsl:value-of select="$ARC_GetServiceId/GetServiceIdParams/ServiceId"/>
+                            </ServiceId>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <ServiceId>
+                                <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/GenericConstants/GLB_Generic_Object"/>
+                            </ServiceId>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <InstanceId>
+                        <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/GLB_InstancedIdNoInitialized"/>
+                    </InstanceId>
+                    <ProjectName>
+                        <xsl:value-of select="$_processContext/ns2:ProcessContext/ProjectName"/>
+                    </ProjectName>
+                    <ProcessName>
+                        <xsl:value-of select="BW:getCurrentProcessName($_processContext/ns2:ProcessContext/ProcessId)"/>
+                    </ProcessName>
+                    <EngineName>
+                        <xsl:value-of select="$_processContext/ns2:ProcessContext/EngineName"/>
+                    </EngineName>
+                    <MachineName>
+                        <xsl:value-of select="BW:getHostName()"/>
+                    </MachineName>
+                    <MessageHeader>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                        <BusinessObject>
+                            <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:Message/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:BusinessObject"/>
+                        </BusinessObject>
+                    </MessageHeader>
+                    <AuditHeader>
+                        <xsl:if test="string-length($Start/ARC_SIMS_Main_IN/ns12:Message/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:ParentInstanceId)>0">
+                            <xsl:if test="$Start/ARC_SIMS_Main_IN/ns12:Message/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:ParentInstanceId">
+                                <ParentInstanceId>
+                                    <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:Message/ns12:ArchitectureHeader/ns12:AuditHeader/ns12:ParentInstanceId"/>
+                                </ParentInstanceId>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($Start/ARC_SIMS_Main_IN/ns12:Message/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:ExternalId)>0">
+                            <xsl:if test="$Start/ARC_SIMS_Main_IN/ns12:Message/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:ExternalId">
+                                <ClientExternalId>
+                                    <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:Message/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:ExternalId"/>
+                                </ClientExternalId>
+                            </xsl:if>
+                        </xsl:if>
+                        <ServiceType>
+                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_SimpleService"/>
+                        </ServiceType>
+                        <TraceLevel>
+                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/TraceLevels/GLB_Critical"/>
+                        </TraceLevel>
+                        <StarterServiceId>
+                            <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:Message/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:ServiceIdStarter"/>
+                        </StarterServiceId>
+                        <StarterTimestamp>
+                            <xsl:value-of select="$Start/ARC_SIMS_Main_IN/ns12:Message/ns12:ArchitectureHeader/ns12:RequestHeader/ns12:StartTimestamp"/>
+                        </StarterTimestamp>
+                    </AuditHeader>
+                    <ErrorHeader>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_StartError"/>
+                        </ErrorCode>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/Msg)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                </ErrorDescription>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/MsgCode)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                <NativeErrorCode>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                </NativeErrorCode>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/Msg)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                </NativeErrorDescription>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/StackTrace)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                                <StackTrace>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                </StackTrace>
+                            </xsl:if>
+                        </xsl:if>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/ProcessStack)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                            </xsl:if>
+                        </xsl:if>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <OriginalMessage>
+                            <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                        </OriginalMessage>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </ErrorHeader>
+                </CLEHeader>
+            </ns12:CLEMessage>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Catch Error message">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>1030</pd:x>
+        <pd:y>444</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>false</catchAll>
+            <fault>localname=ErrorMessage namespace=http://www.bbva.com/EAIFramework</fault>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="Catch Other Errors">
+        <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+        <pd:resourceType>ae.activities.catch</pd:resourceType>
+        <pd:x>1032</pd:x>
+        <pd:y>536</pd:y>
+        <pd:handler>true</pd:handler>
+        <config>
+            <catchAll>true</catchAll>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:activity name="FUN_SIMS_ApplyXSLT">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>550</pd:x>
+        <pd:y>133</pd:y>
+        <config>
+            <processNameXPath>concat($ARC_GetServiceId/GetServiceIdParams/DynamicInvocationRoot, $_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/Types/ApplyXSLT/GLB_ApplyXSLT)</processNameXPath>
+            <processName>/Common/ARC_SIMS/Functionals/FUN_SIMS_ApplyXSLT.process</processName>
+        </config>
+        <pd:inputBindings>
+            <xsl:copy-of select="$Start/ARC_SIMS_Main_IN/ns12:Message/ns12:Body/*"/>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="FUN_SIMS_InboundFunctional">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>732</pd:x>
+        <pd:y>51</pd:y>
+        <config>
+            <processNameXPath>concat($ARC_GetServiceId/GetServiceIdParams/DynamicInvocationRoot , $_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/Types/Map/GLB_Inbound,"Map.process")</processNameXPath>
+            <processName>/Common/ARC_SIMS/Functionals/FUN_SIMS_InboundFunctional.process</processName>
+        </config>
+        <pd:inputBindings>
+            <xsl:choose>
+                <xsl:when test="$FUN_SIMS_ApplyXSLT">
+                    <xsl:copy-of select="$FUN_SIMS_ApplyXSLT/*"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:copy-of select="$Start/ARC_SIMS_Main_IN/ns12:Message/ns12:Body/*"/>
+                </xsl:otherwise>
+            </xsl:choose>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="FUN_SIMS_OutboundFunctional">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>568</pd:x>
+        <pd:y>417</pd:y>
+        <config>
+            <processNameXPath>concat($ARC_GetServiceId/GetServiceIdParams/DynamicInvocationRoot , $_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/Types/Map/GLB_Outbound,"Map.process")</processNameXPath>
+            <processName>/Common/ARC_SIMS/Functionals/FUN_SIMS_OutboundFunctional.process</processName>
+        </config>
+        <pd:inputBindings>
+            <xsl:copy-of select="$FUN_SIMS_Request2BackEnd/*"/>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="FUN_SIMS_OutboundMessageUserErrorManagement">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>661</pd:x>
+        <pd:y>537</pd:y>
+        <config>
+            <processNameXPath>concat($ARC_GetServiceId/GetServiceIdParams/DynamicInvocationRoot, $_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/Types/Map/GLB_Error,"Map.process")</processNameXPath>
+            <processName>/Common/ARC_SIMS/Functionals/FUN_SIMS_OutboundMessageUserErrorManagement.process</processName>
+        </config>
+        <pd:inputBindings>
+            <xsl:choose>
+                <xsl:when test="string-length($Catch-Error-message/ns12:ErrorMessage/ErrorCode)>0">
+                    <ns12:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorCode"/>
+                        </ErrorCode>
+                        <ErrorDescription>
+                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorDescription"/>
+                        </ErrorDescription>
+                        <NativeErrorCode>
+                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/NativeErrorCode"/>
+                        </NativeErrorCode>
+                        <NativeErrorDescription>
+                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/NativeErrorDescription"/>
+                        </NativeErrorDescription>
+                        <StackTrace>
+                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/StackTrace"/>
+                        </StackTrace>
+                        <ErrorDate>
+                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorDate"/>
+                        </ErrorDate>
+                        <StackProcess>
+                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/StackProcess"/>
+                        </StackProcess>
+                        <Severity>
+                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/Severity"/>
+                        </Severity>
+                        <OriginalMessage>
+                            <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                        </OriginalMessage>
+                        <Category>
+                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/Category"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ProcessInputMessage"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/IsResponse"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/MessageType"/>
+                        </MessageType>
+                        <xsl:copy-of select="$Catch-Error-message/ns12:ErrorMessage/PreviousErrorMessage"/>
+                        <xsl:copy-of select="$Catch-Error-message/ns12:ErrorMessage/FunctionalErrorData"/>
+                    </ns12:ErrorMessage>
+                </xsl:when>
+                <xsl:otherwise>
+                    <ns12:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                        </ErrorCode>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/Msg)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                </ErrorDescription>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/MsgCode)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                <NativeErrorCode>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                </NativeErrorCode>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/Msg)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                </NativeErrorDescription>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/StackTrace)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                                <StackTrace>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                </StackTrace>
+                            </xsl:if>
+                        </xsl:if>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/ProcessStack)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                            </xsl:if>
+                        </xsl:if>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <OriginalMessage>
+                            <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                        </OriginalMessage>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </ns12:ErrorMessage>
+                </xsl:otherwise>
+            </xsl:choose>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="FUN_SIMS_Request2BackEnd">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>952</pd:x>
+        <pd:y>249</pd:y>
+        <config>
+            <processNameXPath>concat($ARC_GetServiceId/GetServiceIdParams/DynamicInvocationRoot , $_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/DynamicBusinessInvocations/Types/GLB_BackEnd)</processNameXPath>
+            <processName>/Common/ARC_SIMS/Functionals/FUN_SIMS_Request2BackEnd.process</processName>
+        </config>
+        <pd:inputBindings>
+            <xsl:copy-of select="$FUN_SIMS_InboundFunctional/*"/>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Generate by ARC_SIMS">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>467</pd:x>
+        <pd:y>808</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx4:ActivityInput>
+                <data>
+                    <xsl:choose>
+                        <xsl:when test="$ARC_FunctionalErrorValidation-1">
+                            <ns12:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/ErrorCode"/>
+                                </ErrorCode>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/ErrorDescription"/>
+                                </ErrorDescription>
+                                <NativeErrorCode>
+                                    <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/NativeErrorCode"/>
+                                </NativeErrorCode>
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/NativeErrorDescription"/>
+                                </NativeErrorDescription>
+                                <StackTrace>
+                                    <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/StackTrace"/>
+                                </StackTrace>
+                                <ErrorDate>
+                                    <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/ErrorDate"/>
+                                </ErrorDate>
+                                <StackProcess>
+                                    <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/StackProcess"/>
+                                </StackProcess>
+                                <Severity>
+                                    <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/Severity"/>
+                                </Severity>
+                                <OriginalMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                                </OriginalMessage>
+                                <Category>
+                                    <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/Category"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/ProcessInputMessage"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/IsResponse"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$ARC_FunctionalErrorValidation-1/ns12:ErrorMessage/MessageType"/>
+                                </MessageType>
+                                <xsl:choose>
+                                    <xsl:when test="string-length($Catch-Error-message/ns12:ErrorMessage/ErrorCode)>0">
+                                        <PreviousErrorMessage>
+                                            <ErrorCode>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorCode"/>
+                                            </ErrorCode>
+                                            <ErrorDescription>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorDescription"/>
+                                            </ErrorDescription>
+                                            <NativeErrorCode>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/NativeErrorCode"/>
+                                            </NativeErrorCode>
+                                            <NativeErrorDescription>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/NativeErrorDescription"/>
+                                            </NativeErrorDescription>
+                                            <StackTrace>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/StackTrace"/>
+                                            </StackTrace>
+                                            <ErrorDate>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorDate"/>
+                                            </ErrorDate>
+                                            <StackProcess>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/StackProcess"/>
+                                            </StackProcess>
+                                            <Severity>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/Severity"/>
+                                            </Severity>
+                                            <OriginalMessage>
+                                                <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                                            </OriginalMessage>
+                                            <Category>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/Category"/>
+                                            </Category>
+                                            <ProcessInputMessage>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ProcessInputMessage"/>
+                                            </ProcessInputMessage>
+                                            <IsResponse>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/IsResponse"/>
+                                            </IsResponse>
+                                            <MessageType>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/MessageType"/>
+                                            </MessageType>
+                                            <xsl:copy-of select="$Catch-Error-message/ns12:ErrorMessage/PreviousErrorMessage"/>
+                                            <xsl:copy-of select="$Catch-Error-message/ns12:ErrorMessage/FunctionalErrorData"/>
+                                        </PreviousErrorMessage>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <PreviousErrorMessage>
+                                            <ErrorCode>
+                                                <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                            </ErrorCode>
+                                            <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                                <ErrorDescription>
+                                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                                </ErrorDescription>
+                                            </xsl:if>
+                                            <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                                <NativeErrorCode>
+                                                    <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                                </NativeErrorCode>
+                                            </xsl:if>
+                                            <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                                <NativeErrorDescription>
+                                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                                </NativeErrorDescription>
+                                            </xsl:if>
+                                            <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                                                <StackTrace>
+                                                    <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                                </StackTrace>
+                                            </xsl:if>
+                                            <ErrorDate>
+                                                <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                            </ErrorDate>
+                                            <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                                                <StackProcess>
+                                                    <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                                </StackProcess>
+                                            </xsl:if>
+                                            <Severity>
+                                                <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                            </Severity>
+                                            <OriginalMessage>
+                                                <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                                            </OriginalMessage>
+                                            <Category>
+                                                <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                            </Category>
+                                            <ProcessInputMessage>
+                                                <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN)"/>
+                                            </ProcessInputMessage>
+                                            <IsResponse>
+                                                <xsl:value-of select="0"/>
+                                            </IsResponse>
+                                            <MessageType>
+                                                <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                            </MessageType>
+                                        </PreviousErrorMessage>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                            </ns12:ErrorMessage>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <ns12:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/ErrorCode"/>
+                                </ErrorCode>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/ErrorDescription"/>
+                                </ErrorDescription>
+                                <NativeErrorCode>
+                                    <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/NativeErrorCode"/>
+                                </NativeErrorCode>
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/NativeErrorDescription"/>
+                                </NativeErrorDescription>
+                                <StackTrace>
+                                    <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/StackTrace"/>
+                                </StackTrace>
+                                <ErrorDate>
+                                    <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/ErrorDate"/>
+                                </ErrorDate>
+                                <StackProcess>
+                                    <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/StackProcess"/>
+                                </StackProcess>
+                                <Severity>
+                                    <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/Severity"/>
+                                </Severity>
+                                <OriginalMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                                </OriginalMessage>
+                                <Category>
+                                    <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/Category"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/ProcessInputMessage"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/IsResponse"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_error_ARC_SendCDM2QueueOrTopic/ns12:ErrorMessage/MessageType"/>
+                                </MessageType>
+                                <xsl:choose>
+                                    <xsl:when test="string-length($Catch-Error-message/ns12:ErrorMessage/ErrorCode)>0">
+                                        <PreviousErrorMessage>
+                                            <ErrorCode>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorCode"/>
+                                            </ErrorCode>
+                                            <ErrorDescription>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorDescription"/>
+                                            </ErrorDescription>
+                                            <NativeErrorCode>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/NativeErrorCode"/>
+                                            </NativeErrorCode>
+                                            <NativeErrorDescription>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/NativeErrorDescription"/>
+                                            </NativeErrorDescription>
+                                            <StackTrace>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/StackTrace"/>
+                                            </StackTrace>
+                                            <ErrorDate>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorDate"/>
+                                            </ErrorDate>
+                                            <StackProcess>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/StackProcess"/>
+                                            </StackProcess>
+                                            <Severity>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/Severity"/>
+                                            </Severity>
+                                            <OriginalMessage>
+                                                <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                                            </OriginalMessage>
+                                            <Category>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/Category"/>
+                                            </Category>
+                                            <ProcessInputMessage>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ProcessInputMessage"/>
+                                            </ProcessInputMessage>
+                                            <IsResponse>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/IsResponse"/>
+                                            </IsResponse>
+                                            <MessageType>
+                                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/MessageType"/>
+                                            </MessageType>
+                                        </PreviousErrorMessage>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <PreviousErrorMessage>
+                                            <ErrorCode>
+                                                <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                            </ErrorCode>
+                                            <xsl:if test="string-length($_error/ns2:ErrorReport/Msg)>0">
+                                                <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                                    <ErrorDescription>
+                                                        <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                                    </ErrorDescription>
+                                                </xsl:if>
+                                            </xsl:if>
+                                            <xsl:if test="string-length($_error/ns2:ErrorReport/MsgCode)>0">
+                                                <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                                    <NativeErrorCode>
+                                                        <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                                    </NativeErrorCode>
+                                                </xsl:if>
+                                            </xsl:if>
+                                            <xsl:if test="string-length($_error/ns2:ErrorReport/Msg)>0">
+                                                <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                                    <NativeErrorDescription>
+                                                        <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                                    </NativeErrorDescription>
+                                                </xsl:if>
+                                            </xsl:if>
+                                            <xsl:if test="string-length($_error/ns2:ErrorReport/StackTrace)>0">
+                                                <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                                                    <StackTrace>
+                                                        <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                                    </StackTrace>
+                                                </xsl:if>
+                                            </xsl:if>
+                                            <ErrorDate>
+                                                <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                            </ErrorDate>
+                                            <xsl:if test="string-length($_error/ns2:ErrorReport/ProcessStack)>0">
+                                                <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                                                    <StackProcess>
+                                                        <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                                    </StackProcess>
+                                                </xsl:if>
+                                            </xsl:if>
+                                            <Severity>
+                                                <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                            </Severity>
+                                            <OriginalMessage>
+                                                <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                                            </OriginalMessage>
+                                            <Category>
+                                                <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                                            </Category>
+                                            <ProcessInputMessage>
+                                                <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN)"/>
+                                            </ProcessInputMessage>
+                                            <IsResponse>
+                                                <xsl:value-of select="0"/>
+                                            </IsResponse>
+                                            <MessageType>
+                                                <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                            </MessageType>
+                                        </PreviousErrorMessage>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                            </ns12:ErrorMessage>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </data>
+            </pfx4:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Generate by ARC_SIMS 1">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>853</pd:x>
+        <pd:y>806</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx4:ActivityInput>
+                <data>
+                    <ns12:ErrorMessage>
+                        <ErrorCode>
+                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_StartError"/>
+                        </ErrorCode>
+                        <xsl:if test="$Catch-Error-message/ns12:ErrorMessage/ErrorDescription">
+                            <ErrorDescription>
+                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/ErrorDescription"/>
+                            </ErrorDescription>
+                        </xsl:if>
+                        <xsl:if test="$Catch-Error-message/ns12:ErrorMessage/StackTrace">
+                            <StackTrace>
+                                <xsl:value-of select="$Catch-Error-message/ns12:ErrorMessage/StackTrace"/>
+                            </StackTrace>
+                        </xsl:if>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <OriginalMessage>
+                            <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN/ns12:Message)"/>
+                        </OriginalMessage>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Architecture"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/ARC_SIMS_Main_IN)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns4:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </ns12:ErrorMessage>
+                </data>
+            </pfx4:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Generate Error">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>373</pd:x>
+        <pd:y>250</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx4:ActivityInput>
+                <data>
+                    <xsl:copy-of select="$ARC_FunctionalErrorValidation/ns12:ErrorMessage"/>
+                </data>
+            </pfx4:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Get Framework Context">
+        <pd:type>com.tibco.pe.core.GetSharedVariableActivity</pd:type>
+        <pd:resourceType>ae.activities.getSharedVariable</pd:resourceType>
+        <pd:x>846</pd:x>
+        <pd:y>546</pd:y>
+        <config>
+            <variableConfig>/SharedResources/JobSharedVariables/Architecture Internal Data.jobsharedvariable</variableConfig>
+        </config>
+        <pd:inputBindings/>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>ARC_SIMS_PreGoingAction</pd:from>
+        <pd:to>FUN_SIMS_InboundFunctional</pd:to>
+        <pd:xpathDescription>Sin XSLT</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>empty($Start/ARC_SIMS_Main_IN/ns12:SimpleServiceParameters/ApplyXSLT) or ($Start/ARC_SIMS_Main_IN/ns12:SimpleServiceParameters/ApplyXSLT = 'false')</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FUN_SIMS_InboundFunctional</pd:from>
+        <pd:to>ARC_SIMS_PostGoingAction</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SIMS_PreBackAction</pd:from>
+        <pd:to>FUN_SIMS_OutboundFunctional</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FUN_SIMS_OutboundFunctional</pd:from>
+        <pd:to>ARC_SIMS_PostBackAction</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SIMS_PostBackAction</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FUN_SIMS_InboundFunctional</pd:from>
+        <pd:to>ARC_FunctionalErrorValidation</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65536</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FUN_SIMS_OutboundFunctional</pd:from>
+        <pd:to>ARC_FunctionalErrorValidation</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65536</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_FunctionalErrorValidation</pd:from>
+        <pd:to>Generate Error</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65536</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_CLESenderAPI</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_TrackingErrorManagement</pd:from>
+        <pd:to>Generate by ARC_SIMS 1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SIMS_PostGoingAction</pd:from>
+        <pd:to>FUN_SIMS_Request2BackEnd</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FUN_SIMS_Request2BackEnd</pd:from>
+        <pd:to>ARC_SIMS_PreBackAction</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FUN_SIMS_Request2BackEnd</pd:from>
+        <pd:to>ARC_FunctionalErrorValidation</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65485</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FUN_SIMS_OutboundMessageUserErrorManagement</pd:from>
+        <pd:to>ARC_FunctionalErrorValidation-1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-3407821</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_CLESenderAPI-1</pd:from>
+        <pd:to>Generate by ARC_SIMS</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_FunctionalErrorValidation-1</pd:from>
+        <pd:to>ARC_CLESenderAPI-1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FUN_SIMS_OutboundMessageUserErrorManagement</pd:from>
+        <pd:to>ARC_SendCDM2QueueOrTopic</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SendCDM2QueueOrTopic</pd:from>
+        <pd:to>ARC_CLESenderAPI</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SendCDM2QueueOrTopic</pd:from>
+        <pd:to>ARC_CLESenderAPI-1</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-3407821</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Other Errors</pd:from>
+        <pd:to>Get Framework Context</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Catch Error message</pd:from>
+        <pd:to>Get Framework Context</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get Framework Context</pd:from>
+        <pd:to>FUN_SIMS_OutboundMessageUserErrorManagement</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Get Framework Context</pd:from>
+        <pd:to>ARC_TrackingErrorManagement</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65485</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_GetServiceId</pd:from>
+        <pd:to>ARC_SIMS_PreGoingAction</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>ARC_SIMS_PreGoingAction</pd:from>
+        <pd:to>FUN_SIMS_ApplyXSLT</pd:to>
+        <pd:xpathDescription>Aplicar XSLT</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FUN_SIMS_ApplyXSLT</pd:from>
+        <pd:to>FUN_SIMS_InboundFunctional</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>FUN_SIMS_ApplyXSLT</pd:from>
+        <pd:to>ARC_FunctionalErrorValidation</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65536</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>ARC_GetServiceId</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

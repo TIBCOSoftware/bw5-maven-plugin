@@ -1,0 +1,899 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pfx="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:pfx2="http://www.bbva.com/EAIFramework" xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns0="www.tibco.com/plugin/Sleep" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType" xmlns:ns4="http://schemas.tibco.com/bw/plugins/jms/5.0/jmsExceptions" xmlns:ns3="http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_QueueOrTopic/ARC_RequestMessage2QueueOrTopic.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="IN_SendMessage2QueueOrTopic">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="TargetName" type="xsd:string"/>
+                    <xsd:element name="IsTopic" type="xsd:boolean"/>
+                    <xsd:element ref="pfx2:Message"/>
+                    <xsd:element name="TimeOut" type="xsd:positiveInteger" minOccurs="0"/>
+                    <xsd:element name="JMSHeaderParameters" minOccurs="0">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="JMSReplyTo" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="JMSDeliveryMode" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="JMSTimeStamp" type="xsd:int" minOccurs="0"/>
+                                <xsd:element name="JMSExpiration" type="xsd:int" minOccurs="0"/>
+                                <xsd:element name="JMSRedelivered" type="xsd:boolean" minOccurs="0"/>
+                                <xsd:element name="JMSPriority" type="xsd:int" minOccurs="0"/>
+                                <xsd:element name="JMSCorrelationID" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="JMSType" type="xsd:string" minOccurs="0"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="JMSPropertyParameters" minOccurs="0">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="JMSXUserID" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="JMSXAppID" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="JMSXProducerTXID" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="JMSXConsumerTXID" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="JMSXRcvTimestamp" type="xsd:int" minOccurs="0"/>
+                                <xsd:element name="JMSXDeliveryCount" type="xsd:int" minOccurs="0"/>
+                                <xsd:element name="JMSXGroupID" type="xsd:string" minOccurs="0"/>
+                                <xsd:element name="JMSXGroupSeq" type="xsd:int" minOccurs="0"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>33</pd:startX>
+    <pd:startY>316</pd:startY>
+    <pd:returnBindings>
+        <xsl:choose>
+            <xsl:when test="$JMS-Topic-Requestor">
+                <pfx2:Message>
+                    <xsl:copy-of select="$JMS-Topic-Requestor/ns:ActivityOutput/Body/pfx2:Message/pfx2:ArchitectureHeader"/>
+                    <xsl:copy-of select="$JMS-Topic-Requestor/ns:ActivityOutput/Body/pfx2:Message/pfx2:Body"/>
+                </pfx2:Message>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:copy-of select="$JMS-Queue-Requestor/ns:ActivityOutput/Body/pfx2:Message"/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType ref="pfx2:Message"/>
+    <pd:endX>878</pd:endX>
+    <pd:endY>330</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx2:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables>
+        <waitTimeOut>
+            <xsd:element name="waitTimeOut" type="xsd:boolean"/>
+        </waitTimeOut>
+    </pd:processVariables>
+    <pd:targetNamespace>http://xmlns.example.com/1331551897594</pd:targetNamespace>
+    <pd:group name="Group">
+        <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>257</pd:x>
+        <pd:y>1</pd:y>
+        <pd:width>408</pd:width>
+        <pd:height>341</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>errorLoop</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:indexSlot>i</pd:indexSlot>
+            <pd:errorCondition>(($i &gt;= $_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Num_Intentos_Conexion) or ($waitTimeOut/waitTimeOut="false"))</pd:errorCondition>
+            <pd:suspendAfterErrorRetry>false</pd:suspendAfterErrorRetry>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>Null</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>JMS Topic Requestor</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Sleep</pd:from>
+            <pd:to>JMS Topic Requestor</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Null</pd:from>
+            <pd:to>JMS Topic Requestor</pd:to>
+            <pd:xpathDescription>.</pd:xpathDescription>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>otherwise</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Null</pd:from>
+            <pd:to>Sleep</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>xpath</pd:conditionType>
+            <pd:xpath>$i &gt; 1</pd:xpath>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Catch-1</pd:from>
+            <pd:to>setTopicTimeOutException</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>setTopicTimeOutException</pd:from>
+            <pd:to>Error-in-ARC_RequestMessage2QueueOrTopic-2</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:activity name="JMS Topic Requestor">
+            <pd:type>com.tibco.plugin.jms.JMSTopicRequestReplyActivity</pd:type>
+            <pd:resourceType>ae.activities.JMSTopicRequestReplyActivity</pd:resourceType>
+            <pd:x>410</pd:x>
+            <pd:y>73</pd:y>
+            <config>
+                <PermittedMessageType>XML Text</PermittedMessageType>
+                <SessionAttributes>
+                    <transacted>false</transacted>
+                    <acknowledgeMode>1</acknowledgeMode>
+                    <maxSessions>1</maxSessions>
+                </SessionAttributes>
+                <ConfigurableHeaders>
+                    <JMSDeliveryMode>NON_PERSISTENT</JMSDeliveryMode>
+                    <JMSExpiration>0</JMSExpiration>
+                    <JMSPriority>4</JMSPriority>
+                </ConfigurableHeaders>
+                <ConnectionReference>/SharedResources/Connections/JMSConnections/Business/BusinessConnection.sharedjmscon</ConnectionReference>
+                <InDataxsdString ref="pfx2:Message"/>
+                <OutDataxsdString ref="pfx2:Message"/>
+            </config>
+            <pd:inputBindings>
+                <ns:ActivityInput>
+                    <destinationTopic>
+                        <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/TargetName"/>
+                    </destinationTopic>
+                    <xsl:if test="string-length($Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSReplyTo) >0">
+                        <xsl:if test="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSReplyTo">
+                            <replyToTopic>
+                                <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSReplyTo"/>
+                            </replyToTopic>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:choose>
+                        <xsl:when test="exists($Start/IN_SendMessage2QueueOrTopic/TimeOut)">
+                            <JMSExpiration>
+                                <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/TimeOut"/>
+                            </JMSExpiration>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <JMSExpiration>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/TIMEOUT/CFG_Timeout"/>
+                            </JMSExpiration>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <xsl:if test="string-length($Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSPriority)> 0">
+                        <xsl:if test="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSPriority">
+                            <JMSPriority>
+                                <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSPriority"/>
+                            </JMSPriority>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSDeliveryMode) >0">
+                        <xsl:if test="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSDeliveryMode">
+                            <JMSDeliveryMode>
+                                <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSDeliveryMode"/>
+                            </JMSDeliveryMode>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSCorrelationID)> 0">
+                        <xsl:if test="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSCorrelationID">
+                            <JMSCorrelationID>
+                                <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSCorrelationID"/>
+                            </JMSCorrelationID>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSType)>0">
+                        <xsl:if test="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSType">
+                            <JMSType>
+                                <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSType"/>
+                            </JMSType>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:choose>
+                        <xsl:when test="exists($Start/IN_SendMessage2QueueOrTopic/TimeOut)">
+                            <requestTimeout>
+                                <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/TimeOut"/>
+                            </requestTimeout>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <requestTimeout>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/TIMEOUT/CFG_Timeout"/>
+                            </requestTimeout>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <JMSProperties>
+                        <xsl:if test="string-length($Start/IN_SendMessage2QueueOrTopic/JMSPropertyParameters/JMSXGroupID)> 0">
+                            <xsl:if test="$Start/IN_SendMessage2QueueOrTopic/JMSPropertyParameters/JMSXGroupID">
+                                <ns:JMSXGroupID>
+                                    <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/JMSPropertyParameters/JMSXGroupID"/>
+                                </ns:JMSXGroupID>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($Start/IN_SendMessage2QueueOrTopic/JMSPropertyParameters/JMSXGroupSeq)> 0">
+                            <xsl:if test="$Start/IN_SendMessage2QueueOrTopic/JMSPropertyParameters/JMSXGroupSeq">
+                                <ns:JMSXGroupSeq>
+                                    <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/JMSPropertyParameters/JMSXGroupSeq"/>
+                                </ns:JMSXGroupSeq>
+                            </xsl:if>
+                        </xsl:if>
+                    </JMSProperties>
+                    <Body>
+                        <xsl:copy-of select="$Start/IN_SendMessage2QueueOrTopic/pfx2:Message"/>
+                    </Body>
+                    <xsl:variable name="varCompressEnabled" select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/SERVICES/COMPRESSION/CFG_COMPRESS_ENABLED"/>
+                    <DynamicProperties>
+                        <xsl:if test="$varCompressEnabled='true'">
+                            <property>
+                                <name>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/SERVICES/COMPRESSION/CFG_PROPERTY_NAME"/>
+                                </name>
+                                <value>
+                                    <xsl:value-of select="'true'"/>
+                                </value>
+                                <type>
+                                    <xsl:value-of select="'boolean'"/>
+                                </type>
+                            </property>
+                        </xsl:if>
+                    </DynamicProperties>
+                </ns:ActivityInput>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Sleep">
+            <pd:type>com.tibco.plugin.timer.SleepActivity</pd:type>
+            <pd:resourceType>ae.activities.sleep</pd:resourceType>
+            <pd:x>436</pd:x>
+            <pd:y>196</pd:y>
+            <config/>
+            <pd:inputBindings>
+                <ns0:SleepInputSchema>
+                    <xsl:choose>
+                        <xsl:when test="$i = 2">
+                            <IntervalInMillisec>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Intervalo_Primera_Reconexion"/>
+                            </IntervalInMillisec>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <IntervalInMillisec>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Intervalo_Resto_Reconexiones"/>
+                            </IntervalInMillisec>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </ns0:SleepInputSchema>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Null">
+            <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+            <pd:resourceType>ae.activities.null</pd:resourceType>
+            <pd:x>322</pd:x>
+            <pd:y>126</pd:y>
+            <config/>
+            <pd:inputBindings/>
+        </pd:activity>
+        <pd:activity name="Catch-1">
+            <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+            <pd:resourceType>ae.activities.catch</pd:resourceType>
+            <pd:x>313</pd:x>
+            <pd:y>273</pd:y>
+            <pd:handler>true</pd:handler>
+            <config>
+                <fault>localname=ActivityTimedOutException namespace=http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions</fault>
+            </config>
+            <pd:inputBindings/>
+        </pd:activity>
+        <pd:activity name="setTopicTimeOutException">
+            <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+            <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+            <pd:x>435</pd:x>
+            <pd:y>274</pd:y>
+            <config>
+                <variableName>waitTimeOut</variableName>
+            </config>
+            <pd:inputBindings>
+                <waitTimeOut>
+                    <xsl:value-of select="false()"/>
+                </waitTimeOut>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Error-in-ARC_RequestMessage2QueueOrTopic-2">
+            <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+            <pd:resourceType>ae.activities.throw</pd:resourceType>
+            <pd:x>570</pd:x>
+            <pd:y>273</pd:y>
+            <config>
+                <faultName>ErrorSchema</faultName>
+            </config>
+            <pd:inputBindings>
+                <pfx:ActivityInput>
+                    <data>
+                        <pfx2:ErrorMessage>
+                            <ErrorCode>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_Timeout"/>
+                            </ErrorCode>
+                            <ErrorDescription>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/ErrorDescriptions/GLB_ARC_RequestMessage2QueueOrTopicTimeout"/>
+                            </ErrorDescription>
+                            <xsl:if test="string-length($_error/ns2:ErrorReport/MsgCode)>0">
+                                <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                            </xsl:if>
+                            <xsl:if test="$_error/ns2:ErrorReport/Msg">
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                </NativeErrorDescription>
+                            </xsl:if>
+                            <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                                <StackTrace>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                </StackTrace>
+                            </xsl:if>
+                            <ErrorDate>
+                                <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                            </ErrorDate>
+                            <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                            </xsl:if>
+                            <Severity>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_Warning"/>
+                            </Severity>
+                            <Category>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Technical"/>
+                            </Category>
+                            <ProcessInputMessage>
+                                <xsl:value-of select="tib:render-xml($Start/IN_SendMessage2QueueOrTopic)"/>
+                            </ProcessInputMessage>
+                            <IsResponse>
+                                <xsl:value-of select="0"/>
+                            </IsResponse>
+                            <MessageType>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                            </MessageType>
+                        </pfx2:ErrorMessage>
+                    </data>
+                </pfx:ActivityInput>
+            </pd:inputBindings>
+        </pd:activity>
+    </pd:group>
+    <pd:group name="Group (1)">
+        <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>252</pd:x>
+        <pd:y>349</pd:y>
+        <pd:width>417</pd:width>
+        <pd:height>363</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>errorLoop</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:indexSlot>j</pd:indexSlot>
+            <pd:errorCondition>(($j &gt;= $_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Num_Intentos_Conexion) or ($waitTimeOut/waitTimeOut="false"))</pd:errorCondition>
+            <pd:suspendAfterErrorRetry>false</pd:suspendAfterErrorRetry>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>Null-1</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>JMS Queue Requestor</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Sleep-1</pd:from>
+            <pd:to>JMS Queue Requestor</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Null-1</pd:from>
+            <pd:to>JMS Queue Requestor</pd:to>
+            <pd:xpathDescription>.</pd:xpathDescription>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>otherwise</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Null-1</pd:from>
+            <pd:to>Sleep-1</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>xpath</pd:conditionType>
+            <pd:xpath>$j &gt; 1</pd:xpath>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Catch</pd:from>
+            <pd:to>setQueueTimeOutException</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>setQueueTimeOutException</pd:from>
+            <pd:to>Error-in-ARC_RequestMessage2QueueOrTopic-1</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:activity name="JMS Queue Requestor">
+            <pd:type>com.tibco.plugin.jms.JMSQueueRequestReplyActivity</pd:type>
+            <pd:resourceType>ae.activities.JMSQueueRequestReplyActivity</pd:resourceType>
+            <pd:x>427</pd:x>
+            <pd:y>431</pd:y>
+            <config>
+                <PermittedMessageType>XML Text</PermittedMessageType>
+                <SessionAttributes>
+                    <transacted>false</transacted>
+                    <acknowledgeMode>1</acknowledgeMode>
+                    <maxSessions>1</maxSessions>
+                </SessionAttributes>
+                <ConfigurableHeaders>
+                    <JMSDeliveryMode>PERSISTENT</JMSDeliveryMode>
+                    <JMSExpiration>0</JMSExpiration>
+                    <JMSPriority>4</JMSPriority>
+                </ConfigurableHeaders>
+                <ConnectionReference>/SharedResources/Connections/JMSConnections/Business/BusinessConnection.sharedjmscon</ConnectionReference>
+                <InDataxsdString ref="pfx2:Message"/>
+                <OutDataxsdString ref="pfx2:Message"/>
+            </config>
+            <pd:inputBindings>
+                <ns:ActivityInput>
+                    <destinationQueue>
+                        <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/TargetName"/>
+                    </destinationQueue>
+                    <xsl:if test="string-length($Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSReplyTo)> 0">
+                        <xsl:if test="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSReplyTo">
+                            <replyToQueue>
+                                <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSReplyTo"/>
+                            </replyToQueue>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:choose>
+                        <xsl:when test="exists($Start/IN_SendMessage2QueueOrTopic/TimeOut)">
+                            <xsl:if test="$Start/IN_SendMessage2QueueOrTopic/TimeOut">
+                                <JMSExpiration>
+                                    <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/TimeOut"/>
+                                </JMSExpiration>
+                            </xsl:if>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <JMSExpiration>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/TIMEOUT/CFG_Timeout"/>
+                            </JMSExpiration>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <xsl:if test="string-length($Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSPriority) >0">
+                        <xsl:if test="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSPriority">
+                            <JMSPriority>
+                                <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSPriority"/>
+                            </JMSPriority>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSDeliveryMode) >0">
+                        <xsl:if test="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSDeliveryMode">
+                            <JMSDeliveryMode>
+                                <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSDeliveryMode"/>
+                            </JMSDeliveryMode>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSCorrelationID)> 0">
+                        <xsl:if test="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSCorrelationID">
+                            <JMSCorrelationID>
+                                <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSCorrelationID"/>
+                            </JMSCorrelationID>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:if test="string-length($Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSType)> 0">
+                        <xsl:if test="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSType">
+                            <JMSType>
+                                <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/JMSHeaderParameters/JMSType"/>
+                            </JMSType>
+                        </xsl:if>
+                    </xsl:if>
+                    <xsl:choose>
+                        <xsl:when test="exists($Start/IN_SendMessage2QueueOrTopic/TimeOut)">
+                            <requestTimeout>
+                                <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/TimeOut"/>
+                            </requestTimeout>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <requestTimeout>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/TIMEOUT/CFG_Timeout"/>
+                            </requestTimeout>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <JMSProperties>
+                        <xsl:if test="string-length($Start/IN_SendMessage2QueueOrTopic/JMSPropertyParameters/JMSXGroupID) >0">
+                            <xsl:if test="$Start/IN_SendMessage2QueueOrTopic/JMSPropertyParameters/JMSXGroupID">
+                                <ns:JMSXGroupID>
+                                    <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/JMSPropertyParameters/JMSXGroupID"/>
+                                </ns:JMSXGroupID>
+                            </xsl:if>
+                        </xsl:if>
+                        <xsl:if test="string-length($Start/IN_SendMessage2QueueOrTopic/JMSPropertyParameters/JMSXGroupSeq) >0">
+                            <xsl:if test="$Start/IN_SendMessage2QueueOrTopic/JMSPropertyParameters/JMSXGroupSeq">
+                                <ns:JMSXGroupSeq>
+                                    <xsl:value-of select="$Start/IN_SendMessage2QueueOrTopic/JMSPropertyParameters/JMSXGroupSeq"/>
+                                </ns:JMSXGroupSeq>
+                            </xsl:if>
+                        </xsl:if>
+                    </JMSProperties>
+                    <Body>
+                        <xsl:copy-of select="$Start/IN_SendMessage2QueueOrTopic/pfx2:Message"/>
+                    </Body>
+                    <xsl:variable name="varCompressEnabled" select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/SERVICES/COMPRESSION/CFG_COMPRESS_ENABLED"/>
+                    <DynamicProperties>
+                        <xsl:if test="$varCompressEnabled='true'">
+                            <property>
+                                <name>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/SERVICES/COMPRESSION/CFG_PROPERTY_NAME"/>
+                                </name>
+                                <value>
+                                    <xsl:value-of select="'true'"/>
+                                </value>
+                                <type>
+                                    <xsl:value-of select="'boolean'"/>
+                                </type>
+                            </property>
+                        </xsl:if>
+                    </DynamicProperties>
+                </ns:ActivityInput>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Sleep-1">
+            <pd:type>com.tibco.plugin.timer.SleepActivity</pd:type>
+            <pd:resourceType>ae.activities.sleep</pd:resourceType>
+            <pd:x>459</pd:x>
+            <pd:y>544</pd:y>
+            <config/>
+            <pd:inputBindings>
+                <ns0:SleepInputSchema>
+                    <xsl:choose>
+                        <xsl:when test="$j = 2">
+                            <IntervalInMillisec>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Intervalo_Primera_Reconexion"/>
+                            </IntervalInMillisec>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <IntervalInMillisec>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Intervalo_Resto_Reconexiones"/>
+                            </IntervalInMillisec>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </ns0:SleepInputSchema>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Null-1">
+            <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+            <pd:resourceType>ae.activities.null</pd:resourceType>
+            <pd:x>341</pd:x>
+            <pd:y>502</pd:y>
+            <config/>
+            <pd:inputBindings/>
+        </pd:activity>
+        <pd:activity name="Catch">
+            <pd:type>com.tibco.pe.core.CatchActivity</pd:type>
+            <pd:resourceType>ae.activities.catch</pd:resourceType>
+            <pd:x>315</pd:x>
+            <pd:y>633</pd:y>
+            <pd:handler>true</pd:handler>
+            <config>
+                <fault>localname=ActivityTimedOutException namespace=http://schemas.tibco.com/bw/pe/plugin/5.0/exceptions</fault>
+            </config>
+            <pd:inputBindings/>
+        </pd:activity>
+        <pd:activity name="setQueueTimeOutException">
+            <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+            <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+            <pd:x>449</pd:x>
+            <pd:y>631</pd:y>
+            <config>
+                <variableName>waitTimeOut</variableName>
+            </config>
+            <pd:inputBindings>
+                <waitTimeOut>
+                    <xsl:value-of select="false()"/>
+                </waitTimeOut>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Error-in-ARC_RequestMessage2QueueOrTopic-1">
+            <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+            <pd:resourceType>ae.activities.throw</pd:resourceType>
+            <pd:x>567</pd:x>
+            <pd:y>634</pd:y>
+            <config>
+                <faultName>ErrorSchema</faultName>
+            </config>
+            <pd:inputBindings>
+                <pfx:ActivityInput>
+                    <data>
+                        <pfx2:ErrorMessage>
+                            <ErrorCode>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_Timeout"/>
+                            </ErrorCode>
+                            <ErrorDescription>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/ErrorDescriptions/GLB_ARC_RequestMessage2QueueOrTopicTimeout"/>
+                            </ErrorDescription>
+                            <xsl:if test="string-length(($_error/ns2:ErrorReport/MsgCode)>0)">
+                                <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                    <NativeErrorCode>
+                                        <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                    </NativeErrorCode>
+                                </xsl:if>
+                            </xsl:if>
+                            <xsl:if test="$_error/ns2:ErrorReport/StackTrace">
+                                <StackTrace>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                </StackTrace>
+                            </xsl:if>
+                            <ErrorDate>
+                                <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                            </ErrorDate>
+                            <xsl:if test="$_error/ns2:ErrorReport/ProcessStack">
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                            </xsl:if>
+                            <Severity>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_Warning"/>
+                            </Severity>
+                            <Category>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Technical"/>
+                            </Category>
+                            <ProcessInputMessage>
+                                <xsl:value-of select="tib:render-xml($Start/IN_SendMessage2QueueOrTopic)"/>
+                            </ProcessInputMessage>
+                            <IsResponse>
+                                <xsl:value-of select="0"/>
+                            </IsResponse>
+                            <MessageType>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                            </MessageType>
+                        </pfx2:ErrorMessage>
+                    </data>
+                </pfx:ActivityInput>
+            </pd:inputBindings>
+        </pd:activity>
+    </pd:group>
+    <pd:activity name="Error in ARC_RequestMessage2QueueOrTopic">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>757</pd:x>
+        <pd:y>354</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx:ActivityInput>
+                <data>
+                    <xsl:choose xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+                        <xsl:when test="$_error_JMS-Topic-Requestor/ActivityErrors/ns3:ActivityTimedOutException or $_error_JMS-Queue-Requestor/ActivityErrors/ns3:ActivityTimedOutException">
+                            <pfx2:ErrorMessage>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_Timeout"/>
+                                </ErrorCode>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/ErrorDescriptions/GLB_ARC_RequestMessage2QueueOrTopicTimeout"/>
+                                </ErrorDescription>
+                                <xsl:if test="string-length($_error/ns2:ErrorReport/MsgCode)>0">
+                                    <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                        <NativeErrorCode>
+                                            <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                        </NativeErrorCode>
+                                    </xsl:if>
+                                </xsl:if>
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                </NativeErrorDescription>
+                                <StackTrace>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                </StackTrace>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_Warning"/>
+                                </Severity>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Technical"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/IN_SendMessage2QueueOrTopic)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx2:ErrorMessage>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <pfx2:ErrorMessage>
+                                <xsl:choose>
+                                    <xsl:when test="$_error_JMS-Topic-Requestor/ActivityErrors/ns4:JMSInvalidInputException or $_error_JMS-Queue-Requestor/ActivityErrors/ns4:JMSInvalidInputException">
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RqQueTopic_InvalidInput"/>
+                                        </ErrorCode>
+                                    </xsl:when>
+                                    <xsl:when test="$_error_JMS-Queue-Requestor/ActivityErrors/ns4:JMSMessageCreateException or $_error_JMS-Topic-Requestor/ActivityErrors/ns4:JMSMessageCreateException">
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RqQueTopic_MessageCreate"/>
+                                        </ErrorCode>
+                                    </xsl:when>
+                                    <xsl:when test="$_error_JMS-Queue-Requestor/ActivityErrors/ns4:JMSSessionCreateException or $_error_JMS-Topic-Requestor/ActivityErrors/ns4:JMSSessionCreateException">
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RqQueTopic_SessionCreate"/>
+                                        </ErrorCode>
+                                    </xsl:when>
+                                    <xsl:when test="$_error_JMS-Queue-Requestor/ActivityErrors/ns4:JMSSendException or $_error_JMS-Topic-Requestor/ActivityErrors/ns4:JMSSendException">
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RqQueTopic_Send"/>
+                                        </ErrorCode>
+                                    </xsl:when>
+                                    <xsl:when test="$_error_JMS-Queue-Requestor/ActivityErrors/ns4:JMSReceiveException or $_error_JMS-Topic-Requestor/ActivityErrors/ns4:JMSReceiveException">
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RqQueTopic_Receive"/>
+                                        </ErrorCode>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <ErrorCode>
+                                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                        </ErrorCode>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <ErrorDescription>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                </ErrorDescription>
+                                <xsl:if test="string-length($_error/ns2:ErrorReport/MsgCode)>0">
+                                    <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                        <NativeErrorCode>
+                                            <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                        </NativeErrorCode>
+                                    </xsl:if>
+                                </xsl:if>
+                                <NativeErrorDescription>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                                </NativeErrorDescription>
+                                <StackTrace>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                                </StackTrace>
+                                <ErrorDate>
+                                    <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                                </ErrorDate>
+                                <StackProcess>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                                </StackProcess>
+                                <Severity>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                                </Severity>
+                                <Category>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Technical"/>
+                                </Category>
+                                <ProcessInputMessage>
+                                    <xsl:value-of select="tib:render-xml($Start/IN_SendMessage2QueueOrTopic)"/>
+                                </ProcessInputMessage>
+                                <IsResponse>
+                                    <xsl:value-of select="0"/>
+                                </IsResponse>
+                                <MessageType>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                                </MessageType>
+                            </pfx2:ErrorMessage>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </data>
+            </pfx:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="InitTimeOutException">
+        <pd:type>com.tibco.pe.core.AssignActivity</pd:type>
+        <pd:resourceType>ae.activities.assignActivity</pd:resourceType>
+        <pd:x>140</pd:x>
+        <pd:y>315</pd:y>
+        <config>
+            <variableName>waitTimeOut</variableName>
+        </config>
+        <pd:inputBindings>
+            <waitTimeOut>
+                <xsl:value-of select="true()"/>
+            </waitTimeOut>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>Group</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>One Bend</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Group</pd:from>
+        <pd:to>Error in ARC_RequestMessage2QueueOrTopic</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65485</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Group (1)</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>One Bend</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Group (1)</pd:from>
+        <pd:to>Error in ARC_RequestMessage2QueueOrTopic</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65485</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>InitTimeOutException</pd:from>
+        <pd:to>Group (1)</pd:to>
+        <pd:xpathDescription>It is a Queue</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>InitTimeOutException</pd:from>
+        <pd:to>Group</pd:to>
+        <pd:xpathDescription>It is a Topic</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$Start/IN_SendMessage2QueueOrTopic/IsTopic="true"</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>InitTimeOutException</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

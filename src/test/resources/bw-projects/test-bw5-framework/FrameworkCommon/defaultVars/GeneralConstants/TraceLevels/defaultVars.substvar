@@ -1,0 +1,59 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<repository xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" xmlns = "http://www.tibco.com/xmlns/repo/types/2002">
+	<globalVariables>
+		<globalVariable>
+			<name>GLB_Critical</name>
+			<value>1</value>
+			<description>Nivel crítico. Solo la información más relevante</description>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1404390270614</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Debug</name>
+			<value>3</value>
+			<description>Nivel de depuración.  Usado para entornos intermedios.</description>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<constraint></constraint>
+			<modTime>1404390270708</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Info</name>
+			<value>2</value>
+			<description>Nivel de información intermedia. Normalmente este es el valor por defecto. </description>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1386864671564</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_Trace</name>
+			<value>4</value>
+			<description>Nivel de traza. Obtiene toda la información asociada.</description>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1404390271520</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>GLB_ZeroAudit</name>
+			<value>0</value>
+			<description>Nivel de Traza. </description>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>Integer</type>
+			<modTime>1404390271599</modTime>
+		</globalVariable>
+		<globalVariable>
+			<name>RoleInfo</name>
+			<value>""</value>
+			<deploymentSettable>true</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<modTime>1406284848415</modTime>
+		</globalVariable>
+	</globalVariables>
+</repository>

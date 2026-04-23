@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pfx="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:pfx2="http://www.bbva.com/EAIFramework" xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/jms" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns0="www.tibco.com/plugin/Sleep" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns1="http://www.tibco.com/pe/DeployedVarsType" xmlns:ns3="http://schemas.tibco.com/bw/plugins/jms/5.0/jmsExceptions">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_QueueOrTopic/ARC_ResponseToQueueOrTopic.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="IN_SendReply2QueueOrTopic">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="TargetName" type="xsd:string"/>
+                    <xsd:element name="IsTopic" type="xsd:boolean"/>
+                    <xsd:element name="CorrelationId" type="xsd:string" minOccurs="0"/>
+                    <xsd:element ref="pfx2:Message"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>85</pd:startX>
+    <pd:startY>134</pd:startY>
+    <pd:returnBindings/>
+    <pd:endName>End</pd:endName>
+    <pd:endX>621</pd:endX>
+    <pd:endY>193</pd:endY>
+    <pd:errorSchemas>
+        <ErrorSchema ref="pfx2:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1331551897594</pd:targetNamespace>
+    <pd:activity name="Error in ARC_ResponseToQueueOrTopic">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <pd:x>732</pd:x>
+        <pd:y>331</pd:y>
+        <config>
+            <faultName>ErrorSchema</faultName>
+        </config>
+        <pd:inputBindings>
+            <pfx:ActivityInput>
+                <data>
+                    <pfx2:ErrorMessage>
+                        <xsl:choose>
+                            <xsl:when test="$_error_JMS-Topic-Publisher/ActivityErrors/ns3:JMSInvalidInputException or $_error_JMS-Queue-Sender/ActivityErrors/ns3:JMSInvalidInputException">
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RpQueTopic_InvalidInput"/>
+                                </ErrorCode>
+                            </xsl:when>
+                            <xsl:when test="$_error_JMS-Topic-Publisher/ActivityErrors/ns3:JMSMessageCreateException or $_error_JMS-Queue-Sender/ActivityErrors/ns3:JMSMessageCreateException">
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RpQueTopic_MessageCreate"/>
+                                </ErrorCode>
+                            </xsl:when>
+                            <xsl:when test="$_error_JMS-Queue-Sender/ActivityErrors/ns3:JMSSessionCreateException or $_error_JMS-Topic-Publisher/ActivityErrors/ns3:JMSSessionCreateException">
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RpQueTopic_SessionCreate"/>
+                                </ErrorCode>
+                            </xsl:when>
+                            <xsl:when test="$_error_JMS-Queue-Sender/ActivityErrors/ns3:JMSSendException or $_error_JMS-Topic-Publisher/ActivityErrors/ns3:JMSSendException">
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_RpQueTopic_Send"/>
+                                </ErrorCode>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <ErrorCode>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Errors/GLB_ArchitectureCode"/>
+                                </ErrorCode>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <ErrorDescription>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GLB_CTE/ArchitectureParameters/InternalConstants/ErrorDescriptions/GLB_ARC_GenericError"/>
+                        </ErrorDescription>
+                        <xsl:if test="string-length($_error/ns2:ErrorReport/MsgCode)>0">
+                            <xsl:if test="$_error/ns2:ErrorReport/MsgCode">
+                                <NativeErrorCode>
+                                    <xsl:value-of select="$_error/ns2:ErrorReport/MsgCode"/>
+                                </NativeErrorCode>
+                            </xsl:if>
+                        </xsl:if>
+                        <NativeErrorDescription>
+                            <xsl:value-of select="$_error/ns2:ErrorReport/Msg"/>
+                        </NativeErrorDescription>
+                        <StackTrace>
+                            <xsl:value-of select="$_error/ns2:ErrorReport/StackTrace"/>
+                        </StackTrace>
+                        <ErrorDate>
+                            <xsl:value-of select="tib:current-dateTime-timezone(0,0)"/>
+                        </ErrorDate>
+                        <StackProcess>
+                            <xsl:value-of select="$_error/ns2:ErrorReport/ProcessStack"/>
+                        </StackProcess>
+                        <Severity>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Severities/GLB_SevereError"/>
+                        </Severity>
+                        <Category>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/Errors/Categories/GLB_Technical"/>
+                        </Category>
+                        <ProcessInputMessage>
+                            <xsl:value-of select="tib:render-xml($Start/IN_SendReply2QueueOrTopic)"/>
+                        </ProcessInputMessage>
+                        <IsResponse>
+                            <xsl:value-of select="0"/>
+                        </IsResponse>
+                        <MessageType>
+                            <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                        </MessageType>
+                    </pfx2:ErrorMessage>
+                </data>
+            </pfx:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:group name="Group">
+        <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>220</pd:x>
+        <pd:y>0</pd:y>
+        <pd:width>243</pd:width>
+        <pd:height>247</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>errorLoop</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:indexSlot>i</pd:indexSlot>
+            <pd:errorCondition>$i &gt;= $_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Num_Intentos_Conexion</pd:errorCondition>
+            <pd:suspendAfterErrorRetry>false</pd:suspendAfterErrorRetry>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>Null</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>JMS Topic Publisher</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Sleep</pd:from>
+            <pd:to>JMS Topic Publisher</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Null</pd:from>
+            <pd:to>JMS Topic Publisher</pd:to>
+            <pd:xpathDescription>.</pd:xpathDescription>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>otherwise</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Null</pd:from>
+            <pd:to>Sleep</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>xpath</pd:conditionType>
+            <pd:xpath>$i &gt; 1</pd:xpath>
+        </pd:transition>
+        <pd:activity name="JMS Topic Publisher">
+            <pd:type>com.tibco.plugin.jms.JMSTopicPublishActivity</pd:type>
+            <pd:resourceType>ae.activities.JMSTopicPublishActivity</pd:resourceType>
+            <pd:x>386</pd:x>
+            <pd:y>83</pd:y>
+            <config>
+                <PermittedMessageType>XML Text</PermittedMessageType>
+                <SessionAttributes>
+                    <transacted>false</transacted>
+                    <acknowledgeMode>1</acknowledgeMode>
+                    <maxSessions>1</maxSessions>
+                </SessionAttributes>
+                <ConfigurableHeaders>
+                    <JMSDeliveryMode>NON_PERSISTENT</JMSDeliveryMode>
+                    <JMSExpiration>0</JMSExpiration>
+                    <JMSPriority>4</JMSPriority>
+                </ConfigurableHeaders>
+                <ConnectionReference>/SharedResources/Connections/JMSConnections/Business/BusinessConnection.sharedjmscon</ConnectionReference>
+                <InDataxsdString ref="pfx2:Message"/>
+            </config>
+            <pd:inputBindings>
+                <ns:ActivityInput>
+                    <destinationTopic>
+                        <xsl:value-of select="$Start/IN_SendReply2QueueOrTopic/TargetName"/>
+                    </destinationTopic>
+                    <JMSExpiration>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/TIMEOUT/CFG_Timeout"/>
+                    </JMSExpiration>
+                    <xsl:if test="string-length($Start/IN_SendReply2QueueOrTopic/CorrelationId)>0">
+                        <xsl:if test="$Start/IN_SendReply2QueueOrTopic/CorrelationId">
+                            <JMSCorrelationID>
+                                <xsl:value-of select="$Start/IN_SendReply2QueueOrTopic/CorrelationId"/>
+                            </JMSCorrelationID>
+                        </xsl:if>
+                    </xsl:if>
+                    <Body>
+                        <xsl:copy-of select="$Start/IN_SendReply2QueueOrTopic/pfx2:Message"/>
+                    </Body>
+                    <xsl:variable name="varCompressEnabled" select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/SERVICES/COMPRESSION/CFG_COMPRESS_ENABLED='true'"/>
+                    <DynamicProperties>
+                        <xsl:if test="$varCompressEnabled=&quot;true&quot;">
+                            <property>
+                                <name>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/SERVICES/COMPRESSION/CFG_PROPERTY_NAME"/>
+                                </name>
+                                <value>
+                                    <xsl:value-of select="'true'"/>
+                                </value>
+                                <type>
+                                    <xsl:value-of select="'boolean'"/>
+                                </type>
+                            </property>
+                        </xsl:if>
+                    </DynamicProperties>
+                </ns:ActivityInput>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Sleep">
+            <pd:type>com.tibco.plugin.timer.SleepActivity</pd:type>
+            <pd:resourceType>ae.activities.sleep</pd:resourceType>
+            <pd:x>387</pd:x>
+            <pd:y>193</pd:y>
+            <config/>
+            <pd:inputBindings>
+                <ns0:SleepInputSchema>
+                    <xsl:choose>
+                        <xsl:when test="$i = 2">
+                            <IntervalInMillisec>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Intervalo_Primera_Reconexion"/>
+                            </IntervalInMillisec>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <IntervalInMillisec>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Intervalo_Resto_Reconexiones"/>
+                            </IntervalInMillisec>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </ns0:SleepInputSchema>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Null">
+            <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+            <pd:resourceType>ae.activities.null</pd:resourceType>
+            <pd:x>289</pd:x>
+            <pd:y>133</pd:y>
+            <config/>
+            <pd:inputBindings/>
+        </pd:activity>
+    </pd:group>
+    <pd:group name="Group (1)">
+        <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>233</pd:x>
+        <pd:y>264</pd:y>
+        <pd:width>230</pd:width>
+        <pd:height>252</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>errorLoop</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:indexSlot>j</pd:indexSlot>
+            <pd:errorCondition>$j &gt;= $_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Num_Intentos_Conexion</pd:errorCondition>
+            <pd:suspendAfterErrorRetry>false</pd:suspendAfterErrorRetry>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>Null-1</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>JMS Queue Sender</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Null-1</pd:from>
+            <pd:to>JMS Queue Sender</pd:to>
+            <pd:xpathDescription>.</pd:xpathDescription>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>otherwise</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Null-1</pd:from>
+            <pd:to>Sleep-1</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>xpath</pd:conditionType>
+            <pd:xpath>$j &gt; 1</pd:xpath>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Sleep-1</pd:from>
+            <pd:to>JMS Queue Sender</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:activity name="JMS Queue Sender">
+            <pd:type>com.tibco.plugin.jms.JMSQueueSendActivity</pd:type>
+            <pd:resourceType>ae.activities.JMSQueueSendActivity</pd:resourceType>
+            <pd:x>391</pd:x>
+            <pd:y>336</pd:y>
+            <config>
+                <PermittedMessageType>XML Text</PermittedMessageType>
+                <SessionAttributes>
+                    <transacted>false</transacted>
+                    <acknowledgeMode>1</acknowledgeMode>
+                    <maxSessions>1</maxSessions>
+                </SessionAttributes>
+                <ConfigurableHeaders>
+                    <JMSDeliveryMode>PERSISTENT</JMSDeliveryMode>
+                    <JMSExpiration>0</JMSExpiration>
+                    <JMSPriority>4</JMSPriority>
+                </ConfigurableHeaders>
+                <ConnectionReference>/SharedResources/Connections/JMSConnections/Business/BusinessConnection.sharedjmscon</ConnectionReference>
+                <InDataxsdString ref="pfx2:Message"/>
+            </config>
+            <pd:inputBindings>
+                <ns:ActivityInput>
+                    <destinationQueue>
+                        <xsl:value-of select="$Start/IN_SendReply2QueueOrTopic/TargetName"/>
+                    </destinationQueue>
+                    <JMSExpiration>
+                        <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/TIMEOUT/CFG_Timeout"/>
+                    </JMSExpiration>
+                    <xsl:if test="string-length($Start/IN_SendReply2QueueOrTopic/CorrelationId)>0">
+                        <xsl:if test="$Start/IN_SendReply2QueueOrTopic/CorrelationId">
+                            <JMSCorrelationID>
+                                <xsl:value-of select="$Start/IN_SendReply2QueueOrTopic/CorrelationId"/>
+                            </JMSCorrelationID>
+                        </xsl:if>
+                    </xsl:if>
+                    <Body>
+                        <xsl:copy-of select="$Start/IN_SendReply2QueueOrTopic/pfx2:Message"/>
+                    </Body>
+                    <xsl:variable name="varCompressEnabled" select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/SERVICES/COMPRESSION/CFG_COMPRESS_ENABLED='true'"/>
+                    <DynamicProperties>
+                        <xsl:if test="$varCompressEnabled='true'">
+                            <property>
+                                <name>
+                                    <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/SERVICES/COMPRESSION/CFG_PROPERTY_NAME"/>
+                                </name>
+                                <value>
+                                    <xsl:value-of select="'true'"/>
+                                </value>
+                                <type>
+                                    <xsl:value-of select="'boolean'"/>
+                                </type>
+                            </property>
+                        </xsl:if>
+                    </DynamicProperties>
+                </ns:ActivityInput>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Sleep-1">
+            <pd:type>com.tibco.plugin.timer.SleepActivity</pd:type>
+            <pd:resourceType>ae.activities.sleep</pd:resourceType>
+            <pd:x>395</pd:x>
+            <pd:y>454</pd:y>
+            <config/>
+            <pd:inputBindings>
+                <ns0:SleepInputSchema>
+                    <xsl:choose>
+                        <xsl:when test="$j = 2">
+                            <IntervalInMillisec>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Intervalo_Primera_Reconexion"/>
+                            </IntervalInMillisec>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <IntervalInMillisec>
+                                <xsl:value-of select="$_globalVariables/ns1:GlobalVariables/CFG/ARCHITECTURE/JMS/Intervalo_Resto_Reconexiones"/>
+                            </IntervalInMillisec>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </ns0:SleepInputSchema>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Null-1">
+            <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+            <pd:resourceType>ae.activities.null</pd:resourceType>
+            <pd:x>294</pd:x>
+            <pd:y>401</pd:y>
+            <config/>
+            <pd:inputBindings/>
+        </pd:activity>
+    </pd:group>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Group</pd:to>
+        <pd:xpathDescription>It is a Topic</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$Start/IN_SendReply2QueueOrTopic/IsTopic="true"</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Group</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Group</pd:from>
+        <pd:to>Error in ARC_ResponseToQueueOrTopic</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65485</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>Group (1)</pd:to>
+        <pd:xpathDescription>It is a Queue</pd:xpathDescription>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Group (1)</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Group (1)</pd:from>
+        <pd:to>Error in ARC_ResponseToQueueOrTopic</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-65536</pd:lineColor>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

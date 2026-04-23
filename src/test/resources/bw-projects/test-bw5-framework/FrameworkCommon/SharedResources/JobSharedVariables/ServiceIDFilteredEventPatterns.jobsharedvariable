@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BWSharedResource xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:pfx="http://www.bbva.com/EAIFramework">
+    <import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <name>ServiceIDFilteredEventPatterns</name>
+    <resourceType>ae.shared.jobSharedVariable</resourceType>
+    <config xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <initialValue>byRef</initialValue>
+        <initialValueData>&lt;?xml version="1.0" encoding="UTF-8"?&gt; &lt;Data&gt;     &lt;ServiceId/&gt;     &lt;Path/&gt; &lt;/Data&gt;</initialValueData>
+        <initialValueRef>/SharedResources/Schemas/XML/Architecture/EventPatterns.xml</initialValueRef>
+        <xsdString>
+            <xsd:element name="EventPatterns">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="Events" minOccurs="0" maxOccurs="unbounded">
+                            <xsd:complexType>
+                                <xsd:sequence>
+                                    <xsd:element name="EventName" type="xsd:string"/>
+                                    <xsd:element name="ErrorStopFlow" type="xsd:boolean"/>
+                                    <xsd:element name="Destination" maxOccurs="unbounded">
+                                        <xsd:complexType>
+                                            <xsd:sequence>
+                                                <xsd:element name="DestinationType" type="xsd:string"/>
+                                                <xsd:element name="DestinationName" type="xsd:string"/>
+                                            </xsd:sequence>
+                                        </xsd:complexType>
+                                    </xsd:element>
+                                </xsd:sequence>
+                            </xsd:complexType>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </xsdString>
+    </config>
+</BWSharedResource>

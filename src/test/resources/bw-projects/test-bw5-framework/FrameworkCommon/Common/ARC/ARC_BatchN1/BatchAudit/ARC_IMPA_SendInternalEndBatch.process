@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pfx="http://www.tibco.com/schemas/FrameworkIntegracion/ASINC/EAI-Framework/Resources/Public/Schemas/Schema.xsd" xmlns:pfx2="http://www.tibco.com/schemas/FrameworkIntegracion1.1/CommonResources/Schemas/XSD/Schema.xsd" xmlns:ns="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:GetIP="java://EAIFramework.Processes.Private.Common.HeaderManagement.IPAddress.IPAddress" xmlns:pfx3="http://www.tibco.com/schemas/Framework/CommonResources/Schemas/XSD/Schema.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns2="http://www.tibco.com/pe/DeployedVarsType" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:ns1="http://www.tibco.com/pe/EngineTypes" xmlns:ns4="http://www.tibco.com/schemas/FrameworkIntegracion/EAI-Framework/Resources/Public/Schemas/XSD/MCD/Schema.xsd" xmlns:ns3="http://www.bbva.com/EAIFramework" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:BW="java://com.tibco.pe.core.JavaCustomXPATHFunctions" xmlns:UUID="java://EAIFramework.Processes.Private.Common.HeaderManagement.UUIDGenerator.UUIDGenerator">
+    
+    
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_BatchN1/BatchAudit/ARC_IMPA_SendInternalEndBatch.process</pd:name>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="ARC_IMPA_SendEndBatch">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element ref="ns3:ArchitectureHeader" minOccurs="0"/>
+                    <xsd:element name="BatchId" type="xsd:string"/>
+                    <xsd:element name="ServiceId" type="xsd:string"/>
+                    <xsd:element name="TraceLevel" type="xsd:string" minOccurs="0"/>
+                    <xsd:element name="Body" minOccurs="0">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:any processContents="skip"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="TimeStampUUID" type="xsd:long"/>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>67</pd:startX>
+    <pd:startY>62</pd:startY>
+    <pd:returnBindings>
+        <xsl:copy-of select="$ARC_SpecificFormatOutboundHeaderManagement/SpecificFormatMessage/*"/>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endX>475</pd:endX>
+    <pd:endY>62</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1324409765610</pd:targetNamespace>
+    <pd:activity name="ARC_CLESenderAPI">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <pd:x>258</pd:x>
+        <pd:y>62</pd:y>
+        <config>
+            <processName>/Common/ARC/ARC_CLEManagement/ARC_TraceAuditSenderAPI.process</processName>
+            <processNameXPath/>
+            <spawn>false</spawn>
+        </config>
+        <pd:inputBindings>
+            <ARC_TraceSenderAPI>
+                <CLETraceData>
+                    <EventCode>
+                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/CLECodes/Audit/GLB_EndBatch"/>
+                    </EventCode>
+                    <EventType>
+                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/EventType/GLB_Audit"/>
+                    </EventType>
+                    <MessageType>
+                        <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/MessageType/GLB_CommonDataModel"/>
+                    </MessageType>
+                    <isResponse>
+                        <xsl:value-of select="0"/>
+                    </isResponse>
+                    <xsl:choose>
+                        <xsl:when test="$Start/ARC_IMPA_SendEndBatch/TraceLevel">
+                            <TraceLevel>
+                                <xsl:value-of select="$Start/ARC_IMPA_SendEndBatch/TraceLevel"/>
+                            </TraceLevel>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <TraceLevel>
+                                <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GeneralConstants/TraceLevels/GLB_Critical"/>
+                            </TraceLevel>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <NameValue>
+                        <Name>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/AuditParameters/GLB_BatchId_AuditKey"/>
+                        </Name>
+                        <Value>
+                            <xsl:value-of select="$Start/ARC_IMPA_SendEndBatch/BatchId"/>
+                        </Value>
+                    </NameValue>
+                    <NameValue>
+                        <Name>
+                            <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/AuditParameters/GLB_ServiceId_AuditKey"/>
+                        </Name>
+                        <Value>
+                            <xsl:value-of select="$Start/ARC_IMPA_SendEndBatch/ServiceId"/>
+                        </Value>
+                    </NameValue>
+                    <ns3:ArchitectureHeader>
+                        <xsl:for-each select="$Start/ARC_IMPA_SendEndBatch/ns3:ArchitectureHeader/ns3:AuditHeader">
+                            <ns3:AuditHeader>
+                                <ns3:E2EId>
+                                    <xsl:value-of select="ns3:E2EId"/>
+                                </ns3:E2EId>
+                                <xsl:if test="ns3:ParentInstanceId">
+                                    <ns3:ParentInstanceId>
+                                        <xsl:value-of select="ns3:ParentInstanceId"/>
+                                    </ns3:ParentInstanceId>
+                                </xsl:if>
+                                <ns3:InstanceId>
+                                    <xsl:value-of select="../../BatchId"/>
+                                </ns3:InstanceId>
+                                <ns3:Deepness>
+                                    <xsl:value-of select="ns3:Deepness"/>
+                                </ns3:Deepness>
+                                <ns3:ServiceId>
+                                    <xsl:value-of select="ns3:ServiceId"/>
+                                </ns3:ServiceId>
+                                <ns3:ServiceType>
+                                    <xsl:value-of select="$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/ServiceType/GLB_BatchN21"/>
+                                </ns3:ServiceType>
+                                <xsl:if test="ns3:E2EControl">
+                                    <ns3:E2EControl>
+                                        <xsl:value-of select="ns3:E2EControl"/>
+                                    </ns3:E2EControl>
+                                </xsl:if>
+                                <xsl:if test="ns3:ParentE2EControl">
+                                    <ns3:ParentE2EControl>
+                                        <xsl:value-of select="ns3:ParentE2EControl"/>
+                                    </ns3:ParentE2EControl>
+                                </xsl:if>
+                                <xsl:if test="ns3:isLight">
+                                    <ns3:isLight>
+                                        <xsl:value-of select="ns3:isLight"/>
+                                    </ns3:isLight>
+                                </xsl:if>
+                                <xsl:if test="ns3:SaveMessage">
+                                    <ns3:SaveMessage>
+                                        <xsl:value-of select="ns3:SaveMessage"/>
+                                    </ns3:SaveMessage>
+                                </xsl:if>
+                            </ns3:AuditHeader>
+                        </xsl:for-each>
+                        <xsl:for-each select="$Start/ARC_IMPA_SendEndBatch/ns3:ArchitectureHeader/ns3:ECSHeader">
+                            <ns3:ECSHeader>
+                                <ns3:traceId>
+                                    <xsl:value-of select="ns3:traceId"/>
+                                </ns3:traceId>
+                                <xsl:if test="string-length(ns3:parentSpan)>0">
+                                    <xsl:if test="ns3:parentSpan">
+                                        <ns3:parentSpan>
+                                            <xsl:value-of select="ns3:parentSpan"/>
+                                        </ns3:parentSpan>
+                                    </xsl:if>
+                                </xsl:if>
+                                <ns3:spanId>
+                                    <xsl:value-of select="concat($_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/SpanPrefix,../../TimeStampUUID,&quot;-&quot;,$_globalVariables/ns2:GlobalVariables/GLB_CTE/ArchitectureParameters/ECSConstants/ESBToken,&quot;-&quot;,../../BatchId)"/>
+                                </ns3:spanId>
+                                <xsl:copy-of select="ns3:properties" copy-namespaces="no"/>
+                            </ns3:ECSHeader>
+                        </xsl:for-each>
+                        <xsl:for-each select="$Start/ARC_IMPA_SendEndBatch/ns3:ArchitectureHeader/ns3:RequestHeader">
+                            <ns3:RequestHeader>
+                                <ns3:BBVAUser>
+                                    <xsl:value-of select="ns3:BBVAUser"/>
+                                </ns3:BBVAUser>
+                                <xsl:if test="ns3:ExternalId">
+                                    <ns3:ExternalId>
+                                        <xsl:value-of select="ns3:ExternalId"/>
+                                    </ns3:ExternalId>
+                                </xsl:if>
+                                <ns3:BatchId>
+                                    <xsl:value-of select="../../BatchId"/>
+                                </ns3:BatchId>
+                                <xsl:if test="ns3:BusinessObject">
+                                    <ns3:BusinessObject>
+                                        <xsl:value-of select="ns3:BusinessObject"/>
+                                    </ns3:BusinessObject>
+                                </xsl:if>
+                                <ns3:StartTimestamp>
+                                    <xsl:value-of select="ns3:StartTimestamp"/>
+                                </ns3:StartTimestamp>
+                                <ns3:ServiceIdStarter>
+                                    <xsl:value-of select="ns3:ServiceIdStarter"/>
+                                </ns3:ServiceIdStarter>
+                            </ns3:RequestHeader>
+                        </xsl:for-each>
+                        <xsl:copy-of select="$Start/ARC_IMPA_SendEndBatch/ns3:ArchitectureHeader/ns3:ErrorHeader"/>
+                        <xsl:copy-of select="$Start/ARC_IMPA_SendEndBatch/ns3:ArchitectureHeader/ns3:ReprocessingHeader"/>
+                        <xsl:copy-of select="$Start/ARC_IMPA_SendEndBatch/ns3:ArchitectureHeader/ns3:SecurityHeader"/>
+                        <xsl:copy-of select="$Start/ARC_IMPA_SendEndBatch/ns3:ArchitectureHeader/ns3:RoutingHeader"/>
+                        <xsl:copy-of select="$Start/ARC_IMPA_SendEndBatch/ns3:ArchitectureHeader/ns3:FunctionalData"/>
+                    </ns3:ArchitectureHeader>
+                </CLETraceData>
+                <Body>
+                    <xsl:value-of select="tib:render-xml($Start/ARC_IMPA_SendEndBatch/Body/*)"/>
+                </Body>
+            </ARC_TraceSenderAPI>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>ARC_CLESenderAPI</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>ARC_CLESenderAPI</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

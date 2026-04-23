@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/file" xmlns:ns="http://www.bbva.com/EAIFramework" xmlns:ns3="http://www.tibco.com/pe/DeployedVarsType" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" xmlns:pfx2="http://www.tibco.com/pe/GenerateErrorActivity/InputSchema" xmlns:ns12="http://www.tibco.com/namespaces/tnt/plugins/file/v2" xmlns:pfx="http://www.tibco.com/pe/WriteToLogActivitySchema">
+    <xsd:import namespace="http://www.bbva.com/EAIFramework" schemaLocation="/SharedResources/Schemas/XSD/ArchitectureSchema.xsd"/>
+    <pd:name>Common/ARC/ARC_Queues/ARC_QueuesManagement/IndexEventPatterns.process</pd:name>
+    <pd:description>Proceso que se ocupa de cargar las variables de la lista de tuplas:
+Servicios-Colas en la caché, para su utilización</pd:description>
+    <pd:startName>Start</pd:startName>
+    <pd:startType>
+        <xsd:element name="Data">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="GroupNamePattern" type="xsd:string"/>
+                    <xsd:element name="DataServiceMonitoring">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element ref="ns:DestinationServiceMonitoring"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:startType>
+    <pd:startX>44</pd:startX>
+    <pd:startY>203</pd:startY>
+    <pd:returnBindings>
+        <EventList>
+            <GroupName>
+                <xsl:value-of select="$Start/Data/GroupNamePattern"/>
+            </GroupName>
+            <xsl:for-each select="$FilteredList/AccumulatedOutput/Event">
+                <Event>
+                    <EventCode>
+                        <xsl:value-of select="EventCode"/>
+                    </EventCode>
+                    <ErrorStopFlow>
+                        <xsl:value-of select="ErrorStopFlow"/>
+                    </ErrorStopFlow>
+                    <xsl:for-each select="Destinations">
+                        <Destinations>
+                            <DestinationType>
+                                <xsl:value-of select="DestinationType"/>
+                            </DestinationType>
+                            <DestinationName>
+                                <xsl:value-of select="DestinationName"/>
+                            </DestinationName>
+                        </Destinations>
+                    </xsl:for-each>
+                </Event>
+            </xsl:for-each>
+        </EventList>
+    </pd:returnBindings>
+    <pd:endName>End</pd:endName>
+    <pd:endType>
+        <xsd:element name="EventList">
+            <xsd:complexType>
+                <xsd:sequence>
+                    <xsd:element name="GroupName" type="xsd:string"/>
+                    <xsd:element name="Event" minOccurs="0" maxOccurs="unbounded">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="EventCode" type="xsd:string"/>
+                                <xsd:element name="ErrorStopFlow" type="xsd:boolean"/>
+                                <xsd:element name="Destinations" maxOccurs="unbounded">
+                                    <xsd:complexType>
+                                        <xsd:sequence>
+                                            <xsd:element name="DestinationType" type="xsd:string"/>
+                                            <xsd:element name="DestinationName" type="xsd:string"/>
+                                        </xsd:sequence>
+                                    </xsd:complexType>
+                                </xsd:element>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+        </xsd:element>
+    </pd:endType>
+    <pd:endX>986</pd:endX>
+    <pd:endY>199</pd:endY>
+    <pd:errorSchemas>
+        <Schema0 ref="ns:ErrorMessage"/>
+    </pd:errorSchemas>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://xmlns.example.com/1331221478183</pd:targetNamespace>
+    <pd:activity name="GroupEventList">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <pd:x>148</pd:x>
+        <pd:y>202</pd:y>
+        <config>
+            <element>
+                <xsd:element name="EventList">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="Event" maxOccurs="unbounded">
+                                <xsd:complexType>
+                                    <xsd:sequence>
+                                        <xsd:element name="EventCode" type="xsd:string"/>
+                                        <xsd:element name="ErrorStopFlow" type="xsd:boolean"/>
+                                        <xsd:element name="Destinations" maxOccurs="unbounded">
+                                            <xsd:complexType>
+                                                <xsd:sequence>
+                                                    <xsd:element name="DestinationType" type="xsd:string"/>
+                                                    <xsd:element name="DestinationName" type="xsd:string"/>
+                                                </xsd:sequence>
+                                            </xsd:complexType>
+                                        </xsd:element>
+                                    </xsd:sequence>
+                                </xsd:complexType>
+                            </xsd:element>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+            </element>
+        </config>
+        <pd:inputBindings>
+            <EventList>
+                <xsl:for-each select="$Start/Data/DataServiceMonitoring/ns:DestinationServiceMonitoring/EventPatternGroup[   @PatternGroupName =../../../GroupNamePattern  ]/EventPatternRef">
+                    <xsl:for-each select="../../EventPattern[    ./@EventPatternName  =  current()  ]">
+                        <xsl:for-each select="Event">
+                            <Event>
+                                <EventCode>
+                                    <xsl:value-of select="."/>
+                                </EventCode>
+                                <xsl:choose>
+                                    <xsl:when test="string-length(@ErrorStopFlow)>0">
+                                        <ErrorStopFlow>
+                                            <xsl:value-of select="@ErrorStopFlow"/>
+                                        </ErrorStopFlow>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <ErrorStopFlow>
+                                            <xsl:value-of select="&quot;true&quot;"/>
+                                        </ErrorStopFlow>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                                <Destinations>
+                                    <DestinationType>
+                                        <xsl:value-of select="../@DestinationType"/>
+                                    </DestinationType>
+                                    <DestinationName>
+                                        <xsl:value-of select="../@DestinationName"/>
+                                    </DestinationName>
+                                </Destinations>
+                            </Event>
+                        </xsl:for-each>
+                    </xsl:for-each>
+                </xsl:for-each>
+            </EventList>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:group name="Filter">
+        <pd:type>com.tibco.pe.core.LoopGroup</pd:type>
+        <pd:resourceType>ae.process.group</pd:resourceType>
+        <pd:x>246</pd:x>
+        <pd:y>85</pd:y>
+        <pd:width>656</pd:width>
+        <pd:height>212</pd:height>
+        <pd:collapsedWidth>57</pd:collapsedWidth>
+        <pd:collapsedHeight>70</pd:collapsedHeight>
+        <pd:groupVariables/>
+        <pd:joinToggle>inherit</pd:joinToggle>
+        <config>
+            <pd:groupType>inputLoop</pd:groupType>
+            <pd:serializable>false</pd:serializable>
+            <pd:over>$GroupEventList/EventList/Event</pd:over>
+            <pd:iterationElementSlot>Event</pd:iterationElementSlot>
+            <pd:indexSlot>i</pd:indexSlot>
+            <pd:outSlot>FilteredList</pd:outSlot>
+            <pd:activityOutputName>FilterEventList</pd:activityOutputName>
+            <pd:accumulateOutput>true</pd:accumulateOutput>
+        </config>
+        <pd:inputBindings/>
+        <pd:expanded>true</pd:expanded>
+        <pd:transition>
+            <pd:from>start</pd:from>
+            <pd:to>Node</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Node</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Default</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>otherwise</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>FilterEventList</pd:from>
+            <pd:to>end</pd:to>
+            <pd:lineType>Multiple Bends</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>always</pd:conditionType>
+        </pd:transition>
+        <pd:transition>
+            <pd:from>Node</pd:from>
+            <pd:to>FilterEventList</pd:to>
+            <pd:xpathDescription>new</pd:xpathDescription>
+            <pd:lineType>Multiple Bends</pd:lineType>
+            <pd:lineColor>-16777216</pd:lineColor>
+            <pd:conditionType>xpath</pd:conditionType>
+            <pd:xpath>count($FilteredList/AccumulatedOutput/Event[  EventCode=$Event/Event/EventCode ])=0</pd:xpath>
+        </pd:transition>
+        <pd:activity name="FilterEventList">
+            <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+            <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+            <pd:x>587</pd:x>
+            <pd:y>142</pd:y>
+            <config>
+                <element>
+                    <xsd:element name="Event">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="EventCode" type="xsd:string"/>
+                                <xsd:element name="ErrorStopFlow" type="xsd:string"/>
+                                <xsd:element name="Destinations" maxOccurs="unbounded">
+                                    <xsd:complexType>
+                                        <xsd:sequence>
+                                            <xsd:element name="DestinationType" type="xsd:string"/>
+                                            <xsd:element name="DestinationName" type="xsd:string"/>
+                                        </xsd:sequence>
+                                    </xsd:complexType>
+                                </xsd:element>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </element>
+            </config>
+            <pd:inputBindings>
+                <Event>
+                    <EventCode>
+                        <xsl:value-of select="$Event/Event/EventCode"/>
+                    </EventCode>
+                    <ErrorStopFlow>
+                        <xsl:value-of select="$Event/Event/ErrorStopFlow"/>
+                    </ErrorStopFlow>
+                    <xsl:for-each select="$GroupEventList/EventList/Event[   EventCode = $Event/Event/EventCode   ]/Destinations">
+                        <Destinations>
+                            <DestinationType>
+                                <xsl:value-of select="current()/DestinationType"/>
+                            </DestinationType>
+                            <DestinationName>
+                                <xsl:value-of select="current()/DestinationName"/>
+                            </DestinationName>
+                        </Destinations>
+                    </xsl:for-each>
+                </Event>
+            </pd:inputBindings>
+        </pd:activity>
+        <pd:activity name="Node">
+            <pd:type>com.tibco.plugin.timer.NullActivity</pd:type>
+            <pd:resourceType>ae.activities.null</pd:resourceType>
+            <pd:x>320</pd:x>
+            <pd:y>198</pd:y>
+            <config/>
+            <pd:inputBindings/>
+        </pd:activity>
+    </pd:group>
+    <pd:transition>
+        <pd:from>Start</pd:from>
+        <pd:to>GroupEventList</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>GroupEventList</pd:from>
+        <pd:to>Filter</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Filter</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

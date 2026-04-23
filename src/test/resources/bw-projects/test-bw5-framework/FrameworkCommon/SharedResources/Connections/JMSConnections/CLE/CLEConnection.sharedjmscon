@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BWSharedResource>
+    <name>CLEConnection</name>
+    <resourceType>ae.shared.JMSConnectionKey</resourceType>
+    <config>
+        <NamingEnvironment>
+            <UseJNDI>false</UseJNDI>
+            <ProviderURL>%%CFG/ARCHITECTURE/JMS/CLE/CFG_JMS_URL%%</ProviderURL>
+            <NamingURL>%%CFG/ARCHITECTURE/JMS/CLE/CFG_JMS_URL%%</NamingURL>
+            <NamingInitialContextFactory>com.tibco.tibjms.naming.TibjmsInitialContextFactory</NamingInitialContextFactory>
+            <TopicFactoryName>TopicConnectionFactory</TopicFactoryName>
+            <QueueFactoryName>QueueConnectionFactory</QueueFactoryName>
+            <NamingPrincipal/>
+            <NamingCredential/>
+        </NamingEnvironment>
+        <ConnectionAttributes>
+            <username>%%CFG/ARCHITECTURE/JMS/CLE/CFG_JMS_USER%%</username>
+            <password>%%CFG/ARCHITECTURE/JMS/CLE/CFG_JMS_PASSWORD%%</password>
+            <clientID/>
+            <autoGenClientID>true</autoGenClientID>
+        </ConnectionAttributes>
+        <UseXACF>false</UseXACF>
+    </config>
+</BWSharedResource>
