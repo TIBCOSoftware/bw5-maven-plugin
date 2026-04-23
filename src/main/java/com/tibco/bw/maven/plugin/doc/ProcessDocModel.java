@@ -17,12 +17,19 @@ public class ProcessDocModel {
     /** Target namespace */
     public String targetNamespace;
 
+    /** Process description from &lt;pd:description&gt;, may be null */
+    public String description;
+
     /** The starter (event source) activity */
     public Activity starter;
     /** All regular activities */
     public List<Activity> activities = new ArrayList<>();
     /** All transitions */
     public List<Transition> transitions = new ArrayList<>();
+    /** Canvas text labels (annotations) */
+    public List<Label> labels = new ArrayList<>();
+    /** Activity groups (loop groups, critical sections, etc.) */
+    public List<Group> groups = new ArrayList<>();
 
     /** Returns all activities including the starter for coordinate calculation */
     public List<Activity> allActivities() {
@@ -86,15 +93,18 @@ public class ProcessDocModel {
     public static class Transition {
         public String from;
         public String to;
-        /** "always", "success", "error", "successWithCondition", "otherwise" */
+        /** "always", "success", "error", "xpath", "otherwise" */
         public String conditionType;
-        /** XPath condition expression (for successWithCondition) */
+        /** XPath expression for xpath-type transitions (from &lt;pd:xpath&gt;) */
         public String condition;
+        /** Human-readable label for the xpath condition (from &lt;pd:xpathDescription&gt;) */
+        public String conditionDescription;
 
         public String conditionLabel() {
             if (conditionType == null || "always".equalsIgnoreCase(conditionType)) return "";
-            if ("successWithCondition".equalsIgnoreCase(conditionType)) {
-                return condition != null ? condition : "condition";
+            if ("xpath".equalsIgnoreCase(conditionType)) {
+                if (conditionDescription != null && !conditionDescription.isEmpty()) return conditionDescription;
+                return condition != null ? condition : "xpath";
             }
             return conditionType;
         }
@@ -108,6 +118,22 @@ public class ProcessDocModel {
         }
     }
 
+    public static class Group {
+        public String name;
+        /** e.g. "com.tibco.pe.core.LoopGroup" */
+        public String type;
+        public int x;
+        public int y;
+        public int width;
+        public int height;
+    }
+
+    public static class Label {
+        public int x;
+        public int y;
+        public String text;
+    }
+
     public static class FieldMapping {
         /** Target field name (XML element being set) */
         public String targetField;
@@ -117,9 +143,11 @@ public class ProcessDocModel {
         public String sourceExpression;
         /** Whether this is a literal value (xsl:value-of select="'literal'") */
         public boolean isLiteral;
-        /** Whether this is a conditional mapping (xsl:if) */
+        /** Whether this is a conditional mapping (xsl:if / xsl:when / xsl:otherwise) */
         public boolean isConditional;
-        /** The condition expression if conditional */
+        /** The condition expression (xsl:if test / xsl:when test) */
         public String condition;
+        /** "if" | "when" | "otherwise" | null */
+        public String conditionKind;
     }
 }

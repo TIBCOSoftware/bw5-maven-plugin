@@ -1,5 +1,6 @@
 package com.tibco.bw.maven.plugin.packaging;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -7,6 +8,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -71,6 +73,39 @@ public abstract class AbstractBw5Mojo extends AbstractMojo {
      */
     @Parameter(defaultValue = "false", property = "bw5.skip")
     protected boolean skip;
+
+    /**
+     * Copies all projlib and JAR dependencies to {@code bwLibDirectory} (target/bw-lib).
+     * Called by mojos that need dependencies on disk before they can proceed.
+     */
+    protected void resolveDependencies() throws MojoExecutionException {
+        bwLibDirectory.mkdirs();
+
+        List<Artifact> projlibs = getProjectlibDependencies();
+        List<Artifact> jars     = getJarDependencies();
+
+        if (projlibs.isEmpty() && jars.isEmpty()) {
+            getLog().info("No BW5 dependencies to resolve.");
+            return;
+        }
+
+        getLog().info("Resolving BW5 dependencies to: " + bwLibDirectory.getAbsolutePath());
+        try {
+            for (Artifact projlib : projlibs) {
+                String name = projlib.getArtifactId() + "-" + projlib.getVersion() + ".projlib";
+                FileUtils.copyFile(projlib.getFile(), new File(bwLibDirectory, name));
+                getLog().info("  projlib: " + name);
+            }
+            for (Artifact jar : jars) {
+                String name = jar.getArtifactId() + "-" + jar.getVersion() + ".jar";
+                FileUtils.copyFile(jar.getFile(), new File(bwLibDirectory, name));
+                getLog().debug("  jar: " + name);
+            }
+            getLog().info("Resolved " + projlibs.size() + " projlib(s) and " + jars.size() + " jar(s).");
+        } catch (IOException e) {
+            throw new MojoExecutionException("Failed to resolve dependencies: " + e.getMessage(), e);
+        }
+    }
 
     /**
      * Returns all dependencies of type bw5module (projlibs).

@@ -201,6 +201,35 @@ public class InitMojoTest {
     }
 
     @Test
+    public void detectsBwearFromAESchemasFolder() throws Exception {
+        new File(tempDir, "AESchemas").mkdir();
+
+        InitMojo.DetectionResult r = newMojo().detectProject(tempDir);
+
+        assertEquals("bwear", r.packaging);
+        assertNull(r.descriptorFileName);
+    }
+
+    @Test
+    public void detectsBwearFromVcrepodat() throws Exception {
+        writeFile(new File(tempDir, "vcrepo.dat"), "");
+
+        InitMojo.DetectionResult r = newMojo().detectProject(tempDir);
+
+        assertEquals("bwear", r.packaging);
+        assertNull(r.descriptorFileName);
+    }
+
+    @Test
+    public void detectsArtifactIdFromDirNameWhenNoDescriptor() throws Exception {
+        new File(tempDir, "AESchemas").mkdir();
+
+        InitMojo.DetectionResult r = newMojo().detectProject(tempDir);
+
+        assertEquals(InitMojo.toArtifactId(tempDir.getName()), r.defaultArtifactId);
+    }
+
+    @Test
     public void usesFilenameAsArtifactIdWhenArchiveNameUnparseable() throws Exception {
         // Write a malformed .archive file
         writeFile(new File(tempDir, "MyApp.archive"), "<not-valid-xml>");
@@ -275,16 +304,20 @@ public class InitMojoTest {
         assertTrue(content.contains("TODO"));
     }
 
-    @Test(expected = MojoExecutionException.class)
-    public void executeFailsWhenGroupIdMissing() throws Exception {
+    @Test
+    public void executeUsesDefaultGroupIdWhenMissing() throws Exception {
         writeFile(new File(tempDir, "MyApp.archive"), archiveXml("MyApp"));
         createMojo(tempDir, null, null, null, false).execute();
+        String content = readFile(new File(tempDir, "pom.xml"));
+        assertTrue(content.contains("<groupId>com.tibco</groupId>"));
     }
 
-    @Test(expected = MojoExecutionException.class)
-    public void executeFailsWhenGroupIdBlank() throws Exception {
+    @Test
+    public void executeUsesDefaultGroupIdWhenBlank() throws Exception {
         writeFile(new File(tempDir, "MyApp.archive"), archiveXml("MyApp"));
         createMojo(tempDir, "   ", null, null, false).execute();
+        String content = readFile(new File(tempDir, "pom.xml"));
+        assertTrue(content.contains("<groupId>com.tibco</groupId>"));
     }
 
     @Test(expected = MojoExecutionException.class)

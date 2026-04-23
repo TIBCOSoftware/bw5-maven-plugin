@@ -1,5 +1,6 @@
 package com.tibco.bw.maven.plugin.packaging;
 
+import com.tibco.bw.maven.plugin.descriptor.AliasLibParser;
 import com.tibco.bw.maven.plugin.descriptor.ArchiveDescriptorParser;
 import com.tibco.bw.maven.plugin.descriptor.DeploymentConfigGenerator;
 import com.tibco.bw.maven.plugin.descriptor.ProcessParser;
@@ -16,9 +17,16 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProjectHelper;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.Namespace;
+import org.jdom2.input.SAXBuilder;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
 
 import javax.inject.Inject;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
@@ -86,6 +94,14 @@ public class BwEarMojo extends AbstractBw5Mojo {
     private boolean generateValuesYaml;
 
     /**
+     * When {@code true}, skips copying projlib/JAR dependencies to {@code target/bw-lib}
+     * before assembling the EAR. Useful when {@code bw5:resolve-dependencies} has already
+     * been executed earlier in the build (e.g. bound to the {@code process-resources} phase).
+     */
+    @Parameter(defaultValue = "false", property = "bw5.bwear.skipResolveDependencies")
+    private boolean skipResolveDependencies;
+
+    /**
      * When {@code true}, only the EAR is assembled — no deployment configuration
      * files ({@code -deploy.xml}, {@code -deploy.properties}, {@code values.yaml})
      * are generated.
@@ -116,6 +132,18 @@ public class BwEarMojo extends AbstractBw5Mojo {
     private File projectPropertiesFile;
 
     /**
+     * When {@code true}, the {@code .javaxpath} bytecode already embedded in the source file
+     * is used as-is instead of failing when no freshly compiled class is found.
+     *
+     * <p>Set this to {@code true} for legacy or vendored custom functions whose source
+     * is not compiled as part of this Maven build. A WARNING is logged for each affected file.</p>
+     *
+     * <pre>mvn package -Dbw5.oldJavaCustomFunctions=true</pre>
+     */
+    @Parameter(defaultValue = "false", property = "bw5.oldJavaCustomFunctions")
+    private boolean oldJavaCustomFunctions;
+
+    /**
      * Optional path to a TIBCO Designer {@code .archive} descriptor file.
      *
      * <p>When provided, the plugin reads the descriptor to determine:</p>
@@ -142,6 +170,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
      */
     @Parameter(property = "bw5.archiveDescriptorFile")
     private File archiveDescriptorFile;
+
+    private static final Namespace JCF_NS =
+        Namespace.getNamespace("http://www.tibco.com/bw/javaxpath/2003");
 
     /**
      * File extensions that go into the PAR (Process Archive).
@@ -170,7 +201,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
         // Identity / certificates
         ".id", ".cert",
         // Other resources
-        ".properties", ".xslt", ".xsl"
+        ".properties", ".xslt", ".xsl",
+        // Java Custom Functions
+        ".javaxpath"
     ));
 
     /**
@@ -211,6 +244,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
         }
 
         validateBwProjectPath();
+
+        if (!skipResolveDependencies) resolveDependencies();
 
         File srcDir = bwSourcesDirectory.exists() ? bwSourcesDirectory : bwProjectPath;
         getLog().info("Assembling BW5 EAR from: " + srcDir.getAbsolutePath());
@@ -290,7 +325,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 null
             );
 
-            // 8. Assemble the final EAR
+            // 8. Cross-reference .aliaslib entries against Maven dependencies
+            checkAliasLibs(srcDir, getJarDependencies());
+
+            // 9. Assemble the final EAR
             String earFileName = project.getBuild().getFinalName() + ".ear";
             File earFile = new File(project.getBuild().getDirectory(), earFileName);
             buildEar(earFile, earTibcoXml, parFile, sarFile);
@@ -371,7 +409,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 getLog().info("Generated properties : " + out.getName());
             }
             if (generateValuesYaml) {
-                File out = new File(targetDir, "values.yaml");
+                File out = new File(targetDir, finalName + "-values.yaml");
                 gen.generateValuesYaml(out, appName, appVersion, globalVars);
                 getLog().info("Generated values.yaml: " + out.getName());
             }
@@ -473,6 +511,53 @@ public class BwEarMojo extends AbstractBw5Mojo {
     // -----------------------------------------------------------------------
     //  Archive descriptor (.archive) support
     // -----------------------------------------------------------------------
+
+    /**
+     * Scans all {@code .aliaslib} files under {@code srcDir} and cross-references their
+     * entries against the resolved Maven JAR dependencies.
+     *
+     * <p>For every alias with {@code includeInDeployment=true} that cannot be matched to a
+     * Maven dependency by filename ({@code artifactId-version.jar}), a WARNING is logged.
+     * The build is not failed — the alias may reference a system JAR intentionally excluded
+     * from Maven.</p>
+     */
+    private void checkAliasLibs(File srcDir, List<Artifact> jarDeps) {
+        List<AliasLibParser.AliasLibEntry> entries;
+        try {
+            entries = new AliasLibParser().parseAll(srcDir);
+        } catch (Exception e) {
+            getLog().warn("Could not parse .aliaslib files: " + e.getMessage());
+            return;
+        }
+
+        if (entries.isEmpty()) return;
+
+        // Build a set of expected JAR filenames from Maven deps: artifactId-version.jar
+        Set<String> mavenJarFileNames = new HashSet<>();
+        for (Artifact jar : jarDeps) {
+            mavenJarFileNames.add(jar.getArtifactId() + "-" + jar.getVersion() + ".jar");
+        }
+
+        int matched = 0;
+        int unmatched = 0;
+        for (AliasLibParser.AliasLibEntry entry : entries) {
+            if (!entry.includeInDeployment) continue;
+            if (mavenJarFileNames.contains(entry.aliasName)) {
+                matched++;
+            } else {
+                unmatched++;
+                getLog().warn(".aliaslib entry not found in Maven dependencies: \""
+                    + entry.aliasName + "\""
+                    + " — add a <dependency> with the matching artifactId/version"
+                    + " or this JAR will be missing from the EAR at runtime.");
+            }
+        }
+
+        if (matched > 0 || unmatched > 0) {
+            getLog().info(".aliaslib check: " + matched + " matched, " + unmatched + " unmatched"
+                + " (scanned " + entries.size() + " entries in all .aliaslib files)");
+        }
+    }
 
     private ArchiveDescriptorParser.ArchiveDescriptor loadArchiveDescriptor() {
         if (archiveDescriptorFile == null) {
@@ -585,8 +670,94 @@ public class BwEarMojo extends AbstractBw5Mojo {
         try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(sarFile))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);
             for (BwFile bwf : sarFiles) {
-                addToZip(zos, bwf.relativePath, bwf.file);
+                if (bwf.file.getName().endsWith(".javaxpath")) {
+                    addJavaxpathToSar(zos, bwf);
+                } else {
+                    addToZip(zos, bwf.relativePath, bwf.file);
+                }
             }
+        }
+    }
+
+    private void addJavaxpathToSar(ZipOutputStream zos, BwFile bwf) throws Exception {
+        String className = extractJcfClassName(bwf.file);
+        String encodedBytecode = className != null
+            ? project.getProperties().getProperty("bw5.jcf.bytecode." + className)
+            : null;
+
+        if (encodedBytecode != null) {
+            File tempFile = injectJcfBytecode(bwf.file, encodedBytecode);
+            try {
+                addToZip(zos, bwf.relativePath, tempFile);
+            } finally {
+                tempFile.delete();
+            }
+        } else if (!oldJavaCustomFunctions) {
+            String displayName = className != null ? className : bwf.file.getName();
+            throw new MojoExecutionException(
+                "No compiled bytecode found for Java Custom Function: " + displayName + ". "
+                + "Ensure the class is compiled before packaging, or set "
+                + "bw5.oldJavaCustomFunctions=true to use the bytecode already present "
+                + "in the .javaxpath file.");
+        } else {
+            String displayClass = className != null ? className : "(unknown)";
+            getLog().warn("[bw5] WARNING: Using pre-existing bytecode in " + bwf.file.getName()
+                + " for class " + displayClass + ". Recompile to embed current bytecode.");
+            addToZip(zos, bwf.relativePath, bwf.file);
+        }
+    }
+
+    /**
+     * Returns a temp file containing the .javaxpath XML with {@code <ns0:bytecode>} replaced
+     * by {@code encodedBytecode}. Caller is responsible for deleting the temp file.
+     */
+    private File injectJcfBytecode(File javaxpathFile, String encodedBytecode) throws Exception {
+        SAXBuilder builder = new SAXBuilder();
+        Document doc = builder.build(javaxpathFile);
+        Element root = doc.getRootElement();
+
+        Element bytecodeEl = root.getChild("bytecode", JCF_NS);
+        if (bytecodeEl == null) {
+            bytecodeEl = new Element("bytecode", JCF_NS);
+            root.addContent(bytecodeEl);
+        }
+        bytecodeEl.setText(encodedBytecode);
+
+        File temp = File.createTempFile("bw5-jcf-", ".javaxpath");
+        temp.deleteOnExit();
+        XMLOutputter xmlOut = new XMLOutputter(Format.getRawFormat().setEncoding("UTF-8"));
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(temp), StandardCharsets.UTF_8)) {
+            xmlOut.output(doc, w);
+        }
+        return temp;
+    }
+
+    /**
+     * Derives the fully-qualified class name from {@code <ns0:loadedFromLocation>} by
+     * extracting the path segment after {@code "classes/"}. Returns {@code null} when the
+     * element is absent or the path contains no {@code "classes/"} segment.
+     */
+    private String extractJcfClassName(File javaxpathFile) {
+        try {
+            SAXBuilder builder = new SAXBuilder();
+            Document doc = builder.build(javaxpathFile);
+            Element root = doc.getRootElement();
+            Element locationEl = root.getChild("loadedFromLocation", JCF_NS);
+            if (locationEl == null) return null;
+
+            String location = locationEl.getTextTrim().replace('\\', '/');
+            int idx = location.lastIndexOf("classes/");
+            if (idx < 0) return null;
+
+            String relative = location.substring(idx + "classes/".length());
+            if (relative.endsWith(".class")) {
+                relative = relative.substring(0, relative.length() - ".class".length());
+            }
+            return relative.replace('/', '.');
+        } catch (Exception e) {
+            getLog().debug("Could not extract class name from " + javaxpathFile.getName()
+                + ": " + e.getMessage());
+            return null;
         }
     }
 

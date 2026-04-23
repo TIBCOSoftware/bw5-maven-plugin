@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example.bw5</groupId>
+    <artifactId>string-utils-lib</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>projlib</packaging>
+
+    <name>BW5 String Utilities Library</name>
+    <description>
+        Test projlib with a Java Code activity (inline Java source) and shared resources.
+        Validates that the bw5-maven-plugin correctly:
+        - Extracts Java source from .process files
+        - Compiles with standard javac
+        - Packages the .projlib with compiled classes
+        - Handles pull goal for Designer alignment
+    </description>
+
+    <dependencies>
+        <!--
+            Example projlib dependency (commented out since we don't have one installed locally).
+            When enabled, it would be resolved from Maven and staged by bw5:pull.
+        -->
+        <!--
+        <dependency>
+            <groupId>com.example.bw5</groupId>
+            <artifactId>common-framework</artifactId>
+            <version>1.0.0</version>
+            <type>projlib</type>
+        </dependency>
+        -->
+
+        <!--
+            Example JAR dependency for use in Java Code activities.
+            commons-lang3 provides StringUtils that could be used in Java Code activities.
+        -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.12.0</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.tibco.bw</groupId>
+                <artifactId>bw5-maven-plugin</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <bwProjectPath>${basedir}/src/main/bw</bwProjectPath>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<repository xmlns="http://www.tibco.com/xmlns/repo/types/2002">
+    <globalVariables>
+        <globalVariable>
+            <name>LogLevel</name>
+            <value>INFO</value>
+            <deploymentSettable>true</deploymentSettable>
+            <serviceSettable>false</serviceSettable>
+            <type>String</type>
+            <modTime>1742900000000</modTime>
+        </globalVariable>
+        <globalVariable>
+            <name>MaxRetries</name>
+            <value>3</value>
+            <deploymentSettable>true</deploymentSettable>
+            <serviceSettable>false</serviceSettable>
+            <type>Integer</type>
+            <modTime>1742900000000</modTime>
+        </globalVariable>
+    </globalVariables>
+</repository>

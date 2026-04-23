@@ -232,7 +232,7 @@ public class ConfigureMojo extends AbstractBw5Mojo {
                 getLog().info("Generated properties    : " + out.getName());
             }
             if (generateValuesYaml) {
-                File out = new File(targetDir, "values.yaml");
+                File out = new File(targetDir, finalName + "-values.yaml");
                 gen.generateValuesYaml(out, appName, appVersion, vars);
                 getLog().info("Generated values.yaml   : " + out.getName());
             }

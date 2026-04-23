@@ -1,5 +1,6 @@
 package com.tibco.bw.maven.plugin.packaging;
 
+import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -7,17 +8,21 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * Runs a TIBCO BusinessWorks 5.x application locally using the BW Engine.
  *
- * <p>Looks for the built EAR at {@code target/<finalName>.ear} and launches it
- * with the {@code bwengine} executable found under
- * {@code <tibcoHome>/bw/<bwVersion>/bin/bwengine[.exe]}.</p>
+ * <p>Launches the {@code bwengine} executable found under
+ * {@code <tibcoHome>/bw/<bwVersion>/bin/bwengine[.exe]} against the BW project
+ * directory ({@code bwProjectPath}, defaults to {@code ${basedir}}).</p>
  *
  * <p>The engine process can run in the foreground (Maven waits for it) or in
  * the background (Maven continues immediately). When run in the foreground,
@@ -49,7 +54,7 @@ import java.util.List;
  */
 @Mojo(
     name = "run",
-    requiresDependencyResolution = ResolutionScope.NONE,
+    requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME,
     threadSafe = false
 )
 public class RunBwMojo extends AbstractBw5Mojo {
@@ -74,14 +79,6 @@ public class RunBwMojo extends AbstractBw5Mojo {
      */
     @Parameter(defaultValue = "5.13.0", property = "bw5.bwVersion")
     private String bwVersion;
-
-    /**
-     * Path to the EAR file to run.
-     * Defaults to {@code target/<finalName>.ear} (the artifact built by
-     * {@code bw5:bwear}). Override this to run a specific EAR.
-     */
-    @Parameter(property = "bw5.run.earFile")
-    private File earFile;
 
     /**
      * When {@code true}, the BW engine is started as a background process and
@@ -130,6 +127,22 @@ public class RunBwMojo extends AbstractBw5Mojo {
     @Parameter(defaultValue = "${project.build.directory}", property = "bw5.run.workingDir")
     private File workingDir;
 
+    /**
+     * Optional properties file whose entries are merged into the generated
+     * {@code bwengine.properties} and take precedence over auto-generated aliases.
+     *
+     * <p>Use this to supply engine control variables and global variable overrides, e.g.:</p>
+     * <pre>
+     * tibco.clientVar.defaultVars/MyApp/Connections/DB_URL=jdbc:oracle:thin:@localhost:1521/XE
+     * bw.plugin.jms.recoverOnStartupError=true
+     * </pre>
+     *
+     * <p>When not set, only the auto-generated alias entries are written to
+     * {@code target/bwengine.properties}.</p>
+     */
+    @Parameter(property = "bw5.run.propertiesFile")
+    private File propertiesFile;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (skip) {
@@ -137,13 +150,15 @@ public class RunBwMojo extends AbstractBw5Mojo {
             return;
         }
 
-        File engine = resolveEngineExecutable();
-        File ear    = resolveEarFile();
+        File engine      = resolveEngineExecutable();
+        File engineProps = generateEngineProperties();
 
-        List<String> cmd = buildCommand(engine, ear);
+        List<String> cmd = buildCommand(engine, engineProps);
 
         getLog().info("BW Engine  : " + engine.getAbsolutePath());
-        getLog().info("EAR file   : " + ear.getAbsolutePath());
+        getLog().info("App name   : " + project.getArtifactId());
+        getLog().info("Props file : " + engineProps.getAbsolutePath());
+        getLog().info("BW project : " + bwProjectPath.getAbsolutePath());
         getLog().info("Background : " + background);
         getLog().info("Command    : " + String.join(" ", cmd));
 
@@ -211,26 +226,84 @@ public class RunBwMojo extends AbstractBw5Mojo {
             + "Check that tibco.Home=" + tibcoHome + " and bw5.bwVersion=" + bwVersion + " are correct.");
     }
 
-    private File resolveEarFile() throws MojoExecutionException {
-        if (earFile != null && earFile.isFile()) return earFile;
+    private File generateEngineProperties() throws MojoExecutionException {
+        // LinkedHashMap preserves insertion order: aliases first, then user overrides
+        Map<String, String> entries = new LinkedHashMap<>();
 
-        // Auto-detect from project artifact
-        File defaultEar = new File(project.getBuild().getDirectory(),
-                                   project.getBuild().getFinalName() + ".ear");
-        if (defaultEar.isFile()) return defaultEar;
+        // 1. Auto-generate tibco.alias entries from Maven dependencies
+        //    Projlibs: engine resolves by full Maven coordinate (groupId:artifactId:version:type)
+        //    JARs: engine resolves by filename, matching what .aliaslib files store
+        for (Artifact projlib : getProjectlibDependencies()) {
+            String key = "tibco.alias." + projlib.getGroupId() + ":"
+                + projlib.getArtifactId() + ":" + projlib.getVersion() + ":projlib";
+            entries.put(key, projlib.getFile().getAbsolutePath());
+        }
+        for (Artifact jar : getJarDependencies()) {
+            String key = "tibco.alias." + jar.getArtifactId() + "-" + jar.getVersion() + ".jar";
+            entries.put(key, jar.getFile().getAbsolutePath());
+        }
+        getLog().info("Generated " + entries.size() + " alias entrie(s) from Maven dependencies.");
 
-        throw new MojoExecutionException(
-            "Cannot find EAR file to run. Looked at: " + defaultEar.getAbsolutePath()
-            + "\nRun 'mvn package' first, or set bw5.run.earFile explicitly.");
+        // 2. Merge user-provided properties (user wins over generated aliases)
+        if (propertiesFile != null) {
+            if (!propertiesFile.isFile()) {
+                throw new MojoExecutionException(
+                    "bw5.run.propertiesFile does not exist: " + propertiesFile.getAbsolutePath());
+            }
+            Properties userProps = new Properties();
+            try (InputStream is = new FileInputStream(propertiesFile)) {
+                userProps.load(is);
+            } catch (IOException e) {
+                throw new MojoExecutionException(
+                    "Failed to load properties file: " + propertiesFile + ": " + e.getMessage(), e);
+            }
+            for (String key : userProps.stringPropertyNames()) {
+                entries.put(key, userProps.getProperty(key));
+            }
+            getLog().info("Merged " + userProps.size() + " user properties from " + propertiesFile);
+        }
+
+        // 3. Write manually — Properties.store() would escape ':' as '\:' which breaks
+        //    TIBCO's engine when it looks up projlib aliases by Maven coordinate
+        File outFile = new File(project.getBuild().getDirectory(), "bwengine.properties");
+        try (BufferedWriter writer = new BufferedWriter(
+                new OutputStreamWriter(new FileOutputStream(outFile), StandardCharsets.UTF_8))) {
+            writer.write("# Generated by bw5:run — edit and set bw5.run.propertiesFile to customise");
+            writer.newLine();
+            for (Map.Entry<String, String> entry : entries.entrySet()) {
+                // Escape ':' in keys — Properties.load() treats bare ':' as a key-value
+                // separator, which would split Maven coordinates like groupId:artifactId:version
+                writer.write(entry.getKey().replace(":", "\\:") + "=" + entry.getValue());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            throw new MojoExecutionException(
+                "Failed to write bwengine.properties: " + e.getMessage(), e);
+        }
+        return outFile;
     }
 
-    private List<String> buildCommand(File engine, File ear) {
+    private List<String> buildCommand(File engine, File engineProps) {
         List<String> cmd = new ArrayList<>();
         cmd.add(engine.getAbsolutePath());
 
-        // EAR path
+        // bwengine.tra in the same directory as the engine binary
+        File traFile = new File(engine.getParentFile(), "bwengine.tra");
+        if (traFile.isFile()) {
+            cmd.add("--propFile");
+            cmd.add(traFile.getAbsolutePath());
+            getLog().info("TRA file   : " + traFile.getAbsolutePath());
+        } else {
+            getLog().warn("bwengine.tra not found at " + traFile.getAbsolutePath() + " — skipping --propFile");
+        }
+
+        // Application name
+        cmd.add("-n");
+        cmd.add(project.getArtifactId());
+
+        // Generated properties file (aliases + user overrides)
         cmd.add("-p");
-        cmd.add(ear.getAbsolutePath());
+        cmd.add(engineProps.getAbsolutePath());
 
         // Optional domain home
         if (domainHome != null && domainHome.isDirectory()) {
@@ -242,6 +315,9 @@ public class RunBwMojo extends AbstractBw5Mojo {
         if (extraArgs != null) {
             cmd.addAll(Arrays.asList(extraArgs));
         }
+
+        // BW project path — positional, must be last
+        cmd.add(bwProjectPath.getAbsolutePath());
 
         return cmd;
     }

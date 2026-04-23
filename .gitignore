@@ -1,6 +1,10 @@
 # Maven build output
 target/
 
+# macOS resource fork metadata files
+._*
+.DS_Store
+
 # Compiled class files
 *.class
 

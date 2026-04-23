@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example.bw5</groupId>
+    <artifactId>http-dynamic-headers</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>bwear</packaging>
+
+    <name>BW5 HTTP Dynamic Headers Sample</name>
+    <dependencies>
+        <dependency>
+            <groupId>com.example.bw5</groupId>
+            <artifactId>string-utils-lib</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+            <type>projlib</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.12.0</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.tibco.bw</groupId>
+                <artifactId>bw5-maven-plugin</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+                <extensions>true</extensions>
+		<configuration>
+		    <tibcoHome>/opt/tibco</tibcoHome>
+                    <bwProjectPath>${basedir}/src/main/bw</bwProjectPath>
+                    <archiveName>http-dynamic-headers</archiveName>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
