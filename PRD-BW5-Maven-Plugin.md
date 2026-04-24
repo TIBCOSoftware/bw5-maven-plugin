@@ -1,10 +1,10 @@
 # Product Requirements Document
 ## BW5 Maven Plugin (`bw5-maven-plugin`)
 
-**Version:** 1.2
+**Version:** 1.3
 **Status:** Draft — For Review by BW5 Product Management & Engineering
 **Author:** TIBCO BW5 Community
-**Date:** 2026-04-01
+**Date:** 2026-04-23
 
 ---
 
@@ -120,7 +120,8 @@ Managing a portfolio of BW5 and BW6 applications. Needs consistent toolchain con
 | `generate-sources` | `bw5:extract-java-sources` — extracts Java Code activities and Custom Function sources |
 | `process-resources` | `bw5:resolve-dependencies` — resolves projlib/JAR dependencies to `target/bw-lib` |
 | `compile` | `maven-compiler-plugin:compile` — compiles extracted Java sources with standard JDK |
-| `package` | `bw5:bwear` — assembles PAR(s) + SAR + TIBCO.xml into `.ear`; applies property overrides; generates `deploy.xml`, `deploy.properties`, `values.yaml` |
+| `package` | `bw5:bwear` — assembles PAR(s) + SAR + TIBCO.xml into `.ear`; applies property overrides; generates `deploy.xml`, `deploy.properties`, `values.yaml`; resolves dependencies to `target/bw-lib` unless `skipResolveDependencies=true` |
+| `verify` | `bw5:validate` — static analysis of BW project: XML well-formedness, process names, global variable completeness, XPath syntax (see §6.15) |
 | `install` | Standard Maven install |
 | `deploy` | Standard Maven deploy (to Maven repository) |
 
@@ -132,7 +133,7 @@ Managing a portfolio of BW5 and BW6 applications. Needs consistent toolchain con
 | `generate-sources` | `bw5:copy-bw-sources`, `bw5:extract-java-sources` |
 | `process-resources` | `bw5:resolve-dependencies` |
 | `compile` | `maven-compiler-plugin:compile` |
-| `package` | `bw5:bw5module` — assembles `.projlib` archive |
+| `package` | `bw5:projlib` — assembles `.projlib` archive |
 | `install` | Standard Maven install |
 | `deploy` | Standard Maven deploy |
 
@@ -179,7 +180,7 @@ The goal shall produce a valid BW5 EAR without invoking `buildear`.
 - projlib and JAR dependencies are registered as FileAliases in TIBCO.xml (never bundled in the EAR)
 - Compiled Java classes (Code activities and Custom Functions) are included in the PAR under `JavaCode/`
 
-### 6.4 Projlib Assembly (`bw5:bw5module`)
+### 6.4 Projlib Assembly (`bw5:projlib`)
 
 **Requirements:**
 - `.projlib` is a ZIP archive preserving the full BW project directory structure
@@ -360,9 +361,9 @@ mvn package -Dbw5.deployConfig.globalPropertiesFile=/etc/bw5/global.properties
 
 ### 6.11 Local Execution (`bw5:run`)
 
-The `run` goal starts a TIBCO BusinessWorks 5.x engine locally using the EAR produced by `bw5:bwear`. It is designed for **developer inner-loop testing** and local integration checks.
+The `run` goal starts a TIBCO BusinessWorks 5.x engine locally against the BW project sources. It is designed for **developer inner-loop testing** and local integration checks. No EAR file is required — the engine is invoked directly against the BW project directory, which matches the BW5 development workflow in TIBCO Designer.
 
-#### Engine location
+#### Engine location and invocation
 
 The BW engine executable is resolved at:
 
@@ -387,6 +388,28 @@ where `tibcoHome` and `bwVersion` are Maven properties configured in the develop
 
 The `tibco.Home` property name is intentionally aligned with the BW6 plugin so a single `settings.xml` entry covers both generations.
 
+The engine is invoked with the following command structure:
+
+```
+bwengine --propFile bwengine.tra -n <artifactId> -p target/bwengine.properties [-d <domainHome>] [extraArgs] <bwProjectPath>
+```
+
+- `--propFile` points to `bwengine.tra` in the same directory as the engine binary (standard TIBCO runtime agent configuration)
+- `-n <artifactId>` sets the application name in the engine
+- `-p target/bwengine.properties` passes auto-generated runtime properties (see below)
+- `<bwProjectPath>` is the BW project directory (not an EAR file)
+
+#### Generated `bwengine.properties`
+
+Before starting the engine, the plugin generates `target/bwengine.properties` by merging:
+
+1. **Auto-generated `tibco.alias.*` entries** for all Maven dependencies:
+   - Projlibs: `tibco.alias.<groupId>\:<artifactId>\:<version>\:projlib = /path/to/file.projlib`
+   - JARs: `tibco.alias.<artifactId>-<version>.jar = /path/to/file.jar`
+2. **User-provided properties file** (configured via `propertiesFile`): merged on top, so user entries win
+
+The colons in projlib alias keys are escaped as `\:` so Java `Properties.load()` parses the full Maven coordinate as a single key. When a user properties file contains no `tibco.alias.*` entries, all auto-generated aliases are still written to the output so the engine can resolve all dependencies.
+
 #### Background mode
 
 When `bw5.run.background=true`, Maven starts the engine as a background OS process and returns immediately after the startup marker is detected in the engine's stdout (or after `bw5.run.startupWaitSeconds` seconds, whichever comes first). A JVM shutdown hook ensures the engine process is killed when Maven exits.
@@ -399,12 +422,13 @@ When `bw5.run.background=false` (default), Maven blocks until the engine process
 |---|---|---|---|
 | `tibcoHome` | `tibco.Home` | *(required)* | TIBCO installation root |
 | `bwVersion` | `bw5.bwVersion` | `5.13.0` | BW5 version string |
-| `earFile` | `bw5.run.earFile` | `target/<finalName>.ear` | EAR file to run |
+| `propertiesFile` | `bw5.run.propertiesFile` | — | Optional user-provided properties file merged into `target/bwengine.properties`; user entries take precedence over auto-generated aliases |
 | `background` | `bw5.run.background` | `false` | Run engine in background |
-| `startupWaitSeconds` | `bw5.run.startupWaitSeconds` | `30` | Seconds to wait for startup when background=true |
+| `startupWaitSeconds` | `bw5.run.startupWaitSeconds` | `30` | Seconds to wait for startup when `background=true` |
 | `domainHome` | `bw5.run.domainHome` | — | Optional domain home directory (`-d` flag) |
 | `extraArgs` | — | — | Additional `bwengine` arguments |
 | `workingDir` | `bw5.run.workingDir` | `${project.build.directory}` | Engine working directory |
+| `skipResolveDependencies` | `bw5.run.skipResolveDependencies` | `false` | Skip copying projlib/JAR deps to `target/bw-lib` before starting the engine |
 
 #### Usage
 
@@ -418,8 +442,100 @@ mvn bw5:run -Dbw5.run.background=true
 # Run with explicit TIBCO home
 mvn bw5:run -Dtibco.Home=/opt/tibco -Dbw5.bwVersion=5.14.0
 
-# Build and run in one command
+# Run with extra runtime properties (e.g. global variable overrides)
+mvn bw5:run -Dbw5.run.propertiesFile=config/local.properties
+
+# Build EAR then run (resolve deps, start engine)
 mvn package bw5:run -Dbw5.run.background=true
+```
+
+#### Sample `bwengine.properties`
+
+```properties
+# Generated by bw5:run — do not edit manually
+# Auto-generated projlib aliases (Maven coordinates, colons escaped for Properties.load)
+tibco.alias.com.example.bw5\:string-utils-lib\:1.0.0-SNAPSHOT\:projlib=/path/to/string-utils-lib-1.0.0-SNAPSHOT.projlib
+# Auto-generated JAR aliases
+tibco.alias.commons-lang3-3.12.0.jar=/path/to/commons-lang3-3.12.0.jar
+# User-provided global variable overrides (win over auto-generated entries)
+tibco.clientVar.JmsProviderUrl=tcp://localhost:7222
+```
+
+---
+
+### 6.15 Static Validation (`bw5:validate`)
+
+The `validate` goal performs **static analysis of BW project sources** without requiring a TIBCO installation. It runs in the `verify` phase and is designed to give developers early feedback on structural and syntactic issues. Validation failures are reported as warnings by default and do not block EAR assembly.
+
+#### Checks performed
+
+| Code | Check | Severity |
+|---|---|---|
+| `XML` | XML well-formedness of all `.process`, `.archive`, `.substvar`, `.sharedhttp`, `.schema` files | Error |
+| `ARCHIVE` | Archive descriptor (`.archive` file) exists and references a valid PAR name | Error |
+| `PROCESS_NAME` | Process names match their file names; no whitespace or illegal characters | Warning |
+| `DUPLICATE` | No duplicate process names within the same archive | Error |
+| `GVAR` | All `%%VAR%%` global variable references in process config text are declared in a `.substvar` file | Warning |
+| `GVAR_UNUSED` | Global variables declared in `.substvar` that are not referenced anywhere (only when `showUnusedGVars=true`) | Warning |
+| `DEP` | All projlib dependencies are resolvable from the Maven repository | Error |
+| `XPATH` | XPath expressions in process data mappings compile without syntax errors using the full BW5 custom function catalog | Warning |
+
+#### What is NOT checked (vs. TIBCO Designer's `ValidateProject`)
+
+The following checks require a TIBCO runtime or Designer installation and are therefore out of scope:
+
+- Schema validation against TIBCO XSD types
+- Resource connectivity (JDBC connections, JMS destinations, RV transports)
+- Cross-process reference integrity (`CallProcess` activity target resolution)
+- Adapter-specific configuration validation
+- Java Code activity compilation (handled by `maven-compiler-plugin`)
+- Palette-version compatibility
+
+#### BW5 XPath function catalog
+
+XPath expressions are compiled using the full catalog of BW5 custom functions extracted from the BW5 installation (`mapper.jar`). The catalog covers 63 TIBCO-specific functions across categories: string, date/time, binary, number, logical, and set — each with exact arity checking. Standard XPath 1.0 functions and XPath 2.0 functions supported by BW5's Saxon engine are also accepted. Unknown functions or wrong argument counts are reported as `XPATH` warnings.
+
+#### Key parameters
+
+| Parameter | Property | Default | Description |
+|---|---|---|---|
+| `failOnError` | `bw5.validate.failOnError` | `false` | Fail the build if any **Error**-severity issue is found |
+| `failOnWarning` | `bw5.validate.failOnWarning` | `false` | Fail the build if any Warning-severity issue is found |
+| `showUnusedGVars` | `bw5.validate.showUnusedGVars` | `false` | Enable `GVAR_UNUSED` check |
+| `skipXPath` | `bw5.validate.skipXPath` | `false` | Skip XPath expression validation |
+| `skipResolveDependencies` | `bw5.validate.skipResolveDependencies` | `false` | Skip resolving projlib/JAR deps to `target/bw-lib` before validation |
+| `skip` | `bw5.skip` | `false` | Skip this goal entirely |
+
+#### Usage
+
+```bash
+# Run validation as part of the normal build (verify phase)
+mvn verify
+
+# Run standalone
+mvn bw5:validate
+
+# Fail the build on any error
+mvn bw5:validate -Dbw5.validate.failOnError=true
+
+# Full strict mode — fail on errors and warnings, show unused GVars
+mvn bw5:validate \
+    -Dbw5.validate.failOnError=true \
+    -Dbw5.validate.failOnWarning=true \
+    -Dbw5.validate.showUnusedGVars=true
+
+# Skip XPath checking (faster, useful during rapid iteration)
+mvn bw5:validate -Dbw5.validate.skipXPath=true
+```
+
+#### Sample output
+
+```
+[INFO] bw5:validate — scanning BW project at /path/to/MyService
+[INFO] Checked 12 process file(s), 1 archive descriptor(s), 2 substvar file(s)
+[WARN] [GVAR] %%DB_PASSWORD%% referenced in Services/InvoiceService.process but not declared in any .substvar
+[WARN] [XPATH] Services/PaymentService.process: XPath compile error in xsl:value-of: Unknown function 'tib:format-money' (no namespace expected for BW5 functions)
+[INFO] Validation complete: 0 error(s), 2 warning(s)
 ```
 
 ---
@@ -885,7 +1001,32 @@ deploy-to-staging:
 | `globalPropertiesFile` | `bw5.deployConfig.globalPropertiesFile` | — | Global property overrides applied before config generation |
 | `projectPropertiesFile` | `bw5.deployConfig.projectPropertiesFile` | — | Project-specific property overrides (takes precedence) |
 | `archiveDescriptorFile` | `bw5.archiveDescriptorFile` | — | Optional TIBCO Designer `.archive` descriptor file |
+| `skipResolveDependencies` | `bw5.bwear.skipResolveDependencies` | `false` | (`bw5:bwear`) Skip resolving projlib/JAR deps to `target/bw-lib` before EAR assembly |
 | `skip` | `bw5.skip` | `false` | Skip all plugin goals |
+
+### 10.1a `bw5:run` Parameters
+
+| Parameter | Property | Default | Description |
+|---|---|---|---|
+| `tibcoHome` | `tibco.Home` | *(required)* | TIBCO installation root |
+| `bwVersion` | `bw5.bwVersion` | `5.13.0` | BW5 version string |
+| `propertiesFile` | `bw5.run.propertiesFile` | — | User properties file merged into `target/bwengine.properties` |
+| `background` | `bw5.run.background` | `false` | Run engine in background |
+| `startupWaitSeconds` | `bw5.run.startupWaitSeconds` | `30` | Seconds to wait when `background=true` |
+| `domainHome` | `bw5.run.domainHome` | — | Domain home directory (`-d` flag) |
+| `extraArgs` | — | — | Extra `bwengine` arguments |
+| `workingDir` | `bw5.run.workingDir` | `${project.build.directory}` | Engine working directory |
+| `skipResolveDependencies` | `bw5.run.skipResolveDependencies` | `false` | Skip resolving deps before starting the engine |
+
+### 10.1b `bw5:validate` Parameters
+
+| Parameter | Property | Default | Description |
+|---|---|---|---|
+| `failOnError` | `bw5.validate.failOnError` | `false` | Fail build on Error-severity issues |
+| `failOnWarning` | `bw5.validate.failOnWarning` | `false` | Fail build on Warning-severity issues |
+| `showUnusedGVars` | `bw5.validate.showUnusedGVars` | `false` | Enable `GVAR_UNUSED` check |
+| `skipXPath` | `bw5.validate.skipXPath` | `false` | Skip XPath expression validation |
+| `skipResolveDependencies` | `bw5.validate.skipResolveDependencies` | `false` | Skip resolving deps before validation |
 
 ### 10.2 `bw5:designer-setup` Parameters
 
@@ -954,7 +1095,6 @@ The following items are out of scope for v1.0:
 | **Maven archetype** | High | `mvn archetype:generate` templates for new `bwear` and `projlib` projects |
 | **Integration test support** | Medium | `mvn integration-test` with local BW engine execution; opt-in, requires BW engine install |
 | **Enhanced mapping visualisation** | Medium | Graphical source→target mapping diagrams (Sankey-style) for complex XSLT |
-| **Process validation / lint** | Medium | Static analysis: detect broken references, missing shared resources, unused variables |
 | **WSDL/service documentation** | Low | Service contract docs from `.wsdl` and `.serviceagent` files in `bw5:site` |
 | **Control Tower API implementation** | Blocked | Depends on Control Tower Platform API specification (§7.4) — implement when API is published |
 | **BW engine unit testing framework** | Low | Run individual BW processes as JUnit tests without full domain setup |
@@ -970,6 +1110,8 @@ The following items are out of scope for v1.0:
 - [ ] A `.projlib` published to Nexus/Artifactory is resolvable as `<dependency type="projlib">` in another project
 - [ ] Java Code activities are correctly extracted, compiled, and bundled in the artifact
 - [ ] Java Custom Functions in `src/main/java` are compiled and bundled under `CustomFunctions/` in the artifact
+- [ ] `mvn bw5:validate` reports XML errors, missing GVars, and XPath syntax issues without requiring a TIBCO installation; does not block EAR generation by default
+- [ ] `mvn bw5:validate -Dbw5.validate.failOnError=true` fails the build when structural errors are found
 - [ ] `mvn bw5:pull` followed by opening the project in TIBCO Designer resolves all dependencies without manual file copying
 - [ ] `mvn bw5:site` produces an HTML site with SVG diagrams using palette-specific activity icons for all standard activity types
 - [ ] `bw5-deploy:deploy -Dbw5.deploy.environment=administrator` deploys the EAR to a TIBCO Administrator domain

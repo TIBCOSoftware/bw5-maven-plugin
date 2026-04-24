@@ -337,6 +337,18 @@ public class InitMojo extends AbstractMojo {
 
         sb.append("\n");
         sb.append("    <build>\n");
+        sb.append("        <pluginManagement>\n");
+        sb.append("            <plugins>\n");
+        sb.append("                <plugin>\n");
+        sb.append("                    <groupId>org.apache.maven.plugins</groupId>\n");
+        sb.append("                    <artifactId>maven-site-plugin</artifactId>\n");
+        sb.append("                    <version>3.12.1</version>\n");
+        sb.append("                    <configuration>\n");
+        sb.append("                        <skip>true</skip>\n");
+        sb.append("                    </configuration>\n");
+        sb.append("                </plugin>\n");
+        sb.append("            </plugins>\n");
+        sb.append("        </pluginManagement>\n");
         sb.append("        <plugins>\n");
         sb.append("            <plugin>\n");
         sb.append("                <groupId>com.tibco.bw</groupId>\n");
@@ -360,6 +372,13 @@ public class InitMojo extends AbstractMojo {
             sb.append("                </configuration>\n");
         }
 
+        sb.append("                <executions>\n");
+        sb.append("                    <execution>\n");
+        sb.append("                        <id>bw5-site</id>\n");
+        sb.append("                        <phase>site</phase>\n");
+        sb.append("                        <goals><goal>site</goal></goals>\n");
+        sb.append("                    </execution>\n");
+        sb.append("                </executions>\n");
         sb.append("            </plugin>\n");
         sb.append("        </plugins>\n");
         sb.append("    </build>\n");

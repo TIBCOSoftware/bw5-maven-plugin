@@ -18,6 +18,8 @@ public class ProcessDocParser {
     private static final Namespace PD = Namespace.getNamespace("pd", "http://xmlns.tibco.com/bw/process/2003");
     private static final Namespace XSL = Namespace.getNamespace("xsl", "http://www.w3.org/1999/XSL/Transform");
 
+    private int chooseCounter = 0;
+
     public ProcessDocModel parse(File processFile) throws Exception {
         SAXBuilder builder = new SAXBuilder();
         Document doc = builder.build(processFile);
@@ -214,12 +216,13 @@ public class ProcessDocParser {
      */
     private List<ProcessDocModel.FieldMapping> parseMappings(Element bindingsEl) {
         List<ProcessDocModel.FieldMapping> result = new ArrayList<>();
-        collectMappings(bindingsEl, new ArrayList<>(), null, null, result);
+        collectMappings(bindingsEl, new ArrayList<>(), null, null, 0, result);
         return result;
     }
 
     private void collectMappings(Element el, List<String> pathStack,
                                   String currentCondition, String conditionKind,
+                                  int chooseId,
                                   List<ProcessDocModel.FieldMapping> result) {
 
         String tag = el.getName();
@@ -239,48 +242,56 @@ public class ProcessDocParser {
                         m.isConditional = currentCondition != null || "otherwise".equals(conditionKind);
                         m.condition = currentCondition;
                         m.conditionKind = conditionKind;
+                        m.chooseId = chooseId;
                         result.add(m);
                     }
                     return;
                 }
                 case "if": {
                     String test = el.getAttributeValue("test");
+                    int thisIfId = ++chooseCounter;
                     for (Element child : el.getChildren()) {
-                        collectMappings(child, new ArrayList<>(pathStack), test, "if", result);
+                        collectMappings(child, new ArrayList<>(pathStack), test, "if", thisIfId, result);
                     }
                     return;
                 }
                 case "choose": {
-                    // Structural element — recurse without overriding condition
+                    int thisChooseId = ++chooseCounter;
                     for (Element child : el.getChildren()) {
-                        collectMappings(child, new ArrayList<>(pathStack), null, null, result);
+                        collectMappings(child, new ArrayList<>(pathStack), null, null, thisChooseId, result);
                     }
                     return;
                 }
                 case "when": {
-                    String test = el.getAttributeValue("test"); // correct attribute for when
+                    String test = el.getAttributeValue("test");
                     for (Element child : el.getChildren()) {
-                        collectMappings(child, new ArrayList<>(pathStack), test, "when", result);
+                        collectMappings(child, new ArrayList<>(pathStack), test, "when", chooseId, result);
                     }
                     return;
                 }
                 case "otherwise": {
                     for (Element child : el.getChildren()) {
-                        collectMappings(child, new ArrayList<>(pathStack), null, "otherwise", result);
+                        collectMappings(child, new ArrayList<>(pathStack), null, "otherwise", chooseId, result);
                     }
                     return;
                 }
-                case "for-each":
-                case "copy-of": {
+                case "for-each": {
                     String select = el.getAttributeValue("select");
+                    int thisForEachId = ++chooseCounter;
                     for (Element child : el.getChildren()) {
-                        collectMappings(child, new ArrayList<>(pathStack), select, conditionKind, result);
+                        collectMappings(child, new ArrayList<>(pathStack), select, "for-each", thisForEachId, result);
+                    }
+                    return;
+                }
+                case "copy-of": {
+                    for (Element child : el.getChildren()) {
+                        collectMappings(child, new ArrayList<>(pathStack), currentCondition, conditionKind, chooseId, result);
                     }
                     return;
                 }
                 default: {
                     for (Element child : el.getChildren()) {
-                        collectMappings(child, new ArrayList<>(pathStack), currentCondition, conditionKind, result);
+                        collectMappings(child, new ArrayList<>(pathStack), currentCondition, conditionKind, chooseId, result);
                     }
                     return;
                 }
@@ -288,10 +299,7 @@ public class ProcessDocParser {
         }
 
         // Non-XSL element: it's a target field name in the mapping
-        // Skip namespace declaration elements and root wrapper elements
         List<Element> children = el.getChildren();
-        boolean hasXslChildren = children.stream().anyMatch(c -> XSL.equals(c.getNamespace()));
-        boolean hasNonXslChildren = children.stream().anyMatch(c -> !XSL.equals(c.getNamespace()));
 
         // Check for inline xsl:value-of as only/main child
         Element valueOfChild = el.getChild("value-of", XSL);
@@ -308,13 +316,14 @@ public class ProcessDocParser {
                 m.isConditional = currentCondition != null || "otherwise".equals(conditionKind);
                 m.condition = currentCondition;
                 m.conditionKind = conditionKind;
+                m.chooseId = chooseId;
                 result.add(m);
                 // Continue for any other children
                 for (Element child : children) {
                     if (child != valueOfChild) {
                         List<String> newPath = new ArrayList<>(pathStack);
                         newPath.add(tag);
-                        collectMappings(child, newPath, currentCondition, conditionKind, result);
+                        collectMappings(child, newPath, currentCondition, conditionKind, chooseId, result);
                     }
                 }
                 return;
@@ -328,7 +337,7 @@ public class ProcessDocParser {
                 newPath.add(tag);
             }
             for (Element child : children) {
-                collectMappings(child, newPath, currentCondition, conditionKind, result);
+                collectMappings(child, newPath, currentCondition, conditionKind, chooseId, result);
             }
         }
     }

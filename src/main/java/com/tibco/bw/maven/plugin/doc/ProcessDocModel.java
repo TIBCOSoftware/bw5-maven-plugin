@@ -149,5 +149,7 @@ public class ProcessDocModel {
         public String condition;
         /** "if" | "when" | "otherwise" | null */
         public String conditionKind;
+        /** Unique ID of the enclosing xsl:choose block (0 = not inside a choose) */
+        public int chooseId;
     }
 }

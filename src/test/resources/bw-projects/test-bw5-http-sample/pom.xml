@@ -25,17 +25,36 @@
     </dependencies>
 
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-site-plugin</artifactId>
+                    <version>3.12.1</version>
+                    <configuration>
+                        <skip>true</skip>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>com.tibco.bw</groupId>
                 <artifactId>bw5-maven-plugin</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
                 <extensions>true</extensions>
-		<configuration>
-		    <tibcoHome>/opt/tibco</tibcoHome>
+                <configuration>
+                    <tibcoHome>/opt/tibco</tibcoHome>
                     <bwProjectPath>${basedir}/src/main/bw</bwProjectPath>
                     <archiveName>http-dynamic-headers</archiveName>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>bw5-site</id>
+                        <phase>site</phase>
+                        <goals><goal>site</goal></goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

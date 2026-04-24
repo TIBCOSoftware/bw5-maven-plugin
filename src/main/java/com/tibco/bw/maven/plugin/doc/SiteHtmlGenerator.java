@@ -593,6 +593,8 @@ public class SiteHtmlGenerator {
         final List<MTreeNode> children = new ArrayList<>();
         /** Mapping indices that terminate at this node (can be multiple for shared paths). */
         final List<Integer> mappingIdxs = new ArrayList<>();
+        /** Non-zero for virtual branch nodes (WHEN/OTHERWISE/IF/FOR-EACH); used by JS to align branch items. */
+        int branchId = 0;
 
         MTreeNode(String label) { this.label = label; }
 
@@ -608,10 +610,15 @@ public class SiteHtmlGenerator {
         boolean isLeaf() { return children.isEmpty(); }
     }
 
-    /**
-     * Returns true if the XPath expression is a direct variable path reference
-     * (no functions, operators, or predicates) — e.g. {@code $Start/param/field}.
-     */
+    private static class BranchInfo {
+        final int branchId;
+        final String conditionKind;
+        final String condition;
+        BranchInfo(int bid, String kind, String cond) {
+            branchId = bid; conditionKind = kind; condition = cond;
+        }
+    }
+
     private static boolean isSimplePath(String expr) {
         if (expr == null || !expr.startsWith("$")) return false;
         return !expr.contains("(") && !expr.contains("[")
@@ -633,15 +640,47 @@ public class SiteHtmlGenerator {
         return root;
     }
 
-    /** Build a prefix-trie from mapping target paths. */
-    private MTreeNode buildTgtTree(List<ProcessDocModel.FieldMapping> mappings) {
+    /**
+     * Build a prefix-trie from mapping target paths.
+     * For conditional mappings (chooseId > 0), inserts a virtual WHEN/OTHERWISE/IF/FOR-EACH
+     * node just above the leaf. Virtual node labels use the prefix "~WHEN:", "~IF:",
+     * "~FOR-EACH:", or "~OTHERWISE" so renderMTree renders them as badges.
+     * Branch IDs are recorded in {@code branches} for VALUE/EXPRESSION column alignment.
+     */
+    private MTreeNode buildTgtTree(List<ProcessDocModel.FieldMapping> mappings,
+                                   List<BranchInfo> branches) {
         MTreeNode root = new MTreeNode("");
+        int[] branchSeq = {0};
         for (int i = 0; i < mappings.size(); i++) {
             ProcessDocModel.FieldMapping m = mappings.get(i);
             String path = m.targetPath != null ? m.targetPath : m.targetField;
             if (path == null || path.isEmpty()) continue;
+            String[] segs = path.split("/");
             MTreeNode cur = root;
-            for (String seg : path.split("/")) cur = cur.getOrCreate(seg);
+
+            if (m.chooseId > 0) {
+                // Walk all segments except the last, then insert virtual branch node, then leaf
+                for (int s = 0; s < segs.length - 1; s++) cur = cur.getOrCreate(segs[s]);
+                String branchLabel;
+                if ("when".equals(m.conditionKind)) {
+                    branchLabel = "~WHEN:" + (m.condition != null ? m.condition : "");
+                } else if ("if".equals(m.conditionKind)) {
+                    branchLabel = "~IF:" + (m.condition != null ? m.condition : "");
+                } else if ("for-each".equals(m.conditionKind)) {
+                    branchLabel = "~FOR-EACH:" + (m.condition != null ? m.condition : "");
+                } else {
+                    branchLabel = "~OTHERWISE";
+                }
+                MTreeNode branchNode = cur.getOrCreate(branchLabel);
+                if (branchNode.branchId == 0) {
+                    branchNode.branchId = ++branchSeq[0];
+                    branches.add(new BranchInfo(branchNode.branchId, m.conditionKind, m.condition));
+                }
+                cur = branchNode;
+                cur = cur.getOrCreate(segs[segs.length - 1]);
+            } else {
+                for (String seg : segs) cur = cur.getOrCreate(seg);
+            }
             cur.mappingIdxs.add(i);
         }
         return root;
@@ -650,22 +689,43 @@ public class SiteHtmlGenerator {
     /** Render a trie as indented HTML rows; leaf nodes carry data-midxs for JS line drawing. */
     private void renderMTree(Writer w, MTreeNode node, int depth) throws IOException {
         for (MTreeNode child : node.children) {
-            boolean leaf = child.isLeaf();
-            String midxsAttr = "";
-            if (!child.mappingIdxs.isEmpty()) {
-                StringBuilder sb2 = new StringBuilder();
-                for (int i = 0; i < child.mappingIdxs.size(); i++) {
-                    if (i > 0) sb2.append(',');
-                    sb2.append(child.mappingIdxs.get(i));
+            boolean isWhenNode      = child.label.startsWith("~WHEN:");
+            boolean isIfNode        = child.label.startsWith("~IF:");
+            boolean isOtherwiseNode = child.label.equals("~OTHERWISE");
+            boolean isForEachNode   = child.label.startsWith("~FOR-EACH:");
+
+            if (isWhenNode || isIfNode || isOtherwiseNode || isForEachNode) {
+                // Badge row in TARGET tree — condition expression goes to VALUE/EXPRESSION column via branch item
+                String cssSuffix = isOtherwiseNode ? "mtree-branch-otherwise"
+                    : isForEachNode ? "mtree-branch-foreach"
+                    : "mtree-branch-when";
+                String css = "mtree-node mtree-branch-hdr " + cssSuffix;
+                w.write("<div class=\"" + css + "\""
+                    + " data-branch-id=\"" + child.branchId + "\""
+                    + " style=\"padding-left:" + (depth * 14 + 6) + "px\">");
+                if (isWhenNode)         w.write("<span class=\"map-kw map-kw-when\">WHEN</span>");
+                else if (isIfNode)      w.write("<span class=\"map-kw map-kw-if\">IF</span>");
+                else if (isForEachNode) w.write("<span class=\"map-kw map-kw-foreach\">FOR-EACH</span>");
+                else                    w.write("<span class=\"map-kw map-kw-otherwise\">OTHERWISE</span>");
+                w.write("</div>\n");
+            } else {
+                boolean leaf = child.isLeaf();
+                String midxsAttr = "";
+                if (!child.mappingIdxs.isEmpty()) {
+                    StringBuilder sb2 = new StringBuilder();
+                    for (int i = 0; i < child.mappingIdxs.size(); i++) {
+                        if (i > 0) sb2.append(',');
+                        sb2.append(child.mappingIdxs.get(i));
+                    }
+                    midxsAttr = " data-midxs=\"" + sb2 + "\"";
                 }
-                midxsAttr = " data-midxs=\"" + sb2 + "\"";
+                w.write("<div class=\"mtree-node" + (leaf ? " mtree-leaf" : "") + "\""
+                    + midxsAttr
+                    + " style=\"padding-left:" + (depth * 14 + 6) + "px\">");
+                w.write("<span class=\"mtree-icon\">" + (leaf ? "&#9656;" : "&#9662;") + "</span>");
+                w.write("<span class=\"mtree-lbl\">" + esc(child.label) + "</span>");
+                w.write("</div>\n");
             }
-            w.write("<div class=\"mtree-node" + (leaf ? " mtree-leaf" : "") + "\""
-                + midxsAttr
-                + " style=\"padding-left:" + (depth * 14 + 6) + "px\">");
-            w.write("<span class=\"mtree-icon\">" + (leaf ? "&#9656;" : "&#9662;") + "</span>");
-            w.write("<span class=\"mtree-lbl\">" + esc(child.label) + "</span>");
-            w.write("</div>\n");
             renderMTree(w, child, depth + 1);
         }
     }
@@ -686,8 +746,9 @@ public class SiteHtmlGenerator {
             List<ProcessDocModel.FieldMapping> mappings = a.inputMappings;
             String wid = "mw-" + widgetIdx++;
 
+            List<BranchInfo> branches = new ArrayList<>();
             MTreeNode srcRoot = buildSrcTree(mappings);
-            MTreeNode tgtRoot = buildTgtTree(mappings);
+            MTreeNode tgtRoot = buildTgtTree(mappings, branches);
 
             w.write("  <div class=\"mapping-block\">\n");
             w.write("    <div class=\"mapping-act-header\">" + esc(a.name) + "</div>\n");
@@ -713,34 +774,63 @@ public class SiteHtmlGenerator {
             w.write("        </div>\n");
             w.write("      </div>\n");
 
-            // ── Condition / value column ─────────────────────────────────────
+            // ── Value / Expression column ────────────────────────────────────
+            // For choose-block mappings (chooseId > 0): each mapping gets its own
+            // cond-item aligned to its individual leaf (condition is already shown
+            // in the TARGET tree as a virtual node — don't repeat it here).
+            // For simple mappings: group by targetPath as before.
             w.write("      <div class=\"mapper-col mapper-cond\">\n");
             w.write("        <div class=\"mapper-col-head\">Value / Expression</div>\n");
+
+            // Build groups: choose mappings are individual; others grouped by targetPath
+            Map<String, List<Integer>> tgtGroups = new LinkedHashMap<>();
             for (int i = 0; i < mappings.size(); i++) {
                 ProcessDocModel.FieldMapping m = mappings.get(i);
-                String kind = m.conditionKind; // "if" | "when" | "otherwise" | null
-                w.write("        <div class=\"mapper-cond-item"
-                    + (kind != null ? " map-kind-" + kind : "") + "\" data-midx=\"" + i + "\">");
-                // Condition kind badge
-                if ("if".equals(kind)) {
-                    w.write("<span class=\"map-kw map-kw-if\">IF</span> ");
-                    if (m.condition != null && !m.condition.isEmpty()) {
-                        w.write("<code class=\"map-cond-expr\">" + esc(m.condition) + "</code> ");
+                String key = m.chooseId > 0
+                    ? "~choose:" + i                                      // unique per choose mapping
+                    : (m.targetPath != null ? m.targetPath : "#" + i);   // grouped for simple mappings
+                tgtGroups.computeIfAbsent(key, k -> new ArrayList<>()).add(i);
+            }
+
+            for (Map.Entry<String, List<Integer>> grp : tgtGroups.entrySet()) {
+                List<Integer> midxs = grp.getValue();
+                String midxsStr = midxs.stream().map(Object::toString)
+                        .collect(Collectors.joining(","));
+                w.write("        <div class=\"mapper-cond-item\" data-midxs=\"" + midxsStr + "\">\n");
+                for (int midx : midxs) {
+                    ProcessDocModel.FieldMapping m = mappings.get(midx);
+                    String kind = m.conditionKind;
+                    // Build tooltip from source expression only (conditions shown in branch items)
+                    String tip = (m.sourceExpression != null && !m.sourceExpression.isEmpty())
+                        ? m.sourceExpression : null;
+                    w.write("          <div class=\"cond-alt-row"
+                        + (kind != null ? " map-kind-" + kind : "") + "\""
+                        + (tip != null ? " title=\"" + esc(tip) + "\"" : "")
+                        + ">");
+                    // Value / expression (literals + complex XPath)
+                    // Condition keywords (WHEN/OTHERWISE/IF/FOR-EACH) are shown in branch items, not here
+                    if (m.isLiteral) {
+                        w.write("<span class=\"map-literal\" title=\"" + esc(m.sourceExpression) + "\">"
+                            + "\"" + esc(m.sourceExpression) + "\"</span>");
+                    } else if (!isSimplePath(m.sourceExpression)
+                               && m.sourceExpression != null && !m.sourceExpression.isEmpty()) {
+                        w.write("<code class=\"map-xpath\" title=\"" + esc(m.sourceExpression) + "\">"
+                            + esc(m.sourceExpression) + "</code>");
                     }
-                } else if ("when".equals(kind)) {
-                    w.write("<span class=\"map-kw map-kw-when\">WHEN</span> ");
-                    if (m.condition != null && !m.condition.isEmpty()) {
-                        w.write("<code class=\"map-cond-expr\">" + esc(m.condition) + "</code> ");
-                    }
-                } else if ("otherwise".equals(kind)) {
-                    w.write("<span class=\"map-kw map-kw-otherwise\">OTHERWISE</span> ");
+                    w.write("</div>\n");
                 }
-                // Value / expression
-                if (m.isLiteral) {
-                    w.write("<span class=\"map-literal\">\"" + esc(m.sourceExpression) + "\"</span>");
-                } else if (!isSimplePath(m.sourceExpression)
-                           && m.sourceExpression != null && !m.sourceExpression.isEmpty()) {
-                    w.write("<code class=\"map-xpath\">" + esc(m.sourceExpression) + "</code>");
+                w.write("        </div>\n");
+            }
+
+            // Branch items: one per virtual branch node, absolutely positioned by JS
+            // to align with the corresponding WHEN/OTHERWISE/IF/FOR-EACH badge in the TARGET tree
+            for (BranchInfo b : branches) {
+                w.write("        <div class=\"mapper-branch-item\" data-branch-id=\"" + b.branchId + "\">");
+                if ("otherwise".equals(b.conditionKind)) {
+                    w.write("<span class=\"map-kw map-kw-otherwise\">OTHERWISE</span>");
+                } else if (b.condition != null && !b.condition.isEmpty()) {
+                    w.write("<code class=\"map-cond-expr\" title=\"" + esc(b.condition) + "\">"
+                        + esc(b.condition) + "</code>");
                 }
                 w.write("</div>\n");
             }
@@ -1179,10 +1269,28 @@ public class SiteHtmlGenerator {
         + ".mtree-lbl { color: var(--c-text); overflow: hidden; text-overflow: ellipsis; }\n"
         + ".mtree-leaf > .mtree-lbl { font-weight: 700; color: #1565c0; }\n"
         + "[data-theme='dark'] .mtree-leaf > .mtree-lbl { color: #60a5fa; }\n"
-        // Condition column items — absolutely positioned by JS; nowrap to prevent height growth
-        + ".mapper-cond-item { position: absolute; left: 0; right: 0; padding: 0 10px;"
-        +   " display: flex; align-items: center; flex-wrap: nowrap; gap: 3px; overflow: hidden;"
+        // WHEN / OTHERWISE / IF header nodes inside the TARGET tree
+        + ".mtree-branch-hdr { gap: 5px; min-height: 24px; padding-top: 3px; padding-bottom: 3px; }\n"
+        + ".mtree-branch-when     { border-left: 3px solid #3b82f6; background: #EFF6FF33; }\n"
+        + ".mtree-branch-otherwise{ border-left: 3px solid #8b5cf6; background: #F5F3FF33; }\n"
+        + ".mtree-branch-foreach  { border-left: 3px solid #22c55e; background: #F0FFF433; }\n"
+        + "[data-theme='dark'] .mtree-branch-when      { background: #1e3a5f30; }\n"
+        + "[data-theme='dark'] .mtree-branch-otherwise { background: #2e106530; }\n"
+        + "[data-theme='dark'] .mtree-branch-foreach   { background: #0D2A1830; }\n"
+        // Condition column items — absolutely positioned by JS
+        + ".mapper-cond-item { position: absolute; left: 0; right: 0;"
+        +   " display: flex; flex-direction: column; overflow: hidden;"
         +   " font-size: 11px; transform: translateY(-50%); }\n"
+        // Each conditional alternative row inside the grouped item
+        + ".cond-alt-row { display: flex; align-items: center; flex-wrap: nowrap; gap: 3px;"
+        +   " padding: 1px 10px; min-height: 22px; overflow: hidden;"
+        +   " white-space: nowrap; }\n"
+        + ".cond-alt-row:hover { overflow: visible; z-index: 10; background: var(--c-bg);"
+        +   " box-shadow: 0 2px 8px rgba(0,0,0,.12); border-radius: 4px; }\n"
+        + ".cond-alt-row:hover .map-xpath,"
+        +   " .cond-alt-row:hover .map-literal,"
+        +   " .cond-alt-row:hover .map-cond-expr"
+        +   " { overflow: visible; white-space: normal; word-break: break-all; }\n"
         + ".map-xpath { color: #1565c0; font-family: monospace; overflow: hidden;"
         +   " text-overflow: ellipsis; white-space: nowrap; min-width: 0; }\n"
         + "[data-theme='dark'] .map-xpath { color: #60a5fa; }\n"
@@ -1201,13 +1309,21 @@ public class SiteHtmlGenerator {
         + ".map-kw-if       { background: #FFF7ED; color: #c2410c; }\n"
         + ".map-kw-when     { background: #EFF6FF; color: #1d4ed8; }\n"
         + ".map-kw-otherwise{ background: #F5F3FF; color: #6d28d9; }\n"
+        + ".map-kw-foreach  { background: #F0FFF4; color: #15803d; }\n"
         + "[data-theme='dark'] .map-kw-if        { background: #431407; color: #fb923c; }\n"
         + "[data-theme='dark'] .map-kw-when      { background: #1e3a5f; color: #93c5fd; }\n"
         + "[data-theme='dark'] .map-kw-otherwise { background: #2e1065; color: #c4b5fd; }\n"
-        // Visual left-accent bar for when/otherwise rows (groups conditional alternatives)
-        + ".map-kind-when     { border-left: 3px solid #3b82f6; padding-left: 7px; }\n"
-        + ".map-kind-otherwise{ border-left: 3px solid #8b5cf6; padding-left: 7px; }\n"
-        + ".map-kind-if       { border-left: 3px solid #f97316; padding-left: 7px; }\n"
+        + "[data-theme='dark'] .map-kw-foreach   { background: #0D2A18; color: #4ade80; }\n"
+        + ".cond-alt-row.map-kind-if { border-left: 3px solid #f97316; padding-left: 7px; }\n"
+        + ".cond-alt-row.map-kind-for-each { border-left: 3px solid #22c55e; padding-left: 7px; }\n"
+        // Branch items: condition expressions aligned to virtual branch nodes in TARGET tree
+        + ".mapper-branch-item { position: absolute; left: 0; right: 0; display: flex;"
+        +   " align-items: center; gap: 4px; padding: 2px 10px; font-size: 11px;"
+        +   " transform: translateY(-50%); overflow: hidden; white-space: nowrap; }\n"
+        + ".mapper-branch-item:hover { overflow: visible; z-index: 10; background: var(--c-bg);"
+        +   " box-shadow: 0 2px 8px rgba(0,0,0,.12); border-radius: 4px; }\n"
+        + ".mapper-branch-item:hover .map-cond-expr { overflow: visible; white-space: normal;"
+        +   " word-break: break-all; }\n"
         // SVG line overlay
         + ".mapper-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
         +   " pointer-events: none; z-index: 2; overflow: visible; }\n"
@@ -1442,18 +1558,37 @@ public class SiteHtmlGenerator {
         + "    var tgtCol=widget.querySelector('.mapper-tgt');\n"
         + "    var wr=widget.getBoundingClientRect();\n"
         + "    if(!svgEl||wr.width===0||!srcCol||!tgtCol) return;\n"
-        // Right boundary of source column — used to clamp overflowing label text
         + "    var srcColR=srcCol.getBoundingClientRect().right;\n"
+        // Align branch items (WHEN/OTHERWISE/IF/FOR-EACH condition expressions) with their header badges
+        + "    if(condCol){\n"
+        + "      widget.querySelectorAll('.mapper-tgt .mtree-branch-hdr').forEach(function(hdr){\n"
+        + "        var bid=hdr.getAttribute('data-branch-id'); if(!bid) return;\n"
+        + "        var item=condCol.querySelector('.mapper-branch-item[data-branch-id=\"'+bid+'\"]');\n"
+        + "        if(!item) return;\n"
+        + "        var br=hdr.getBoundingClientRect();\n"
+        + "        var cr=condCol.getBoundingClientRect();\n"
+        + "        item.style.top=((br.top+br.bottom)/2-cr.top)+'px';\n"
+        + "      });\n"
+        + "    }\n"
         + "    var paths=[];\n"
         + "    widget.querySelectorAll('.mapper-tgt .mtree-leaf').forEach(function(tgtLeaf){\n"
         + "      var midxsRaw=tgtLeaf.getAttribute('data-midxs'); if(!midxsRaw) return;\n"
         + "      var tr=tgtLeaf.getBoundingClientRect();\n"
         + "      var tgtMidY=(tr.top+tr.bottom)/2;\n"
-        + "      midxsRaw.split(',').map(Number).forEach(function(midx){\n"
-        + "        if(condCol){\n"
-        + "          var ci=condCol.querySelector('.mapper-cond-item[data-midx=\"'+midx+'\"]');\n"
-        + "          if(ci){ var cr=condCol.getBoundingClientRect(); ci.style.top=(tgtMidY-cr.top)+'px'; }\n"
+        + "      var midxArr=midxsRaw.split(',').map(Number);\n"
+        + "      if(condCol){\n"
+        + "        var condItems=[].slice.call(condCol.querySelectorAll('.mapper-cond-item'));\n"
+        + "        for(var ci=0;ci<condItems.length;ci++){\n"
+        + "          var ciMidxs=(condItems[ci].getAttribute('data-midxs')||'').split(',').map(Number);\n"
+        + "          var hits=midxArr.filter(function(m){return ciMidxs.indexOf(m)>=0;});\n"
+        + "          if(hits.length>0){\n"
+        + "            var cr=condCol.getBoundingClientRect();\n"
+        + "            condItems[ci].style.top=(tgtMidY-cr.top)+'px';\n"
+        + "            break;\n"
+        + "          }\n"
         + "        }\n"
+        + "      }\n"
+        + "      midxArr.forEach(function(midx){\n"
         + "        var srcLeaves=[].slice.call(widget.querySelectorAll('.mapper-src .mtree-leaf'));\n"
         + "        var srcLeaf=null;\n"
         + "        for(var i=0;i<srcLeaves.length;i++){\n"
@@ -1462,12 +1597,10 @@ public class SiteHtmlGenerator {
         + "        }\n"
         + "        if(!srcLeaf) return;\n"
         + "        var sr=srcLeaf.getBoundingClientRect();\n"
-        // x1 = right edge of source leaf label, clamped to column boundary
         + "        var srcLbl=srcLeaf.querySelector('.mtree-lbl');\n"
         + "        var srcLblR=srcLbl?srcLbl.getBoundingClientRect().right:sr.right;\n"
         + "        var x1=Math.round(Math.min(srcLblR,srcColR)-wr.left);\n"
         + "        var y1=Math.round((sr.top+sr.bottom)/2-wr.top);\n"
-        // x2 = left edge of target leaf icon (start of visible content, after indentation)
         + "        var tgtIcon=tgtLeaf.querySelector('.mtree-icon');\n"
         + "        var tgtIconL=tgtIcon?tgtIcon.getBoundingClientRect().left:tr.left;\n"
         + "        var x2=Math.round(tgtIconL-wr.left);\n"
