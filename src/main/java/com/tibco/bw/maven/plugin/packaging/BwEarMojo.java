@@ -575,15 +575,16 @@ public class BwEarMojo extends AbstractBw5Mojo {
     private List<SubstVarParser.GlobalVariable> parseGlobalVars(List<BwFile> metadataFiles) {
         List<SubstVarParser.GlobalVariable> result = new ArrayList<>();
         SubstVarParser parser = new SubstVarParser();
-        // Track variable names to avoid duplicates (multiple .substvar files may define same vars)
         Set<String> seen = new LinkedHashSet<>();
 
         for (BwFile bwf : metadataFiles) {
             if (!bwf.file.getName().endsWith(".substvar")) continue;
             try {
+                String prefix = computeGvPrefix(bwf.relativePath);
                 List<SubstVarParser.GlobalVariable> vars = parser.parse(bwf.file);
                 for (SubstVarParser.GlobalVariable var : vars) {
                     var.substVarFile = bwf.file.getName();
+                    var.name = prefix + var.name;
                     if (seen.add(var.name)) {
                         result.add(var);
                     }
@@ -593,6 +594,48 @@ public class BwEarMojo extends AbstractBw5Mojo {
             }
         }
         return result;
+    }
+
+    /**
+     * Scans {@code srcDir} recursively for {@code .sharedjdbc} files and returns their paths
+     * in the form {@code /relative/path/WithoutExtension}, which is the format used by
+     * {@code <chk:availableSharedResourceName>} in the PAR-level TIBCO.xml.
+     */
+    private List<String> scanJdbcResourcePaths(File srcDir) {
+        List<String> paths = new ArrayList<>();
+        scanJdbcResourcePathsRecursive(srcDir, srcDir, paths);
+        java.util.Collections.sort(paths);
+        return paths;
+    }
+
+    private void scanJdbcResourcePathsRecursive(File rootDir, File dir, List<String> paths) {
+        File[] files = dir.listFiles();
+        if (files == null) return;
+        for (File f : files) {
+            if (f.isDirectory()) {
+                scanJdbcResourcePathsRecursive(rootDir, f, paths);
+            } else if (f.getName().endsWith(".sharedjdbc")) {
+                String rel = rootDir.toURI().relativize(f.toURI()).getPath();
+                // strip extension and add leading slash
+                String path = "/" + rel.substring(0, rel.lastIndexOf('.'));
+                paths.add(path);
+            }
+        }
+    }
+
+    /**
+     * Derives the global-variable folder prefix from a .substvar file's relative path.
+     * BW5 stores substvar files in {@code defaultVars/<FolderA>/<FolderB>/defaultVars.substvar};
+     * the corresponding TIBCO.xml name prefix is {@code FolderA/FolderB/}.
+     */
+    private static String computeGvPrefix(String relativePath) {
+        String marker = "defaultVars/";
+        int idx = relativePath.indexOf(marker);
+        if (idx < 0) return "";
+        String afterMarker = relativePath.substring(idx + marker.length());
+        int lastSlash = afterMarker.lastIndexOf('/');
+        if (lastSlash < 0) return "";
+        return afterMarker.substring(0, lastSlash + 1);
     }
 
     // -----------------------------------------------------------------------
@@ -990,6 +1033,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
             parFile.getName(),
             processMetadata,
             sarPaths,
+            scanJdbcResourcePaths(srcDir),
             null
         );
 

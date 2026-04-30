@@ -179,17 +179,20 @@ public class TibcoXmlGenerator {
     /**
      * Generates the PAR-level TIBCO.xml deployment descriptor.
      *
-     * @param outputFile  target file to write
-     * @param parFileName PAR file name (e.g. "Process Archive.par")
-     * @param processes   metadata extracted from each .process file in the PAR
-     * @param sarPaths    paths of SAR resource files (with leading "/") for EXTERNAL_DEPENDENCIES
-     * @param owner       owner string
+     * @param outputFile        target file to write
+     * @param parFileName       PAR file name (e.g. "Process Archive.par")
+     * @param processes         metadata extracted from each .process file in the PAR
+     * @param sarPaths          paths of SAR resource files (with leading "/") for EXTERNAL_DEPENDENCIES
+     * @param jdbcCheckpointPaths paths of JDBC shared resources (e.g. "/0SharedResource/JDBC/Foo")
+     *                          listed as available checkpoint resources in BwCheckpoint
+     * @param owner             owner string
      */
     public void generateParDescriptor(
             File outputFile,
             String parFileName,
             List<ProcessParser.ProcessMetadata> processes,
             List<String> sarPaths,
+            List<String> jdbcCheckpointPaths,
             String owner) throws IOException {
 
         String date = new SimpleDateFormat(DATE_FORMAT, Locale.ROOT).format(new Date());
@@ -261,7 +264,15 @@ public class TibcoXmlGenerator {
         sb.append("    </DeploymentDescriptorFactory>\n");
         sb.append("    <chk:BwCheckpoint xmlns:chk=\"http://www.tibco.com/xmlns/checkpoint\">\n");
         sb.append("        <name>TIBCO BusinessWorks Checkpoint Data Repository</name>\n");
+        if (jdbcCheckpointPaths != null) {
+            for (String path : jdbcCheckpointPaths) {
+                sb.append("        <chk:availableSharedResourceName>").append(escape(path)).append("</chk:availableSharedResourceName>\n");
+            }
+        }
         sb.append("        <chk:useSharedResource>false</chk:useSharedResource>\n");
+        String parBase = parFileName.contains(".") ? parFileName.substring(0, parFileName.lastIndexOf('.')) : parFileName;
+        String tablePrefix = parBase.replace(" ", "_").replace("Archive", "Ar") + "_" + Math.abs(parBase.hashCode());
+        sb.append("        <!--<chk:tablePrefix>").append(tablePrefix).append("</chk:tablePrefix>-->\n");
         sb.append("    </chk:BwCheckpoint>\n");
 
         // BwBPConfigurations: one entry per process that has a starter
@@ -281,6 +292,7 @@ public class TibcoXmlGenerator {
                 sb.append("            <pd:enabled>true</pd:enabled>\n");
                 sb.append("            <pd:maxJobs>0</pd:maxJobs>\n");
                 sb.append("            <pd:activation>true</pd:activation>\n");
+                sb.append("            <!--<pd:flowLimit>0</pd:flowLimit>-->\n");
                 sb.append("        </pd:BwBPConfiguration>\n");
             }
         }

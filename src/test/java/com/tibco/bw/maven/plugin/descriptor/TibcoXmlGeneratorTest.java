@@ -287,7 +287,7 @@ public class TibcoXmlGeneratorTest {
             List<String> sarPaths) throws Exception {
         File tmp = File.createTempFile("par-tibco", ".xml");
         tmp.deleteOnExit();
-        new TibcoXmlGenerator().generateParDescriptor(tmp, parFileName, processes, sarPaths, "test-owner");
+        new TibcoXmlGenerator().generateParDescriptor(tmp, parFileName, processes, sarPaths, java.util.Collections.emptyList(), "test-owner");
         return new SAXBuilder().build(tmp);
     }
 
