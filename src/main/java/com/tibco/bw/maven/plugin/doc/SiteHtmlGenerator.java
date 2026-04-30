@@ -131,12 +131,16 @@ public class SiteHtmlGenerator {
         long starterCount = processes.stream().filter(p -> p.starter != null).count();
         long totalActivities = processes.stream().mapToLong(p -> p.activities.size()).sum();
         long totalTransitions = processes.stream().mapToLong(p -> p.transitions.size()).sum();
+        long depCount = countDependencies();
         w.write("<div class=\"stats-row\">\n");
         writeStat(w, String.valueOf(processes.size()), "Processes", "📄");
         writeStat(w, String.valueOf(starterCount), "Event Sources", "▶");
         writeStat(w, String.valueOf(totalActivities), "Activities", "⚙");
         writeStat(w, String.valueOf(totalTransitions), "Transitions", "→");
         writeStat(w, String.valueOf(pluginProcessCount.size()), "Plugins", "🔌");
+        if (depCount > 0) {
+            writeStat(w, String.valueOf(depCount), "Dependencies", "📦");
+        }
         w.write("</div>\n");
 
         // ── Required plugins ─────────────────────────────────────────────────
@@ -171,6 +175,9 @@ public class SiteHtmlGenerator {
             w.write("  </div>\n</section>\n");
         }
 
+        // ── Dependencies ─────────────────────────────────────────────────────
+        writeDependenciesSection(w);
+
         // ── Process list ─────────────────────────────────────────────────────
         w.write("<section class=\"card\">\n");
         w.write("  <div class=\"section-header\">\n");
@@ -198,9 +205,6 @@ public class SiteHtmlGenerator {
             w.write("    </tr>\n");
         }
         w.write("  </tbody></table>\n</section>\n");
-
-        // ── Maven dependencies ────────────────────────────────────────────────
-        writeDependenciesSection(w);
 
         w.write("</div>\n</main>\n</div>\n");
         writeHtmlFoot(w);
@@ -845,27 +849,61 @@ public class SiteHtmlGenerator {
         w.write("</section>\n");
     }
 
+    private long countDependencies() {
+        Set<Artifact> artifacts = project.getArtifacts();
+        if (artifacts == null) return 0;
+        return artifacts.stream()
+            .filter(a -> "projlib".equals(a.getType()) || "jar".equals(a.getType()))
+            .count();
+    }
+
     private void writeDependenciesSection(Writer w) throws IOException {
         Set<Artifact> artifacts = project.getArtifacts();
         if (artifacts == null) return;
+
         List<Artifact> projlibs = new ArrayList<>();
+        List<Artifact> jars = new ArrayList<>();
+        List<Artifact> others = new ArrayList<>();
         for (Artifact a : artifacts) {
-            if ("projlib".equals(a.getType())) projlibs.add(a);
+            switch (a.getType()) {
+                case "projlib": projlibs.add(a); break;
+                case "jar":     jars.add(a);     break;
+                default:        others.add(a);   break;
+            }
         }
-        if (projlibs.isEmpty()) return;
-        w.write("<section class=\"card\">\n<h2>Projlib Dependencies</h2>\n");
-        w.write("<table class=\"data-table\">\n");
-        w.write("  <thead><tr><th>GroupId</th><th>ArtifactId</th><th>Version</th><th>Scope</th></tr></thead>\n");
-        w.write("  <tbody>\n");
-        for (Artifact a : projlibs) {
-            w.write("  <tr class=\"dep-projlib\">\n");
-            w.write("    <td>" + esc(a.getGroupId()) + "</td>\n");
-            w.write("    <td><strong>" + esc(a.getArtifactId()) + "</strong></td>\n");
-            w.write("    <td>" + esc(a.getVersion()) + "</td>\n");
-            w.write("    <td>" + esc(a.getScope()) + "</td>\n");
-            w.write("  </tr>\n");
+        if (projlibs.isEmpty() && jars.isEmpty() && others.isEmpty()) return;
+
+        w.write("<section class=\"card\">\n");
+        w.write("  <h2>Dependencies</h2>\n");
+
+        if (!projlibs.isEmpty()) {
+            w.write("  <h3 class=\"dep-subsection\">Projlib Dependencies</h3>\n");
+            writeDepTable(w, projlibs, "dep-projlib");
         }
-        w.write("  </tbody>\n</table>\n</section>\n");
+        if (!jars.isEmpty()) {
+            w.write("  <h3 class=\"dep-subsection\">JAR Dependencies</h3>\n");
+            writeDepTable(w, jars, "dep-jar");
+        }
+        if (!others.isEmpty()) {
+            w.write("  <h3 class=\"dep-subsection\">Other Dependencies</h3>\n");
+            writeDepTable(w, others, "dep-other");
+        }
+        w.write("</section>\n");
+    }
+
+    private void writeDepTable(Writer w, List<Artifact> deps, String rowClass) throws IOException {
+        w.write("  <table class=\"data-table\">\n");
+        w.write("    <thead><tr><th>GroupId</th><th>ArtifactId</th><th>Version</th><th>Scope</th></tr></thead>\n");
+        w.write("    <tbody>\n");
+        for (Artifact a : deps) {
+            w.write("    <tr class=\"" + rowClass + "\">\n");
+            w.write("      <td>" + esc(a.getGroupId()) + "</td>\n");
+            w.write("      <td><strong>" + esc(a.getArtifactId()) + "</strong></td>\n");
+            w.write("      <td>" + esc(a.getVersion()) + "</td>\n");
+            w.write("      <td>" + esc(a.getScope()) + "</td>\n");
+            w.write("    </tr>\n");
+        }
+        w.write("    </tbody>\n  </table>\n");
     }
 
     // ── HTML head / foot ─────────────────────────────────────────────────────
@@ -1362,8 +1400,15 @@ public class SiteHtmlGenerator {
         +   " white-space: normal; word-break: break-word; max-width: 280px; }\n"
 
         // ── Dependencies ─────────────────────────────────────────────────────
+        + ".dep-subsection { font-size: 13px; font-weight: 600; margin: 16px 0 6px;"
+        +   " color: var(--c-text-2); text-transform: uppercase; letter-spacing: .04em; }\n"
+        + ".dep-subsection:first-of-type { margin-top: 4px; }\n"
         + "tr.dep-projlib td { background: #F0FFF4; }\n"
         + "[data-theme='dark'] tr.dep-projlib td { background: #0D2A18; }\n"
+        + "tr.dep-jar td { background: #EFF6FF; }\n"
+        + "[data-theme='dark'] tr.dep-jar td { background: #0D1F3C; }\n"
+        + "tr.dep-other td { background: #FEFCE8; }\n"
+        + "[data-theme='dark'] tr.dep-other td { background: #2A2508; }\n"
 
         // ── Footer ───────────────────────────────────────────────────────────
         + ".site-footer { text-align: center; padding: 24px; color: var(--c-text-3); font-size: 12px; }\n"
