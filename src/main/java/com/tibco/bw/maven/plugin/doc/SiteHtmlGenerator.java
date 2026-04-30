@@ -1,6 +1,6 @@
 package com.tibco.bw.maven.plugin.doc;
 
-import org.apache.maven.artifact.Artifact;
+import org.apache.maven.model.Dependency;
 import org.apache.maven.project.MavenProject;
 
 import java.io.*;
@@ -850,25 +850,26 @@ public class SiteHtmlGenerator {
     }
 
     private long countDependencies() {
-        Set<Artifact> artifacts = project.getArtifacts();
-        if (artifacts == null) return 0;
-        return artifacts.stream()
-            .filter(a -> "projlib".equals(a.getType()) || "jar".equals(a.getType()))
+        List<Dependency> deps = project.getDependencies();
+        if (deps == null) return 0;
+        return deps.stream()
+            .filter(d -> !"test".equals(d.getScope()) && !d.isOptional())
             .count();
     }
 
     private void writeDependenciesSection(Writer w) throws IOException {
-        Set<Artifact> artifacts = project.getArtifacts();
-        if (artifacts == null) return;
+        List<Dependency> deps = project.getDependencies();
+        if (deps == null || deps.isEmpty()) return;
 
-        List<Artifact> projlibs = new ArrayList<>();
-        List<Artifact> jars = new ArrayList<>();
-        List<Artifact> others = new ArrayList<>();
-        for (Artifact a : artifacts) {
-            switch (a.getType()) {
-                case "projlib": projlibs.add(a); break;
-                case "jar":     jars.add(a);     break;
-                default:        others.add(a);   break;
+        List<Dependency> projlibs = new ArrayList<>();
+        List<Dependency> jars = new ArrayList<>();
+        List<Dependency> others = new ArrayList<>();
+        for (Dependency d : deps) {
+            if ("test".equals(d.getScope())) continue;
+            switch (d.getType() == null ? "jar" : d.getType()) {
+                case "projlib": projlibs.add(d); break;
+                case "jar":     jars.add(d);     break;
+                default:        others.add(d);   break;
             }
         }
         if (projlibs.isEmpty() && jars.isEmpty() && others.isEmpty()) return;
@@ -891,16 +892,17 @@ public class SiteHtmlGenerator {
         w.write("</section>\n");
     }
 
-    private void writeDepTable(Writer w, List<Artifact> deps, String rowClass) throws IOException {
+    private void writeDepTable(Writer w, List<Dependency> deps, String rowClass) throws IOException {
         w.write("  <table class=\"data-table\">\n");
         w.write("    <thead><tr><th>GroupId</th><th>ArtifactId</th><th>Version</th><th>Scope</th></tr></thead>\n");
         w.write("    <tbody>\n");
-        for (Artifact a : deps) {
+        for (Dependency d : deps) {
+            String scope = d.getScope() != null ? d.getScope() : "compile";
             w.write("    <tr class=\"" + rowClass + "\">\n");
-            w.write("      <td>" + esc(a.getGroupId()) + "</td>\n");
-            w.write("      <td><strong>" + esc(a.getArtifactId()) + "</strong></td>\n");
-            w.write("      <td>" + esc(a.getVersion()) + "</td>\n");
-            w.write("      <td>" + esc(a.getScope()) + "</td>\n");
+            w.write("      <td>" + esc(d.getGroupId()) + "</td>\n");
+            w.write("      <td><strong>" + esc(d.getArtifactId()) + "</strong></td>\n");
+            w.write("      <td>" + esc(d.getVersion()) + "</td>\n");
+            w.write("      <td>" + esc(scope) + "</td>\n");
             w.write("    </tr>\n");
         }
         w.write("    </tbody>\n  </table>\n");
