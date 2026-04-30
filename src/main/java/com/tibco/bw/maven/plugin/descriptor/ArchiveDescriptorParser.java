@@ -83,10 +83,21 @@ public class ArchiveDescriptorParser {
             }
         }
 
-        // Shared archive name
+        // Shared archive
         Element sharedArchive = getChildNoNs(enterpriseArchive, "sharedArchive");
         if (sharedArchive != null) {
             descriptor.sharedArchiveName = sharedArchive.getAttributeValue("name");
+            // sharedResources: comma-separated list of BW paths explicitly added to the SAR
+            // by buildear regardless of transitive reachability (e.g. "/CommonCore/SharedResources/Schemas,/config_ear")
+            String sharedResourcesText = getTextNoNs(sharedArchive, "sharedResources");
+            if (sharedResourcesText != null && !sharedResourcesText.isBlank()) {
+                for (String rawPath : sharedResourcesText.split(",")) {
+                    String path = rawPath.trim();
+                    if (!path.isEmpty()) {
+                        descriptor.sharedResourcePaths.add(path);
+                    }
+                }
+            }
         }
 
         return descriptor;
@@ -124,6 +135,14 @@ public class ArchiveDescriptorParser {
          */
         public List<String> processPaths = new ArrayList<>();
 
+        /**
+         * Explicit shared-resource directory paths from {@code sharedArchive/sharedResources}.
+         * buildear includes ALL files under these BW paths in the SAR unconditionally,
+         * regardless of whether they are transitively reachable from any process.
+         * Example: {@code ["/CommonCore/SharedResources/Schemas", "/config_ear"]}.
+         */
+        public List<String> sharedResourcePaths = new ArrayList<>();
+
         /** Returns true if an explicit process list is defined in the descriptor. */
         public boolean hasExplicitProcessList() {
             return !processPaths.isEmpty();
@@ -134,7 +153,8 @@ public class ArchiveDescriptorParser {
             return "ArchiveDescriptor{earName=" + earName
                 + ", par=" + processArchiveName
                 + ", sar=" + sharedArchiveName
-                + ", processes=" + processPaths + "}";
+                + ", processes=" + processPaths
+                + ", sharedResources=" + sharedResourcePaths + "}";
         }
     }
 }

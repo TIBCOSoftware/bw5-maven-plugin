@@ -20,6 +20,7 @@ import org.apache.maven.project.MavenProjectHelper;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.Namespace;
+import org.jdom2.filter.Filters;
 import org.jdom2.input.SAXBuilder;
 import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
@@ -148,17 +149,18 @@ public class BwEarMojo extends AbstractBw5Mojo {
      *
      * <p>When provided, the plugin reads the descriptor to determine:</p>
      * <ul>
-     *   <li>Which processes to include in the PAR (explicit list from
-     *       {@code processArchive/processProperty}). Processes not listed are excluded.</li>
      *   <li>The PAR name (from {@code processArchive/@name}), overriding
      *       {@code "Process Archive.par"} if the descriptor specifies a different name.</li>
      *   <li>The SAR name (from {@code sharedArchive/@name}), overriding
      *       {@code bw5.sharedArchiveName} if the descriptor specifies a name.</li>
+     *   <li>Optionally which processes to include in the PAR (when
+     *       {@code bw5.archiveDescriptorFilterProcesses=true}).</li>
      * </ul>
      *
-     * <p>When not set (default), all {@code .process} files in the project are included
-     * and archive names use their configured defaults — matching {@code buildEAR}
-     * behaviour for projects where the {@code .archive} includes everything.</p>
+     * <p>By default (when {@code bw5.archiveDescriptorFilterProcesses} is {@code false}),
+     * all collected {@code .process} files are included — the descriptor is used only
+     * for archive naming. This matches {@code buildEAR} behaviour where all processes
+     * from projlib dependencies are packaged.</p>
      *
      * <p>Commit the {@code .archive} file alongside your BW project sources to use this
      * feature, for example:</p>
@@ -170,6 +172,31 @@ public class BwEarMojo extends AbstractBw5Mojo {
      */
     @Parameter(property = "bw5.archiveDescriptorFile")
     private File archiveDescriptorFile;
+
+    /**
+     * @deprecated No longer used. Transitive dependency analysis is applied automatically
+     *             when {@code archiveDescriptorFile} is configured with a processProperty list.
+     */
+    @Deprecated
+    @Parameter(defaultValue = "false", property = "bw5.archiveDescriptorFilterProcesses")
+    private boolean archiveDescriptorFilterProcesses;
+
+    /**
+     * When {@code true} (the default), TIBCO Designer folder-metadata files ({@code .folder})
+     * are included in the SAR alongside the resources they accompany.
+     *
+     * <p>TIBCO {@code buildear} includes {@code .folder} files that appear under the paths
+     * listed in the {@code .archive} descriptor's {@code sharedResources} element. This
+     * flag reproduces that behaviour for backwards compatibility.</p>
+     *
+     * <p>Set to {@code false} to omit all {@code .folder} files from the EAR (produces a
+     * slightly smaller, functionally identical archive — {@code .folder} files are pure
+     * TIBCO Designer display metadata and are not read by the BW engine at runtime).</p>
+     *
+     * <pre>mvn package -Dbw5.includeFolderMetadata=false</pre>
+     */
+    @Parameter(defaultValue = "true", property = "bw5.includeFolderMetadata")
+    private boolean includeFolderMetadata;
 
     private static final Namespace JCF_NS =
         Namespace.getNamespace("http://www.tibco.com/bw/javaxpath/2003");
@@ -203,7 +230,11 @@ public class BwEarMojo extends AbstractBw5Mojo {
         // Other resources
         ".properties", ".xslt", ".xsl",
         // Java Custom Functions
-        ".javaxpath"
+        ".javaxpath",
+        // Companion data files (e.g. DocumentStore.xml alongside .sharedvariable)
+        ".xml",
+        // TIBCO shared parse schemas
+        ".sharedparse"
     ));
 
     /**
@@ -220,7 +251,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
      * buildEAR only includes explicitly registered BW shared-resource types.
      */
     private static final Set<String> EXCLUDED_EXTENSIONS = new HashSet<>(Arrays.asList(
-        ".folder", ".aeschema", ".dat", ".classpath", ".xml"
+        ".folder", ".aeschema", ".dat", ".classpath"
     ));
 
     /**
@@ -230,7 +261,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
      */
     private static final Set<String> EXCLUDED_NAMES = new HashSet<>(Arrays.asList(
         ".DS_Store", "Thumbs.db", ".git", ".svn", "target", "AESchemas", "vcrepo.dat",
-        ".designtimelibs"
+        ".designtimelibs", "Deployment", "library.manifest",
+        // Deployment-time config and version-info directories present in some projlibs
+        // — these are not BW shared resources and buildear never includes them in the EAR
+        "config", "VersionInfo"
     ));
 
     @Inject
@@ -261,9 +295,20 @@ public class BwEarMojo extends AbstractBw5Mojo {
             List<BwFile> metadataFiles = new ArrayList<>();
             collectFiles(srcDir, srcDir, parFiles, sarFiles, metadataFiles);
 
-            // Apply .archive process filter if an explicit list is specified
+            // Extract and collect files from projlib ZIP dependencies
+            collectFilesFromProjlibs(parFiles, sarFiles, metadataFiles);
+
+            // Promote serviceagents listed in processProperty from SAR to PAR
             if (archiveDescriptor != null && archiveDescriptor.hasExplicitProcessList()) {
-                parFiles = filterProcessesByDescriptor(parFiles, archiveDescriptor.processPaths, srcDir);
+                promoteServiceAgentsFromDescriptor(parFiles, sarFiles, archiveDescriptor.processPaths);
+            }
+
+            // Apply transitive dependency analysis from processProperty entry points.
+            // This matches buildear behaviour: only reachable processes and referenced
+            // resources are packaged; .javaxpath and sharedResources paths are always included.
+            if (archiveDescriptor != null && archiveDescriptor.hasExplicitProcessList()) {
+                applyTransitiveDependencyAnalysis(parFiles, sarFiles,
+                    archiveDescriptor.processPaths, archiveDescriptor.sharedResourcePaths);
             }
 
             getLog().info("Process files (PAR): " + parFiles.size());
@@ -435,7 +480,11 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 collectFiles(rootDir, f, parFiles, sarFiles, metadataFiles);
             } else {
                 String ext = getExtension(name);
-                if (EXCLUDED_EXTENSIONS.contains(ext)) continue;
+                if (EXCLUDED_EXTENSIONS.contains(ext)) {
+                    // .folder files are TIBCO Designer display metadata; include when the flag
+                    // is set so the SAR matches buildear output for sharedResources paths.
+                    if (!includeFolderMetadata || !ext.equals(".folder")) continue;
+                }
 
                 String relativePath = rootDir.toURI().relativize(f.toURI()).getPath();
                 BwFile bwf = new BwFile(f, relativePath);
@@ -452,6 +501,44 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     sarFiles.add(bwf);
                 }
             }
+        }
+    }
+
+    private void collectFilesFromProjlibs(List<BwFile> parFiles, List<BwFile> sarFiles,
+                                          List<BwFile> metadataFiles) throws IOException {
+        if (!bwLibDirectory.exists()) return;
+        File[] projlibs = bwLibDirectory.listFiles((dir, name) -> name.endsWith(".projlib"));
+        if (projlibs == null || projlibs.length == 0) return;
+
+        File extractRoot = new File(project.getBuild().getDirectory(), "bw-projlib-extracted");
+        extractRoot.mkdirs();
+
+        for (File projlib : projlibs) {
+            String baseName = projlib.getName().replaceAll("\\.projlib$", "");
+            File extractDir = new File(extractRoot, baseName);
+            extractDir.mkdirs();
+
+            getLog().debug("Extracting projlib: " + projlib.getName());
+            try (ZipFile zip = new ZipFile(projlib)) {
+                Enumeration<? extends ZipEntry> entries = zip.entries();
+                while (entries.hasMoreElements()) {
+                    ZipEntry entry = entries.nextElement();
+                    if (entry.isDirectory()) continue;
+                    File outFile = new File(extractDir, entry.getName());
+                    outFile.getParentFile().mkdirs();
+                    try (InputStream is = zip.getInputStream(entry);
+                         OutputStream os = new FileOutputStream(outFile)) {
+                        IOUtils.copy(is, os);
+                    }
+                }
+            }
+
+            int beforePar = parFiles.size();
+            int beforeSar = sarFiles.size();
+            collectFiles(extractDir, extractDir, parFiles, sarFiles, metadataFiles);
+            getLog().info("Projlib " + projlib.getName() + ": +"
+                + (parFiles.size() - beforePar) + " process(es), +"
+                + (sarFiles.size() - beforeSar) + " shared resource(s)");
         }
     }
 
@@ -615,6 +702,279 @@ public class BwEarMojo extends AbstractBw5Mojo {
         return filtered;
     }
 
+    /**
+     * Moves {@code .serviceagent} files listed in the {@code .archive} descriptor's
+     * {@code processProperty} from {@code sarFiles} to {@code parFiles}.
+     *
+     * <p>TIBCO buildear puts service agents that are declared as process entry points
+     * (i.e. listed in processProperty) into the PAR rather than the SAR. This matches
+     * the TIBCO Designer archive model where service agents are startup entries for the
+     * process archive.</p>
+     */
+    private void promoteServiceAgentsFromDescriptor(List<BwFile> parFiles, List<BwFile> sarFiles,
+                                                    List<String> descriptorPaths) {
+        Iterator<BwFile> sarIter = sarFiles.iterator();
+        while (sarIter.hasNext()) {
+            BwFile bwf = sarIter.next();
+            if (!bwf.file.getName().endsWith(".serviceagent")) continue;
+            String rel = bwf.relativePath.replace('\\', '/');
+            for (String descriptorPath : descriptorPaths) {
+                String normalized = descriptorPath.startsWith("/")
+                    ? descriptorPath.substring(1) : descriptorPath;
+                if (rel.equals(normalized) || rel.endsWith("/" + normalized)
+                        || rel.equals(descriptorPath) || rel.endsWith(descriptorPath)) {
+                    sarIter.remove();
+                    parFiles.add(bwf);
+                    getLog().info("Promoting serviceagent to PAR (processProperty): " + rel);
+                    break;
+                }
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    //  Transitive dependency analysis
+    // -----------------------------------------------------------------------
+
+    /** BW5 process XML element names whose text content is a BW resource path. */
+    private static final List<String> RESOURCE_REF_ELEMENTS = Arrays.asList(
+        "processName",          // subprocess call (com.tibco.pe.core.CallProcessActivity)
+        "ConnectionReference",  // JMS / HTTP / partner connections
+        "variableConfig",       // shared variables and job shared variables
+        "stylesheet",           // XSLT transform references
+        "JavaGlobalInstance",   // service agent instances (Cache, EMS, Scheduler…)
+        "ParseSharedConfig",    // shared parse schemas
+        "JavaSchemaResource"    // Java-defined schema resources (.javaschema)
+    );
+
+    /**
+     * Replaces {@code parFiles} and {@code sarFiles} in-place with only the processes
+     * and resources reachable from the {@code processProperty} entry points via
+     * transitive subprocess-call and resource-reference analysis.
+     *
+     * <p>Always-include sets:</p>
+     * <ul>
+     *   <li>{@code .javaxpath} (Java Custom Function) files — XPath function calls are
+     *       not statically traceable.</li>
+     *   <li>Files matching the {@code sharedResources} paths declared in the
+     *       {@code .archive} descriptor — buildear includes these unconditionally,
+     *       e.g. an entire schema directory or a config deployment tree.</li>
+     * </ul>
+     *
+     * <p>Non-process entries already in {@code parFiles} (e.g. promoted serviceagents)
+     * are preserved unconditionally.</p>
+     */
+    private void applyTransitiveDependencyAnalysis(List<BwFile> parFiles, List<BwFile> sarFiles,
+                                                   List<String> entryPoints,
+                                                   List<String> sharedResourcePaths) {
+        // Separate out promoted service agents — they stay in PAR unconditionally
+        List<BwFile> promotedParEntries = new ArrayList<>();
+        List<BwFile> processFiles = new ArrayList<>();
+        for (BwFile f : parFiles) {
+            if (f.file.getName().endsWith(".process")) {
+                processFiles.add(f);
+            } else {
+                promotedParEntries.add(f);
+            }
+        }
+
+        // Separate always-include SAR files from files subject to transitive filtering:
+        //   • .javaxpath — XPath function calls are not statically traceable
+        //   • files under sharedResources paths — buildear includes these unconditionally
+        List<BwFile> alwaysInclude = new ArrayList<>();
+        List<BwFile> otherSarFiles = new ArrayList<>();
+        for (BwFile f : sarFiles) {
+            if (f.file.getName().endsWith(".javaxpath")
+                    || isUnderSharedResourcePath(f, sharedResourcePaths)) {
+                alwaysInclude.add(f);
+            } else {
+                otherSarFiles.add(f);
+            }
+        }
+
+        // Build path → BwFile indices
+        Map<String, BwFile> processIndex = buildBwIndex(processFiles);
+        Map<String, BwFile> resourceIndex = buildBwIndex(otherSarFiles);
+
+        // BFS from .process entry points
+        Set<String> visitedProcessPaths = new LinkedHashSet<>();
+        Set<String> referencedResourcePaths = new LinkedHashSet<>();
+        Queue<String> queue = new ArrayDeque<>();
+
+        for (String ep : entryPoints) {
+            String norm = normalizeBwPath(ep);
+            if (norm.endsWith(".process")) {
+                queue.add(norm);
+            }
+            // .serviceagent entries already handled by promoteServiceAgentsFromDescriptor
+        }
+
+        while (!queue.isEmpty()) {
+            String path = queue.poll();
+            if (!visitedProcessPaths.add(path)) continue;
+
+            BwFile bwf = processIndex.get(path);
+            if (bwf == null) {
+                getLog().debug("Transitive: process not found: " + path);
+                continue;
+            }
+
+            for (String ref : extractBwResourceRefs(bwf.file)) {
+                String norm = normalizeBwPath(ref);
+                if (norm.endsWith(".process")) {
+                    if (!visitedProcessPaths.contains(norm)) queue.add(norm);
+                } else if (referencedResourcePaths.add(norm)) {
+                    // Add companion .xml for sharedvariable / jobsharedvariable
+                    if (norm.endsWith(".sharedvariable") || norm.endsWith(".jobsharedvariable")) {
+                        referencedResourcePaths.add(norm.replaceAll("\\.[^.]+$", ".xml"));
+                    }
+                    // Follow schemaLocation refs declared inside shared-resource files:
+                    // .sharedvariable, .jobsharedvariable, and .sharedparse all embed an
+                    // <import schemaLocation="..."/> that points to the XSD they're typed by.
+                    if (norm.endsWith(".sharedvariable") || norm.endsWith(".jobsharedvariable")
+                            || norm.endsWith(".sharedparse")) {
+                        followSharedResourceRefs(norm, resourceIndex, referencedResourcePaths);
+                    }
+                    // Follow XSD imports transitively
+                    if (norm.endsWith(".xsd")) {
+                        followXsdImports(norm, resourceIndex, referencedResourcePaths);
+                    }
+                }
+            }
+        }
+
+        // Rebuild PAR: promoted entries + reachable processes
+        List<BwFile> reachableProcesses = new ArrayList<>();
+        for (String path : visitedProcessPaths) {
+            BwFile f = processIndex.get(path);
+            if (f != null) reachableProcesses.add(f);
+        }
+
+        // Rebuild SAR: alwaysInclude + transitively reachable resources (deduped)
+        Set<String> sarPathsSeen = new LinkedHashSet<>();
+        for (BwFile f : alwaysInclude) {
+            sarPathsSeen.add(normalizeBwPath(f.relativePath));
+        }
+        List<BwFile> reachableResources = new ArrayList<>(alwaysInclude);
+        for (String path : referencedResourcePaths) {
+            BwFile f = resourceIndex.get(path);
+            if (f != null && sarPathsSeen.add(normalizeBwPath(f.relativePath))) {
+                reachableResources.add(f);
+            }
+        }
+
+        getLog().info("Transitive analysis: "
+            + reachableProcesses.size() + "/" + processFiles.size() + " processes, "
+            + reachableResources.size() + "/" + (otherSarFiles.size() + alwaysInclude.size())
+            + " resources (always-include: " + alwaysInclude.size() + ")");
+
+        parFiles.clear();
+        parFiles.addAll(promotedParEntries);
+        parFiles.addAll(reachableProcesses);
+        sarFiles.clear();
+        sarFiles.addAll(reachableResources);
+    }
+
+    /**
+     * Returns {@code true} if the file's BW path (its relative path, normalized) starts
+     * with any of the {@code sharedResources} directory prefixes declared in the
+     * {@code .archive} descriptor.
+     */
+    private boolean isUnderSharedResourcePath(BwFile f, List<String> sharedResourcePaths) {
+        if (sharedResourcePaths == null || sharedResourcePaths.isEmpty()) return false;
+        String normPath = normalizeBwPath(f.relativePath);
+        for (String srPath : sharedResourcePaths) {
+            String normSrPath = normalizeBwPath(srPath);
+            if (normPath.startsWith(normSrPath + "/") || normPath.equals(normSrPath)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Follows {@code schemaLocation} attributes declared inside a shared-resource file
+     * ({@code .sharedvariable}, {@code .jobsharedvariable}, or {@code .sharedparse}).
+     *
+     * <p>These files embed an {@code <import schemaLocation="/..."/>} pointing to the
+     * XSD that defines their value type. buildear includes those XSDs in the SAR even
+     * if they are not directly referenced by any reachable process.</p>
+     */
+    private void followSharedResourceRefs(String resourcePath, Map<String, BwFile> resourceIndex,
+                                          Set<String> visited) {
+        BwFile resourceFile = resourceIndex.get(resourcePath);
+        if (resourceFile == null) return;
+        for (String ref : extractBwResourceRefs(resourceFile.file)) {
+            String norm = normalizeBwPath(ref);
+            if (!norm.endsWith(".process") && visited.add(norm)) {
+                if (norm.endsWith(".xsd")) {
+                    followXsdImports(norm, resourceIndex, visited);
+                }
+            }
+        }
+    }
+
+    private Map<String, BwFile> buildBwIndex(List<BwFile> files) {
+        Map<String, BwFile> index = new HashMap<>();
+        for (BwFile f : files) {
+            index.put(normalizeBwPath(f.relativePath), f);
+        }
+        return index;
+    }
+
+    /**
+     * Recursively follows {@code schemaLocation} imports in an XSD file, adding
+     * every imported XSD path to {@code visited} (prevents cycles).
+     */
+    private void followXsdImports(String xsdPath, Map<String, BwFile> resourceIndex,
+                                  Set<String> visited) {
+        BwFile xsdFile = resourceIndex.get(xsdPath);
+        if (xsdFile == null) return;
+        for (String ref : extractBwResourceRefs(xsdFile.file)) {
+            String norm = normalizeBwPath(ref);
+            if (norm.endsWith(".xsd") && visited.add(norm)) {
+                followXsdImports(norm, resourceIndex, visited);
+            }
+        }
+    }
+
+    /**
+     * Parses a BW5 process (or XSD) file and returns all BW resource paths it references.
+     *
+     * <p>Extracted from:
+     * <ul>
+     *   <li>Text content of elements named in {@link #RESOURCE_REF_ELEMENTS}</li>
+     *   <li>{@code schemaLocation} attributes (XSD imports in process namespaces)</li>
+     * </ul>
+     * Only paths starting with {@code /} are returned (absolute BW project paths).</p>
+     */
+    private Set<String> extractBwResourceRefs(File file) {
+        Set<String> refs = new LinkedHashSet<>();
+        try {
+            SAXBuilder builder = new SAXBuilder();
+            Document doc = builder.build(file);
+            for (Element e : doc.getDescendants(Filters.element())) {
+                // Element text references
+                if (RESOURCE_REF_ELEMENTS.contains(e.getName())) {
+                    String text = e.getTextTrim();
+                    if (text.startsWith("/")) refs.add(text);
+                }
+                // schemaLocation attribute (xsd:import in process + XSD files)
+                String schemaLoc = e.getAttributeValue("schemaLocation");
+                if (schemaLoc != null && schemaLoc.startsWith("/")) refs.add(schemaLoc);
+            }
+        } catch (Exception e) {
+            getLog().debug("Could not parse refs from " + file.getName() + ": " + e.getMessage());
+        }
+        return refs;
+    }
+
+    private static String normalizeBwPath(String path) {
+        if (path == null) return "";
+        String s = path.replace('\\', '/').trim();
+        return s.startsWith("/") ? s.substring(1) : s;
+    }
+
     // -----------------------------------------------------------------------
     //  PAR assembly
     // -----------------------------------------------------------------------
@@ -640,7 +1000,13 @@ public class BwEarMojo extends AbstractBw5Mojo {
             addToZip(zos, "TIBCO.xml", parTibcoXml);
 
             // Add process files preserving directory structure
+            Set<String> added = new HashSet<>();
             for (BwFile bwf : parFiles) {
+                String entryName = bwf.relativePath.replace(File.separatorChar, '/');
+                if (!added.add(entryName)) {
+                    getLog().debug("Skipping duplicate PAR entry: " + entryName);
+                    continue;
+                }
                 addToZip(zos, bwf.relativePath, bwf.file);
             }
 
@@ -669,7 +1035,13 @@ public class BwEarMojo extends AbstractBw5Mojo {
     private void buildSar(File sarFile, List<BwFile> sarFiles, File srcDir) throws Exception {
         try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(sarFile))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);
+            Set<String> added = new HashSet<>();
             for (BwFile bwf : sarFiles) {
+                String entryName = bwf.relativePath.replace(File.separatorChar, '/');
+                if (!added.add(entryName)) {
+                    getLog().debug("Skipping duplicate SAR entry: " + entryName);
+                    continue;
+                }
                 if (bwf.file.getName().endsWith(".javaxpath")) {
                     addJavaxpathToSar(zos, bwf);
                 } else {
