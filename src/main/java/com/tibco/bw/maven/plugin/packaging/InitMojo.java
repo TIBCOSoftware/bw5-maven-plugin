@@ -55,6 +55,9 @@ import java.util.Locale;
  *       -DartifactId=my-service \
  *       -Dversion=2.0.0-SNAPSHOT
  *
+ *   # Force projlib packaging instead of auto-detecting
+ *   mvn com.tibco.bw:bw5-maven-plugin:init -DgroupId=com.example -Dbw5.init.packaging=projlib
+ *
  *   # Overwrite an existing pom.xml
  *   mvn com.tibco.bw:bw5-maven-plugin:init -DgroupId=com.example -Dbw5.init.force=true
  * </pre>
@@ -102,11 +105,29 @@ public class InitMojo extends AbstractMojo {
     private String version;
 
     /**
-     * When {@code true}, overwrites an existing {@code pom.xml}.
-     * When {@code false} (default), fails with an error if {@code pom.xml} already exists.
+     * When {@code true}, bypasses safety checks:
+     * <ul>
+     *   <li>Overwrites an existing {@code pom.xml} if present.</li>
+     *   <li>Generates a {@code pom.xml} with default {@code bwear} packaging even when no
+     *       BW5 descriptor ({@code .archive}, {@code .libbuilder}, {@code AESchemas/},
+     *       {@code vcrepo.dat}) is found — a WARNING is logged in that case.</li>
+     * </ul>
      */
     @Parameter(defaultValue = "false", property = "bw5.init.force")
     private boolean force;
+
+    /**
+     * Maven packaging type to use in the generated {@code pom.xml}.
+     * Accepted values: {@code bwear} (default) or {@code projlib}.
+     *
+     * <p>When not set, the packaging is auto-detected from descriptor files
+     * ({@code .archive} → {@code bwear}, {@code .libbuilder} → {@code projlib}).
+     * Use this parameter to override auto-detection or when no descriptor is present.</p>
+     *
+     * <p>Example: {@code -Dbw5.init.packaging=projlib}</p>
+     */
+    @Parameter(property = "bw5.init.packaging")
+    private String packaging;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -127,7 +148,19 @@ public class InitMojo extends AbstractMojo {
                 + "Use -Dbw5.init.force=true to overwrite.");
         }
 
-        DetectionResult detection = detectProject(projectDir);
+        DetectionResult detection;
+        if (packaging != null && !packaging.trim().isEmpty()) {
+            detection = detectProjectWithPackaging(projectDir, packaging.trim().toLowerCase(Locale.ROOT));
+        } else {
+            try {
+                detection = detectProject(projectDir);
+            } catch (MojoExecutionException e) {
+                if (!force) throw e;
+                getLog().warn("No BW5 descriptor found (.archive, .libbuilder, AESchemas/, vcrepo.dat).");
+                getLog().warn("Generating pom.xml with default 'bwear' packaging (-Dbw5.init.force=true).");
+                detection = new DetectionResult("bwear", toArtifactId(projectDir.getName()), null);
+            }
+        }
 
         String resolvedArtifactId = (artifactId != null && !artifactId.trim().isEmpty())
             ? artifactId.trim()
@@ -139,7 +172,7 @@ public class InitMojo extends AbstractMojo {
 
         List<String> designTimePaths = readDesignTimeLibs(projectDir);
 
-        getLog().info("Detected packaging : " + detection.packaging);
+        getLog().info("Packaging          : " + detection.packaging);
         getLog().info("groupId            : " + groupId.trim());
         getLog().info("artifactId         : " + resolvedArtifactId);
         getLog().info("version            : " + resolvedVersion);
@@ -234,6 +267,38 @@ public class InitMojo extends AbstractMojo {
             + "Expected a .archive file (for bwear), a .libbuilder file (for projlib),\n"
             + "or an AESchemas/ folder / vcrepo.dat (generic BW5 project).\n"
             + "Make sure bw5.init.projectDir points to a valid BW5 project directory.");
+    }
+
+    /**
+     * Builds a {@link DetectionResult} using an explicitly provided packaging type,
+     * still scanning for a descriptor to derive the artifactId and config comment.
+     */
+    DetectionResult detectProjectWithPackaging(File dir, String packagingOverride)
+            throws MojoExecutionException {
+        if (!packagingOverride.equals("bwear") && !packagingOverride.equals("projlib")) {
+            throw new MojoExecutionException(
+                "Invalid packaging '" + packagingOverride + "'. Must be 'bwear' or 'projlib'.");
+        }
+        if ("bwear".equals(packagingOverride)) {
+            File archiveFile = findFirst(dir, ".archive");
+            if (archiveFile != null) {
+                String name = readArchiveName(archiveFile);
+                if (name == null || name.isEmpty()) name = stripExtension(archiveFile.getName());
+                return new DetectionResult(packagingOverride, toArtifactId(name), archiveFile.getName());
+            }
+        } else {
+            File libBuilderFile = findFirst(dir, ".libbuilder");
+            if (libBuilderFile == null) {
+                File libraryDir = new File(dir, "Library");
+                if (libraryDir.isDirectory()) libBuilderFile = findFirst(libraryDir, ".libbuilder");
+            }
+            if (libBuilderFile != null) {
+                String name = readLibBuilderName(libBuilderFile);
+                if (name == null || name.isEmpty()) name = stripExtension(libBuilderFile.getName());
+                return new DetectionResult(packagingOverride, toArtifactId(name), libBuilderFile.getName());
+            }
+        }
+        return new DetectionResult(packagingOverride, toArtifactId(dir.getName()), null);
     }
 
     private File findFirst(File dir, String extension) {

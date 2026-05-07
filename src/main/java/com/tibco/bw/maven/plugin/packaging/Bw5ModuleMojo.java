@@ -293,9 +293,16 @@ public class Bw5ModuleMojo extends AbstractBw5Mojo {
     // -----------------------------------------------------------------------
 
     private void addManifest(ZipOutputStream zos) throws IOException {
-        String manifestContent = "groupId=" + project.getGroupId() + "\n"
-            + "artifactId=" + project.getArtifactId() + "\n"
-            + "version=" + project.getVersion() + "\n";
+        String author = System.getProperty("user.name", "unknown");
+        String date   = new Date().toString();
+        String ver    = project.getVersion();
+
+        String manifestContent = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<library>\n"
+            + "    <version>" + ver + "</version>\n"
+            + "    <author>" + author + "</author>\n"
+            + "    <date>" + date + "</date>\n"
+            + "</library>\n";
 
         // Leading / matches TIBCO Designer's convention for library.manifest
         ZipEntry entry = new ZipEntry("/library.manifest");
