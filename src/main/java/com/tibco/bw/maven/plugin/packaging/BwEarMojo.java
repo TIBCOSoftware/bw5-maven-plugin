@@ -628,16 +628,6 @@ public class BwEarMojo extends AbstractBw5Mojo {
      * BW5 stores substvar files in {@code defaultVars/<FolderA>/<FolderB>/defaultVars.substvar};
      * the corresponding TIBCO.xml name prefix is {@code FolderA/FolderB/}.
      */
-    private static String computeGvPrefix(String relativePath) {
-        String marker = "defaultVars/";
-        int idx = relativePath.indexOf(marker);
-        if (idx < 0) return "";
-        String afterMarker = relativePath.substring(idx + marker.length());
-        int lastSlash = afterMarker.lastIndexOf('/');
-        if (lastSlash < 0) return "";
-        return afterMarker.substring(0, lastSlash + 1);
-    }
-
     // -----------------------------------------------------------------------
     //  Archive descriptor (.archive) support
     // -----------------------------------------------------------------------

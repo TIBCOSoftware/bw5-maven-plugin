@@ -245,7 +245,7 @@ public class DeploymentConfigGenerator {
                 if (var.description != null && !var.description.isEmpty()) {
                     sb.append("    # ").append(var.description).append("\n");
                 }
-                sb.append("    ").append(yamlQuoteKey(var.name))
+                sb.append("    ").append(yamlQuoteKey(bwAppPropsKey(var.name)))
                   .append(": \"").append(yamlEscape(var.value != null ? var.value : "")).append("\"\n");
             }
         }
@@ -306,6 +306,30 @@ public class DeploymentConfigGenerator {
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * Encodes special characters in a BW5 global variable name using the
+     * BW Platform {@code appProps} convention, so the key is safe as a YAML
+     * map key consumed by the {@code dp-bw5ce-app} Helm chart.
+     *
+     * <table>
+     *   <tr><th>Character</th><th>Encoded as</th></tr>
+     *   <tr><td>{@code :}</td><td>{@code __CoLoN__}</td></tr>
+     *   <tr><td>{@code /}</td><td>{@code __SlAsH__}</td></tr>
+     *   <tr><td>{@code -}</td><td>{@code __DaSh__}</td></tr>
+     *   <tr><td>{@code (}</td><td>{@code __LPaReN__}</td></tr>
+     *   <tr><td>{@code )}</td><td>{@code __RPaReN__}</td></tr>
+     * </table>
+     */
+    private static String bwAppPropsKey(String name) {
+        if (name == null) return "";
+        return name
+            .replace(":", "__CoLoN__")
+            .replace("/", "__SlAsH__")
+            .replace("-", "__DaSh__")
+            .replace("(", "__LPaReN__")
+            .replace(")", "__RPaReN__");
     }
 
     /**

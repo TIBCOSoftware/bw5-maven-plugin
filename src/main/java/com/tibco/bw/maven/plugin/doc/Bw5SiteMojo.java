@@ -1,5 +1,6 @@
 package com.tibco.bw.maven.plugin.doc;
 
+import com.tibco.bw.maven.plugin.descriptor.SubstVarParser;
 import com.tibco.bw.maven.plugin.packaging.AbstractBw5Mojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -13,20 +14,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Generates HTML documentation for a BW5 project.
+ * Generates HTML (and optionally Markdown) documentation for a BW5 project.
  *
  * <p>Produces a self-contained HTML site under {@code target/site/bw5/} with:</p>
  * <ul>
- *   <li>Project overview page (starters, dependencies, statistics)</li>
- *   <li>One page per process with: SVG diagram, activity table,
- *       transition table with conditions, and data mapping visualization</li>
+ *   <li>Project overview page (starters, shared resources, global variables, dependencies)</li>
+ *   <li>One page per process with: SVG diagram, activity table, transition table, data mappings</li>
+ *   <li>One page per shared resource with: config table, usage cross-reference</li>
  * </ul>
  *
  * <p>No TIBCO tools required. Run standalone:</p>
  * <pre>
  *   mvn bw5:site
  * </pre>
- * <p>Or bind to the Maven site lifecycle by adding an execution in the plugin configuration.</p>
  */
 @Mojo(
     name = "site",
@@ -42,6 +42,13 @@ public class Bw5SiteMojo extends AbstractBw5Mojo {
      */
     @Parameter(defaultValue = "${project.build.directory}/site/bw5", property = "bw5.siteOutputDir")
     private File siteOutputDir;
+
+    /**
+     * When {@code true}, also generates Markdown files ({@code index.md} and
+     * {@code processes/*.md}) alongside the HTML site, using the same structure.
+     */
+    @Parameter(defaultValue = "false", property = "bw5.site.generateMarkdown")
+    private boolean generateMarkdown;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -82,25 +89,85 @@ public class Bw5SiteMojo extends AbstractBw5Mojo {
                 }
             }
 
-            // 2. Generate HTML
-            SiteHtmlGenerator generator = new SiteHtmlGenerator(siteOutputDir, project);
+            // 2. Parse shared resources
+            SharedResourceParser srParser = new SharedResourceParser();
+            List<SharedResourceModel> sharedResources = srParser.parse(srcDir);
+            getLog().info("Found " + sharedResources.size() + " shared resource(s)");
 
-            // Index page
+            // 3. Parse global variables from .substvar files
+            List<SubstVarParser.GlobalVariable> globalVars = parseGlobalVars(srcDir);
+            getLog().info("Found " + globalVars.size() + " global variable(s)");
+
+            // 4. Generate HTML
+            SiteHtmlGenerator generator = new SiteHtmlGenerator(siteOutputDir, project,
+                sharedResources, globalVars);
+
             generator.generateIndex(models);
             getLog().info("Generated: " + new File(siteOutputDir, "index.html").getAbsolutePath());
 
-            // Process pages
             for (ProcessDocModel model : models) {
                 generator.generateProcessPage(model);
                 getLog().debug("  Generated process page: " + model.displayName);
             }
 
+            for (SharedResourceModel sr : sharedResources) {
+                generator.generateSharedResourcePage(sr);
+                getLog().debug("  Generated SR page: " + sr.displayName);
+            }
+
             getLog().info("BW5 site generated successfully: " + siteOutputDir.getAbsolutePath());
             getLog().info("Open in browser: file://" + new File(siteOutputDir, "index.html").getAbsolutePath());
+
+            // 5. Optionally generate Markdown
+            if (generateMarkdown) {
+                SiteMarkdownGenerator mdGen = new SiteMarkdownGenerator(siteOutputDir, project,
+                    sharedResources, globalVars);
+                mdGen.generateIndex(models);
+                for (ProcessDocModel model : models) {
+                    mdGen.generateProcessPage(model);
+                }
+                getLog().info("Markdown documentation generated alongside HTML.");
+            }
 
         } catch (Exception e) {
             throw new MojoExecutionException("Failed to generate BW5 site: " + e.getMessage(), e);
         }
+    }
+
+    private List<SubstVarParser.GlobalVariable> parseGlobalVars(File srcDir) {
+        List<SubstVarParser.GlobalVariable> result = new ArrayList<>();
+        List<File> substVarFiles = findSubstVarFiles(srcDir);
+        SubstVarParser parser = new SubstVarParser();
+        java.util.Set<String> seen = new java.util.LinkedHashSet<>();
+        for (File f : substVarFiles) {
+            try {
+                String relativePath = srcDir.toURI().relativize(f.toURI()).getPath();
+                String prefix = computeGvPrefix(relativePath);
+                List<SubstVarParser.GlobalVariable> vars = parser.parse(f);
+                for (SubstVarParser.GlobalVariable v : vars) {
+                    v.substVarFile = f.getName();
+                    v.name = prefix + v.name;
+                    if (seen.add(v.name)) result.add(v);
+                }
+            } catch (Exception ignored) {
+                // skip unparseable substvar files
+            }
+        }
+        return result;
+    }
+
+    private List<File> findSubstVarFiles(File dir) {
+        List<File> result = new ArrayList<>();
+        File[] files = dir.listFiles();
+        if (files == null) return result;
+        for (File f : files) {
+            if (f.isDirectory() && !f.getName().startsWith(".")) {
+                result.addAll(findSubstVarFiles(f));
+            } else if (f.isFile() && f.getName().endsWith(".substvar")) {
+                result.add(f);
+            }
+        }
+        return result;
     }
 
     private List<File> findProcessFiles(File dir) {
@@ -109,7 +176,6 @@ public class Bw5SiteMojo extends AbstractBw5Mojo {
         if (files == null) return result;
         for (File f : files) {
             if (f.isDirectory()) {
-                // Skip hidden dirs
                 if (!f.getName().startsWith(".")) {
                     result.addAll(findProcessFiles(f));
                 }

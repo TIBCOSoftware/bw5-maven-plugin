@@ -187,7 +187,7 @@ public class ProcessDocParser {
         // Config summary and special-case fields
         Element configEl = el.getChild("config");
         if (configEl != null) {
-            act.configSummary = extractConfigSummary(configEl);
+            extractConfig(configEl, act);
             // Extract called process path for CallProcessActivity
             if ("com.tibco.pe.core.CallProcessActivity".equals(act.type)) {
                 Element pnEl = configEl.getChild("processName");
@@ -359,24 +359,32 @@ public class ProcessDocParser {
             || (select.startsWith("\"") && select.endsWith("\"") && !select.contains("$") && !select.contains("/"));
     }
 
-    private String extractConfigSummary(Element configEl) {
+    private void extractConfig(Element configEl, ProcessDocModel.Activity act) {
         StringBuilder sb = new StringBuilder();
         int count = 0;
         for (Element child : configEl.getChildren()) {
             String name = child.getName();
-            // Skip schema/complex type children
             if (name.equals("Headers") || name.equals("InputHeaders") || name.equals("OutputHeaders")
                     || name.equals("element") || name.equals("complexType") || name.equals("sequence")) {
                 continue;
             }
             String val = child.getTextTrim();
-            if (!val.isEmpty() && count < 8) {
-                if (sb.length() > 0) sb.append(", ");
-                sb.append(name).append("=").append(truncate(val, 40));
-                count++;
+            if (!val.isEmpty()) {
+                act.configEntries.put(name, val);
+                if (count < 8) {
+                    if (sb.length() > 0) sb.append(", ");
+                    sb.append(name).append("=").append(truncate(val, 40));
+                    count++;
+                }
+                // Detect shared resource references
+                if (val.startsWith("/SharedResources/") || val.startsWith("SharedResources/")) {
+                    if (!act.sharedResourceRefs.contains(val)) {
+                        act.sharedResourceRefs.add(val);
+                    }
+                }
             }
         }
-        return sb.toString();
+        act.configSummary = sb.toString();
     }
 
     private String truncate(String s, int max) {

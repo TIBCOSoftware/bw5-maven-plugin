@@ -161,9 +161,12 @@ public class ConfigureMojo extends AbstractBw5Mojo {
             Set<String> seen = new LinkedHashSet<>();
             for (File f : substVarFiles) {
                 try {
+                    String relativePath = srcDir.toURI().relativize(f.toURI()).getPath();
+                    String prefix = computeGvPrefix(relativePath);
                     List<SubstVarParser.GlobalVariable> vars = parser.parse(f);
                     for (SubstVarParser.GlobalVariable v : vars) {
                         v.substVarFile = f.getName();
+                        v.name = prefix + v.name;
                         if (seen.add(v.name)) {
                             allVars.add(v);
                         }

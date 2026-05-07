@@ -166,6 +166,31 @@ public abstract class AbstractBw5Mojo extends AbstractMojo {
         }
     }
 
+    /**
+     * Derives the global-variable folder prefix from the relative path of a {@code .substvar} file.
+     *
+     * <p>BW5 stores substitution variable files under {@code defaultVars/}. Any subdirectory
+     * between {@code defaultVars/} and the file itself becomes part of the variable name,
+     * matching the way TIBCO Designer and AppManage qualify variable names.
+     *
+     * <p>Example: {@code defaultVars/Connections/JMS.substvar} → prefix {@code "Connections/"}.
+     * A file directly inside {@code defaultVars/} (e.g. {@code defaultVars/default.substvar})
+     * returns an empty prefix.
+     *
+     * @param relativePath path of the {@code .substvar} file relative to the project source root,
+     *                     using forward slashes
+     * @return folder prefix to prepend to each variable name, or {@code ""} if none
+     */
+    protected static String computeGvPrefix(String relativePath) {
+        String marker = "defaultVars/";
+        int idx = relativePath.indexOf(marker);
+        if (idx < 0) return "";
+        String afterMarker = relativePath.substring(idx + marker.length());
+        int lastSlash = afterMarker.lastIndexOf('/');
+        if (lastSlash < 0) return "";
+        return afterMarker.substring(0, lastSlash + 1);
+    }
+
     private boolean containsBwFiles(File dir) {
         File[] files = dir.listFiles();
         if (files == null) return false;

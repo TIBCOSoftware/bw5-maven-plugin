@@ -1,11 +1,14 @@
 package com.tibco.bw.maven.plugin.doc;
 
+import com.tibco.bw.maven.plugin.descriptor.SubstVarParser;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.project.MavenProject;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -25,12 +28,18 @@ public class SiteHtmlGenerator {
     private final MavenProject project;
     private final SvgDiagramGenerator svgGen = new SvgDiagramGenerator();
 
+    private static final Pattern GV_PATTERN = Pattern.compile("%%([^%]+)%%");
+
     // Cross-reference data, populated in generateIndex()
     private List<ProcessDocModel> allProcesses = Collections.emptyList();
+    private List<SharedResourceModel> sharedResources = Collections.emptyList();
+    private List<SubstVarParser.GlobalVariable> globalVars = Collections.emptyList();
     /** processFileName → model (key = safeFileName(fullName), no extension) */
     private final Map<String, ProcessDocModel> fileToModel = new LinkedHashMap<>();
     /** model.name → HTML file path relative to outputDir root (e.g. "processes/Common_ARC_BA1N_Main.html") */
     private final Map<String, String> nameToHtml = new LinkedHashMap<>();
+    /** Shared resource name → HTML file path relative to outputDir root */
+    private final Map<String, String> srNameToHtml = new LinkedHashMap<>();
     /** displayName / fullName segment → list of callers (models) */
     private final Map<String, List<ProcessDocModel>> calledByMap = new LinkedHashMap<>();
     /** plugin code → count of processes using it */
@@ -40,9 +49,13 @@ public class SiteHtmlGenerator {
 
     // ── Constructor ──────────────────────────────────────────────────────────
 
-    public SiteHtmlGenerator(File outputDir, MavenProject project) {
+    public SiteHtmlGenerator(File outputDir, MavenProject project,
+                              List<SharedResourceModel> sharedResources,
+                              List<SubstVarParser.GlobalVariable> globalVars) {
         this.outputDir = outputDir;
         this.project = project;
+        this.sharedResources = sharedResources != null ? sharedResources : Collections.emptyList();
+        this.globalVars = globalVars != null ? globalVars : Collections.emptyList();
     }
 
     // ── Public API ───────────────────────────────────────────────────────────
@@ -51,12 +64,19 @@ public class SiteHtmlGenerator {
         this.allProcesses = processes;
         outputDir.mkdirs();
         new File(outputDir, "processes").mkdirs();
+        new File(outputDir, "sharedresources").mkdirs();
 
         // Build file name map
         for (ProcessDocModel p : processes) {
             String key = processFileName(p);
             fileToModel.put(key, p);
             nameToHtml.put(p.name != null ? p.name : p.displayName, "processes/" + key + ".html");
+        }
+
+        // Build SR file name map
+        for (SharedResourceModel sr : sharedResources) {
+            String key = srFileName(sr);
+            srNameToHtml.put(sr.name, "sharedresources/" + key + ".html");
         }
 
         // Build "called by" reverse index
@@ -69,6 +89,25 @@ public class SiteHtmlGenerator {
                         .computeIfAbsent(target.name != null ? target.name : target.displayName,
                                          k -> new ArrayList<>())
                         .add(p);
+                }
+            }
+        }
+
+        // Build SR "used by" cross-reference
+        for (SharedResourceModel sr : sharedResources) {
+            sr.usedBy.clear();
+        }
+        for (ProcessDocModel p : processes) {
+            for (ProcessDocModel.Activity a : p.allActivities()) {
+                for (String ref : a.sharedResourceRefs) {
+                    for (SharedResourceModel sr : sharedResources) {
+                        String srNorm = sr.name.startsWith("/") ? sr.name.substring(1) : sr.name;
+                        String refNorm = ref.startsWith("/") ? ref.substring(1) : ref;
+                        if (srNorm.equals(refNorm) || sr.displayName.equals(lastSegment(ref))) {
+                            String entry = fullDisplayName(p) + " / " + a.name;
+                            if (!sr.usedBy.contains(entry)) sr.usedBy.add(entry);
+                        }
+                    }
                 }
             }
         }
@@ -101,6 +140,15 @@ public class SiteHtmlGenerator {
         File pageFile = new File(new File(outputDir, "processes"), fileName);
         try (Writer w = writer(pageFile)) {
             writeProcessPage(w, model);
+        }
+    }
+
+    public void generateSharedResourcePage(SharedResourceModel sr) throws IOException {
+        new File(outputDir, "sharedresources").mkdirs();
+        String fileName = srFileName(sr) + ".html";
+        File pageFile = new File(new File(outputDir, "sharedresources"), fileName);
+        try (Writer w = writer(pageFile)) {
+            writeSharedResourcePage(w, sr);
         }
     }
 
@@ -137,6 +185,12 @@ public class SiteHtmlGenerator {
         writeStat(w, String.valueOf(starterCount), "Event Sources", "▶");
         writeStat(w, String.valueOf(totalActivities), "Activities", "⚙");
         writeStat(w, String.valueOf(totalTransitions), "Transitions", "→");
+        if (!sharedResources.isEmpty()) {
+            writeStat(w, String.valueOf(sharedResources.size()), "Shared Resources", "🔗");
+        }
+        if (!globalVars.isEmpty()) {
+            writeStat(w, String.valueOf(globalVars.size()), "Global Variables", "🔧");
+        }
         writeStat(w, String.valueOf(pluginProcessCount.size()), "Plugins", "🔌");
         if (depCount > 0) {
             writeStat(w, String.valueOf(depCount), "Dependencies", "📦");
@@ -173,6 +227,53 @@ public class SiteHtmlGenerator {
                 w.write("    </div>\n");
             }
             w.write("  </div>\n</section>\n");
+        }
+
+        // ── Shared Resources ──────────────────────────────────────────────────
+        if (!sharedResources.isEmpty()) {
+            w.write("<section class=\"card\">\n");
+            w.write("  <h2>Shared Resources <span class=\"count-badge\">" + sharedResources.size() + "</span></h2>\n");
+            w.write("  <p class=\"section-desc\">Connection pools and shared configuration objects used across processes.</p>\n");
+            w.write("  <table class=\"data-table\">\n");
+            w.write("    <thead><tr><th>Name</th><th>Type</th><th class=\"num\">Used by</th></tr></thead>\n");
+            w.write("    <tbody>\n");
+            for (SharedResourceModel sr : sharedResources) {
+                String href = "sharedresources/" + srFileName(sr) + ".html";
+                w.write("    <tr>\n");
+                w.write("      <td><a href=\"" + href + "\" class=\"call-link\">" + esc(sr.displayName) + "</a></td>\n");
+                w.write("      <td><span class=\"badge badge-type\">" + esc(sr.shortType()) + "</span></td>\n");
+                w.write("      <td class=\"num\">" + sr.usedBy.size() + "</td>\n");
+                w.write("    </tr>\n");
+            }
+            w.write("    </tbody>\n  </table>\n</section>\n");
+        }
+
+        // ── Global Variables ──────────────────────────────────────────────────
+        if (!globalVars.isEmpty()) {
+            w.write("<section class=\"card\">\n");
+            w.write("  <div class=\"section-header\">\n");
+            w.write("    <h2>Global Variables <span class=\"count-badge\">" + globalVars.size() + "</span></h2>\n");
+            w.write("    <input class=\"table-filter\" id=\"gvFilter\" placeholder=\"Filter…\" "
+                + "oninput=\"filterTable(this,'gvTable')\">\n");
+            w.write("  </div>\n");
+            w.write("  <p class=\"section-desc\">Substitution variables defined in <code>.substvar</code> files.</p>\n");
+            w.write("  <table class=\"data-table\" id=\"gvTable\">\n");
+            w.write("    <thead><tr><th>Name</th><th>Default Value</th><th>Type</th><th>Source File</th></tr></thead>\n");
+            w.write("    <tbody>\n");
+            List<SubstVarParser.GlobalVariable> sortedGvs = new ArrayList<>(globalVars);
+            sortedGvs.sort(Comparator.comparing(v -> v.name != null ? v.name : ""));
+            for (SubstVarParser.GlobalVariable gv : sortedGvs) {
+                String typeLabel = gv.type != null && !gv.type.isEmpty() ? gv.type : "String";
+                boolean isPass = "Password".equalsIgnoreCase(gv.type);
+                w.write("    <tr>\n");
+                w.write("      <td class=\"gv-name\"><code>" + esc(gv.name) + "</code></td>\n");
+                w.write("      <td>" + (isPass ? "<em class=\"gv-pass\">[password]</em>"
+                    : esc(gv.value != null ? gv.value : "")) + "</td>\n");
+                w.write("      <td><span class=\"badge badge-type\">" + esc(typeLabel) + "</span></td>\n");
+                w.write("      <td class=\"gv-file\">" + esc(gv.substVarFile != null ? gv.substVarFile : "") + "</td>\n");
+                w.write("    </tr>\n");
+            }
+            w.write("    </tbody>\n  </table>\n</section>\n");
         }
 
         // ── Dependencies ─────────────────────────────────────────────────────
@@ -240,10 +341,15 @@ public class SiteHtmlGenerator {
         w.write("  <div class=\"hero-text\">\n");
         w.write("    <h1>" + esc(model.displayName) + "</h1>\n");
         w.write("    <p class=\"hero-sub mono\">" + esc(fullDisplayName(model)) + "</p>\n");
-        if (model.description != null && !model.description.isEmpty()) {
-            w.write("    <p class=\"hero-desc\">" + esc(model.description) + "</p>\n");
-        }
         w.write("  </div>\n</div>\n");
+
+        // Prominent description card
+        if (model.description != null && !model.description.isEmpty()) {
+            w.write("<div class=\"desc-card\">\n");
+            w.write("  <div class=\"desc-label\">Description</div>\n");
+            w.write("  <div class=\"desc-text\">" + esc(model.description) + "</div>\n");
+            w.write("</div>\n");
+        }
 
         // Prev / Next navigation
         writePrevNext(w, model);
@@ -584,10 +690,48 @@ public class SiteHtmlGenerator {
             w.write("  <tr><th>Palette</th><td><span class=\"badge badge-type\">"
                 + esc(a.resourceType) + "</span></td></tr>\n");
         }
-        if (a.configSummary != null && !a.configSummary.isEmpty()) {
+        if (!a.configEntries.isEmpty()) {
+            w.write("  <tr><th>Config</th><td>\n");
+            w.write("    <table class=\"config-table\">\n");
+            for (Map.Entry<String, String> e : a.configEntries.entrySet()) {
+                w.write("      <tr><td class=\"cfg-key\">" + esc(e.getKey()) + "</td>");
+                w.write("<td class=\"cfg-val\">" + renderConfigValue(e.getValue()) + "</td></tr>\n");
+            }
+            w.write("    </table>\n  </td></tr>\n");
+        } else if (a.configSummary != null && !a.configSummary.isEmpty()) {
             w.write("  <tr><th>Config</th><td class=\"config-summary\">" + esc(a.configSummary) + "</td></tr>\n");
         }
         w.write("</table>\n");
+    }
+
+    /**
+     * Renders a config value with highlighting for global variable references (%%...%%)
+     * and hyperlinks for shared resource references.
+     */
+    private String renderConfigValue(String val) {
+        if (val == null) return "";
+        // Check if it's a shared resource reference
+        String valNorm = val.startsWith("/") ? val.substring(1) : val;
+        for (SharedResourceModel sr : sharedResources) {
+            String srNorm = sr.name.startsWith("/") ? sr.name.substring(1) : sr.name;
+            if (srNorm.equals(valNorm)) {
+                String href = "../" + srNameToHtml.getOrDefault(sr.name, "#");
+                return "<a href=\"" + href + "\" class=\"sr-link\">" + esc(sr.displayName) + "</a>";
+            }
+        }
+        // Highlight global variable references (%%varName%%)
+        Matcher m = GV_PATTERN.matcher(val);
+        if (m.find()) {
+            StringBuffer sb = new StringBuffer();
+            m.reset();
+            while (m.find()) {
+                m.appendReplacement(sb,
+                    "<span class=\"gv-ref\" title=\"Global variable\">%%" + esc(m.group(1)) + "%%</span>");
+            }
+            m.appendTail(sb);
+            return sb.toString();
+        }
+        return esc(val);
     }
 
     // ── Mapper tree node ─────────────────────────────────────────────────────
@@ -849,6 +993,86 @@ public class SiteHtmlGenerator {
         w.write("</section>\n");
     }
 
+    // ── Shared Resource page ──────────────────────────────────────────────────
+
+    private void writeSharedResourcePage(Writer w, SharedResourceModel sr) throws IOException {
+        String title = sr.displayName + " — " + project.getArtifactId();
+        writeHtmlHead(w, title, "../bw5-site.css", "../bw5-site.js", "../", "sharedresources/" + srFileName(sr) + ".html");
+        writeTopbar(w, "../index.html");
+
+        w.write("<div class=\"app-body\">\n");
+        writeSidebarHtml(w, allProcesses, "sharedresources/" + srFileName(sr) + ".html");
+        w.write("<main class=\"main-content\">\n<div class=\"content-inner\">\n");
+
+        // Breadcrumb
+        w.write("<nav class=\"breadcrumb\">\n");
+        w.write("  <a href=\"../index.html\">" + esc(project.getArtifactId()) + "</a>\n");
+        w.write("  <span class=\"bc-sep\">›</span> <span class=\"bc-seg\">Shared Resources</span>\n");
+        w.write("  <span class=\"bc-sep\">›</span> <strong>" + esc(sr.displayName) + "</strong>\n");
+        w.write("</nav>\n");
+
+        // Hero
+        w.write("<div class=\"page-hero page-hero-sm\">\n");
+        w.write("  <div class=\"hero-text\">\n");
+        w.write("    <h1>" + esc(sr.displayName) + "</h1>\n");
+        w.write("    <p class=\"hero-sub mono\">" + esc(sr.name) + "</p>\n");
+        if (sr.type != null && !sr.type.isEmpty()) {
+            w.write("    <p class=\"hero-sub\">" + esc(sr.type) + "</p>\n");
+        }
+        w.write("  </div>\n</div>\n");
+
+        // Config table
+        if (!sr.config.isEmpty()) {
+            w.write("<section class=\"card\">\n");
+            w.write("  <h2>Configuration</h2>\n");
+            w.write("  <table class=\"detail-table\">\n");
+            for (Map.Entry<String, String> e : sr.config.entrySet()) {
+                boolean isPass = e.getKey().toLowerCase(java.util.Locale.ROOT).contains("password")
+                    || e.getKey().toLowerCase(java.util.Locale.ROOT).contains("secret");
+                w.write("  <tr><th>" + esc(e.getKey()) + "</th><td>");
+                if (isPass) {
+                    w.write("<em class=\"gv-pass\">[hidden]</em>");
+                } else {
+                    w.write(renderConfigValue(e.getValue()));
+                }
+                w.write("</td></tr>\n");
+            }
+            w.write("  </table>\n</section>\n");
+        }
+
+        // Used by
+        if (!sr.usedBy.isEmpty()) {
+            w.write("<section class=\"card\">\n");
+            w.write("  <h2>Used by <span class=\"count-badge\">" + sr.usedBy.size() + "</span></h2>\n");
+            w.write("  <p class=\"section-desc\">Activities that reference this shared resource.</p>\n");
+            w.write("  <ul class=\"caller-list\">\n");
+            for (String entry : sr.usedBy) {
+                // entry is "ProcessFullName / ActivityName"
+                int sep = entry.lastIndexOf(" / ");
+                String procPath = sep > 0 ? entry.substring(0, sep) : entry;
+                String actName  = sep > 0 ? entry.substring(sep + 3) : "";
+                // Try to find process href
+                String href = null;
+                for (ProcessDocModel p : allProcesses) {
+                    if (fullDisplayName(p).equals(procPath)) {
+                        href = "../" + nameToHtml.getOrDefault(p.name, "#");
+                        break;
+                    }
+                }
+                if (href != null) {
+                    w.write("    <li><a href=\"" + href + "\">" + esc(procPath) + "</a>"
+                        + (actName.isEmpty() ? "" : " › <span class=\"bc-seg\">" + esc(actName) + "</span>") + "</li>\n");
+                } else {
+                    w.write("    <li>" + esc(entry) + "</li>\n");
+                }
+            }
+            w.write("  </ul>\n</section>\n");
+        }
+
+        w.write("</div>\n</main>\n</div>\n");
+        writeHtmlFoot(w);
+    }
+
     private long countDependencies() {
         List<Dependency> deps = project.getDependencies();
         if (deps == null) return 0;
@@ -1013,6 +1237,10 @@ public class SiteHtmlGenerator {
 
     private String safeFileName(String name) {
         return name != null ? name.replaceAll("[^a-zA-Z0-9_\\-]", "_") : "process";
+    }
+
+    private String srFileName(SharedResourceModel sr) {
+        return safeFileName(sr.name != null ? sr.name : sr.displayName);
     }
 
     private String safeId(String name) {
@@ -1411,6 +1639,32 @@ public class SiteHtmlGenerator {
         + "[data-theme='dark'] tr.dep-jar td { background: #0D1F3C; }\n"
         + "tr.dep-other td { background: #FEFCE8; }\n"
         + "[data-theme='dark'] tr.dep-other td { background: #2A2508; }\n"
+
+        // ── Config table (activity detail) ───────────────────────────────────
+        + ".config-table { border-collapse: collapse; width: 100%; font-size: 12px; }\n"
+        + ".config-table .cfg-key { font-weight: 600; color: var(--c-text-2); padding: 3px 10px 3px 0;"
+        +   " white-space: nowrap; vertical-align: top; min-width: 120px; }\n"
+        + ".config-table .cfg-val { padding: 3px 0; word-break: break-word; }\n"
+        + ".config-table tr:not(:last-child) td { border-bottom: 1px solid var(--c-border); }\n"
+        + ".gv-ref { background: #FFF7ED; color: #C2410C; border-radius: 3px; padding: 1px 5px;"
+        +   " font-family: var(--mono); font-size: 11px; cursor: help; }\n"
+        + "[data-theme='dark'] .gv-ref { background: #431407; color: #fb923c; }\n"
+        + ".sr-link { color: var(--c-primary); font-weight: 500; }\n"
+        + ".sr-link:hover { text-decoration: underline; }\n"
+
+        // ── Global variable list ──────────────────────────────────────────────
+        + ".gv-name code { font-size: 12px; }\n"
+        + ".gv-file { color: var(--c-text-3); font-size: 12px; font-family: var(--mono); }\n"
+        + ".gv-pass { color: var(--c-text-3); font-style: italic; font-size: 12px; }\n"
+
+        // ── Prominent description card ────────────────────────────────────────
+        + ".desc-card { background: #F0F7FF; border-left: 4px solid var(--c-primary);"
+        +   " border-radius: 0 var(--radius) var(--radius) 0; padding: 14px 20px;"
+        +   " margin-bottom: 16px; }\n"
+        + "[data-theme='dark'] .desc-card { background: #0D1F3C; }\n"
+        + ".desc-label { font-size: 11px; font-weight: 700; text-transform: uppercase;"
+        +   " letter-spacing: .05em; color: var(--c-primary); margin-bottom: 6px; }\n"
+        + ".desc-text { font-size: 14px; line-height: 1.7; color: var(--c-text); }\n"
 
         // ── Footer ───────────────────────────────────────────────────────────
         + ".site-footer { text-align: center; padding: 24px; color: var(--c-text-3); font-size: 12px; }\n"

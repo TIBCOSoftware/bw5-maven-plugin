@@ -1,7 +1,9 @@
 package com.tibco.bw.maven.plugin.doc;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Data model representing a parsed BW5 process for documentation generation.
@@ -55,8 +57,12 @@ public class ProcessDocModel {
         public boolean isEnd;
         public int endX;
         public int endY;
-        /** Raw config XML as string (for detail display) */
+        /** Raw config summary string (legacy fallback) */
         public String configSummary;
+        /** Structured config key→value pairs for tabular display */
+        public Map<String, String> configEntries = new LinkedHashMap<>();
+        /** Shared resource paths referenced in this activity's config (e.g. "/SharedResources/...") */
+        public List<String> sharedResourceRefs = new ArrayList<>();
         /** For CallProcessActivity: the target process path from &lt;processName&gt; config */
         public String calledProcessPath;
         /** Parsed input mappings */
