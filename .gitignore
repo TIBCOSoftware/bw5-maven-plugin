@@ -1,6 +1,9 @@
 # Maven build output
 target/
 
+# Local test framework (kept locally, not tracked)
+src/test/resources/bw-projects/test-bw5-framework/
+
 # macOS resource fork metadata files
 ._*
 .DS_Store
