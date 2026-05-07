@@ -8,8 +8,8 @@
             <property key="ae.palette.Mail.palette.version" value="5.16.1"/>
             <property key="turbo.palette.version" value="5.6.1"/>
             <property key="ae.palette.Policy.version" value="5.16.1"/>
-            <property key="ae.repo.palette.version" value="5.3.0"/>
             <property key="ae.process.palette.version" value="5.16.1"/>
+            <property key="ae.repo.palette.version" value="5.3.0"/>
             <property key="httppalette.httpplugins.version" value="5.16.1"/>
             <property key="palette.generalpalette.version" value="5.3.0"/>
             <property key="ae.aepalette.ae.palette.version" value="5.16.1"/>
@@ -22,13 +22,14 @@
             <property key="ae.palette.Filepalette.version" value="5.16.1"/>
             <property key="ae.palette.jrmi.palette.version" value="5.16.1"/>
             <property key="aa.adapteradministrator.palette.version" value="5.3.0"/>
-            <property key="ae.designerapp.version" value="5.13.0.10"/>
+            <property key="ae.designerapp.version" value="5.13.0.28"/>
             <property key="ae.palette.java.palette.version" value="5.16.1"/>
             <property key="ae.pallette.tcp.pallette.version" value="5.16.1"/>
             <property key="ae.palette.xml.palette.version" value="5.16.1"/>
             <property key="ae.palette.JDBCpalette.version" value="5.16.1"/>
             <property key="ae.palette.rvpalette.version" value="5.16.1"/>
             <property key="ae.palette.FTPpalette.version" value="5.16.1"/>
+            <property key="ae.palette.kafka.palette.version" value="5.0.1.13"/>
             <property key="projectName" value="bw"/>
         </projectProperties>
     </folder>
