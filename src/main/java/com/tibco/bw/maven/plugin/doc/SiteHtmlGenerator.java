@@ -1035,7 +1035,7 @@ public class SiteHtmlGenerator {
         // Render sub-folders first
         for (Map.Entry<String, DirNode> e : node.children.entrySet()) {
             int total = countProcessLeaves(e.getValue());
-            w.write(indent + "<details class=\"tree-folder\" open>\n");
+            w.write(indent + "<details class=\"tree-folder\">\n");
             w.write(indent + "  <summary class=\"tree-folder-summary\">"
                 + "<span class=\"tree-folder-icon\">📁</span>"
                 + "<span class=\"tree-folder-name\">" + esc(e.getKey()) + "</span>"
@@ -1093,7 +1093,7 @@ public class SiteHtmlGenerator {
         String indent = "  ".repeat(depth + 1);
         for (Map.Entry<String, DirNode> e : node.children.entrySet()) {
             int total = countGvLeaves(e.getValue());
-            w.write(indent + "<details class=\"tree-folder\" open>\n");
+            w.write(indent + "<details class=\"tree-folder\">\n");
             w.write(indent + "  <summary class=\"tree-folder-summary\">"
                 + "<span class=\"tree-folder-icon\">📁</span>"
                 + "<span class=\"tree-folder-name\">" + esc(e.getKey()) + "</span>"
