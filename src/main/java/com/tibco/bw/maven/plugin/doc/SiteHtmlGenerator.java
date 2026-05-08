@@ -437,6 +437,12 @@ public class SiteHtmlGenerator {
             w.write("  </ul>\n</section>\n");
         }
 
+        // ── Global Variables Used ─────────────────────────────────────────────
+        writeGvUsedSection(w, model);
+
+        // ── Connections Used ──────────────────────────────────────────────────
+        writeConnectionsUsedSection(w, model);
+
         w.write("</div>\n</main>\n</div>\n");
         writeHtmlFoot(w);
     }
@@ -744,6 +750,33 @@ public class SiteHtmlGenerator {
             && !expr.contains("|")  && !expr.contains(",");
     }
 
+    /** True when an XPath source expression references a BW5 global variable. */
+    private static boolean isGvPath(String expr) {
+        return expr != null && expr.startsWith("$_globalVariables/");
+    }
+
+    /**
+     * Extracts the variable name from a GV source expression, stripping the
+     * {@code $_globalVariables/ns:GlobalVariables/} prefix.
+     * E.g. {@code $_globalVariables/ns:GlobalVariables/CFG/COMMON/timerSleep} → {@code CFG/COMMON/timerSleep}
+     */
+    private static String extractGvName(String expr) {
+        if (expr == null) return "";
+        int idx = expr.indexOf("/ns:GlobalVariables/");
+        if (idx >= 0) return expr.substring(idx + "/ns:GlobalVariables/".length());
+        // Fallback: strip first two slash-segments ($var / nsPrefix / ...)
+        String[] parts = expr.split("/");
+        if (parts.length > 2) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 2; i < parts.length; i++) {
+                if (i > 2) sb.append('/');
+                sb.append(parts[i]);
+            }
+            return sb.toString();
+        }
+        return expr;
+    }
+
     /** Build a prefix-trie from mapping source expressions (simple paths only). */
     private MTreeNode buildSrcTree(List<ProcessDocModel.FieldMapping> mappings) {
         MTreeNode root = new MTreeNode("");
@@ -804,15 +837,16 @@ public class SiteHtmlGenerator {
     }
 
     /** Render a trie as indented HTML rows; leaf nodes carry data-midxs for JS line drawing. */
-    private void renderMTree(Writer w, MTreeNode node, int depth) throws IOException {
+    private void renderMTree(Writer w, MTreeNode node, int depth, boolean inGvPath) throws IOException {
         for (MTreeNode child : node.children) {
             boolean isWhenNode      = child.label.startsWith("~WHEN:");
             boolean isIfNode        = child.label.startsWith("~IF:");
             boolean isOtherwiseNode = child.label.equals("~OTHERWISE");
             boolean isForEachNode   = child.label.startsWith("~FOR-EACH:");
+            // GV path: this node is inside a _globalVariables subtree
+            boolean isGvNode = inGvPath || "$_globalVariables".equals(child.label);
 
             if (isWhenNode || isIfNode || isOtherwiseNode || isForEachNode) {
-                // Badge row in TARGET tree — condition expression goes to VALUE/EXPRESSION column via branch item
                 String cssSuffix = isOtherwiseNode ? "mtree-branch-otherwise"
                     : isForEachNode ? "mtree-branch-foreach"
                     : "mtree-branch-when";
@@ -836,14 +870,22 @@ public class SiteHtmlGenerator {
                     }
                     midxsAttr = " data-midxs=\"" + sb2 + "\"";
                 }
-                w.write("<div class=\"mtree-node" + (leaf ? " mtree-leaf" : "") + "\""
+                String gvClass = isGvNode ? " mtree-gv" : "";
+                w.write("<div class=\"mtree-node" + (leaf ? " mtree-leaf" : "") + gvClass + "\""
                     + midxsAttr
                     + " style=\"padding-left:" + (depth * 14 + 6) + "px\">");
                 w.write("<span class=\"mtree-icon\">" + (leaf ? "&#9656;" : "&#9662;") + "</span>");
-                w.write("<span class=\"mtree-lbl\">" + esc(child.label) + "</span>");
+                // GV leaf: make it a link to the GV definition on the index page
+                if (isGvNode && leaf) {
+                    String gvAnchor = "../index.html#gv-" + safeId(child.label);
+                    w.write("<a href=\"" + gvAnchor + "\" class=\"mtree-gv-link\" title=\"Global variable\">"
+                        + esc(child.label) + "</a>");
+                } else {
+                    w.write("<span class=\"mtree-lbl\">" + esc(child.label) + "</span>");
+                }
                 w.write("</div>\n");
             }
-            renderMTree(w, child, depth + 1);
+            renderMTree(w, child, depth + 1, isGvNode);
         }
     }
 
@@ -878,7 +920,7 @@ public class SiteHtmlGenerator {
                 w.write("        <div class=\"mtree mtree-empty\">&#8212;</div>\n");
             } else {
                 w.write("        <div class=\"mtree\">\n");
-                renderMTree(w, srcRoot, 0);
+                renderMTree(w, srcRoot, 0, false);
                 w.write("        </div>\n");
             }
             w.write("      </div>\n");
@@ -887,7 +929,7 @@ public class SiteHtmlGenerator {
             w.write("      <div class=\"mapper-col mapper-tgt\">\n");
             w.write("        <div class=\"mapper-col-head\">Target</div>\n");
             w.write("        <div class=\"mtree\">\n");
-            renderMTree(w, tgtRoot, 0);
+            renderMTree(w, tgtRoot, 0, false);
             w.write("        </div>\n");
             w.write("      </div>\n");
 
@@ -1067,7 +1109,8 @@ public class SiteHtmlGenerator {
             String typeLabel = gv.type != null && !gv.type.isEmpty() ? gv.type : "String";
             String valDisplay = isPass ? "<em class=\"gv-pass\">[password]</em>"
                 : "<span class=\"gv-val\">" + esc(gv.value != null ? gv.value : "") + "</span>";
-            w.write(indent + "<div class=\"tree-item tree-item-gv\" data-label=\""
+            w.write(indent + "<div class=\"tree-item tree-item-gv\" id=\"gv-" + safeId(gv.name) + "\""
+                + " data-label=\""
                 + esc((gv.name != null ? gv.name : "").toLowerCase(java.util.Locale.ROOT)) + "\">\n");
             w.write(indent + "  <span class=\"tree-item-icon\">🔧</span>\n");
             w.write(indent + "  <span class=\"tree-item-name\">" + esc(leafName) + "</span>\n");
@@ -1081,6 +1124,128 @@ public class SiteHtmlGenerator {
         int count = node.vars.size();
         for (DirNode child : node.children.values()) count += countGvLeaves(child);
         return count;
+    }
+
+    // ── Global Variables Used (process page) ──────────────────────────────────
+
+    private void writeGvUsedSection(Writer w, ProcessDocModel model) throws IOException {
+        // Collect GV names from: (a) activity configEntries (%%name%%), (b) mapping source expressions
+        Map<String, SubstVarParser.GlobalVariable> found = new LinkedHashMap<>();
+
+        // From activity config values
+        for (ProcessDocModel.Activity a : model.allActivities()) {
+            for (String val : a.configEntries.values()) {
+                Matcher m = GV_PATTERN.matcher(val);
+                while (m.find()) {
+                    String gvName = m.group(1);
+                    if (!found.containsKey(gvName)) {
+                        // Find the GV definition by matching the last segment of the stored name
+                        for (SubstVarParser.GlobalVariable gv : globalVars) {
+                            String storedName = gv.name != null ? gv.name : "";
+                            String lastSeg = lastSegment(storedName.replace("/", "/"));
+                            if (lastSeg.equals(gvName) || storedName.equals(gvName)) {
+                                found.put(gvName, gv);
+                                break;
+                            }
+                        }
+                        if (!found.containsKey(gvName)) {
+                            // No match found — store null sentinel so we still show it
+                            found.put(gvName, null);
+                        }
+                    }
+                }
+            }
+        }
+
+        // From mapping source expressions (XPath GV paths)
+        for (ProcessDocModel.Activity a : model.allActivities()) {
+            for (ProcessDocModel.FieldMapping fm : a.inputMappings) {
+                if (isGvPath(fm.sourceExpression)) {
+                    String gvName = extractGvName(fm.sourceExpression);
+                    if (!found.containsKey(gvName)) {
+                        // Match against stored global var names
+                        for (SubstVarParser.GlobalVariable gv : globalVars) {
+                            String storedName = gv.name != null ? gv.name : "";
+                            if (storedName.equals(gvName) || storedName.endsWith("/" + gvName)
+                                    || gvName.endsWith("/" + lastSegment(storedName))) {
+                                found.put(gvName, gv);
+                                break;
+                            }
+                        }
+                        if (!found.containsKey(gvName)) {
+                            found.put(gvName, null);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (found.isEmpty()) return;
+
+        w.write("<section class=\"card\">\n");
+        w.write("  <h2>Global Variables Used <span class=\"count-badge\">" + found.size() + "</span></h2>\n");
+        w.write("  <p class=\"section-desc\">Substitution variables referenced in activity configuration or data mappings.</p>\n");
+        w.write("  <table class=\"data-table\">\n");
+        w.write("    <thead><tr><th>Name</th><th>Default Value</th><th>Type</th></tr></thead>\n");
+        w.write("    <tbody>\n");
+        for (Map.Entry<String, SubstVarParser.GlobalVariable> e : found.entrySet()) {
+            String displayName = e.getKey();
+            SubstVarParser.GlobalVariable gv = e.getValue();
+            String anchor = "../index.html#gv-" + safeId(gv != null ? gv.name : displayName);
+            boolean isPass = gv != null && "Password".equalsIgnoreCase(gv.type);
+            String valCell = gv == null ? "<span class=\"gv-pass\">—</span>"
+                : isPass ? "<em class=\"gv-pass\">[password]</em>"
+                : "<span class=\"gv-val\">" + esc(gv.value != null ? gv.value : "") + "</span>";
+            String typeCell = gv != null && gv.type != null && !gv.type.isEmpty()
+                ? "<span class=\"badge badge-type\">" + esc(gv.type) + "</span>" : "";
+            w.write("    <tr>\n");
+            w.write("      <td><a href=\"" + anchor + "\" class=\"call-link gv-anchor-link\">"
+                + "<code>" + esc(displayName) + "</code></a></td>\n");
+            w.write("      <td>" + valCell + "</td>\n");
+            w.write("      <td>" + typeCell + "</td>\n");
+            w.write("    </tr>\n");
+        }
+        w.write("    </tbody>\n  </table>\n</section>\n");
+    }
+
+    // ── Connections Used (process page) ───────────────────────────────────────
+
+    private void writeConnectionsUsedSection(Writer w, ProcessDocModel model) throws IOException {
+        // Collect unique SR references across all activities
+        List<SharedResourceModel> usedSRs = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+
+        for (ProcessDocModel.Activity a : model.allActivities()) {
+            for (String ref : a.sharedResourceRefs) {
+                if (!seen.add(ref)) continue;
+                // Find matching SR
+                String refNorm = ref.startsWith("/") ? ref.substring(1) : ref;
+                for (SharedResourceModel sr : sharedResources) {
+                    String srNorm = sr.name.startsWith("/") ? sr.name.substring(1) : sr.name;
+                    if (srNorm.equals(refNorm) || sr.displayName.equals(lastSegment(ref))) {
+                        usedSRs.add(sr);
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (usedSRs.isEmpty()) return;
+
+        w.write("<section class=\"card\">\n");
+        w.write("  <h2>Connections Used <span class=\"count-badge\">" + usedSRs.size() + "</span></h2>\n");
+        w.write("  <p class=\"section-desc\">Shared resources referenced by activities in this process.</p>\n");
+        w.write("  <table class=\"data-table\">\n");
+        w.write("    <thead><tr><th>Name</th><th>Type</th></tr></thead>\n");
+        w.write("    <tbody>\n");
+        for (SharedResourceModel sr : usedSRs) {
+            String href = "../" + srNameToHtml.getOrDefault(sr.name, "sharedresources/" + srFileName(sr) + ".html");
+            w.write("    <tr>\n");
+            w.write("      <td><a href=\"" + href + "\" class=\"call-link\">" + esc(sr.displayName) + "</a></td>\n");
+            w.write("      <td><span class=\"badge badge-type\">" + esc(sr.shortType()) + "</span></td>\n");
+            w.write("    </tr>\n");
+        }
+        w.write("    </tbody>\n  </table>\n</section>\n");
     }
 
     // ── Shared Resource page ──────────────────────────────────────────────────
@@ -1627,6 +1792,14 @@ public class SiteHtmlGenerator {
         + ".mtree-lbl { color: var(--c-text); overflow: hidden; text-overflow: ellipsis; }\n"
         + ".mtree-leaf > .mtree-lbl { font-weight: 700; color: #1565c0; }\n"
         + "[data-theme='dark'] .mtree-leaf > .mtree-lbl { color: #60a5fa; }\n"
+        // GV nodes in the mapper source tree
+        + ".mtree-gv .mtree-lbl { color: #C2410C; }\n"
+        + ".mtree-gv.mtree-leaf .mtree-lbl { color: #C2410C; font-weight: 700; }\n"
+        + "[data-theme='dark'] .mtree-gv .mtree-lbl { color: #fb923c; }\n"
+        + ".mtree-gv-link { color: #C2410C; font-weight: 700; text-decoration: none; }\n"
+        + ".mtree-gv-link:hover { text-decoration: underline; }\n"
+        + "[data-theme='dark'] .mtree-gv-link { color: #fb923c; }\n"
+        + ".gv-anchor-link { font-size: 13px; }\n"
         // WHEN / OTHERWISE / IF header nodes inside the TARGET tree
         + ".mtree-branch-hdr { gap: 5px; min-height: 24px; padding-top: 3px; padding-bottom: 3px; }\n"
         + ".mtree-branch-when     { border-left: 3px solid #3b82f6; background: #EFF6FF33; }\n"
