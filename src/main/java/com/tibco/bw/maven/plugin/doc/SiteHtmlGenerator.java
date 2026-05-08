@@ -248,64 +248,33 @@ public class SiteHtmlGenerator {
             w.write("    </tbody>\n  </table>\n</section>\n");
         }
 
-        // ── Global Variables ──────────────────────────────────────────────────
+        // ── Global Variables tree ─────────────────────────────────────────────
         if (!globalVars.isEmpty()) {
             w.write("<section class=\"card\">\n");
             w.write("  <div class=\"section-header\">\n");
             w.write("    <h2>Global Variables <span class=\"count-badge\">" + globalVars.size() + "</span></h2>\n");
-            w.write("    <input class=\"table-filter\" id=\"gvFilter\" placeholder=\"Filter…\" "
-                + "oninput=\"filterTable(this,'gvTable')\">\n");
+            w.write("    <input class=\"tree-search\" id=\"gvSearch\" placeholder=\"Filter…\" "
+                + "oninput=\"filterTree(this,'gvTree')\" autocomplete=\"off\">\n");
             w.write("  </div>\n");
-            w.write("  <p class=\"section-desc\">Substitution variables defined in <code>.substvar</code> files.</p>\n");
-            w.write("  <table class=\"data-table\" id=\"gvTable\">\n");
-            w.write("    <thead><tr><th>Name</th><th>Default Value</th><th>Type</th><th>Source File</th></tr></thead>\n");
-            w.write("    <tbody>\n");
-            List<SubstVarParser.GlobalVariable> sortedGvs = new ArrayList<>(globalVars);
-            sortedGvs.sort(Comparator.comparing(v -> v.name != null ? v.name : ""));
-            for (SubstVarParser.GlobalVariable gv : sortedGvs) {
-                String typeLabel = gv.type != null && !gv.type.isEmpty() ? gv.type : "String";
-                boolean isPass = "Password".equalsIgnoreCase(gv.type);
-                w.write("    <tr>\n");
-                w.write("      <td class=\"gv-name\"><code>" + esc(gv.name) + "</code></td>\n");
-                w.write("      <td>" + (isPass ? "<em class=\"gv-pass\">[password]</em>"
-                    : esc(gv.value != null ? gv.value : "")) + "</td>\n");
-                w.write("      <td><span class=\"badge badge-type\">" + esc(typeLabel) + "</span></td>\n");
-                w.write("      <td class=\"gv-file\">" + esc(gv.substVarFile != null ? gv.substVarFile : "") + "</td>\n");
-                w.write("    </tr>\n");
-            }
-            w.write("    </tbody>\n  </table>\n</section>\n");
+            w.write("  <p class=\"section-desc\">Substitution variables defined in <code>.substvar</code> files — organised by path.</p>\n");
+            w.write("  <div class=\"tree-view\" id=\"gvTree\">\n");
+            writeGvTree(w, globalVars);
+            w.write("  </div>\n</section>\n");
         }
 
         // ── Dependencies ─────────────────────────────────────────────────────
         writeDependenciesSection(w);
 
-        // ── Process list ─────────────────────────────────────────────────────
+        // ── Process tree ──────────────────────────────────────────────────────
         w.write("<section class=\"card\">\n");
         w.write("  <div class=\"section-header\">\n");
-        w.write("    <h2>Processes</h2>\n");
-        w.write("    <input class=\"table-filter\" id=\"procFilter\" placeholder=\"Filter…\" "
-            + "oninput=\"filterTable(this,'procTable')\">\n");
+        w.write("    <h2>Processes <span class=\"count-badge\">" + processes.size() + "</span></h2>\n");
+        w.write("    <input class=\"tree-search\" id=\"procSearch\" placeholder=\"Filter…\" "
+            + "oninput=\"filterTree(this,'procTree')\" autocomplete=\"off\">\n");
         w.write("  </div>\n");
-        w.write("  <table class=\"data-table\" id=\"procTable\">\n");
-        w.write("    <thead><tr>\n");
-        w.write("      <th>Full Path</th><th>Starter Type</th>"
-            + "<th class=\"num\">Acts</th><th class=\"num\">Transitions</th>\n");
-        w.write("    </tr></thead>\n<tbody>\n");
-        for (ProcessDocModel proc : processes) {
-            String href = "processes/" + processFileName(proc) + ".html";
-            String fullPath = fullDisplayName(proc);
-            String starterType = proc.starter != null
-                ? "<span class=\"badge badge-starter\">" + esc(proc.starter.shortType()) + "</span>" : "—";
-            w.write("    <tr>\n");
-            w.write("      <td><a href=\"" + href + "\" class=\"proc-link\">"
-                + "<span class=\"proc-folder\">" + esc(proc.folderPath) + (proc.folderPath.isEmpty() ? "" : " / ") + "</span>"
-                + "<span class=\"proc-name\">" + esc(proc.displayName) + "</span></a></td>\n");
-            w.write("      <td>" + starterType + "</td>\n");
-            w.write("      <td class=\"num\">" + proc.activities.size() + "</td>\n");
-            w.write("      <td class=\"num\">" + proc.transitions.size() + "</td>\n");
-            w.write("    </tr>\n");
-        }
-        w.write("  </tbody></table>\n</section>\n");
+        w.write("  <div class=\"tree-view\" id=\"procTree\">\n");
+        writeProcessTree(w, processes);
+        w.write("  </div>\n</section>\n");
 
         w.write("</div>\n</main>\n</div>\n");
         writeHtmlFoot(w);
@@ -993,6 +962,127 @@ public class SiteHtmlGenerator {
         w.write("</section>\n");
     }
 
+    // ── Process tree ──────────────────────────────────────────────────────────
+
+    /** Generic tree node used for both the process and GV directory trees. */
+    private static class DirNode {
+        final Map<String, DirNode> children = new LinkedHashMap<>();
+        final List<ProcessDocModel> processes = new ArrayList<>();
+        final List<SubstVarParser.GlobalVariable> vars = new ArrayList<>();
+    }
+
+    private void writeProcessTree(Writer w, List<ProcessDocModel> processes) throws IOException {
+        // Build folder tree from folderPath
+        DirNode root = new DirNode();
+        List<ProcessDocModel> sorted = new ArrayList<>(processes);
+        sorted.sort(Comparator.comparing(p -> fullDisplayName(p).toLowerCase(java.util.Locale.ROOT)));
+        for (ProcessDocModel p : sorted) {
+            DirNode node = root;
+            if (!p.folderPath.isEmpty()) {
+                for (String seg : p.folderPath.split("/")) {
+                    node = node.children.computeIfAbsent(seg, k -> new DirNode());
+                }
+            }
+            node.processes.add(p);
+        }
+        renderProcessDirNode(w, root, 0, true);
+    }
+
+    private void renderProcessDirNode(Writer w, DirNode node, int depth, boolean isRoot) throws IOException {
+        String indent = "  ".repeat(depth + 1);
+        // Render sub-folders first
+        for (Map.Entry<String, DirNode> e : node.children.entrySet()) {
+            int total = countProcessLeaves(e.getValue());
+            w.write(indent + "<details class=\"tree-folder\" open>\n");
+            w.write(indent + "  <summary class=\"tree-folder-summary\">"
+                + "<span class=\"tree-folder-icon\">📁</span>"
+                + "<span class=\"tree-folder-name\">" + esc(e.getKey()) + "</span>"
+                + "<span class=\"tree-folder-count\">" + total + "</span>"
+                + "</summary>\n");
+            renderProcessDirNode(w, e.getValue(), depth + 1, false);
+            w.write(indent + "</details>\n");
+        }
+        // Render process leaves
+        for (ProcessDocModel p : node.processes) {
+            String href = "processes/" + processFileName(p) + ".html";
+            String starter = p.starter != null
+                ? "<span class=\"badge badge-starter\">" + esc(p.starter.shortType()) + "</span>" : "";
+            w.write(indent + "<div class=\"tree-item tree-item-proc\" data-label=\""
+                + esc(fullDisplayName(p).toLowerCase(java.util.Locale.ROOT)) + "\">\n");
+            w.write(indent + "  <span class=\"tree-item-icon\">📄</span>\n");
+            w.write(indent + "  <a href=\"" + href + "\" class=\"tree-item-link\">" + esc(p.displayName) + "</a>\n");
+            w.write(indent + "  " + starter + "\n");
+            w.write(indent + "  <span class=\"tree-item-meta\">"
+                + p.activities.stream().filter(a -> !a.isEnd).count() + " acts"
+                + " · " + p.transitions.size() + " tr"
+                + "</span>\n");
+            w.write(indent + "</div>\n");
+        }
+    }
+
+    private int countProcessLeaves(DirNode node) {
+        int count = node.processes.size();
+        for (DirNode child : node.children.values()) count += countProcessLeaves(child);
+        return count;
+    }
+
+    // ── Global Variable tree ──────────────────────────────────────────────────
+
+    private void writeGvTree(Writer w, List<SubstVarParser.GlobalVariable> vars) throws IOException {
+        // Build folder tree from variable name path (split by /)
+        DirNode root = new DirNode();
+        List<SubstVarParser.GlobalVariable> sorted = new ArrayList<>(vars);
+        sorted.sort(Comparator.comparing(v -> v.name != null ? v.name.toLowerCase(java.util.Locale.ROOT) : ""));
+        for (SubstVarParser.GlobalVariable gv : sorted) {
+            String name = gv.name != null ? gv.name : "";
+            String[] parts = name.split("/");
+            DirNode node = root;
+            // All segments except the last are folders; the last is the variable name
+            for (int i = 0; i < parts.length - 1; i++) {
+                String seg = parts[i];
+                node = node.children.computeIfAbsent(seg, k -> new DirNode());
+            }
+            node.vars.add(gv);
+        }
+        renderGvDirNode(w, root, 0);
+    }
+
+    private void renderGvDirNode(Writer w, DirNode node, int depth) throws IOException {
+        String indent = "  ".repeat(depth + 1);
+        for (Map.Entry<String, DirNode> e : node.children.entrySet()) {
+            int total = countGvLeaves(e.getValue());
+            w.write(indent + "<details class=\"tree-folder\" open>\n");
+            w.write(indent + "  <summary class=\"tree-folder-summary\">"
+                + "<span class=\"tree-folder-icon\">📁</span>"
+                + "<span class=\"tree-folder-name\">" + esc(e.getKey()) + "</span>"
+                + "<span class=\"tree-folder-count\">" + total + "</span>"
+                + "</summary>\n");
+            renderGvDirNode(w, e.getValue(), depth + 1);
+            w.write(indent + "</details>\n");
+        }
+        for (SubstVarParser.GlobalVariable gv : node.vars) {
+            String[] parts = (gv.name != null ? gv.name : "").split("/");
+            String leafName = parts[parts.length - 1];
+            boolean isPass = "Password".equalsIgnoreCase(gv.type);
+            String typeLabel = gv.type != null && !gv.type.isEmpty() ? gv.type : "String";
+            String valDisplay = isPass ? "<em class=\"gv-pass\">[password]</em>"
+                : "<span class=\"gv-val\">" + esc(gv.value != null ? gv.value : "") + "</span>";
+            w.write(indent + "<div class=\"tree-item tree-item-gv\" data-label=\""
+                + esc((gv.name != null ? gv.name : "").toLowerCase(java.util.Locale.ROOT)) + "\">\n");
+            w.write(indent + "  <span class=\"tree-item-icon\">🔧</span>\n");
+            w.write(indent + "  <span class=\"tree-item-name\">" + esc(leafName) + "</span>\n");
+            w.write(indent + "  <span class=\"badge badge-type gv-type-badge\">" + esc(typeLabel) + "</span>\n");
+            w.write(indent + "  " + valDisplay + "\n");
+            w.write(indent + "</div>\n");
+        }
+    }
+
+    private int countGvLeaves(DirNode node) {
+        int count = node.vars.size();
+        for (DirNode child : node.children.values()) count += countGvLeaves(child);
+        return count;
+    }
+
     // ── Shared Resource page ──────────────────────────────────────────────────
 
     private void writeSharedResourcePage(Writer w, SharedResourceModel sr) throws IOException {
@@ -1640,6 +1730,42 @@ public class SiteHtmlGenerator {
         + "tr.dep-other td { background: #FEFCE8; }\n"
         + "[data-theme='dark'] tr.dep-other td { background: #2A2508; }\n"
 
+        // ── Directory tree (process + GV index) ──────────────────────────────
+        + ".tree-view { font-size: 13px; }\n"
+        + ".tree-search { padding: 5px 10px; border: 1px solid var(--c-border); border-radius: 5px;"
+        +   " font-size: 12px; background: var(--c-surface); color: var(--c-text); outline: none;"
+        +   " min-width: 180px; }\n"
+        + ".tree-search:focus { border-color: var(--c-primary); }\n"
+        + ".tree-folder { margin: 1px 0; }\n"
+        + ".tree-folder-summary { display: flex; align-items: center; gap: 6px; padding: 5px 8px;"
+        +   " cursor: pointer; border-radius: 5px; user-select: none; list-style: none;"
+        +   " color: var(--c-text); font-weight: 600; }\n"
+        + ".tree-folder-summary::-webkit-details-marker { display: none; }\n"
+        + ".tree-folder-summary:hover { background: var(--c-bg); }\n"
+        + ".tree-folder > summary::before { content: none; }\n"
+        + ".tree-folder[open] > .tree-folder-summary { color: var(--c-primary); }\n"
+        + ".tree-folder-icon { font-size: 15px; flex-shrink: 0; }\n"
+        + ".tree-folder-name { flex: 1; }\n"
+        + ".tree-folder-count { font-size: 11px; font-weight: 400; color: var(--c-text-3);"
+        +   " background: var(--c-border); border-radius: 8px; padding: 1px 7px; }\n"
+        + ".tree-folder > details, .tree-folder > .tree-item { margin-left: 20px; }\n"
+        // Process leaf
+        + ".tree-item { display: flex; align-items: center; gap: 7px; padding: 4px 8px;"
+        +   " border-radius: 5px; margin: 1px 0; }\n"
+        + ".tree-item:hover { background: var(--c-bg); }\n"
+        + ".tree-item-icon { font-size: 14px; flex-shrink: 0; }\n"
+        + ".tree-item-link { font-weight: 500; color: var(--c-text); flex: 1; overflow: hidden;"
+        +   " text-overflow: ellipsis; white-space: nowrap; }\n"
+        + ".tree-item-link:hover { color: var(--c-primary); text-decoration: underline; }\n"
+        + ".tree-item-meta { font-size: 11px; color: var(--c-text-3); white-space: nowrap; }\n"
+        // GV leaf
+        + ".tree-item-name { font-weight: 600; color: var(--c-text); flex-shrink: 0; min-width: 120px; }\n"
+        + ".gv-type-badge { flex-shrink: 0; }\n"
+        + ".gv-val { color: var(--c-text-2); font-family: var(--mono); font-size: 12px;"
+        +   " overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }\n"
+        + ".tree-item[hidden] { display: none; }\n"
+        + ".tree-folder[data-hidden] { display: none; }\n"
+
         // ── Config table (activity detail) ───────────────────────────────────
         + ".config-table { border-collapse: collapse; width: 100%; font-size: 12px; }\n"
         + ".config-table .cfg-key { font-weight: 600; color: var(--c-text-2); padding: 3px 10px 3px 0;"
@@ -1917,6 +2043,32 @@ public class SiteHtmlGenerator {
         + "    svgEl.innerHTML=paths.join('');\n"
         + "  });\n"
         + "}\n"
+
+        // ── Directory tree filter ─────────────────────────────────────────────
+        + "window.filterTree=function(inp,treeId){\n"
+        + "  var q=inp.value.trim().toLowerCase();\n"
+        + "  var tree=document.getElementById(treeId); if(!tree) return;\n"
+        + "  // Show/hide leaves\n"
+        + "  tree.querySelectorAll('.tree-item').forEach(function(item){\n"
+        + "    var lbl=item.getAttribute('data-label')||'';\n"
+        + "    if(!q||lbl.includes(q)) item.removeAttribute('hidden');\n"
+        + "    else item.setAttribute('hidden','');\n"
+        + "  });\n"
+        + "  // Show/hide folders: keep folder if it has any visible child\n"
+        + "  function updateFolder(folder){\n"
+        + "    var hasSub=false;\n"
+        + "    folder.querySelectorAll(':scope > .tree-item,:scope > details').forEach(function(child){\n"
+        + "      if(child.classList.contains('tree-folder')){\n"
+        + "        updateFolder(child);\n"
+        + "        if(!child.hasAttribute('data-hidden')) hasSub=true;\n"
+        + "      } else if(!child.hasAttribute('hidden')) hasSub=true;\n"
+        + "    });\n"
+        + "    if(!q){ folder.removeAttribute('data-hidden'); folder.open=true; return; }\n"
+        + "    if(hasSub){ folder.removeAttribute('data-hidden'); folder.open=true; }\n"
+        + "    else folder.setAttribute('data-hidden','');\n"
+        + "  }\n"
+        + "  tree.querySelectorAll(':scope > details.tree-folder').forEach(updateFolder);\n"
+        + "};\n"
 
         // ── Init ─────────────────────────────────────────────────────────────
         + "document.addEventListener('DOMContentLoaded',function(){\n"
