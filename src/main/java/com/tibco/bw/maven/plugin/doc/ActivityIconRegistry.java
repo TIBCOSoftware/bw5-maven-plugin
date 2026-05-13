@@ -488,9 +488,10 @@ public class ActivityIconRegistry {
         String icon = ICON_BY_RESOURCE_TYPE.getOrDefault(resourceType, null);
         if (icon == null) icon = getIcon(activityType);
         int half = size / 2;
+        // Emit both href (SVG 2 / browsers) and xlink:href (SVG 1.1 / Batik/PDF)
         return String.format(
-            "<image x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" href=\"%s\"/>",
-            cx - half, cy - half, size, size, icon);
+            "<image x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" href=\"%s\" xlink:href=\"%s\"/>",
+            cx - half, cy - half, size, size, icon, icon);
     }
 
     /**
@@ -508,9 +509,11 @@ public class ActivityIconRegistry {
     @Deprecated
     public static String getImageElement(String activityType, int cx, int cy, int size) {
         int half = size / 2;
+        String icon = getIcon(activityType);
+        // Emit both href (SVG 2 / browsers) and xlink:href (SVG 1.1 / Batik/PDF)
         return String.format(
-            "<image x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" href=\"%s\"/>",
-            cx - half, cy - half, size, size, getIcon(activityType));
+            "<image x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" href=\"%s\" xlink:href=\"%s\"/>",
+            cx - half, cy - half, size, size, icon, icon);
     }
 
     // -----------------------------------------------------------------------

@@ -1,5 +1,7 @@
 package com.tibco.bw.maven.plugin.doc;
 
+import com.openhtmltopdf.extend.FSStream;
+import com.openhtmltopdf.extend.FSStreamFactory;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import com.openhtmltopdf.svgsupport.BatikSVGDrawer;
 import com.tibco.bw.maven.plugin.descriptor.SubstVarParser;
@@ -28,6 +30,10 @@ public class SitePdfGenerator {
 
     private static final Pattern GV_PATTERN = Pattern.compile("%%([^%]+)%%");
 
+    private static final Pattern IMAGE_ELEMENT = Pattern.compile(
+        "<image x=\"(-?\\d+)\" y=\"(-?\\d+)\" width=\"(\\d+)\" height=\"(\\d+)\""
+        + " href=\"[^\"]*\" xlink:href=\"[^\"]*\"/>");
+
     public SitePdfGenerator(MavenProject project,
                              List<SharedResourceModel> sharedResources,
                              List<SubstVarParser.GlobalVariable> globalVars) {
@@ -43,11 +49,43 @@ public class SitePdfGenerator {
             PdfRendererBuilder builder = new PdfRendererBuilder();
             builder.useFastMode();
             builder.useSVGDrawer(new BatikSVGDrawer());
+            // Allow Batik to resolve data: URIs embedded in SVG xlink:href attributes
+            builder.useProtocolsStreamImplementation(new DataUriStreamFactory(), "data");
             builder.withHtmlContent(xhtml, outputFile.getParentFile().toURI().toString());
             builder.toStream(os);
             builder.run();
         } catch (Exception e) {
             throw new IOException("PDF rendering failed: " + e.getMessage(), e);
+        }
+    }
+
+    /** Resolves {@code data:} URIs so Batik can load embedded base64 images in SVG. */
+    private static class DataUriStreamFactory implements FSStreamFactory {
+        @Override
+        public FSStream getUrl(final String url) {
+            return new FSStream() {
+                @Override
+                public InputStream getStream() {
+                    try {
+                        // data:[<mime>][;base64],<data>
+                        int comma = url.indexOf(',');
+                        if (comma < 0) return null;
+                        String payload = url.substring(comma + 1);
+                        boolean isBase64 = url.substring(0, comma).endsWith(";base64");
+                        byte[] bytes = isBase64
+                            ? Base64.getDecoder().decode(payload)
+                            : java.net.URLDecoder.decode(payload, "UTF-8").getBytes(StandardCharsets.UTF_8);
+                        return new ByteArrayInputStream(bytes);
+                    } catch (Exception e) {
+                        return null;
+                    }
+                }
+                @Override
+                public java.io.Reader getReader() {
+                    InputStream is = getStream();
+                    return is == null ? null : new java.io.InputStreamReader(is, StandardCharsets.UTF_8);
+                }
+            };
         }
     }
 
@@ -225,9 +263,10 @@ public class SitePdfGenerator {
         if (svg != null && !svg.isEmpty()) {
             sb.append("  <div class=\"diagram-wrap\">\n");
             sb.append("    <h2>Process Diagram</h2>\n");
-            // Wrap in a scaling container — do NOT touch the svg element itself
-            // to avoid duplicate 'style' attribute errors in strict XHTML parsing.
-            sb.append("    <div class=\"svg-scaler\">").append(svg).append("</div>\n");
+            // Replace <image> elements (data: URIs) with plain SVG rectangles.
+            // Batik's security policy blocks data: URIs even when a protocol handler is registered,
+            // so we avoid them entirely in the PDF path.
+            sb.append("    <div class=\"svg-scaler\">").append(sanitizeSvgForPdf(svg)).append("</div>\n");
             sb.append("  </div>\n");
         }
 
@@ -528,6 +567,14 @@ public class SitePdfGenerator {
     private void statRow(StringBuilder sb, String label, String value) {
         sb.append("    <tr><th>").append(esc(label)).append("</th><td class=\"stat-val\">")
           .append(esc(value)).append("</td></tr>\n");
+    }
+
+    /** Replaces {@code <image>} elements (which carry {@code data:} URI icons) with plain
+     *  {@code <rect>} elements so Batik's security policy does not block rendering. */
+    private static String sanitizeSvgForPdf(String svg) {
+        return IMAGE_ELEMENT.matcher(svg).replaceAll(
+            "<rect x=\"$1\" y=\"$2\" width=\"$3\" height=\"$4\" rx=\"4\""
+            + " fill=\"#EEF2FF\" stroke=\"#4F46E5\" stroke-width=\"1.5\"/>");
     }
 
     // ── PDF CSS ───────────────────────────────────────────────────────────────
