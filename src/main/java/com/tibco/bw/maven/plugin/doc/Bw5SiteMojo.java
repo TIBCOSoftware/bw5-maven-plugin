@@ -50,6 +50,14 @@ public class Bw5SiteMojo extends AbstractBw5Mojo {
     @Parameter(defaultValue = "false", property = "bw5.site.generateMarkdown")
     private boolean generateMarkdown;
 
+    /**
+     * When {@code true}, generates a PDF document ({@code bw5-doc.pdf}) alongside the HTML site.
+     * The PDF includes a cover page, table of contents, project overview, one section per process
+     * with SVG diagram, and one section per shared resource.
+     */
+    @Parameter(defaultValue = "false", property = "bw5.site.generatePdf")
+    private boolean generatePdf;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (skip) {
@@ -127,6 +135,15 @@ public class Bw5SiteMojo extends AbstractBw5Mojo {
                     mdGen.generateProcessPage(model);
                 }
                 getLog().info("Markdown documentation generated alongside HTML.");
+            }
+
+            // 6. Optionally generate PDF
+            if (generatePdf) {
+                File pdfFile = new java.io.File(siteOutputDir, "bw5-doc.pdf");
+                getLog().info("Generating PDF documentation...");
+                SitePdfGenerator pdfGen = new SitePdfGenerator(project, sharedResources, globalVars);
+                pdfGen.generate(pdfFile, models);
+                getLog().info("PDF generated: " + pdfFile.getAbsolutePath());
             }
 
         } catch (Exception e) {
