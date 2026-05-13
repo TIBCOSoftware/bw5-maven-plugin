@@ -1,12 +1,14 @@
 package com.tibco.bw.maven.plugin.doc;
 
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import com.openhtmltopdf.svgsupport.BatikSVGDrawer;
 import com.tibco.bw.maven.plugin.descriptor.SubstVarParser;
 import org.apache.maven.project.MavenProject;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.batik.bridge.ExternalResourceSecurity;
 import org.apache.batik.bridge.RelaxedExternalResourceSecurity;
 import org.apache.batik.bridge.UserAgent;
@@ -37,7 +39,10 @@ public class SitePdfGenerator {
 
     private static final Pattern IMAGE_ELEMENT = Pattern.compile(
         "<image x=\"(-?\\d+)\" y=\"(-?\\d+)\" width=\"(\\d+)\" height=\"(\\d+)\""
-        + " href=\"[^\"]*\" xlink:href=\"[^\"]*\"/>");
+        + " href=\"([^\"]*)\" xlink:href=\"([^\"]*)\"/>");
+
+    /** data: URI → temp file URI cache, shared across all diagrams in one build. */
+    private static final Map<String, String> ICON_FILE_CACHE = new ConcurrentHashMap<>();
 
     public SitePdfGenerator(MavenProject project,
                              List<SharedResourceModel> sharedResources,
@@ -53,6 +58,7 @@ public class SitePdfGenerator {
         try (OutputStream os = new BufferedOutputStream(new FileOutputStream(outputFile))) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
             builder.useFastMode();
+            builder.useSVGDrawer(new BatikSVGDrawer());
             builder.withHtmlContent(xhtml, outputFile.getParentFile().toURI().toString());
             builder.toStream(os);
             builder.run();
@@ -546,17 +552,24 @@ public class SitePdfGenerator {
     }
 
     /**
-     * Pre-renders an SVG diagram to PNG using Batik's {@code PNGTranscoder} with relaxed
-     * external-resource security so {@code data:} URI icons inside {@code <image>} elements
-     * are loaded correctly. The PNG is embedded as a base64 {@code <img>} in the XHTML,
-     * bypassing OpenHTMLtoPDF's {@code BatikSVGDrawer} which runs with a null document URL
-     * and therefore rejects all external refs including {@code data:} URIs.
+     * Pre-renders an SVG diagram to PNG so activity icons appear in the PDF.
+     *
+     * <p>Two-step process to work around Batik's limitations:</p>
+     * <ol>
+     *   <li>Replace {@code data:} URIs in {@code <image>} elements with {@code file://} temp
+     *       files. Java's URL class does not support the {@code data:} protocol, so Batik's
+     *       image loader would throw a {@code BridgeException} even if the security check
+     *       passes. {@code file://} URLs are loaded natively.</li>
+     *   <li>Use {@code PNGTranscoder} with {@code RelaxedExternalResourceSecurity} so the
+     *       temp file references are allowed without docURL / protocol checks.</li>
+     * </ol>
      *
      * @return PNG bytes, or {@code null} if transcoding fails (caller falls back to rects).
      */
     @SuppressWarnings("PMD.AvoidCatchingGenericException")
     private static byte[] renderSvgToPng(String svg) {
         try {
+            String svgWithFiles = replaceSvgDataUris(svg);
             PNGTranscoder tr = new PNGTranscoder() {
                 @Override
                 protected UserAgent createUserAgent() {
@@ -570,8 +583,63 @@ public class SitePdfGenerator {
                 }
             };
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            tr.transcode(new TranscoderInput(new StringReader(svg)), new TranscoderOutput(out));
+            tr.transcode(new TranscoderInput(new StringReader(svgWithFiles)), new TranscoderOutput(out));
             return out.toByteArray();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Rewrites {@code <image>} elements: replaces each {@code data:} URI with a {@code file://}
+     * URI pointing to a temp file containing the decoded bytes.
+     */
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
+    private static String replaceSvgDataUris(String svg) {
+        Matcher m = IMAGE_ELEMENT.matcher(svg);
+        StringBuffer result = new StringBuffer();
+        while (m.find()) {
+            String x = m.group(1), y = m.group(2), w = m.group(3), h = m.group(4);
+            String dataUri = m.group(5); // href (same value in xlink:href)
+            String fileUri = dataUriToTempFile(dataUri);
+            String replacement;
+            if (fileUri != null) {
+                replacement = "<image x=\"" + x + "\" y=\"" + y
+                    + "\" width=\"" + w + "\" height=\"" + h
+                    + "\" href=\"" + fileUri + "\" xlink:href=\"" + fileUri + "\"/>";
+            } else {
+                replacement = m.group(0); // leave unchanged on failure
+            }
+            m.appendReplacement(result, Matcher.quoteReplacement(replacement));
+        }
+        m.appendTail(result);
+        return result.toString();
+    }
+
+    /** Decodes a {@code data:} URI and writes the bytes to a temp file; returns its {@code file://} URI. */
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
+    private static String dataUriToTempFile(String dataUri) {
+        if (dataUri == null || !dataUri.startsWith("data:")) return null;
+        String cached = ICON_FILE_CACHE.get(dataUri);
+        if (cached != null) return cached;
+        try {
+            int comma = dataUri.indexOf(',');
+            if (comma < 0) return null;
+            String meta     = dataUri.substring(5, comma);
+            boolean isBase64 = meta.endsWith(";base64");
+            String mimeType  = meta.contains(";") ? meta.substring(0, meta.indexOf(';')) : meta;
+            String ext       = "image/png".equals(mimeType) ? "png" : "gif";
+            byte[] bytes     = isBase64
+                ? Base64.getDecoder().decode(dataUri.substring(comma + 1))
+                : dataUri.substring(comma + 1).getBytes(StandardCharsets.UTF_8);
+            File tmp = File.createTempFile("bw5-icon-", "." + ext);
+            tmp.deleteOnExit();
+            try (FileOutputStream fos = new FileOutputStream(tmp)) {
+                fos.write(bytes);
+            }
+            String fileUri = tmp.toURI().toString();
+            ICON_FILE_CACHE.put(dataUri, fileUri);
+            return fileUri;
         } catch (Exception e) {
             return null;
         }
