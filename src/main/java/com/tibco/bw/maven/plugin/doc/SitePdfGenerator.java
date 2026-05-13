@@ -41,6 +41,10 @@ public class SitePdfGenerator {
         "<image x=\"(-?\\d+)\" y=\"(-?\\d+)\" width=\"(\\d+)\" height=\"(\\d+)\""
         + " href=\"([^\"]*)\" xlink:href=\"([^\"]*)\"/>");
 
+    /** Matches the viewBox attribute to extract intrinsic SVG dimensions. */
+    private static final Pattern VIEWBOX_PATTERN = Pattern.compile(
+        "viewBox=\"0 0 (\\d+(?:\\.\\d+)?) (\\d+(?:\\.\\d+)?)\"");
+
     /** data: URI → temp file URI cache, shared across all diagrams in one build. */
     private static final Map<String, String> ICON_FILE_CACHE = new ConcurrentHashMap<>();
 
@@ -582,6 +586,12 @@ public class SitePdfGenerator {
                     };
                 }
             };
+            // Batik needs explicit pixel dimensions — width="100%" has no parent container
+            Matcher vb = VIEWBOX_PATTERN.matcher(svg);
+            if (vb.find()) {
+                tr.addTranscodingHint(PNGTranscoder.KEY_WIDTH,  Float.parseFloat(vb.group(1)));
+                tr.addTranscodingHint(PNGTranscoder.KEY_HEIGHT, Float.parseFloat(vb.group(2)));
+            }
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             tr.transcode(new TranscoderInput(new StringReader(svgWithFiles)), new TranscoderOutput(out));
             return out.toByteArray();
