@@ -1,15 +1,20 @@
 package com.tibco.bw.maven.plugin.doc;
 
-import com.openhtmltopdf.extend.FSStream;
-import com.openhtmltopdf.extend.FSStreamFactory;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
-import com.openhtmltopdf.svgsupport.BatikSVGDrawer;
 import com.tibco.bw.maven.plugin.descriptor.SubstVarParser;
 import org.apache.maven.project.MavenProject;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import org.apache.batik.bridge.ExternalResourceSecurity;
+import org.apache.batik.bridge.RelaxedExternalResourceSecurity;
+import org.apache.batik.bridge.UserAgent;
+import org.apache.batik.bridge.UserAgentAdapter;
+import org.apache.batik.transcoder.TranscoderInput;
+import org.apache.batik.transcoder.TranscoderOutput;
+import org.apache.batik.transcoder.image.PNGTranscoder;
+import org.apache.batik.util.ParsedURL;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -48,44 +53,11 @@ public class SitePdfGenerator {
         try (OutputStream os = new BufferedOutputStream(new FileOutputStream(outputFile))) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
             builder.useFastMode();
-            builder.useSVGDrawer(new BatikSVGDrawer());
-            // Allow Batik to resolve data: URIs embedded in SVG xlink:href attributes
-            builder.useProtocolsStreamImplementation(new DataUriStreamFactory(), "data");
             builder.withHtmlContent(xhtml, outputFile.getParentFile().toURI().toString());
             builder.toStream(os);
             builder.run();
         } catch (Exception e) {
             throw new IOException("PDF rendering failed: " + e.getMessage(), e);
-        }
-    }
-
-    /** Resolves {@code data:} URIs so Batik can load embedded base64 images in SVG. */
-    private static class DataUriStreamFactory implements FSStreamFactory {
-        @Override
-        public FSStream getUrl(final String url) {
-            return new FSStream() {
-                @Override
-                public InputStream getStream() {
-                    try {
-                        // data:[<mime>][;base64],<data>
-                        int comma = url.indexOf(',');
-                        if (comma < 0) return null;
-                        String payload = url.substring(comma + 1);
-                        boolean isBase64 = url.substring(0, comma).endsWith(";base64");
-                        byte[] bytes = isBase64
-                            ? Base64.getDecoder().decode(payload)
-                            : java.net.URLDecoder.decode(payload, "UTF-8").getBytes(StandardCharsets.UTF_8);
-                        return new ByteArrayInputStream(bytes);
-                    } catch (Exception e) {
-                        return null;
-                    }
-                }
-                @Override
-                public java.io.Reader getReader() {
-                    InputStream is = getStream();
-                    return is == null ? null : new java.io.InputStreamReader(is, StandardCharsets.UTF_8);
-                }
-            };
         }
     }
 
@@ -258,15 +230,19 @@ public class SitePdfGenerator {
             sb.append("  </div>\n");
         }
 
-        // SVG Diagram
+        // SVG Diagram — pre-render to PNG so activity icons (data: URI GIFs) survive Batik security
         String svg = svgGen.generate(model);
         if (svg != null && !svg.isEmpty()) {
             sb.append("  <div class=\"diagram-wrap\">\n");
             sb.append("    <h2>Process Diagram</h2>\n");
-            // Replace <image> elements (data: URIs) with plain SVG rectangles.
-            // Batik's security policy blocks data: URIs even when a protocol handler is registered,
-            // so we avoid them entirely in the PDF path.
-            sb.append("    <div class=\"svg-scaler\">").append(sanitizeSvgForPdf(svg)).append("</div>\n");
+            byte[] pngBytes = renderSvgToPng(svg);
+            if (pngBytes != null) {
+                sb.append("    <img class=\"diagram-img\" src=\"data:image/png;base64,")
+                  .append(Base64.getEncoder().encodeToString(pngBytes))
+                  .append("\" alt=\"").append(esc(model.displayName)).append(" diagram\"/>\n");
+            } else {
+                sb.append("    <div class=\"svg-scaler\">").append(sanitizeSvgForPdf(svg)).append("</div>\n");
+            }
             sb.append("  </div>\n");
         }
 
@@ -569,8 +545,39 @@ public class SitePdfGenerator {
           .append(esc(value)).append("</td></tr>\n");
     }
 
-    /** Replaces {@code <image>} elements (which carry {@code data:} URI icons) with plain
-     *  {@code <rect>} elements so Batik's security policy does not block rendering. */
+    /**
+     * Pre-renders an SVG diagram to PNG using Batik's {@code PNGTranscoder} with relaxed
+     * external-resource security so {@code data:} URI icons inside {@code <image>} elements
+     * are loaded correctly. The PNG is embedded as a base64 {@code <img>} in the XHTML,
+     * bypassing OpenHTMLtoPDF's {@code BatikSVGDrawer} which runs with a null document URL
+     * and therefore rejects all external refs including {@code data:} URIs.
+     *
+     * @return PNG bytes, or {@code null} if transcoding fails (caller falls back to rects).
+     */
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
+    private static byte[] renderSvgToPng(String svg) {
+        try {
+            PNGTranscoder tr = new PNGTranscoder() {
+                @Override
+                protected UserAgent createUserAgent() {
+                    return new UserAgentAdapter() {
+                        @Override
+                        public ExternalResourceSecurity getExternalResourceSecurity(
+                                ParsedURL resourceURL, ParsedURL docURL) {
+                            return new RelaxedExternalResourceSecurity(resourceURL, docURL);
+                        }
+                    };
+                }
+            };
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            tr.transcode(new TranscoderInput(new StringReader(svg)), new TranscoderOutput(out));
+            return out.toByteArray();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Fallback: replaces {@code <image>} elements with plain rects when PNG rendering fails. */
     private static String sanitizeSvgForPdf(String svg) {
         return IMAGE_ELEMENT.matcher(svg).replaceAll(
             "<rect x=\"$1\" y=\"$2\" width=\"$3\" height=\"$4\" rx=\"4\""
@@ -629,6 +636,7 @@ public class SitePdfGenerator {
         // Diagram
         + ".diagram-wrap { margin: 10px 0; }\n"
         + ".diagram-wrap h2 { font-size: 11pt; color: #555; }\n"
+        + ".diagram-img { max-width: 170mm; height: auto; display: block; }\n"
         + ".svg-scaler { max-width: 170mm; overflow: hidden; }\n"
         + ".svg-scaler svg { display: block; }\n"
 
