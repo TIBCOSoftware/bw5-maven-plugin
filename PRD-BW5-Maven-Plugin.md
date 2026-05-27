@@ -1,16 +1,16 @@
 # Product Requirements Document
 ## BW5 Maven Plugin (`bw5-maven-plugin`)
 
-**Version:** 1.3
-**Status:** Draft — For Review by BW5 Product Management & Engineering
+**Version:** 1.4
+**Status:** Updated — Reflects actual implementation as of 2026-05-27
 **Author:** TIBCO BW5 Community
-**Date:** 2026-04-23
+**Date:** 2026-05-27
 
 ---
 
 ## 1. Executive Summary
 
-The `bw5-maven-plugin` is a new Maven plugin for TIBCO BusinessWorks 5.x that enables full application lifecycle management — dependency management, compilation, packaging, documentation, and CI/CD integration — **without requiring any TIBCO tools to be installed on the build machine**.
+The `bw5-maven-plugin` is a Maven plugin for TIBCO BusinessWorks 5.x that enables full application lifecycle management — dependency management, compilation, packaging, documentation, and CI/CD integration — **without requiring any TIBCO tools to be installed on the build machine**.
 
 This plugin fills a critical gap: the existing community plugin (`tibco-bwmaven`, FastConnect, 2011) requires a local TIBCO Designer installation and wraps proprietary binaries (`buildear`, `buildlibrary`, `appmanage`) that make it unusable in modern containerised CI/CD environments. The `bw5-maven-plugin` replaces those binary invocations with pure Java implementations, making BW5 projects first-class citizens in any Maven-based build pipeline.
 
@@ -56,7 +56,7 @@ TIBCO BusinessWorks 5.x projects are managed today either manually through TIBCO
 4. **Support Java Code activity compilation** using standard JDK tooling.
 5. **Support Java Custom Function compilation** — compile, package, and register custom XPath functions.
 6. **Full EAR assembly support**: single-PAR, multi-PAR, and Adapter Archive (AAR) projects.
-7. **Generate professional process documentation** with realistic activity icons and SVG diagrams.
+7. **Generate professional process documentation** with realistic activity icons, SVG diagrams, optional Markdown export, and optional PDF export.
 8. **Align packaging conventions with BW6** so multi-generation teams use one mental model.
 9. **Preserve TIBCO Designer compatibility** via `mvn bw5:designer-setup`.
 10. **Zero-friction project onboarding** via `mvn bw5:init` — generate a correct `pom.xml` from any existing BW5 project directory without manual setup.
@@ -120,8 +120,9 @@ Managing a portfolio of BW5 and BW6 applications. Needs consistent toolchain con
 | `generate-sources` | `bw5:extract-java-sources` — extracts Java Code activities and Custom Function sources |
 | `process-resources` | `bw5:resolve-dependencies` — resolves projlib/JAR dependencies to `target/bw-lib` |
 | `compile` | `maven-compiler-plugin:compile` — compiles extracted Java sources with standard JDK |
-| `package` | `bw5:bwear` — assembles PAR(s) + SAR + TIBCO.xml into `.ear`; applies property overrides; generates `deploy.xml`, `deploy.properties`, `values.yaml`; resolves dependencies to `target/bw-lib` unless `skipResolveDependencies=true` |
-| `verify` | `bw5:validate` — static analysis of BW project: XML well-formedness, process names, global variable completeness, XPath syntax (see §6.15) |
+| `process-classes` | `bw5:prepare-jcf-bytecode` — Base64-encodes compiled Custom Function bytecode into Maven properties |
+| `package` | `bw5:bwear` — assembles PAR(s) + SAR + TIBCO.xml into `.ear`; applies property overrides; generates `deploy.xml`, `deploy.properties`, `values.yaml` |
+| `verify` | `bw5:validate` — static analysis: XML well-formedness, process names, global variable completeness, XPath syntax (see §6.15) |
 | `install` | Standard Maven install |
 | `deploy` | Standard Maven deploy (to Maven repository) |
 
@@ -133,7 +134,8 @@ Managing a portfolio of BW5 and BW6 applications. Needs consistent toolchain con
 | `generate-sources` | `bw5:copy-bw-sources`, `bw5:extract-java-sources` |
 | `process-resources` | `bw5:resolve-dependencies` |
 | `compile` | `maven-compiler-plugin:compile` |
-| `package` | `bw5:projlib` — assembles `.projlib` archive |
+| `process-classes` | `bw5:prepare-jcf-bytecode` |
+| `package` | `bw5:bw5module` — assembles `.projlib` archive |
 | `install` | Standard Maven install |
 | `deploy` | Standard Maven deploy |
 
@@ -174,17 +176,32 @@ The goal shall produce a valid BW5 EAR without invoking `buildear`.
 
 **Requirements:**
 - The PAR name defaults to `${project.artifactId}`, configurable via `<archiveName>`
-- Multi-PAR projects configure process-to-archive assignments via `<archives>` plugin configuration (see §6.9)
+- Multi-PAR projects configure process-to-archive assignments via `<archives>` plugin configuration (see §6.7)
 - Adapter Archive projects are detected by the presence of `.aar` or adapter descriptors; the archive type is configurable
 - Global variables are read from all `.substvar` files
 - projlib and JAR dependencies are registered as FileAliases in TIBCO.xml (never bundled in the EAR)
 - Compiled Java classes (Code activities and Custom Functions) are included in the PAR under `JavaCode/`
+- `.folder` files (TIBCO Designer folder metadata) are included by default; configurable via `includeFolderMetadata`
 
-### 6.4 Projlib Assembly (`bw5:projlib`)
+**Transitive dependency analysis (when `.archive` descriptor present):**
+
+When an `.archive` descriptor is present, `bw5:bwear` performs a BFS traversal starting from the process entry points declared in the descriptor. This analysis:
+- Follows `CallProcess` subprocess references
+- Follows shared resource references (`ConnectionReference`, `variableConfig`, `stylesheet`, `JavaGlobalInstance`, `ParseSharedConfig`, `JavaSchemaResource`)
+- Follows XSD imports transitively
+- Always includes `.javaxpath` files and files under paths listed in `sharedResources`
+- Files not reachable from entry points and not in shared resource paths are excluded from the archive
+
+**SAR file extensions covered:**
+`.rvtransport`, `.sharedhttp`, `.sharedjdbc`, `.sharedjmscon`, `.sharedjmsapp`, `.httpProxy`, `.sharedpartner`, `.sharedvariable`, `.jobsharedvariable`, `.sharedLock`, `.serviceagent`, `.securityPolicy`, `.contextResource`, `.wsdl`, `.xsd`, `.id`, `.cert`, `.properties`, `.xslt`, `.xsl`, `.javaxpath`, `.xml`, `.sharedparse`
+
+### 6.4 Projlib Assembly (`bw5:bw5module`)
 
 **Requirements:**
 - `.projlib` is a ZIP archive preserving the full BW project directory structure
 - `/library.manifest` entry is included with Maven GAV metadata
+- When a `.libbuilder` descriptor is present, only Designer-managed files (as listed in the descriptor) are included — plus always includes `.substvar` and `.folder` files
+- Without a `.libbuilder` descriptor: includes all BW files, excluding AESchemas, `.designtimelibs`, `vcrepo.dat`, `.DS_Store`, `Thumbs.db`, `.git`, `.svn`, `target/`
 - Compiled Java classes (Code activities and Custom Functions) included under `JavaCode/`
 - Projlib files install to and resolve from any standard Maven repository
 
@@ -198,16 +215,19 @@ The goal shall produce a valid BW5 EAR without invoking `buildear`.
 
 ### 6.6 Java Custom Function Compilation
 
-Custom Functions in BW5 are Java classes that extend the BW XPath function library. They are distinct from Java Code activities.
+Custom Functions in BW5 are Java classes that implement TIBCO's XPath extension contract and are referenced from `.javaxpath` descriptor files in the BW project.
+
+**Build flow:**
+1. Java sources for Custom Functions reside under `src/main/java/` (standard Maven layout) and are compiled by `maven-compiler-plugin`
+2. `bw5:prepare-jcf-bytecode` (phase `process-classes`) scans for `.javaxpath` files, derives the fully-qualified class name from the `<ns0:loadedFromLocation>` element, locates the compiled `.class` file, and stores the Base64-encoded bytecode as Maven property `bw5.jcf.bytecode.<className>`
+3. `bw5:bwear` / `bw5:bw5module` injects this bytecode into the `.javaxpath` file's `<data>` element when assembling the archive
+
+**Legacy mode:** When `<oldJavaCustomFunctions>true</oldJavaCustomFunctions>` is set, the goal uses pre-existing bytecode already embedded in the `.javaxpath` file and emits a warning rather than overwriting it.
 
 **Requirements:**
-- Java sources for Custom Functions reside under `src/main/java/` (standard Maven source layout) and are compiled by `maven-compiler-plugin` without any special extraction step
-- The plugin shall scan the compiled output for classes annotated with or implementing TIBCO's Custom Function contract (e.g., implementing `com.tibco.pe.core.api.PluginActivator` or annotated with palette metadata)
-- Custom Function classes shall be packaged into a JAR that is:
-  - Bundled inside the projlib or EAR under `CustomFunctions/` (so the BW engine can discover them at runtime)
-  - Also attached as a classified Maven artifact (classifier `custom-functions`) for use as a compile-time dependency in other projects
-- The `bw5:extract-java-sources` goal shall recognise Custom Function metadata files (`.customfunction` or equivalent descriptor) in the BW project and register the function signatures for validation
-- Custom Function JARs can themselves depend on other JARs declared in the project pom.xml
+- Custom Function classes shall be packaged into the projlib or EAR under `CustomFunctions/` (or inline in `.javaxpath`), enabling the BW engine to discover them at runtime
+- Custom Function JARs can themselves depend on other JARs declared in the project `pom.xml`
+- The `bw5:validate` goal recognises `.javaxpath` descriptor files and validates their presence
 
 **Example project structure for a projlib with Custom Functions:**
 
@@ -236,7 +256,7 @@ Some BW5 projects are logically divided into multiple services (PARs) within one
 <plugin>
     <groupId>com.tibco.bw</groupId>
     <artifactId>bw5-maven-plugin</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-SNAPSHOT</version>
     <extensions>true</extensions>
     <configuration>
         <archives>
@@ -286,7 +306,7 @@ Adapter-based BW5 applications produce `.aar` files (Adapter Archives) instead o
 
 ### 6.10 Deployment Config Generation (`bw5:deploy-config`)
 
-The `deploy-config` goal implements a **two-level property override model** that injects environment-specific values into a BW5 project's substitution variables and generates all deployment configuration files. It is a standalone goal for when configs need to be regenerated without rebuilding the EAR. The same logic also runs automatically inside `bw5:bwear` during `mvn package`.
+The `deploy-config` goal implements a **two-level property override model** that injects environment-specific values into a BW5 project's substitution variables and generates all deployment configuration files. It is a standalone goal (phase `generate-resources`) for when configs need to be regenerated without rebuilding the EAR. The same logic also runs automatically inside `bw5:bwear` during `mvn package`.
 
 #### Two-level model
 
@@ -408,11 +428,11 @@ Before starting the engine, the plugin generates `target/bwengine.properties` by
    - JARs: `tibco.alias.<artifactId>-<version>.jar = /path/to/file.jar`
 2. **User-provided properties file** (configured via `propertiesFile`): merged on top, so user entries win
 
-The colons in projlib alias keys are escaped as `\:` so Java `Properties.load()` parses the full Maven coordinate as a single key. When a user properties file contains no `tibco.alias.*` entries, all auto-generated aliases are still written to the output so the engine can resolve all dependencies.
+The colons in projlib alias keys are escaped as `\:` so Java `Properties.load()` parses the full Maven coordinate as a single key.
 
 #### Background mode
 
-When `bw5.run.background=true`, Maven starts the engine as a background OS process and returns immediately after the startup marker is detected in the engine's stdout (or after `bw5.run.startupWaitSeconds` seconds, whichever comes first). A JVM shutdown hook ensures the engine process is killed when Maven exits.
+When `bw5.run.background=true`, Maven starts the engine as a background OS process and returns immediately after the startup marker is detected in the engine's stdout (markers: `"Engine Initialized"`, `"Application started"`, `"BusinessWorks started"`), or after `bw5.run.startupWaitSeconds` seconds, whichever comes first. A JVM shutdown hook ensures the engine process is killed when Maven exits.
 
 When `bw5.run.background=false` (default), Maven blocks until the engine process exits, piping all output to the Maven log.
 
@@ -449,18 +469,6 @@ mvn bw5:run -Dbw5.run.propertiesFile=config/local.properties
 mvn package bw5:run -Dbw5.run.background=true
 ```
 
-#### Sample `bwengine.properties`
-
-```properties
-# Generated by bw5:run — do not edit manually
-# Auto-generated projlib aliases (Maven coordinates, colons escaped for Properties.load)
-tibco.alias.com.example.bw5\:string-utils-lib\:1.0.0-SNAPSHOT\:projlib=/path/to/string-utils-lib-1.0.0-SNAPSHOT.projlib
-# Auto-generated JAR aliases
-tibco.alias.commons-lang3-3.12.0.jar=/path/to/commons-lang3-3.12.0.jar
-# User-provided global variable overrides (win over auto-generated entries)
-tibco.clientVar.JmsProviderUrl=tcp://localhost:7222
-```
-
 ---
 
 ### 6.15 Static Validation (`bw5:validate`)
@@ -471,14 +479,14 @@ The `validate` goal performs **static analysis of BW project sources** without r
 
 | Code | Check | Severity |
 |---|---|---|
-| `XML` | XML well-formedness of all `.process`, `.archive`, `.substvar`, `.sharedhttp`, `.schema` files | Error |
-| `ARCHIVE` | Archive descriptor (`.archive` file) exists and references a valid PAR name | Error |
-| `PROCESS_NAME` | Process names match their file names; no whitespace or illegal characters | Warning |
+| `XML` | XML well-formedness of all `.process`, `.archive`, `.substvar`, `.aliaslib`, `.sharedhttp`, `.schema` files | Error |
+| `ARCHIVE` | Archive descriptor (`.archive` file) exists and all declared process paths resolve to files on disk | Error |
+| `PROCESS_NAME` | Process `<name>` element matches the file path | Warning |
 | `DUPLICATE` | No duplicate process names within the same archive | Error |
 | `GVAR` | All `%%VAR%%` global variable references in process config text are declared in a `.substvar` file | Warning |
 | `GVAR_UNUSED` | Global variables declared in `.substvar` that are not referenced anywhere (only when `showUnusedGVars=true`) | Warning |
 | `DEP` | All projlib dependencies are resolvable from the Maven repository | Error |
-| `XPATH` | XPath expressions in process data mappings compile without syntax errors using the full BW5 custom function catalog | Warning |
+| `XPATH` | XPath expressions in process data mappings and transition conditions compile without syntax errors using the full BW5 custom function catalog | Warning |
 
 #### What is NOT checked (vs. TIBCO Designer's `ValidateProject`)
 
@@ -546,6 +554,7 @@ mvn bw5:validate -Dbw5.validate.skipXPath=true
 - Copies all `projlib` and `jar` dependencies to `${basedir}/.designer-libs/` (configurable)
 - Updates `.designtimelibs` in format `N=groupId:artifactId:version:type\=`
 - Idempotent: skips files already present with correct size; `force` flag overrides
+- Generates `target/.TIBCO/Designer5.prefs` with Maven-path filealias entries (reads the system `~/.TIBCO/Designer5.prefs`, strips existing `filealias.*` entries, and regenerates with Maven-managed paths — the engine is launched with `-Duser.home=target` so this file is used instead of the user's global preferences, avoiding corruption)
 - Auto-adds `.designer-libs/` to `.gitignore`
 - Optionally launches TIBCO Designer on the project directory (`launchDesigner=true`); Designer executable located via `tibcoHome` parameter or `TIBCO_HOME` environment variable
 
@@ -553,25 +562,52 @@ mvn bw5:validate -Dbw5.validate.skipXPath=true
 
 **Requirements:**
 
-**Project overview page** shall include:
-- Project metadata, statistics (processes, starters, activities, projlib deps)
-- Process list with starter type, activity count, transition count
-- Dependency table
+**Project overview page** (`index.html`) shall include:
+- Project metadata, statistics (processes, event sources, activities, transitions, shared resources, global variables)
+- Process list with starter type, activity count, transition count — displayed as a **collapsible directory tree** grouped by folder path (collapsed by default)
+- Global variable list as a **collapsible directory tree** grouped by substvar file/folder (collapsed by default)
+- Shared resource summary table
+- Dependency table (all Maven dependencies)
 
 **Per-process page** shall include:
+- **Description card** (if process description is present in the XML)
 - **SVG process diagram** using x/y coordinates from the `.process` XML:
-  - Activity boxes rendered with **palette-specific icons** (see §6.11.1) at their native positions
+  - Activity boxes rendered with **palette-specific icons** (see §6.13.1) at their native positions
+  - Activity groups (colored grouping boxes with labels) rendered as semi-transparent rectangles
+  - Canvas labels rendered as floating text elements
   - Transitions as directed arrows, colour-coded and labelled by condition type (always / success / error / successWithCondition / otherwise)
   - Condition expressions on conditional transitions
-- **Activity table**: name, type, configuration summary
-- **Transition table**: from, to, condition type (badge), condition expression
-- **Data mapping table**: target field, source XPath, literal flag, conditional flag + expression
+- **Event source** configuration table
+- **Activity table**: name, type; `CallProcess` activities link to the target process page
+- **Transition table**: from, to, condition (badge + expression)
+- **Data mapping table**: target field, source XPath, literal flag — one table per activity, 3-column layout in HTML
+- **Shared resources used** (connections referenced by activities in this process) — cross-reference section
+- **Global variables used** (GVs referenced via `%%VAR%%` or `$_globalVariables/` XPath) — cross-reference section
+
+**Per-shared-resource page** shall include:
+- Configuration table (passwords/secrets redacted as `[hidden]`)
+- "Used by" list with links to the process pages that reference this resource
+
+**Optional Markdown output** (`-Dbw5.site.generateMarkdown=true`):
+- Generates `index.md` and `processes/*.md` alongside the HTML files using the same structure
+
+**Optional PDF export** (`-Dbw5.site.generatePdf=true`):
+- Produces `bw5-doc.pdf` in `target/site/bw5/`
+- Self-contained PDF with: cover page (TIBCO blue branding, project coordinates, description, date), table of contents, project overview section, one section per process with process diagram, one section per shared resource
+- Process diagrams are pre-rendered from SVG to PNG (via Apache Batik `PNGTranscoder`) so activity icons (data URI GIFs/PNGs) survive Batik's security model — `data:` URIs are first converted to temp files to work around Java's lack of `data:` URL protocol support
+- Falls back to simplified rectangle rendering per activity if PNG transcoding fails
+- Password/secret fields redacted in shared resource config tables
+
+**Non-functional requirements for documentation:**
+- Pure HTML + CSS, no external dependencies
+- Under 10 seconds for 50 processes
+- Integrates with `mvn site` lifecycle; also runs standalone with `mvn bw5:site`
 
 #### 6.13.1 Activity Icon Registry
 
-The `ActivityIconRegistry` class shall provide base64-encoded SVG icons for all standard BW5 palette activities. Icons are embedded directly in the SVG diagram as `<image>` elements (data URIs), requiring no external resources.
+The `ActivityIconRegistry` class provides base64-encoded SVG icons for all standard BW5 palette activities. Icons are embedded directly in the SVG diagram as `<image>` elements (data URIs), requiring no external resources.
 
-**Coverage (minimum for v1.0):**
+**Coverage (implemented in v1.0):**
 
 | Category | Activities |
 |---|---|
@@ -590,12 +626,7 @@ The `ActivityIconRegistry` class shall provide base64-encoded SVG icons for all 
 | **Custom Functions** | CustomFunctionActivity |
 | **Adapter** | AdapterEventSource, AdapterRequestResponseActivity |
 
-Icons are 32×32px SVG shapes encoded as base64. The registry provides a fallback generic activity icon for unrecognised types.
-
-**Non-functional requirements for documentation:**
-- Pure HTML + CSS, no external dependencies
-- Under 10 seconds for 50 processes
-- Integrates with `mvn site` lifecycle; also runs standalone
+Icons are 32×32px SVG shapes encoded as base64 data URIs. The registry provides a fallback generic activity icon for unrecognised types. Lookup is done by both the full TIBCO activity type (e.g., `com.tibco.plugin.http.HTTPEventSource`) and the shorter palette resource type (e.g., `httppalette.httpEventSource`).
 
 ---
 
@@ -611,7 +642,8 @@ The goal scans the target directory for TIBCO Designer descriptor files to deter
 |---|---|
 | `*.archive` file in project root | `bwear` |
 | `*.libbuilder` file in project root or `Library/` subdirectory | `projlib` |
-| Neither | Error with actionable message |
+| `AESchemas/` directory or `vcrepo.dat` file | `bwear` (with a warning that no descriptor was found) |
+| None of the above | Error with actionable message |
 
 When both a `.archive` and a `.libbuilder` file are found, the `.archive` takes precedence (the project is an EAR).
 
@@ -620,10 +652,11 @@ When both a `.archive` and a `.libbuilder` file are found, the `.archive` takes 
 | Field | Source | Fallback |
 |---|---|---|
 | `artifactId` | EAR/library name from descriptor, normalised (lowercase, spaces→hyphens) | Descriptor filename without extension |
-| `version` | `1.0.0-SNAPSHOT` | — |
+| `groupId` | — | `com.tibco` |
+| `version` | — | `1.0.0-SNAPSHOT` |
 | `packaging` | From descriptor as above | — |
 
-Users override any field via command-line properties (`-DartifactId=...`, `-Dversion=...`). `groupId` is the only required parameter with no default.
+Users override any field via command-line properties (`-DgroupId=...`, `-DartifactId=...`, `-Dversion=...`).
 
 #### Dependency stubs from `.designtimelibs`
 
@@ -638,9 +671,10 @@ If a `.designtimelibs` file is present, the generated `pom.xml` includes comment
 
 | Parameter | Property | Default | Description |
 |---|---|---|---|
-| `groupId` | `groupId` | *(required)* | Maven groupId — no sensible default |
+| `groupId` | `groupId` | `com.tibco` | Maven groupId |
 | `artifactId` | `artifactId` | Auto-detected from descriptor name | Maven artifactId |
 | `version` | `version` | `1.0.0-SNAPSHOT` | Maven version |
+| `packaging` | `packaging` | Auto-detected | Override packaging type: `bwear` or `projlib` |
 | `projectDir` | `bw5.init.projectDir` | `${basedir}` | BW5 project directory to scan |
 | `force` | `bw5.init.force` | `false` | Overwrite existing `pom.xml` |
 
@@ -648,9 +682,9 @@ If a `.designtimelibs` file is present, the generated `pom.xml` includes comment
 
 ```bash
 # Minimum — run from inside the BW5 project directory
-mvn com.tibco.bw:bw5-maven-plugin:1.0.0-SNAPSHOT:init -DgroupId=com.example
+mvn com.tibco.bw:bw5-maven-plugin:1.0.0-SNAPSHOT:init
 
-# Override all coordinates
+# Override coordinates
 mvn com.tibco.bw:bw5-maven-plugin:1.0.0-SNAPSHOT:init \
     -DgroupId=com.example \
     -DartifactId=my-service \
@@ -826,7 +860,7 @@ mvn bw5-deploy:deploy -Dbw5.deploy.environment=control-tower
 <plugin>
     <groupId>com.tibco.bw</groupId>
     <artifactId>bw5-maven-plugin</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-SNAPSHOT</version>
     <extensions>true</extensions>
 </plugin>
 
@@ -834,7 +868,7 @@ mvn bw5-deploy:deploy -Dbw5.deploy.environment=control-tower
 <plugin>
     <groupId>com.tibco.bw</groupId>
     <artifactId>bw5-deploy-plugin</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-SNAPSHOT</version>
 </plugin>
 ```
 
@@ -875,25 +909,69 @@ my-bw5-application/
 |---|---|
 | **EAR assembled in pure Java (`java.util.zip`)** | Eliminates `buildear`. BW5 processes are XML interpreted at runtime — no compilation needed. |
 | **Standard `maven-compiler-plugin` for Java** | Java Code activities and Custom Functions extracted to `target/generated-sources/bw-java` and `src/main/java` respectively, compiled transparently by the standard Maven compiler. Full IDE support, testable output. |
+| **`bw5:prepare-jcf-bytecode` injects bytecode into `.javaxpath`** | Base64-encoded bytecode is stored as a Maven property during `process-classes` and injected into the archive during packaging, avoiding any need for a TIBCO-specific build step. |
 | **`mvn deploy` targets Maven repository only** | Deployment is an explicit operational step, not part of the build. Separation enforced at the artifact level (two plugins). |
 | **Uniform deploy interface across environments** | Same Maven goal, same lifecycle position, same property naming convention regardless of target. Reduces operator training and pipeline divergence. |
 | **`bwear` / `projlib` packaging types aligned with BW6** | Consistency for multi-generation teams; `projlib` uses the native BW5 term (more discoverable than `bwmodule`). |
-| **SVG diagrams from native coordinates + icon registry** | TIBCO Designer stores x/y activity positions in `.process` XML. Combined with a palette icon registry (base64 SVGs), the plugin generates diagrams that visually match the Designer canvas. |
+| **SVG diagrams from native coordinates + icon registry** | TIBCO Designer stores x/y activity positions in `.process` XML. Combined with a palette icon registry (base64 SVGs), the plugin generates diagrams that visually match the Designer canvas. Process groups and canvas labels are also rendered. |
+| **PDF diagrams pre-rendered to PNG via Batik** | Batik cannot load `data:` URIs directly (Java's URL class has no `data:` protocol handler). Icons are decoded to temp files, then Batik's `PNGTranscoder` renders the SVG to PNG using `RelaxedExternalResourceSecurity`. The PNG is base64-embedded in the PDF as an `<img>` element. |
 | **No lib.zip in EAR** | Production BW5 EARs reference JARs/projlibs via FileAliases — they are not bundled. The plugin replicates this model. |
 | **Multi-PAR via plugin config, not `.archiveDescriptor`** | Avoids reading a proprietary binary-format descriptor. Archive assignment via glob patterns in `pom.xml` is transparent and version-controlled. |
+| **Transitive dependency BFS when `.archive` present** | Only files reachable from process entry points are included in the archive, matching the behaviour of `buildear` without invoking it. |
+| **Designer isolation via `target/.TIBCO/Designer5.prefs`** | Prevents `bw5:designer-setup` from corrupting the developer's global Designer preferences. The engine JVM is started with `-Duser.home=target`. |
+| **SpotBugs + PMD + OWASP Dependency Check** | Static analysis integrated into the `verify` phase. SpotBugs (effort=Max, threshold=Low) and PMD (best-practices, error-prone, performance rulesets) run on every build. OWASP dependency vulnerability scanning is skipped by default (slow NVD download) and enabled on demand with `-Dodc.skip=false`. |
 
 ### 8.4 Technology Stack
 
 | Concern | Technology | Version |
 |---|---|---|
-| Maven Plugin API | `maven-plugin-api` | 3.6.3 |
-| Maven Core | `maven-core` | 3.6.3 |
+| Maven Plugin API | `maven-plugin-api` | 3.8.1 |
+| Maven Core | `maven-core` | 3.8.1 |
 | XML Processing | JDOM2 | 2.0.6.1 |
-| File Operations | Apache Commons IO | 2.13.0 |
+| File Operations | Apache Commons IO | 2.14.0 |
+| PDF generation | OpenHTMLtoPDF | 1.0.10 |
+| SVG-to-PNG transcoding | Apache Batik (via openhtmltopdf-svg-support) | bundled with OpenHTMLtoPDF 1.0.10 |
 | REST Client (deploy plugin) | Jersey Client or Apache HttpClient | TBD |
 | JSON/YAML (deploy plugin) | Jackson | 2.15+ |
+| Static analysis | SpotBugs 4.8.6.4, PMD 3.21.2 | — |
+| Vulnerability scanning | OWASP Dependency Check 10.0.3 | — |
 | Java Target | Java 11 | — |
-| Minimum Maven | Maven 3.6.3 | — |
+| Minimum Maven | Maven 3.8.1 | — |
+
+### 8.5 Package Structure
+
+```
+com.tibco.bw.maven.plugin
+├── packaging/          ← Core MOJOs + base class (12 classes)
+│   ├── AbstractBw5Mojo       — base class: dependency resolution, GV prefix utilities
+│   ├── InitMojo              — bw5:init — pom.xml generation
+│   ├── InitializeMojo        — bw5:initialize — directory setup
+│   ├── CopyBwSourcesMojo     — bw5:copy-bw-sources
+│   ├── ResolveDependenciesMojo — bw5:resolve-dependencies
+│   ├── BwEarMojo             — bw5:bwear — EAR assembly + transitive analysis
+│   ├── Bw5ModuleMojo         — bw5:bw5module — projlib assembly
+│   ├── ValidateMojo          — bw5:validate
+│   ├── ConfigureMojo         — bw5:deploy-config
+│   └── RunBwMojo             — bw5:run
+├── compile/            ← Java extraction MOJOs (2 classes)
+│   ├── ExtractJavaSourcesMojo — bw5:extract-java-sources
+│   └── PrepareJcfBytecodeMojo — bw5:prepare-jcf-bytecode
+├── designer/           ← Designer alignment (1 class)
+│   └── PullMojo              — bw5:designer-setup
+├── descriptor/         ← Parsers and generators (10 classes)
+│   ├── ArchiveDescriptorParser, LibBuilderParser, ProcessParser
+│   ├── SubstVarParser, SubstVarWriter, PropertyMerger
+│   ├── DesignTimeLibsParser, AliasLibParser
+│   ├── DeploymentConfigGenerator, TibcoXmlGenerator
+└── doc/                ← Documentation (11 classes)
+    ├── Bw5SiteMojo           — bw5:site
+    ├── ProcessDocParser, ProcessDocModel
+    ├── SharedResourceParser, SharedResourceModel
+    ├── SiteHtmlGenerator, SiteMarkdownGenerator, SitePdfGenerator
+    ├── SvgDiagramGenerator
+    ├── ActivityIconRegistry
+    └── PluginRegistry
+```
 
 ---
 
@@ -908,7 +986,7 @@ my-bw5-application/
     <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.12.0</version>
+        <version>3.18.0</version>
     </dependency>
 </dependencies>
 ```
@@ -937,7 +1015,7 @@ mvn deploy    # → published to Nexus/Artifactory
         <plugin>
             <groupId>com.tibco.bw</groupId>
             <artifactId>bw5-maven-plugin</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.0-SNAPSHOT</version>
             <extensions>true</extensions>
             <configuration>
                 <archives>
@@ -956,7 +1034,23 @@ mvn deploy    # → published to Nexus/Artifactory
 </build>
 ```
 
-### 9.3 CI/CD Pipeline
+### 9.3 Documentation Generation
+
+```bash
+# HTML only (default)
+mvn bw5:site
+
+# HTML + Markdown
+mvn bw5:site -Dbw5.site.generateMarkdown=true
+
+# HTML + PDF (includes cover page, TOC, diagrams as PNG images)
+mvn bw5:site -Dbw5.site.generatePdf=true
+
+# All three formats
+mvn bw5:site -Dbw5.site.generateMarkdown=true -Dbw5.site.generatePdf=true
+```
+
+### 9.4 CI/CD Pipeline
 
 ```yaml
 # Build stage — no TIBCO software required
@@ -983,11 +1077,11 @@ deploy-to-staging:
 
 ## 10. Configuration Reference
 
-### 10.1 Build Plugin Parameters (`bw5-maven-plugin`)
+### 10.1 Build Plugin Parameters (`bw5-maven-plugin` — common)
 
 | Parameter | Property | Default | Description |
 |---|---|---|---|
-| `bwProjectPath` | `bw5.bwProjectPath` | `${basedir}` | Root directory of BW5 project sources (pom.xml alongside BW project files) |
+| `bwProjectPath` | `bw5.bwProjectPath` | `${basedir}` | Root directory of BW5 project sources |
 | `archiveName` | `bw5.archiveName` | `${project.artifactId}` | PAR name within EAR (single-PAR mode) |
 | `archives` | — | — | Multi-PAR archive assignment configuration |
 | `defaultArchiveName` | — | `${project.artifactId}` | Archive name for unmatched processes in multi-PAR mode |
@@ -995,13 +1089,15 @@ deploy-to-staging:
 | `includeSharedArchive` | — | `true` | Whether to include the SAR in the EAR |
 | `sharedArchiveName` | — | `Shared Archive` | SAR file name |
 | `earOnly` | `bw5.earOnly` | `false` | Assemble EAR only; skip deploy config file generation |
-| `generateDeployXml` | `bw5.generateDeployXml` | `true` | Generate `<finalName>-deploy.xml` alongside the EAR |
-| `generateProperties` | `bw5.generateProperties` | `true` | Generate `<finalName>-deploy.properties` alongside the EAR |
-| `generateValuesYaml` | `bw5.generateValuesYaml` | `true` | Generate `values.yaml` alongside the EAR |
-| `globalPropertiesFile` | `bw5.deployConfig.globalPropertiesFile` | — | Global property overrides applied before config generation |
-| `projectPropertiesFile` | `bw5.deployConfig.projectPropertiesFile` | — | Project-specific property overrides (takes precedence) |
+| `generateDeployXml` | `bw5.generateDeployXml` | `true` | Generate `<finalName>-deploy.xml` |
+| `generateProperties` | `bw5.generateProperties` | `true` | Generate `<finalName>-deploy.properties` |
+| `generateValuesYaml` | `bw5.generateValuesYaml` | `true` | Generate `values.yaml` |
+| `globalPropertiesFile` | `bw5.deployConfig.globalPropertiesFile` | — | Global property overrides |
+| `projectPropertiesFile` | `bw5.deployConfig.projectPropertiesFile` | — | Project-specific property overrides |
 | `archiveDescriptorFile` | `bw5.archiveDescriptorFile` | — | Optional TIBCO Designer `.archive` descriptor file |
-| `skipResolveDependencies` | `bw5.bwear.skipResolveDependencies` | `false` | (`bw5:bwear`) Skip resolving projlib/JAR deps to `target/bw-lib` before EAR assembly |
+| `includeFolderMetadata` | — | `true` | Include `.folder` files in the archive |
+| `oldJavaCustomFunctions` | — | `false` | Use pre-existing bytecode in `.javaxpath` files (legacy mode) |
+| `skipResolveDependencies` | `bw5.bwear.skipResolveDependencies` | `false` | Skip resolving deps to `target/bw-lib` before EAR assembly |
 | `skip` | `bw5.skip` | `false` | Skip all plugin goals |
 
 ### 10.1a `bw5:run` Parameters
@@ -1042,9 +1138,22 @@ deploy-to-staging:
 
 | Parameter | Property | Default | Description |
 |---|---|---|---|
-| `siteOutputDir` | `bw5.siteOutputDir` | `${project.build.directory}/site/bw5` | Output directory for generated HTML |
+| `siteOutputDir` | `bw5.siteOutputDir` | `${project.build.directory}/site/bw5` | Output directory for generated documentation |
+| `generateMarkdown` | `bw5.site.generateMarkdown` | `false` | Also generate Markdown files alongside HTML |
+| `generatePdf` | `bw5.site.generatePdf` | `false` | Generate `bw5-doc.pdf` alongside HTML |
 
-### 10.4 Deploy Plugin Parameters (`bw5-deploy-plugin`)
+### 10.4 `bw5:init` Parameters
+
+| Parameter | Property | Default | Description |
+|---|---|---|---|
+| `groupId` | `groupId` | `com.tibco` | Maven groupId |
+| `artifactId` | `artifactId` | Auto-detected | Maven artifactId |
+| `version` | `version` | `1.0.0-SNAPSHOT` | Maven version |
+| `packaging` | `packaging` | Auto-detected | Override: `bwear` or `projlib` |
+| `projectDir` | `bw5.init.projectDir` | `${basedir}` | BW5 project directory to scan |
+| `force` | `bw5.init.force` | `false` | Overwrite existing `pom.xml` |
+
+### 10.5 Deploy Plugin Parameters (`bw5-deploy-plugin`)
 
 | Parameter | Property | Description |
 |---|---|---|
@@ -1069,7 +1178,7 @@ deploy-to-staging:
 
 ### 11.1 Compatibility with Existing BW5 Projects
 
-1. **No changes to BW project files**: `.process`, `.substvar`, `.sharedhttp` etc. are read but never modified.
+1. **No changes to BW project files**: `.process`, `.substvar`, `.sharedhttp` etc. are read but never modified (unless `updateSubstVarFiles=true` is explicitly set).
 2. **Migration from `tibco-bwmaven`**: Replace the old plugin declaration. Change `<packaging>bw-ear</packaging>` → `<packaging>bwear</packaging>`. Remove `TIBCO_HOME` and binary configuration.
 3. **Source layout**: By default `bwProjectPath` is `${basedir}` — `pom.xml` sits alongside the BW project files. If the project uses a nested layout (e.g. `src/main/bw/`), set `<bwProjectPath>${basedir}/src/main/bw</bwProjectPath>`.
 
@@ -1080,7 +1189,7 @@ deploy-to-staging:
 | Application packaging | `bwear` → `.ear` | `bwear` → `.ear` |
 | Library packaging | `projlib` → `.projlib` | `bwmodule` → `.jar` |
 | Goal prefix | `bw5:` | `bw6:` |
-| Source path | `src/main/bw` | `src/main/java` |
+| Source path | `src/main/bw` (optional convention) | `src/main/java` |
 | Deploy lifecycle | `mvn deploy` → Maven repo | `mvn deploy` → Maven repo |
 | Runtime deployment | `bw5-deploy-plugin` | `bw6-deploy-plugin` / TCI goals |
 
@@ -1098,6 +1207,7 @@ The following items are out of scope for v1.0:
 | **WSDL/service documentation** | Low | Service contract docs from `.wsdl` and `.serviceagent` files in `bw5:site` |
 | **Control Tower API implementation** | Blocked | Depends on Control Tower Platform API specification (§7.4) — implement when API is published |
 | **BW engine unit testing framework** | Low | Run individual BW processes as JUnit tests without full domain setup |
+| **bw5-deploy-plugin** | High | Companion deploy plugin not yet implemented; §7 describes the design |
 
 ---
 
@@ -1109,16 +1219,18 @@ The following items are out of scope for v1.0:
 - [ ] `mvn clean package` on a `projlib` project produces a valid `.projlib`
 - [ ] A `.projlib` published to Nexus/Artifactory is resolvable as `<dependency type="projlib">` in another project
 - [ ] Java Code activities are correctly extracted, compiled, and bundled in the artifact
-- [ ] Java Custom Functions in `src/main/java` are compiled and bundled under `CustomFunctions/` in the artifact
+- [ ] Java Custom Functions in `src/main/java` are compiled, bytecode is Base64-injected into `.javaxpath`, and bundled in the artifact
 - [ ] `mvn bw5:validate` reports XML errors, missing GVars, and XPath syntax issues without requiring a TIBCO installation; does not block EAR generation by default
 - [ ] `mvn bw5:validate -Dbw5.validate.failOnError=true` fails the build when structural errors are found
-- [ ] `mvn bw5:pull` followed by opening the project in TIBCO Designer resolves all dependencies without manual file copying
-- [ ] `mvn bw5:site` produces an HTML site with SVG diagrams using palette-specific activity icons for all standard activity types
+- [ ] `mvn bw5:designer-setup` followed by opening the project in TIBCO Designer resolves all dependencies without manual file copying
+- [ ] `mvn bw5:site` produces an HTML site with SVG diagrams using palette-specific activity icons for all standard activity types, with collapsible process/GV trees and per-process GV/SR cross-references
+- [ ] `mvn bw5:site -Dbw5.site.generatePdf=true` produces a PDF with activity icons rendered as PNG images
+- [ ] `mvn bw5:site -Dbw5.site.generateMarkdown=true` produces Markdown documentation alongside HTML
 - [ ] `bw5-deploy:deploy -Dbw5.deploy.environment=administrator` deploys the EAR to a TIBCO Administrator domain
 - [ ] `bw5-deploy:deploy -Dbw5.deploy.environment=container` deploys via Platform API REST (no TIBCO tools needed)
-- [ ] All build goals complete on vanilla JDK 11 + Maven 3.6.3 with no TIBCO software installed
+- [ ] All build goals complete on vanilla JDK 11 + Maven 3.8.1 with no TIBCO software installed
 - [ ] A standard CI pipeline (`mvn clean deploy`) publishes to a Maven repository without TIBCO tools
 
 ---
 
-*This document is intended for review by TIBCO BW5 Product Management and Engineering. Section 7 (Deployment) and Section 12 (Open Items) are particularly relevant for roadmap prioritisation discussions.*
+*This document reflects the implementation state as of 2026-05-27. Section 7 (Deployment) describes the planned `bw5-deploy-plugin`, which is not yet implemented. Section 12 (Open Items) is particularly relevant for roadmap prioritisation discussions.*
