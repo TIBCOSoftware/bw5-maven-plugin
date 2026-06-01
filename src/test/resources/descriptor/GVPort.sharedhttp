@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ns0:httpSharedResource xmlns:ns0="www.tibco.com/shared/HTTPConnection">
+    <config>
+        <Host>%%ServerHost%%</Host>
+        <Port>%%ServerPort%%</Port>
+    </config>
+</ns0:httpSharedResource>

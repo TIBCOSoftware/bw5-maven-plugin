@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003">
+    <pd:name>com/example/HTTP Receiver.process</pd:name>
+    <pd:startName>HTTPReceive</pd:startName>
+    <pd:starter name="HTTPReceive">
+        <pd:type>com.tibco.plugin.http.HTTPEventSource</pd:type>
+        <sharedChannel>/HTTP Connection.sharedhttp</sharedChannel>
+    </pd:starter>
+</pd:ProcessDefinition>

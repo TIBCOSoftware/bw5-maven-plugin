@@ -3,6 +3,7 @@ package com.tibco.bw.maven.plugin.packaging;
 import com.tibco.bw.maven.plugin.descriptor.AliasLibParser;
 import com.tibco.bw.maven.plugin.descriptor.ArchiveDescriptorParser;
 import com.tibco.bw.maven.plugin.descriptor.DeploymentConfigGenerator;
+import com.tibco.bw.maven.plugin.descriptor.ManifestBw5Generator;
 import com.tibco.bw.maven.plugin.descriptor.ProcessParser;
 import com.tibco.bw.maven.plugin.descriptor.PropertyMerger;
 import com.tibco.bw.maven.plugin.descriptor.SubstVarParser;
@@ -180,6 +181,18 @@ public class BwEarMojo extends AbstractBw5Mojo {
     @Deprecated
     @Parameter(defaultValue = "false", property = "bw5.archiveDescriptorFilterProcesses")
     private boolean archiveDescriptorFilterProcesses;
+
+    /**
+     * When {@code true}, the {@code manifest-bw5.json} file is NOT generated and NOT
+     * included in the EAR. Defaults to {@code false} (manifest is always generated).
+     *
+     * <p>The manifest is required by TIBCO BW5 container runtimes (TCI/BWCE). Only set
+     * this flag for traditional domain deployments where the manifest is not needed.</p>
+     *
+     * <pre>mvn package -Dbw5.skipManifest=true</pre>
+     */
+    @Parameter(defaultValue = "false", property = "bw5.skipManifest")
+    private boolean skipManifest;
 
     /**
      * When {@code true} (the default), TIBCO Designer folder-metadata files ({@code .folder})
@@ -373,10 +386,30 @@ public class BwEarMojo extends AbstractBw5Mojo {
             // 8. Cross-reference .aliaslib entries against Maven dependencies
             checkAliasLibs(srcDir, getJarDependencies());
 
+            // 8b. Generate manifest-bw5.json (required by container runtimes)
+            File manifestFile = null;
+            if (!skipManifest) {
+                List<File> sharedHttpFiles = new ArrayList<>();
+                for (BwFile bwf : sarFiles) {
+                    if (bwf.file.getName().toLowerCase().endsWith(".sharedhttp")) {
+                        sharedHttpFiles.add(bwf.file);
+                    }
+                }
+                List<File> processFiles = new ArrayList<>();
+                for (BwFile bwf : parFiles) {
+                    if (bwf.file.getName().toLowerCase().endsWith(".process")) {
+                        processFiles.add(bwf.file);
+                    }
+                }
+                manifestFile = new ManifestBw5Generator().generate(
+                    archiveName, project.getVersion(), globalVars, sharedHttpFiles, processFiles, workDir);
+                getLog().info("manifest-bw5.json generated.");
+            }
+
             // 9. Assemble the final EAR
             String earFileName = project.getBuild().getFinalName() + ".ear";
             File earFile = new File(project.getBuild().getDirectory(), earFileName);
-            buildEar(earFile, earTibcoXml, parFile, sarFile);
+            buildEar(earFile, earTibcoXml, parFile, sarFile, manifestFile);
 
             getLog().info("EAR assembled: " + earFile.getAbsolutePath() + " (" + earFile.length() + " bytes)");
 
@@ -1171,7 +1204,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
     //  EAR assembly
     // -----------------------------------------------------------------------
 
-    private void buildEar(File earFile, File tibcoXml, File parFile, File sarFile) throws Exception {
+    private void buildEar(File earFile, File tibcoXml, File parFile,
+                          File sarFile, File manifestFile) throws Exception {
         try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(earFile))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);
 
@@ -1180,6 +1214,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
             if (sarFile != null && sarFile.exists()) {
                 addToZip(zos, sharedArchiveName + ".sar", sarFile);
+            }
+
+            if (manifestFile != null && manifestFile.exists()) {
+                addToZip(zos, "manifest-bw5.json", manifestFile);
             }
         }
     }
