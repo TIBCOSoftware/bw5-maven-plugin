@@ -8,6 +8,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 
 /**
@@ -45,7 +46,17 @@ public class CopyBwSourcesMojo extends AbstractBw5Mojo {
                     throw new MojoExecutionException("Failed to create directory: " + bwSourcesDirectory.getAbsolutePath());
                 }
             }
-            FileUtils.copyDirectory(bwProjectPath, bwSourcesDirectory);
+            // Exclude the Maven build directory (target/) from the copy — it lives inside
+            // basedir and would otherwise be copied recursively into target/bw-src/target/...
+            final File buildDir = bwSourcesDirectory.getParentFile().getCanonicalFile();
+            FileFilter excludeBuildDir = f -> {
+                try {
+                    return !f.getCanonicalFile().equals(buildDir);
+                } catch (IOException ex) {
+                    return true;
+                }
+            };
+            FileUtils.copyDirectory(bwProjectPath, bwSourcesDirectory, excludeBuildDir);
             getLog().info("BW sources copied successfully.");
         } catch (IOException e) {
             throw new MojoExecutionException("Failed to copy BW sources: " + e.getMessage(), e);
