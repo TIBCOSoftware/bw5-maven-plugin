@@ -58,6 +58,10 @@ import java.util.Locale;
  *   # Force projlib packaging instead of auto-detecting
  *   mvn com.tibco.bw:bw5-maven-plugin:init -DgroupId=com.example -Dbw5.init.packaging=projlib
  *
+ *   # Point explicitly to a descriptor file (useful when it's not in the project root)
+ *   mvn com.tibco.bw:bw5-maven-plugin:init -DgroupId=com.example -Dbw5.init.archiveFile=sub/MyApp.archive
+ *   mvn com.tibco.bw:bw5-maven-plugin:init -DgroupId=com.example -Dbw5.init.libBuilderFile=sub/MyLib.libbuilder
+ *
  *   # Overwrite an existing pom.xml
  *   mvn com.tibco.bw:bw5-maven-plugin:init -DgroupId=com.example -Dbw5.init.force=true
  * </pre>
@@ -129,6 +133,31 @@ public class InitMojo extends AbstractMojo {
     @Parameter(property = "bw5.init.packaging")
     private String packaging;
 
+    /**
+     * Explicit path to the {@code .archive} descriptor file.
+     *
+     * <p>Use this when the descriptor is not in the project root directory (e.g. it lives in a
+     * subdirectory) or when you want to pin a specific file rather than relying on auto-detection.
+     * When set, packaging is forced to {@code bwear} and {@code bw5.init.packaging} is ignored.</p>
+     *
+     * <p>Example: {@code -Dbw5.init.archiveFile=descriptors/MyApp.archive}</p>
+     */
+    @Parameter(property = "bw5.init.archiveFile")
+    private File archiveFile;
+
+    /**
+     * Explicit path to the {@code .libbuilder} descriptor file.
+     *
+     * <p>Use this when the descriptor is not in the standard location ({@code <projectDir>/} or
+     * {@code <projectDir>/Library/}) or when you want to pin a specific file rather than relying
+     * on auto-detection. When set, packaging is forced to {@code projlib} and
+     * {@code bw5.init.packaging} is ignored.</p>
+     *
+     * <p>Example: {@code -Dbw5.init.libBuilderFile=Library/MyLib.libbuilder}</p>
+     */
+    @Parameter(property = "bw5.init.libBuilderFile")
+    private File libBuilderFile;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (groupId == null || groupId.trim().isEmpty()) {
@@ -148,8 +177,29 @@ public class InitMojo extends AbstractMojo {
                 + "Use -Dbw5.init.force=true to overwrite.");
         }
 
+        if (archiveFile != null && libBuilderFile != null) {
+            throw new MojoExecutionException(
+                "Specify either bw5.init.archiveFile or bw5.init.libBuilderFile, not both.");
+        }
+
         DetectionResult detection;
-        if (packaging != null && !packaging.trim().isEmpty()) {
+        if (archiveFile != null) {
+            if (!archiveFile.isFile()) {
+                throw new MojoExecutionException(
+                    "Archive descriptor not found: " + archiveFile.getAbsolutePath());
+            }
+            String name = readArchiveName(archiveFile);
+            if (name == null || name.isEmpty()) name = stripExtension(archiveFile.getName());
+            detection = new DetectionResult("bwear", toArtifactId(name), archiveFile.getName());
+        } else if (libBuilderFile != null) {
+            if (!libBuilderFile.isFile()) {
+                throw new MojoExecutionException(
+                    "Library descriptor not found: " + libBuilderFile.getAbsolutePath());
+            }
+            String name = readLibBuilderName(libBuilderFile);
+            if (name == null || name.isEmpty()) name = stripExtension(libBuilderFile.getName());
+            detection = new DetectionResult("projlib", toArtifactId(name), libBuilderFile.getName());
+        } else if (packaging != null && !packaging.trim().isEmpty()) {
             detection = detectProjectWithPackaging(projectDir, packaging.trim().toLowerCase(Locale.ROOT));
         } else {
             try {
