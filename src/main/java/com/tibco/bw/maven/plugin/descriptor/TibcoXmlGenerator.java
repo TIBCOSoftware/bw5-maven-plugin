@@ -271,7 +271,7 @@ public class TibcoXmlGenerator {
         }
         sb.append("        <chk:useSharedResource>false</chk:useSharedResource>\n");
         String parBase = parFileName.contains(".") ? parFileName.substring(0, parFileName.lastIndexOf('.')) : parFileName;
-        String tablePrefix = parBase.replace(" ", "_").replace("Archive", "Ar") + "_" + Math.abs(parBase.hashCode());
+        String tablePrefix = parBase.replace(" ", "_").replace("Archive", "Ar") + "_" + (parBase.hashCode() & 0x7fffffff);
         sb.append("        <!--<chk:tablePrefix>").append(tablePrefix).append("</chk:tablePrefix>-->\n");
         sb.append("    </chk:BwCheckpoint>\n");
 
@@ -384,7 +384,10 @@ public class TibcoXmlGenerator {
     }
 
     private static void write(File file, String content) throws IOException {
-        file.getParentFile().mkdirs();
+        File parentDir = file.getParentFile();
+        if (parentDir != null && !parentDir.isDirectory() && !parentDir.mkdirs()) {
+            throw new IOException("Failed to create directory: " + parentDir);
+        }
         try (Writer w = new OutputStreamWriter(Files.newOutputStream(file.toPath()), StandardCharsets.UTF_8)) {
             w.write(content);
         }

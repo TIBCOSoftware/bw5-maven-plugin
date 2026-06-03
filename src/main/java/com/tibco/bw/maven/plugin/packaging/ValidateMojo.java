@@ -11,6 +11,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.jdom2.Document;
 import org.jdom2.Element;
+import org.jdom2.JDOMException;
 import org.jdom2.Namespace;
 import org.jdom2.input.SAXBuilder;
 
@@ -19,7 +20,9 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -185,7 +188,7 @@ public class ValidateMojo extends AbstractBw5Mojo {
                 Document doc = builder.build(f);
                 Element nameEl = doc.getRootElement().getChild("name", PD);
                 declaredName = nameEl != null ? nameEl.getTextTrim() : null;
-            } catch (Exception e) {
+            } catch (JDOMException | IOException e) {
                 continue; // already flagged
             }
             if (declaredName == null || declaredName.isEmpty()) continue;
@@ -216,15 +219,17 @@ public class ValidateMojo extends AbstractBw5Mojo {
         Set<String> defined = new LinkedHashSet<>();
         for (File f : substVarFiles) {
             try { parser.parse(f).forEach(gv -> defined.add(gv.name)); }
-            catch (Exception ignored) { }
+            catch (Exception e) {
+                getLog().warn("Skipping substvar file due to parse error: " + rel(f) + ": " + e.getMessage(), e);
+            }
         }
 
         Set<String> referenced = new LinkedHashSet<>();
         for (File f : processFiles) {
             try {
-                Matcher m = GV_REF.matcher(new String(Files.readAllBytes(f.toPath())));
+                Matcher m = GV_REF.matcher(new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8));
                 while (m.find()) referenced.add(m.group(1));
-            } catch (Exception ignored) { }
+            } catch (IOException ignored) { }
         }
 
         for (String ref : referenced) {
@@ -273,7 +278,7 @@ public class ValidateMojo extends AbstractBw5Mojo {
         for (File f : processFiles) {
             Document doc;
             try { doc = builder.build(f); }
-            catch (Exception e) { continue; }
+            catch (JDOMException | IOException e) { continue; }
             scanForXPathExpressions(doc.getRootElement(), rel(f), engine, issues);
         }
     }
@@ -337,7 +342,7 @@ public class ValidateMojo extends AbstractBw5Mojo {
     private Map<String, int[]> loadXPathCatalog() {
         Map<String, int[]> catalog = new HashMap<>();
         Properties props = new Properties();
-        try (InputStream is = getClass().getResourceAsStream("/bw5-xpath-functions.properties")) {
+        try (InputStream is = ValidateMojo.class.getResourceAsStream("/bw5-xpath-functions.properties")) {
             if (is != null) {
                 props.load(is);
                 for (String key : props.stringPropertyNames()) {
@@ -353,7 +358,7 @@ public class ValidateMojo extends AbstractBw5Mojo {
             } else {
                 getLog().warn("bw5-xpath-functions.properties not found on classpath — XPath function validation disabled.");
             }
-        } catch (Exception e) {
+        } catch (IOException | NumberFormatException e) {
             getLog().warn("Could not load BW5 XPath function catalog: " + e.getMessage());
         }
         return catalog;
@@ -375,11 +380,7 @@ public class ValidateMojo extends AbstractBw5Mojo {
         });
 
         // Accept any namespace prefix (ns1:, ns2:, etc. declared per-process)
-        engine.setNamespaceContext(new NamespaceContext() {
-            public String getNamespaceURI(String prefix) { return "urn:" + prefix; }
-            public String getPrefix(String uri)          { return null; }
-            public Iterator getPrefixes(String uri)      { return Collections.emptyIterator(); }
-        });
+        engine.setNamespaceContext(new AnyPrefixNamespaceContext());
 
         return engine;
     }
@@ -425,5 +426,13 @@ public class ValidateMojo extends AbstractBw5Mojo {
             if (issue.severity == Severity.ERROR) getLog().error(line);
             else                                  getLog().warn(line);
         }
+    }
+
+    /** Accepts any namespace prefix by mapping it to a synthetic URN. */
+    @SuppressWarnings("rawtypes")
+    private static final class AnyPrefixNamespaceContext implements NamespaceContext {
+        public String getNamespaceURI(String prefix) { return "urn:" + prefix; }
+        public String getPrefix(String uri)          { return null; }
+        public Iterator getPrefixes(String uri)      { return Collections.emptyIterator(); }
     }
 }

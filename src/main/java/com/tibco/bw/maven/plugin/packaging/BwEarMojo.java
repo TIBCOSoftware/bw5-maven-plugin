@@ -336,7 +336,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
             // 4. Generate work directory for descriptor generation
             File workDir = new File(project.getBuild().getDirectory(), "bw5-assembly");
-            workDir.mkdirs();
+            if (!workDir.mkdirs() && !workDir.isDirectory()) {
+                throw new MojoExecutionException("Failed to create directory: " + workDir.getAbsolutePath());
+            }
 
             // 5. Determine PAR and SAR names: .archive descriptor takes precedence over defaults
             String parFileName = "Process Archive.par";
@@ -391,13 +393,13 @@ public class BwEarMojo extends AbstractBw5Mojo {
             if (!skipManifest) {
                 List<File> sharedHttpFiles = new ArrayList<>();
                 for (BwFile bwf : sarFiles) {
-                    if (bwf.file.getName().toLowerCase().endsWith(".sharedhttp")) {
+                    if (bwf.file.getName().toLowerCase(Locale.ROOT).endsWith(".sharedhttp")) {
                         sharedHttpFiles.add(bwf.file);
                     }
                 }
                 List<File> processFiles = new ArrayList<>();
                 for (BwFile bwf : parFiles) {
-                    if (bwf.file.getName().toLowerCase().endsWith(".process")) {
+                    if (bwf.file.getName().toLowerCase(Locale.ROOT).endsWith(".process")) {
                         processFiles.add(bwf.file);
                     }
                 }
@@ -544,12 +546,16 @@ public class BwEarMojo extends AbstractBw5Mojo {
         if (projlibs == null || projlibs.length == 0) return;
 
         File extractRoot = new File(project.getBuild().getDirectory(), "bw-projlib-extracted");
-        extractRoot.mkdirs();
+        if (!extractRoot.mkdirs() && !extractRoot.isDirectory()) {
+            throw new IOException("Failed to create directory: " + extractRoot.getAbsolutePath());
+        }
 
         for (File projlib : projlibs) {
             String baseName = projlib.getName().replaceAll("\\.projlib$", "");
             File extractDir = new File(extractRoot, baseName);
-            extractDir.mkdirs();
+            if (!extractDir.mkdirs() && !extractDir.isDirectory()) {
+                throw new IOException("Failed to create directory: " + extractDir.getAbsolutePath());
+            }
 
             getLog().debug("Extracting projlib: " + projlib.getName());
             try (ZipFile zip = new ZipFile(projlib)) {
@@ -558,7 +564,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     ZipEntry entry = entries.nextElement();
                     if (entry.isDirectory()) continue;
                     File outFile = new File(extractDir, entry.getName());
-                    outFile.getParentFile().mkdirs();
+                    File parentFile = outFile.getParentFile();
+                    if (!parentFile.mkdirs() && !parentFile.isDirectory()) {
+                        throw new IOException("Failed to create directory: " + parentFile.getAbsolutePath());
+                    }
                     try (InputStream is = zip.getInputStream(entry);
                          OutputStream os = new FileOutputStream(outFile)) {
                         IOUtils.copy(is, os);
@@ -731,41 +740,6 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 + " — falling back to full directory scan");
             return null;
         }
-    }
-
-    /**
-     * Filters the collected process files to only those listed in the {@code .archive}
-     * descriptor's {@code processProperty}.
-     *
-     * <p>Process paths in the descriptor may include a project-folder prefix
-     * (e.g. {@code /MyApp/Start.process}). The file is matched if the collected
-     * relative path ends with the descriptor path (with or without leading slash),
-     * or equals it exactly.</p>
-     */
-    private List<BwFile> filterProcessesByDescriptor(List<BwFile> parFiles,
-            List<String> descriptorPaths, File srcDir) {
-        List<BwFile> filtered = new ArrayList<>();
-        for (String descriptorPath : descriptorPaths) {
-            // Normalize: strip leading slash for comparison
-            String normalized = descriptorPath.startsWith("/")
-                ? descriptorPath.substring(1) : descriptorPath;
-            boolean found = false;
-            for (BwFile bwf : parFiles) {
-                String rel = bwf.relativePath.replace('\\', '/');
-                if (rel.equals(normalized) || rel.endsWith("/" + normalized)
-                        || rel.equals(descriptorPath) || rel.endsWith(descriptorPath)) {
-                    filtered.add(bwf);
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                getLog().warn(".archive lists process not found in project: " + descriptorPath);
-            }
-        }
-        getLog().info("Process filter from .archive: " + filtered.size()
-            + "/" + parFiles.size() + " processes included");
-        return filtered;
     }
 
     /**
@@ -1029,7 +1003,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 String schemaLoc = e.getAttributeValue("schemaLocation");
                 if (schemaLoc != null && schemaLoc.startsWith("/")) refs.add(schemaLoc);
             }
-        } catch (Exception e) {
+        } catch (org.jdom2.JDOMException | IOException e) {
             getLog().debug("Could not parse refs from " + file.getName() + ": " + e.getMessage());
         }
         return refs;
@@ -1129,7 +1103,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
             try {
                 addToZip(zos, bwf.relativePath, tempFile);
             } finally {
-                tempFile.delete();
+                if (!tempFile.delete()) {
+                    getLog().warn("Could not delete temp file: " + tempFile);
+                }
             }
         } else if (!oldJavaCustomFunctions) {
             String displayName = className != null ? className : bwf.file.getName();
@@ -1193,7 +1169,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 relative = relative.substring(0, relative.length() - ".class".length());
             }
             return relative.replace('/', '.');
-        } catch (Exception e) {
+        } catch (org.jdom2.JDOMException | IOException e) {
             getLog().debug("Could not extract class name from " + javaxpathFile.getName()
                 + ": " + e.getMessage());
             return null;
@@ -1245,7 +1221,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
     private String getExtension(String filename) {
         int dot = filename.lastIndexOf('.');
-        return dot >= 0 ? filename.substring(dot).toLowerCase() : "";
+        return dot >= 0 ? filename.substring(dot).toLowerCase(Locale.ROOT) : "";
     }
 
     /**

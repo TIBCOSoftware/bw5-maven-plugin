@@ -13,6 +13,7 @@ import org.apache.batik.bridge.ExternalResourceSecurity;
 import org.apache.batik.bridge.RelaxedExternalResourceSecurity;
 import org.apache.batik.bridge.UserAgent;
 import org.apache.batik.bridge.UserAgentAdapter;
+import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
 import org.apache.batik.transcoder.TranscoderOutput;
 import org.apache.batik.transcoder.image.PNGTranscoder;
@@ -52,12 +53,15 @@ public class SitePdfGenerator {
                              List<SharedResourceModel> sharedResources,
                              List<SubstVarParser.GlobalVariable> globalVars) {
         this.project        = project;
-        this.sharedResources = sharedResources != null ? sharedResources : Collections.emptyList();
-        this.globalVars      = globalVars      != null ? globalVars      : Collections.emptyList();
+        this.sharedResources = sharedResources != null ? new ArrayList<>(sharedResources) : Collections.emptyList();
+        this.globalVars      = globalVars      != null ? new ArrayList<>(globalVars)      : Collections.emptyList();
     }
 
     public void generate(File outputFile, List<ProcessDocModel> processes) throws IOException {
-        outputFile.getParentFile().mkdirs();
+        File parentDir = outputFile.getParentFile();
+        if (!parentDir.mkdirs() && !parentDir.isDirectory()) {
+            throw new IOException("Failed to create directory: " + parentDir);
+        }
         String xhtml = buildXhtml(processes);
         try (OutputStream os = new BufferedOutputStream(new FileOutputStream(outputFile))) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
@@ -66,7 +70,7 @@ public class SitePdfGenerator {
             builder.withHtmlContent(xhtml, outputFile.getParentFile().toURI().toString());
             builder.toStream(os);
             builder.run();
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new IOException("PDF rendering failed: " + e.getMessage(), e);
         }
     }
@@ -242,11 +246,11 @@ public class SitePdfGenerator {
 
         // SVG Diagram — pre-render to PNG so activity icons (data: URI GIFs) survive Batik security
         String svg = svgGen.generate(model);
-        if (svg != null && !svg.isEmpty()) {
+        if (!svg.isEmpty()) {
             sb.append("  <div class=\"diagram-wrap\">\n");
             sb.append("    <h2>Process Diagram</h2>\n");
             byte[] pngBytes = renderSvgToPng(svg);
-            if (pngBytes != null) {
+            if (pngBytes.length > 0) {
                 sb.append("    <img class=\"diagram-img\" src=\"data:image/png;base64,")
                   .append(Base64.getEncoder().encodeToString(pngBytes))
                   .append("\" alt=\"").append(esc(model.displayName)).append(" diagram\"/>\n");
@@ -570,7 +574,6 @@ public class SitePdfGenerator {
      *
      * @return PNG bytes, or {@code null} if transcoding fails (caller falls back to rects).
      */
-    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     private static byte[] renderSvgToPng(String svg) {
         try {
             String svgWithFiles = replaceSvgDataUris(svg);
@@ -595,8 +598,8 @@ public class SitePdfGenerator {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             tr.transcode(new TranscoderInput(new StringReader(svgWithFiles)), new TranscoderOutput(out));
             return out.toByteArray();
-        } catch (Exception e) {
-            return null;
+        } catch (TranscoderException e) {
+            return new byte[0];
         }
     }
 
@@ -604,7 +607,6 @@ public class SitePdfGenerator {
      * Rewrites {@code <image>} elements: replaces each {@code data:} URI with a {@code file://}
      * URI pointing to a temp file containing the decoded bytes.
      */
-    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     private static String replaceSvgDataUris(String svg) {
         Matcher m = IMAGE_ELEMENT.matcher(svg);
         StringBuffer result = new StringBuffer();
@@ -627,7 +629,6 @@ public class SitePdfGenerator {
     }
 
     /** Decodes a {@code data:} URI and writes the bytes to a temp file; returns its {@code file://} URI. */
-    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     private static String dataUriToTempFile(String dataUri) {
         if (dataUri == null || !dataUri.startsWith("data:")) return null;
         String cached = ICON_FILE_CACHE.get(dataUri);
@@ -650,7 +651,7 @@ public class SitePdfGenerator {
             String fileUri = tmp.toURI().toString();
             ICON_FILE_CACHE.put(dataUri, fileUri);
             return fileUri;
-        } catch (Exception e) {
+        } catch (IOException e) {
             return null;
         }
     }

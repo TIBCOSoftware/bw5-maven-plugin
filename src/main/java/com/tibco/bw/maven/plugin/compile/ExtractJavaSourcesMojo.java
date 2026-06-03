@@ -8,6 +8,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.jdom2.Document;
 import org.jdom2.Element;
+import org.jdom2.JDOMException;
 import org.jdom2.Namespace;
 import org.jdom2.input.SAXBuilder;
 
@@ -79,7 +80,7 @@ public class ExtractJavaSourcesMojo extends AbstractBw5Mojo {
             try {
                 List<ExtractedClass> classes = extractFromProcess(processFile);
                 extracted.addAll(classes);
-            } catch (Exception e) {
+            } catch (JDOMException | IOException e) {
                 getLog().warn("Could not extract Java sources from: " + processFile.getName()
                     + " - " + e.getMessage());
             }
@@ -90,7 +91,9 @@ public class ExtractJavaSourcesMojo extends AbstractBw5Mojo {
             return;
         }
 
-        javaSourcesDirectory.mkdirs();
+        if (!javaSourcesDirectory.mkdirs() && !javaSourcesDirectory.isDirectory()) {
+            throw new MojoExecutionException("Failed to create directory: " + javaSourcesDirectory.getAbsolutePath());
+        }
 
         int written = 0;
         for (ExtractedClass cls : extracted) {
@@ -124,7 +127,7 @@ public class ExtractJavaSourcesMojo extends AbstractBw5Mojo {
         return result;
     }
 
-    private List<ExtractedClass> extractFromProcess(File processFile) throws Exception {
+    private List<ExtractedClass> extractFromProcess(File processFile) throws JDOMException, IOException {
         List<ExtractedClass> result = new ArrayList<>();
         SAXBuilder builder = new SAXBuilder();
         Document doc = builder.build(processFile);
@@ -158,7 +161,10 @@ public class ExtractJavaSourcesMojo extends AbstractBw5Mojo {
         // Convert fully-qualified class name to file path
         String filePath = cls.className.replace('.', File.separatorChar) + ".java";
         File javaFile = new File(javaSourcesDirectory, filePath);
-        javaFile.getParentFile().mkdirs();
+        File javaFileParent = javaFile.getParentFile();
+        if (!javaFileParent.mkdirs() && !javaFileParent.isDirectory()) {
+            throw new IOException("Failed to create directory: " + javaFileParent.getAbsolutePath());
+        }
 
         // Determine package from class name
         int lastDot = cls.className.lastIndexOf('.');

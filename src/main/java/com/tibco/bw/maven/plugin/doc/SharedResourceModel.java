@@ -17,7 +17,7 @@ public class SharedResourceModel {
     /** Activity type string, e.g. "jdbcpalette.JDBCConnection" */
     public String type;
     /** Palette resource type string, e.g. "jdbcpalette.jdbcConnectionResource" */
-    public String resourceType;
+    String resourceType;
     /** Config key→value pairs from the &lt;config&gt; element */
     public Map<String, String> config = new LinkedHashMap<>();
     /**

@@ -356,7 +356,10 @@ public class DeploymentConfigGenerator {
     }
 
     private static void write(File file, String content) throws IOException {
-        file.getParentFile().mkdirs();
+        File parent = file.getParentFile();
+        if (parent != null && !parent.isDirectory() && !parent.mkdirs()) {
+            throw new IOException("Failed to create directory: " + parent.getAbsolutePath());
+        }
         try (Writer w = new OutputStreamWriter(Files.newOutputStream(file.toPath()), StandardCharsets.UTF_8)) {
             w.write(content);
         }

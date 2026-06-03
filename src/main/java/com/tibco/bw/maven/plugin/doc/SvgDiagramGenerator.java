@@ -260,7 +260,6 @@ public class SvgDiagramGenerator {
         String markerId = transitionMarkerId(tr);
 
         int dx  = end[0] - start[0];
-        int dy  = end[1] - start[1];
         int cx1 = start[0] + dx / 3;
         int cy1 = start[1];
         int cx2 = end[0] - dx / 3;
@@ -279,8 +278,8 @@ public class SvgDiagramGenerator {
         // Condition label mid-arc
         String label = tr.conditionLabel();
         if (!label.isEmpty()) {
-            int lx = (start[0] + end[0]) / 2;
-            int ly = (start[1] + end[1]) / 2 - 6;
+            int lx = start[0] + (end[0] - start[0]) / 2;
+            int ly = start[1] + (end[1] - start[1]) / 2 - 6;
             svg.append(String.format(
                 "  <rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"14\" rx=\"3\" "
                 + "fill=\"white\" opacity=\"0.85\"/>%n",

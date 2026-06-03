@@ -7,6 +7,7 @@ import org.jdom2.input.SAXBuilder;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Parses BW5 SharedResource XML files from the {@code SharedResources/} directory.
@@ -17,6 +18,8 @@ import java.util.List;
  * {@code &lt;config&gt;} elements.</p>
  */
 public class SharedResourceParser {
+
+    private static final Logger LOG = Logger.getLogger(SharedResourceParser.class.getName());
 
     private static final java.util.Set<String> SKIP_NAMES = new java.util.HashSet<>(
         java.util.Arrays.asList(".DS_Store", "Thumbs.db", ".folder", "vcrepo.dat"));
@@ -43,8 +46,9 @@ public class SharedResourceParser {
                 try {
                     SharedResourceModel sr = parseFile(f);
                     if (sr != null) result.add(sr);
-                } catch (Exception ignored) {
-                    // Non-XML or unrecognised format — skip silently
+                } catch (Exception e) {
+                    // Non-XML or unrecognised format — skip
+                    LOG.fine("SharedResourceParser: skipping " + f.getName() + ": " + e.getMessage());
                 }
             }
         }

@@ -187,12 +187,17 @@ public class Bw5ModuleMojo extends AbstractBw5Mojo {
             Files.walkFileTree(srcPath, new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                    String name = dir.getFileName().toString();
+                    Path fileNamePath = dir.getFileName();
+                    if (fileNamePath == null) {
+                        return FileVisitResult.CONTINUE;
+                    }
+                    String name = fileNamePath.toString();
                     if (EXCLUDED_NAMES.contains(name)) {
                         return FileVisitResult.SKIP_SUBTREE;
                     }
                     // Skip the Library/ folder itself (it only contains the .libbuilder descriptor)
-                    if ("Library".equals(name) && dir.getParent().equals(srcPath)) {
+                    Path parent = dir.getParent();
+                    if ("Library".equals(name) && parent != null && parent.equals(srcPath)) {
                         return FileVisitResult.SKIP_SUBTREE;
                     }
                     return FileVisitResult.CONTINUE;
@@ -200,7 +205,11 @@ public class Bw5ModuleMojo extends AbstractBw5Mojo {
 
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    String name = file.getFileName().toString();
+                    Path fileNamePath = file.getFileName();
+                    if (fileNamePath == null) {
+                        return FileVisitResult.CONTINUE;
+                    }
+                    String name = fileNamePath.toString();
                     if (EXCLUDED_NAMES.contains(name)) {
                         return FileVisitResult.CONTINUE;
                     }

@@ -17,7 +17,7 @@ public class ProcessDocModel {
     /** Folder path without trailing slash (e.g. "Utilities/String"), empty string for root */
     public String folderPath = "";
     /** Target namespace */
-    public String targetNamespace;
+    String targetNamespace;
 
     /** Process description from &lt;pd:description&gt;, may be null */
     public String description;
@@ -55,8 +55,8 @@ public class ProcessDocModel {
         public boolean isStarter;
         /** Whether this is the end node */
         public boolean isEnd;
-        public int endX;
-        public int endY;
+        private int endX;
+        private int endY;
         /** Raw config summary string (legacy fallback) */
         public String configSummary;
         /** Structured config key→value pairs for tabular display */
@@ -127,7 +127,7 @@ public class ProcessDocModel {
     public static class Group {
         public String name;
         /** e.g. "com.tibco.pe.core.LoopGroup" */
-        public String type;
+        String type;
         public int x;
         public int y;
         public int width;
@@ -137,7 +137,7 @@ public class ProcessDocModel {
     public static class Label {
         public int x;
         public int y;
-        public String text;
+        public String text = "";
     }
 
     public static class FieldMapping {
@@ -150,7 +150,7 @@ public class ProcessDocModel {
         /** Whether this is a literal value (xsl:value-of select="'literal'") */
         public boolean isLiteral;
         /** Whether this is a conditional mapping (xsl:if / xsl:when / xsl:otherwise) */
-        public boolean isConditional;
+        boolean isConditional;
         /** The condition expression (xsl:if test / xsl:when test) */
         public String condition;
         /** "if" | "when" | "otherwise" | null */

@@ -77,20 +77,6 @@ public class PullMojo extends AbstractBw5Mojo {
     @Parameter(defaultValue = "false", property = "bw5.designerSetup.launchDesigner")
     private boolean launchDesigner;
 
-    /**
-     * TIBCO installation root directory (e.g. {@code /opt/tibco} or {@code C:\tibco}).
-     * Used to locate the Designer executable when {@code bw5.designerSetup.launchDesigner=true}.
-     *
-     * <p>If not set, the plugin checks the {@code TIBCO_HOME} environment variable.
-     * The executable is expected at one of:</p>
-     * <ul>
-     *   <li>{@code <tibcoHome>/designer/<version>/bin/designer} (Unix)</li>
-     *   <li>{@code <tibcoHome>/designer/<version>/bin/designer.exe} (Windows)</li>
-     * </ul>
-     */
-    @Parameter(property = "bw5.tibcoHome")
-    private File tibcoHome;
-
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (skip) {
@@ -113,7 +99,9 @@ public class PullMojo extends AbstractBw5Mojo {
         }
 
         getLog().info("Pulling BW5 dependencies to: " + designerLibsDir.getAbsolutePath());
-        designerLibsDir.mkdirs();
+        if (!designerLibsDir.mkdirs() && !designerLibsDir.isDirectory()) {
+            throw new MojoExecutionException("Failed to create designer libs directory: " + designerLibsDir.getAbsolutePath());
+        }
 
         int copied = 0;
         int skipped = 0;
@@ -211,7 +199,10 @@ public class PullMojo extends AbstractBw5Mojo {
         }
 
         File targetPrefs = new File(project.getBuild().getDirectory(), ".TIBCO/Designer5.prefs");
-        targetPrefs.getParentFile().mkdirs();
+        File prefsParent = targetPrefs.getParentFile();
+        if (!prefsParent.mkdirs() && !prefsParent.isDirectory()) {
+            throw new MojoExecutionException("Failed to create directory: " + prefsParent.getAbsolutePath());
+        }
         try (Writer w = new OutputStreamWriter(
                 new FileOutputStream(targetPrefs), StandardCharsets.ISO_8859_1)) {
             for (String line : lines) {
@@ -439,12 +430,6 @@ public class PullMojo extends AbstractBw5Mojo {
             if (exec.isFile()) return exec;
         }
         return null;
-    }
-
-    private File resolvedTibcoHome() {
-        if (tibcoHome != null) return tibcoHome;
-        String envHome = System.getenv("TIBCO_HOME");
-        return (envHome != null && !envHome.isEmpty()) ? new File(envHome) : null;
     }
 
     private static String humanSize(long bytes) {

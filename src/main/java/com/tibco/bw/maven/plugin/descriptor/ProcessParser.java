@@ -64,13 +64,13 @@ public class ProcessParser {
         /** Process name as stored in the file (e.g. "Path/To/MyProcess.process") */
         public String name;
         /** Name of the start activity */
-        public String startName;
+        String startName;
         /** Whether the process has a starter (event source) - top-level runnable process */
         public boolean hasStarter;
         /** Name attribute of the starter element */
         public String starterName;
         /** Type of the starter (e.g. "com.tibco.plugin.timer.TimerEventSource") */
-        public String starterType;
+        String starterType;
 
         /** Returns the process path with leading slash for use in TIBCO.xml references */
         public String getReferencePath() {

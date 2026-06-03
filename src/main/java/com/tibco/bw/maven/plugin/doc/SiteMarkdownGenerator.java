@@ -33,14 +33,14 @@ public class SiteMarkdownGenerator {
                                   List<SubstVarParser.GlobalVariable> globalVars) {
         this.outputDir = outputDir;
         this.project = project;
-        this.sharedResources = sharedResources != null ? sharedResources : Collections.emptyList();
-        this.globalVars = globalVars != null ? globalVars : Collections.emptyList();
+        this.sharedResources = sharedResources != null ? new ArrayList<>(sharedResources) : Collections.emptyList();
+        this.globalVars = globalVars != null ? new ArrayList<>(globalVars) : Collections.emptyList();
     }
 
     public void generateIndex(List<ProcessDocModel> processes) throws IOException {
-        this.allProcesses = processes;
-        outputDir.mkdirs();
-        new File(outputDir, "processes").mkdirs();
+        this.allProcesses = new ArrayList<>(processes);
+        mkdirs(outputDir);
+        mkdirs(new File(outputDir, "processes"));
 
         File f = new File(outputDir, "index.md");
         try (Writer w = writer(f)) {
@@ -49,7 +49,7 @@ public class SiteMarkdownGenerator {
     }
 
     public void generateProcessPage(ProcessDocModel model) throws IOException {
-        new File(outputDir, "processes").mkdirs();
+        mkdirs(new File(outputDir, "processes"));
         String fileName = mdFileName(model) + ".md";
         File f = new File(new File(outputDir, "processes"), fileName);
         try (Writer w = writer(f)) {
@@ -222,8 +222,14 @@ public class SiteMarkdownGenerator {
         return s.replace("\\", "\\\\").replace("|", "\\|");
     }
 
+    private static void mkdirs(File dir) throws IOException {
+        if (!dir.mkdirs() && !dir.isDirectory()) {
+            throw new IOException("Failed to create directory: " + dir);
+        }
+    }
+
     private Writer writer(File file) throws IOException {
-        file.getParentFile().mkdirs();
+        mkdirs(file.getParentFile());
         return new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8);
     }
 }

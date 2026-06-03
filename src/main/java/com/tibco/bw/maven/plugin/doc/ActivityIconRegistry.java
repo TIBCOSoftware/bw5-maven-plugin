@@ -1,5 +1,6 @@
 package com.tibco.bw.maven.plugin.doc;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Base64;
 import java.util.HashMap;
@@ -421,7 +422,7 @@ public class ActivityIconRegistry {
                         "data:image/gif;base64," + props.getProperty(key));
                 }
             }
-        } catch (Exception ignored) {
+        } catch (IOException ignored) {
             // fall back to SVG icons on any error
         }
     }

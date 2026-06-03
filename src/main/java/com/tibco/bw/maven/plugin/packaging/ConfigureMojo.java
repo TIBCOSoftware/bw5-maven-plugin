@@ -220,7 +220,9 @@ public class ConfigureMojo extends AbstractBw5Mojo {
         String appName    = project.getArtifactId();
         String appVersion = project.getVersion();
         File   targetDir  = new File(project.getBuild().getDirectory());
-        targetDir.mkdirs();
+        if (!targetDir.mkdirs() && !targetDir.isDirectory()) {
+            throw new MojoExecutionException("Failed to create directory: " + targetDir.getAbsolutePath());
+        }
 
         DeploymentConfigGenerator gen = new DeploymentConfigGenerator();
         try {

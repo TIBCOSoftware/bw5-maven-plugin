@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
@@ -38,7 +39,7 @@ import java.util.Properties;
  *   <profile>
  *     <id>tibco-local</id>
  *     <properties>
- *       <tibco.Home>/opt/tibco</tibco.Home>
+ *       <bw5.tibcoHome>/opt/tibco</bw5.tibcoHome>
  *       <bw5.bwVersion>5.13.0</bw5.bwVersion>
  *     </properties>
  *   </profile>
@@ -49,7 +50,7 @@ import java.util.Properties;
  * <pre>
  *   mvn bw5:run
  *   mvn bw5:run -Dbw5.run.background=true
- *   mvn bw5:run -Dtibco.Home=/opt/tibco -Dbw5.bwVersion=5.13.0
+ *   mvn bw5:run -Dbw5.tibcoHome=/opt/tibco -Dbw5.bwVersion=5.13.0
  * </pre>
  */
 @Mojo(
@@ -58,19 +59,6 @@ import java.util.Properties;
     threadSafe = false
 )
 public class RunBwMojo extends AbstractBw5Mojo {
-
-    /**
-     * TIBCO installation root directory (e.g. {@code /opt/tibco} or
-     * {@code C:\tibco}).
-     *
-     * <p>The BW engine executable is expected at:
-     * {@code <tibcoHome>/bw/<bwVersion>/bin/bwengine[.exe]}.</p>
-     *
-     * <p>Uses the same property name as the BW6 plugin ({@code tibco.Home})
-     * so a single settings.xml entry covers both.</p>
-     */
-    @Parameter(property = "tibco.Home", required = true)
-    private File tibcoHome;
 
     /**
      * TIBCO BusinessWorks 5.x version string (e.g. {@code 5.13.0}).
@@ -162,7 +150,9 @@ public class RunBwMojo extends AbstractBw5Mojo {
         getLog().info("Background : " + background);
         getLog().info("Command    : " + String.join(" ", cmd));
 
-        workingDir.mkdirs();
+        if (!workingDir.mkdirs() && !workingDir.isDirectory()) {
+            throw new MojoExecutionException("Failed to create directory: " + workingDir.getAbsolutePath());
+        }
 
         try {
             ProcessBuilder pb = new ProcessBuilder(cmd);
@@ -202,28 +192,29 @@ public class RunBwMojo extends AbstractBw5Mojo {
     // -----------------------------------------------------------------------
 
     private File resolveEngineExecutable() throws MojoExecutionException {
-        if (tibcoHome == null || !tibcoHome.isDirectory()) {
+        File home = resolvedTibcoHome();
+        if (home == null || !home.isDirectory()) {
             throw new MojoExecutionException(
-                "tibco.Home is not set or does not exist: " + tibcoHome
-                + "\nConfigure it in settings.xml: <tibco.Home>/opt/tibco</tibco.Home>");
+                "bw5.tibcoHome is not set or does not exist: " + home
+                + "\nSet -Dbw5.tibcoHome=/opt/tibco or the TIBCO_HOME environment variable.");
         }
 
-        boolean isWindows = System.getProperty("os.name", "").toLowerCase().contains("win");
+        boolean isWindows = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
         String exeName    = isWindows ? "bwengine.exe" : "bwengine";
 
         // Primary location: <tibcoHome>/bw/<bwVersion>/bin/bwengine
-        File engine = Paths.get(tibcoHome.getAbsolutePath(), "bw", bwVersion, "bin", exeName).toFile();
+        File engine = Paths.get(home.getAbsolutePath(), "bw", bwVersion, "bin", exeName).toFile();
         if (engine.isFile()) return engine;
 
         // Fallback: some installations use a flat <tibcoHome>/bw/bin/bwengine
-        File fallback = Paths.get(tibcoHome.getAbsolutePath(), "bw", "bin", exeName).toFile();
+        File fallback = Paths.get(home.getAbsolutePath(), "bw", "bin", exeName).toFile();
         if (fallback.isFile()) return fallback;
 
         throw new MojoExecutionException(
             "Cannot find bwengine executable. Looked in:\n"
             + "  " + engine.getAbsolutePath() + "\n"
             + "  " + fallback.getAbsolutePath() + "\n"
-            + "Check that tibco.Home=" + tibcoHome + " and bw5.bwVersion=" + bwVersion + " are correct.");
+            + "Check that bw5.tibcoHome=" + home + " and bw5.bwVersion=" + bwVersion + " are correct.");
     }
 
     private File generateEngineProperties() throws MojoExecutionException {
@@ -341,7 +332,7 @@ public class RunBwMojo extends AbstractBw5Mojo {
 
         long deadline = System.currentTimeMillis() + (long) seconds * 1000;
         try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(proc.getInputStream()))) {
+                new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
             String line;
             while (System.currentTimeMillis() < deadline && proc.isAlive()) {
                 if (reader.ready()) {
@@ -373,7 +364,7 @@ public class RunBwMojo extends AbstractBw5Mojo {
     private void startBackgroundLogging(Process proc) {
         Thread t = new Thread(() -> {
             try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(proc.getInputStream()))) {
+                    new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     getLog().info("[bwengine] " + line);
@@ -387,7 +378,7 @@ public class RunBwMojo extends AbstractBw5Mojo {
     /** Pipes the engine's stdout/stderr to the Maven log (blocking). */
     private void pipeToLog(Process proc) {
         try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(proc.getInputStream()))) {
+                new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 getLog().info("[bwengine] " + line);

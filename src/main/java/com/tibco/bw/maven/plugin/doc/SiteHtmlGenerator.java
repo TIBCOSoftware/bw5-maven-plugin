@@ -54,17 +54,17 @@ public class SiteHtmlGenerator {
                               List<SubstVarParser.GlobalVariable> globalVars) {
         this.outputDir = outputDir;
         this.project = project;
-        this.sharedResources = sharedResources != null ? sharedResources : Collections.emptyList();
-        this.globalVars = globalVars != null ? globalVars : Collections.emptyList();
+        this.sharedResources = sharedResources != null ? new ArrayList<>(sharedResources) : Collections.emptyList();
+        this.globalVars = globalVars != null ? new ArrayList<>(globalVars) : Collections.emptyList();
     }
 
     // ── Public API ───────────────────────────────────────────────────────────
 
     public void generateIndex(List<ProcessDocModel> processes) throws IOException {
-        this.allProcesses = processes;
-        outputDir.mkdirs();
-        new File(outputDir, "processes").mkdirs();
-        new File(outputDir, "sharedresources").mkdirs();
+        this.allProcesses = new ArrayList<>(processes);
+        mkdirs(outputDir);
+        mkdirs(new File(outputDir, "processes"));
+        mkdirs(new File(outputDir, "sharedresources"));
 
         // Build file name map
         for (ProcessDocModel p : processes) {
@@ -135,7 +135,7 @@ public class SiteHtmlGenerator {
     }
 
     public void generateProcessPage(ProcessDocModel model) throws IOException {
-        new File(outputDir, "processes").mkdirs();
+        mkdirs(new File(outputDir, "processes"));
         String fileName = processFileName(model) + ".html";
         File pageFile = new File(new File(outputDir, "processes"), fileName);
         try (Writer w = writer(pageFile)) {
@@ -144,7 +144,7 @@ public class SiteHtmlGenerator {
     }
 
     public void generateSharedResourcePage(SharedResourceModel sr) throws IOException {
-        new File(outputDir, "sharedresources").mkdirs();
+        mkdirs(new File(outputDir, "sharedresources"));
         String fileName = srFileName(sr) + ".html";
         File pageFile = new File(new File(outputDir, "sharedresources"), fileName);
         try (Writer w = writer(pageFile)) {
@@ -1512,8 +1512,14 @@ public class SiteHtmlGenerator {
         return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 
+    private static void mkdirs(File dir) throws IOException {
+        if (!dir.mkdirs() && !dir.isDirectory()) {
+            throw new IOException("Failed to create directory: " + dir);
+        }
+    }
+
     private Writer writer(File file) throws IOException {
-        file.getParentFile().mkdirs();
+        mkdirs(file.getParentFile());
         return new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8);
     }
 

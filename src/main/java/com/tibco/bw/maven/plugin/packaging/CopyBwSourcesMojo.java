@@ -41,7 +41,9 @@ public class CopyBwSourcesMojo extends AbstractBw5Mojo {
             if (bwSourcesDirectory.exists()) {
                 FileUtils.cleanDirectory(bwSourcesDirectory);
             } else {
-                bwSourcesDirectory.mkdirs();
+                if (!bwSourcesDirectory.mkdirs() && !bwSourcesDirectory.isDirectory()) {
+                    throw new MojoExecutionException("Failed to create directory: " + bwSourcesDirectory.getAbsolutePath());
+                }
             }
             FileUtils.copyDirectory(bwProjectPath, bwSourcesDirectory);
             getLog().info("BW sources copied successfully.");

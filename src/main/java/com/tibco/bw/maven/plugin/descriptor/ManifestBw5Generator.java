@@ -2,6 +2,7 @@ package com.tibco.bw.maven.plugin.descriptor;
 
 import org.jdom2.Document;
 import org.jdom2.Element;
+import org.jdom2.JDOMException;
 import org.jdom2.Namespace;
 import org.jdom2.filter.Filters;
 import org.jdom2.input.SAXBuilder;
@@ -9,6 +10,7 @@ import org.jdom2.util.IteratorIterable;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -16,7 +18,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,6 +32,8 @@ import java.util.regex.Pattern;
  * endpoints derived from {@code .sharedhttp} shared resources.</p>
  */
 public class ManifestBw5Generator {
+
+    private static final Logger LOG = Logger.getLogger(ManifestBw5Generator.class.getName());
 
     private static final Namespace HTTP_NS =
         Namespace.getNamespace("www.tibco.com/shared/HTTPConnection");
@@ -104,7 +110,7 @@ public class ManifestBw5Generator {
         Map<String, String> map = new HashMap<>();
         SAXBuilder sax = new SAXBuilder();
         for (File f : processFiles) {
-            if (!f.getName().toLowerCase().endsWith(".process")) continue;
+            if (!f.getName().toLowerCase(Locale.ROOT).endsWith(".process")) continue;
             String processName = f.getName().replaceFirst("\\.[^.]+$", "");
             try {
                 Document doc = sax.build(f);
@@ -116,7 +122,7 @@ public class ManifestBw5Generator {
                     String filename = path.contains("/") ? path.substring(path.lastIndexOf('/') + 1) : path;
                     map.putIfAbsent(filename, processName);
                 }
-            } catch (Exception ignored) {
+            } catch (JDOMException | IOException ignored) {
                 // malformed process file — skip silently
             }
         }
@@ -148,8 +154,8 @@ public class ManifestBw5Generator {
                 String sharedResourceName = f.getName().replaceFirst("\\.[^.]+$", "");
                 String processName = sharedHttpToProcess.getOrDefault(f.getName(), "");
                 endpoints.add(new Endpoint(sharedResourceName, port, processName));
-            } catch (Exception ignored) {
-                // malformed sharedhttp — skip silently
+            } catch (JDOMException | IOException e) {
+                LOG.warning("Skipping malformed sharedhttp file " + f.getName() + ": " + e.getMessage());
             }
         }
 

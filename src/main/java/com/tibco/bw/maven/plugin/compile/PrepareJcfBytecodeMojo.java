@@ -11,6 +11,7 @@ import org.jdom2.Namespace;
 import org.jdom2.input.SAXBuilder;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -84,7 +85,7 @@ public class PrepareJcfBytecodeMojo extends AbstractBw5Mojo {
                 getLog().info("  [JCF] " + jxpFile.getName() + " → " + className
                     + " (from " + classFile.getAbsolutePath() + ")");
                 injected++;
-            } catch (Exception e) {
+            } catch (org.jdom2.JDOMException | IOException e) {
                 getLog().warn("Could not prepare JCF bytecode for: " + jxpFile.getName()
                     + " — " + e.getMessage());
             }

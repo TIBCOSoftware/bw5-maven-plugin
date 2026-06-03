@@ -79,7 +79,9 @@ public abstract class AbstractBw5Mojo extends AbstractMojo {
      * Called by mojos that need dependencies on disk before they can proceed.
      */
     protected void resolveDependencies() throws MojoExecutionException {
-        bwLibDirectory.mkdirs();
+        if (!bwLibDirectory.mkdirs() && !bwLibDirectory.isDirectory()) {
+            throw new MojoExecutionException("Failed to create directory: " + bwLibDirectory.getAbsolutePath());
+        }
 
         List<Artifact> projlibs = getProjectlibDependencies();
         List<Artifact> jars     = getJarDependencies();
@@ -189,6 +191,27 @@ public abstract class AbstractBw5Mojo extends AbstractMojo {
         int lastSlash = afterMarker.lastIndexOf('/');
         if (lastSlash < 0) return "";
         return afterMarker.substring(0, lastSlash + 1);
+    }
+
+    /**
+     * TIBCO installation root directory (e.g. {@code /opt/tibco} or {@code C:\tibco}).
+     * Used by goals that need to locate TIBCO executables (Designer, BW engine, etc.).
+     *
+     * <p>If not set, the {@code TIBCO_HOME} environment variable is used as a fallback.</p>
+     *
+     * <p>Example: {@code -Dbw5.tibcoHome=/opt/tibco}</p>
+     */
+    @Parameter(property = "bw5.tibcoHome")
+    protected File tibcoHome;
+
+    /**
+     * Returns the effective TIBCO home: {@code bw5.tibcoHome} if set, otherwise the
+     * {@code TIBCO_HOME} environment variable, or {@code null} if neither is available.
+     */
+    protected File resolvedTibcoHome() {
+        if (tibcoHome != null) return tibcoHome;
+        String envHome = System.getenv("TIBCO_HOME");
+        return (envHome != null && !envHome.isEmpty()) ? new File(envHome) : null;
     }
 
     private boolean containsBwFiles(File dir) {
