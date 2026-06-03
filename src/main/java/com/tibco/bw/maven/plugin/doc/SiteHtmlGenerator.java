@@ -577,7 +577,7 @@ public class SiteHtmlGenerator {
         sb.append(activityMiniIcon(srcAct, tr.from, SRC_X, CY, ICON));
         // Source name label (truncated)
         sb.append(String.format(
-            "<text x=\"%d\" y=\"%d\" text-anchor=\"middle\" font-size=\"9\" fill=\"#333\">%s</text>",
+            "<text x=\"%d\" y=\"%d\" text-anchor=\"middle\" font-size=\"9\" fill=\"currentColor\">%s</text>",
             SRC_X, NAME_Y, esc(truncate14(tr.from))));
 
         // Arrow path (bezier, stops before arrowhead tip)
@@ -594,7 +594,7 @@ public class SiteHtmlGenerator {
         sb.append(activityMiniIcon(tgtAct, tr.to, TGT_X, CY, ICON));
         // Target name label
         sb.append(String.format(
-            "<text x=\"%d\" y=\"%d\" text-anchor=\"middle\" font-size=\"9\" fill=\"#333\">%s</text>",
+            "<text x=\"%d\" y=\"%d\" text-anchor=\"middle\" font-size=\"9\" fill=\"currentColor\">%s</text>",
             TGT_X, NAME_Y, esc(truncate14(tr.to))));
 
         sb.append("</svg>");
