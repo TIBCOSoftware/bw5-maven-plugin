@@ -106,6 +106,9 @@ public class PullMojo extends AbstractBw5Mojo {
 
         if (projlibs.isEmpty() && jars.isEmpty()) {
             getLog().info("No projlib or JAR dependencies declared — nothing to pull.");
+            if (launchDesigner) {
+                launchDesigner();
+            }
             return;
         }
 
