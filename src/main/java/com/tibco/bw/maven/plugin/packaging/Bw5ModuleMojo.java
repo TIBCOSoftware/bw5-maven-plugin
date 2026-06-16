@@ -51,7 +51,9 @@ public class Bw5ModuleMojo extends AbstractBw5Mojo {
         // Version-control metadata
         "vcrepo.dat",
         // Designer runtime-only files
-        ".designtimelibs"
+        ".designtimelibs",
+        // Maven build descriptors — not BW resources
+        "pom.xml"
     ));
 
     /**

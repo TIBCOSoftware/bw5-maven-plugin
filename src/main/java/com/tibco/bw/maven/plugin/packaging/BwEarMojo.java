@@ -277,7 +277,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
         ".designtimelibs", "Deployment", "library.manifest",
         // Deployment-time config and version-info directories present in some projlibs
         // — these are not BW shared resources and buildear never includes them in the EAR
-        "config", "VersionInfo"
+        "config", "VersionInfo",
+        // Maven build descriptors — not BW resources
+        "pom.xml"
     ));
 
     @Inject
