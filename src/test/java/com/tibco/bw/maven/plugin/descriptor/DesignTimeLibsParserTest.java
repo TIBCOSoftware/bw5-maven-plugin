@@ -99,6 +99,28 @@ public class DesignTimeLibsParserTest {
         assertEquals("MyLib", DesignTimeLibsParser.extractLibName("/path/MyLib"));
     }
 
+    @Test
+    public void extractsArtifactIdFromPluginMavenCoordinate() {
+        // Format produced by bw5:designer-setup after parse() strips the "N=" prefix:
+        // the raw value is "groupId\:artifactId\:version\:type\="
+        assertEquals("framework-common",
+            DesignTimeLibsParser.extractLibName("com.example\\:framework-common\\:1.0.0\\:projlib\\="));
+    }
+
+    @Test
+    public void parsesPluginWrittenMavenCoordinateFormat() throws Exception {
+        // File written by bw5:designer-setup
+        File f = writeTemp(
+            "#Design time libraries\n"
+            + "#Format: #=File Alias=Description\n"
+            + "0=com.example\\:framework-common\\:1.0.0\\:projlib\\=\n"
+            + "1=com.example\\:another-lib\\:2.0.0\\:projlib\\=\n");
+        List<String> paths = new DesignTimeLibsParser().parse(f);
+        assertEquals(2, paths.size());
+        assertEquals("framework-common", DesignTimeLibsParser.extractLibName(paths.get(0)));
+        assertEquals("another-lib", DesignTimeLibsParser.extractLibName(paths.get(1)));
+    }
+
     // -----------------------------------------------------------------------
     //  Helpers
     // -----------------------------------------------------------------------

@@ -66,6 +66,24 @@ public class DesignTimeLibsParser {
      * @return library name (filename without path and without {@code .projlib} extension)
      */
     public static String extractLibName(String libPath) {
+        // Handle Maven coordinate format written by bw5:designer-setup:
+        // after DesignTimeLibsParser.parse() strips the "N=" prefix, the value is
+        // "groupId\:artifactId\:version\:type\=" (escaped colons, trailing \=).
+        // Detect this format before treating the string as a file path — otherwise
+        // replace('\\', '/') turns \: into /: and lastIndexOf('/') picks up the = sign.
+        String stripped = libPath;
+        if (stripped.endsWith("\\=")) {
+            stripped = stripped.substring(0, stripped.length() - 2);
+        }
+        String unescaped = stripped.replace("\\:", ":");
+        // Maven coordinate: groupId:artifactId:version[:type] — at least 3 colon-separated parts.
+        // A Windows drive letter (e.g. "C:\path") also contains ":" but has only one.
+        String[] parts = unescaped.split(":", -1);
+        if (parts.length >= 3) {
+            return parts[1];
+        }
+
+        // File path format (e.g. /opt/tibco/libs/FrameworkCommon.projlib)
         String name = libPath.replace('\\', '/');
         int slash = name.lastIndexOf('/');
         if (slash >= 0) {
