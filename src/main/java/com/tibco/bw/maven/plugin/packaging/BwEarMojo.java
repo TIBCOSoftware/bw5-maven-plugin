@@ -808,7 +808,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
      */
     private void applyTransitiveDependencyAnalysis(List<BwFile> parFiles, List<BwFile> sarFiles,
                                                    List<String> entryPoints,
-                                                   List<String> sharedResourcePaths) {
+                                                   List<String> sharedResourcePaths)
+            throws MojoExecutionException {
         // Separate out promoted service agents — they stay in PAR unconditionally
         List<BwFile> promotedParEntries = new ArrayList<>();
         List<BwFile> processFiles = new ArrayList<>();
@@ -843,12 +844,27 @@ public class BwEarMojo extends AbstractBw5Mojo {
         Set<String> referencedResourcePaths = new LinkedHashSet<>();
         Queue<String> queue = new ArrayDeque<>();
 
+        // Validate that every .process declared in the .archive descriptor exists on disk.
+        // These are explicit entry points — a missing file is always a build error.
+        List<String> missingEntryPoints = new ArrayList<>();
         for (String ep : entryPoints) {
             String norm = normalizeBwPath(ep);
             if (norm.endsWith(".process")) {
-                queue.add(norm);
+                if (!processIndex.containsKey(norm)) {
+                    missingEntryPoints.add(ep);
+                } else {
+                    queue.add(norm);
+                }
             }
             // .serviceagent entries already handled by promoteServiceAgentsFromDescriptor
+        }
+        if (!missingEntryPoints.isEmpty()) {
+            StringBuilder msg = new StringBuilder(
+                "Process file(s) declared in .archive descriptor not found on disk:");
+            for (String missing : missingEntryPoints) {
+                msg.append("\n  - ").append(missing);
+            }
+            throw new MojoExecutionException(msg.toString());
         }
 
         while (!queue.isEmpty()) {
@@ -857,6 +873,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
             BwFile bwf = processIndex.get(path);
             if (bwf == null) {
+                // Transitively discovered reference — may be a dynamic call; skip silently.
                 getLog().debug("Transitive: process not found: " + path);
                 continue;
             }
