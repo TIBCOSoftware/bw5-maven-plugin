@@ -34,7 +34,7 @@ Generates an initial `pom.xml` for an existing BW5 project. It inspects the proj
 | `groupId` | `groupId` | `com.tibco` | Maven groupId for the generated project |
 | `artifactId` | `artifactId` | _(from descriptor)_ | Maven artifactId. If omitted, derived from the `.archive` or `.libbuilder` name |
 | `version` | `version` | `1.0.0-SNAPSHOT` | Maven version for the generated project |
-| `force` | `bw5.init.force` | `false` | If `true`, overwrites an existing `pom.xml` |
+| `force` | `bw5.init.force` | `false` | If `true`, overwrites an existing `pom.xml`. See warning below. |
 
 ### Examples
 
@@ -50,9 +50,15 @@ mvn com.tibco.bw:bw5-maven-plugin:init \
   -Dbw5.init.projectDir=/path/to/bw5-project \
   -DgroupId=com.mycompany.bw
 
-# Regenerate an existing pom.xml
-mvn com.tibco.bw:bw5-maven-plugin:init -Dbw5.init.force=true
+# Regenerate an existing pom.xml — re-supply ALL coordinates explicitly
+mvn com.tibco.bw:bw5-maven-plugin:init \
+  -Dbw5.init.force=true \
+  -DgroupId=com.mycompany.bw \
+  -DartifactId=my-main-process \
+  -Dversion=2.1.0-SNAPSHOT
 ```
+
+> **Warning — `force=true` rewrites from scratch.** This goal is a one-shot scaffolding tool. When `force=true` is used the existing `pom.xml` is **not read** — its current values are discarded. Any coordinate not explicitly supplied via `-D` is re-derived from the descriptor file name (`artifactId`) or reset to its default (`version` → `1.0.0-SNAPSHOT`). Always re-supply every value you previously overrode, or edit the `pom.xml` directly instead.
 
 The plugin auto-detects the project type:
 - `.archive` found → generates `pom.xml` with `packaging = bwear`

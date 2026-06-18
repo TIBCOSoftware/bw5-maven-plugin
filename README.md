@@ -169,11 +169,15 @@ mvn com.tibco.bw:bw5-maven-plugin:1.0.0-SNAPSHOT:init \
     -DartifactId=my-service \
     -Dversion=2.0.0-SNAPSHOT
 
-# Overwrite an existing pom.xml
+# Overwrite an existing pom.xml — re-supply ALL coordinates explicitly
 mvn com.tibco.bw:bw5-maven-plugin:1.0.0-SNAPSHOT:init \
     -DgroupId=com.example \
+    -DartifactId=my-service \
+    -Dversion=2.0.0-SNAPSHOT \
     -Dbw5.init.force=true
 ```
+
+> **Warning — `force=true` rewrites from scratch.** The existing `pom.xml` is not read. Any coordinate not explicitly supplied via `-D` is re-derived from the descriptor file name (`artifactId`) or reset to its default (`version` → `1.0.0-SNAPSHOT`). Once a `pom.xml` exists, prefer editing it directly rather than re-running this goal.
 
 **Example output for an EAR project:**
 
@@ -222,7 +226,7 @@ mvn com.tibco.bw:bw5-maven-plugin:1.0.0-SNAPSHOT:init \
 | `artifactId` | `artifactId` | auto-detected from descriptor | Maven artifactId |
 | `version` | `version` | `1.0.0-SNAPSHOT` | Maven version |
 | `projectDir` | `bw5.init.projectDir` | `${basedir}` | BW5 project directory to scan |
-| `force` | `bw5.init.force` | `false` | Overwrite existing `pom.xml` |
+| `force` | `bw5.init.force` | `false` | Overwrite existing `pom.xml`. Rewrites from scratch — see warning above. |
 
 **Typical workflow after `bw5:init`:**
 
