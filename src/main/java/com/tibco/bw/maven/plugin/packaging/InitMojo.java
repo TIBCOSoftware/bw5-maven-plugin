@@ -116,6 +116,17 @@ public class InitMojo extends AbstractMojo {
      *       BW5 descriptor ({@code .archive}, {@code .libbuilder}, {@code AESchemas/},
      *       {@code vcrepo.dat}) is found — a WARNING is logged in that case.</li>
      * </ul>
+     *
+     * <p><strong>Warning:</strong> this goal is a one-shot scaffolding tool. When
+     * {@code force=true} is used, the existing {@code pom.xml} is overwritten entirely —
+     * its current values are NOT read back. Any coordinate that is not explicitly supplied
+     * via {@code -D} (e.g. {@code artifactId}, {@code version}) is re-derived from scratch:
+     * {@code artifactId} from the descriptor file name and {@code version} from the
+     * {@code 1.0.0-SNAPSHOT} default. If you previously overrode these values, you must
+     * re-supply them explicitly or they will be silently reset.</p>
+     *
+     * <p>Once a {@code pom.xml} exists, prefer editing it directly rather than re-running
+     * this goal.</p>
      */
     @Parameter(defaultValue = "false", property = "bw5.init.force")
     private boolean force;
