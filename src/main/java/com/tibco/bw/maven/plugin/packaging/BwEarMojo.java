@@ -723,13 +723,14 @@ public class BwEarMojo extends AbstractBw5Mojo {
         }
     }
 
-    private ArchiveDescriptorParser.ArchiveDescriptor loadArchiveDescriptor() {
+    private ArchiveDescriptorParser.ArchiveDescriptor loadArchiveDescriptor()
+            throws MojoExecutionException {
         if (archiveDescriptorFile == null) {
             return null;
         }
         if (!archiveDescriptorFile.exists()) {
-            getLog().warn("Archive descriptor not found, ignoring: " + archiveDescriptorFile.getAbsolutePath());
-            return null;
+            throw new MojoExecutionException(
+                "Archive descriptor not found: " + archiveDescriptorFile.getAbsolutePath());
         }
         try {
             ArchiveDescriptorParser parser = new ArchiveDescriptorParser();
@@ -738,9 +739,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 + " (" + descriptor + ")");
             return descriptor;
         } catch (Exception e) {
-            getLog().warn("Could not parse .archive descriptor: " + e.getMessage()
-                + " — falling back to full directory scan");
-            return null;
+            throw new MojoExecutionException(
+                "Failed to parse .archive descriptor '"
+                + archiveDescriptorFile.getName() + "': " + e.getMessage(), e);
         }
     }
 
