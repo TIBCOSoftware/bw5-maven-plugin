@@ -261,23 +261,20 @@ Some BW5 projects are logically divided into multiple services (PARs) within one
 **Designer `.archive` descriptor format (multi-PAR):**
 
 ```xml
-<archive>
-    <processArchive name="OrderService">
-        <processProperty>
-            <name>/Services/Order/ReceiveOrder.process</name>
-        </processProperty>
-    </processArchive>
-    <processArchive name="PaymentService">
-        <processProperty>
-            <name>/Services/Payment/ProcessPayment.process</name>
-        </processProperty>
-    </processArchive>
-    <sharedArchive name="Shared Archive">
-        <sharedResources>
-            <name>/SharedResources</name>
-        </sharedResources>
-    </sharedArchive>
-</archive>
+<Repository:repository xmlns:Repository="http://www.tibco.com/xmlns/repo/types/2002">
+    <enterpriseArchive>
+        <name>MyApp</name>
+        <processArchive name="OrderService">
+            <processProperty>/Services/Order/ReceiveOrder.process,/Services/Order/Sub.process</processProperty>
+        </processArchive>
+        <processArchive name="PaymentService">
+            <processProperty>/Services/Payment/ProcessPayment.process</processProperty>
+        </processArchive>
+        <sharedArchive name="Shared Archive">
+            <sharedResources>/SharedResources,/config_ear</sharedResources>
+        </sharedArchive>
+    </enterpriseArchive>
+</Repository:repository>
 ```
 
 **Configuration (pom.xml — points to the Designer descriptor):**
@@ -305,18 +302,16 @@ Adapter-based BW5 applications produce `.aar` files (Adapter Archives) instead o
 **Designer `.archive` descriptor format (adapter EAR):**
 
 ```xml
-<archive>
-    <adapterArchive name="SalesforceAdapter">
-        <processProperty>
-            <name>/Adapters/SalesforceService.serviceagent</name>
-        </processProperty>
-    </adapterArchive>
-    <sharedArchive name="Shared Archive">
-        <sharedResources>
-            <name>/SharedResources</name>
-        </sharedResources>
-    </sharedArchive>
-</archive>
+<Repository:repository xmlns:Repository="http://www.tibco.com/xmlns/repo/types/2002">
+    <enterpriseArchive>
+        <name>MyAdapterApp</name>
+        <adapterArchive name="SalesforceAdapter">
+            <adapterReference>/Adapters/Salesforce.adapter#adapter.GenericAdapterConfiguration</adapterReference>
+            <sdkVersion>5.3.0</sdkVersion>
+        </adapterArchive>
+        <sharedArchive name="Shared Archive"/>
+    </enterpriseArchive>
+</Repository:repository>
 ```
 
 **Requirements:**
@@ -1033,15 +1028,18 @@ The archive split is defined in the TIBCO Designer `.archive` descriptor already
 
 ```xml
 <!-- MyApp.archive (committed alongside the BW project) -->
-<archive>
-    <processArchive name="OrderService">
-        <processProperty><name>/Services/Order/ReceiveOrder.process</name></processProperty>
-    </processArchive>
-    <processArchive name="PaymentService">
-        <processProperty><name>/Services/Payment/ProcessPayment.process</name></processProperty>
-    </processArchive>
-    <sharedArchive name="Shared Archive"/>
-</archive>
+<Repository:repository xmlns:Repository="http://www.tibco.com/xmlns/repo/types/2002">
+    <enterpriseArchive>
+        <name>MyApp</name>
+        <processArchive name="OrderService">
+            <processProperty>/Services/Order/ReceiveOrder.process</processProperty>
+        </processArchive>
+        <processArchive name="PaymentService">
+            <processProperty>/Services/Payment/ProcessPayment.process</processProperty>
+        </processArchive>
+        <sharedArchive name="Shared Archive"/>
+    </enterpriseArchive>
+</Repository:repository>
 ```
 
 ```xml
