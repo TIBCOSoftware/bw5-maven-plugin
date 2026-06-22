@@ -157,23 +157,24 @@ The goal shall produce a valid BW5 EAR without invoking `buildear`.
 
 > **Note — `archiveName` vs. PAR filename:** The `bw5.archiveName` parameter (`${project.artifactId}` by default) sets the **application name** used inside `TIBCO.xml` and `manifest-bw5.json`. It does **not** control the PAR filename. The PAR filename comes from the `.archive` descriptor's `processArchive/@name` attribute, or defaults to the hardcoded value `"Process Archive.par"` when no descriptor is configured. This matches TIBCO Designer's `buildEAR` behaviour.
 
-**Multi-PAR EAR structure** _(planned — see §6.7):_
+**Multi-PAR EAR structure (see §6.7):**
 
 ```
 <artifactId>-<version>.ear
 ├── TIBCO.xml                 ← Lists all PAR modules
-├── ServiceA.par              ← Processes in ServiceA group
-├── ServiceB.par              ← Processes in ServiceB group
-└── Shared Archive.sar
+├── ServiceA.par              ← Processes reachable from ServiceA entry points
+├── ServiceB.par              ← Processes reachable from ServiceB entry points
+└── Shared Archive.sar        ← Union of shared resources across all PARs
 ```
 
-**Adapter EAR structure** _(planned — see §6.8):_
+**Adapter EAR structure (see §6.8):**
 
 ```
 <artifactId>-<version>.ear
 ├── TIBCO.xml
-├── <archiveName>.aar         ← Adapter Archive (instead of PAR for adapter-based apps)
-└── Shared Archive.sar
+├── <archiveName>.par         ← Process Archive (optional, when processArchive declared)
+├── <adapterName>.aar         ← Adapter Archive per adapterArchive element
+└── Shared Archive.sar        ← Shared resources + .adapter files duplicated here
 ```
 
 **Requirements:**
@@ -181,22 +182,26 @@ The goal shall produce a valid BW5 EAR without invoking `buildear`.
 - Global variables are read from all `.substvar` files
 - projlib and JAR dependencies are registered as FileAliases in TIBCO.xml (never bundled in the EAR)
 - Compiled Java classes (Code activities and Custom Functions) are included in the PAR under `JavaCode/`
-- `.folder` files (TIBCO Designer folder metadata) are included in the SAR by default; configurable via `includeFolderMetadata`
+- `.folder` files (TIBCO Designer folder metadata) are **not** included by default (`includeFolderMetadata` defaults to `false`); set to `true` to include them
 - Maven build descriptor files (`pom.xml`) are excluded from all archives
 - If `archiveDescriptorFile` is configured and the file is missing or malformed, the build fails with a descriptive error (no silent fallback)
 - If a process declared in the `.archive` descriptor's `processProperty` list is missing on disk, the build fails listing all missing files
+- Process files not reachable from any `processProperty` entry point are excluded from the PAR (applies to both single-PAR and multi-PAR mode)
+- Each `.adapter` file is included both inside its dedicated AAR and as a copy in the SAR (matching TIBCO Designer behaviour)
 
 **Transitive dependency analysis (when `.archive` descriptor present):**
 
 When an `.archive` descriptor is present, `bw5:bwear` performs a BFS traversal starting from the process entry points declared in the descriptor. This analysis:
-- Follows `CallProcess` subprocess references
-- Follows shared resource references (`ConnectionReference`, `variableConfig`, `stylesheet`, `JavaGlobalInstance`, `ParseSharedConfig`, `JavaSchemaResource`)
+- Detects resource references by content: any XML element value starting with `/` and matching a known BW resource extension is treated as a reference — no element-name whitelist needed
+- Follows shared resource internal references transitively for all SAR file types (e.g. `.sharedhttp` → `.id` / `.cert`)
+- Expands directory references (e.g. `<cert>/Certificates</cert>`) to include all SAR files under that path
 - Follows XSD imports transitively
 - Always includes `.javaxpath` files and files under paths listed in `sharedResources`
 - Files not reachable from entry points and not in shared resource paths are excluded from the archive
 
 **SAR file extensions covered:**
-`.rvtransport`, `.sharedhttp`, `.sharedjdbc`, `.sharedjmscon`, `.sharedjmsapp`, `.httpProxy`, `.sharedpartner`, `.sharedvariable`, `.jobsharedvariable`, `.sharedLock`, `.serviceagent`, `.securityPolicy`, `.contextResource`, `.wsdl`, `.xsd`, `.id`, `.cert`, `.properties`, `.xslt`, `.xsl`, `.javaxpath`, `.xml`, `.sharedparse`
+All extensions starting with `.shared*` are covered generically (e.g. `.sharedhttp`, `.sharedjdbc`, `.sharedjmscon`, `.sharedjmsapp`, `.sharedftp`, `.sharedvariable`, `.sharedLock`, `.sharedpartner`, `.sharedparse` — and any future `.shared*` type automatically).
+Additional explicit types: `.rvtransport`, `.httpProxy`, `.jobsharedvariable`, `.serviceagent`, `.securityPolicy`, `.securityPolicyAssociation`, `.contextResource`, `.wsdl`, `.xsd`, `.aeschema`, `.id`, `.cert`, `.properties`, `.xslt`, `.xsl`, `.javaxpath`, `.xml`, `.adapter`
 
 ### 6.4 Projlib Assembly (`bw5:bw5module`)
 
@@ -1130,7 +1135,7 @@ deploy-to-staging:
 | `globalPropertiesFile` | `bw5.deployConfig.globalPropertiesFile` | — | Global property overrides |
 | `projectPropertiesFile` | `bw5.deployConfig.projectPropertiesFile` | — | Project-specific property overrides |
 | `archiveDescriptorFile` | `bw5.archiveDescriptorFile` | — | Optional TIBCO Designer `.archive` descriptor file |
-| `includeFolderMetadata` | — | `true` | Include `.folder` files in the archive |
+| `includeFolderMetadata` | `bw5.includeFolderMetadata` | `false` | Include `.folder` Designer metadata files in the archive (default matches `buildEAR`) |
 | `oldJavaCustomFunctions` | — | `false` | Use pre-existing bytecode in `.javaxpath` files (legacy mode) |
 | `skipResolveDependencies` | `bw5.bwear.skipResolveDependencies` | `false` | Skip resolving deps to `target/bw-lib` before EAR assembly |
 | `skip` | `bw5.skip` | `false` | Skip all plugin goals |
@@ -1253,20 +1258,20 @@ The following items are out of scope for v1.0:
 - [x] `mvn clean package` on an adapter `bwear` project (`<adapterArchive>` in `.archive` descriptor) produces a valid EAR with an `.aar` archive and correct EAR-level TIBCO.xml module entries
 - [x] A mixed EAR (both `<processArchive>` and `<adapterArchive>`) produces all archive types in the same EAR
 - [x] `mvn clean package` on a `projlib` project produces a valid `.projlib`
-- [ ] A `.projlib` published to Nexus/Artifactory is resolvable as `<dependency type="projlib">` in another project
-- [ ] Java Code activities are correctly extracted, compiled, and bundled in the artifact
-- [ ] Java Custom Functions in `src/main/java` are compiled, bytecode is Base64-injected into `.javaxpath`, and bundled in the artifact
-- [ ] `mvn bw5:validate` reports XML errors, missing GVars, and XPath syntax issues without requiring a TIBCO installation; does not block EAR generation by default
-- [ ] `mvn bw5:validate -Dbw5.validate.failOnError=true` fails the build when structural errors are found
-- [ ] `mvn bw5:designer-setup` followed by opening the project in TIBCO Designer resolves all dependencies without manual file copying
-- [ ] `mvn bw5:site` produces an HTML site with SVG diagrams using palette-specific activity icons for all standard activity types, with collapsible process/GV trees and per-process GV/SR cross-references
-- [ ] `mvn bw5:site -Dbw5.site.generatePdf=true` produces a PDF with activity icons rendered as PNG images
-- [ ] `mvn bw5:site -Dbw5.site.generateMarkdown=true` produces Markdown documentation alongside HTML
-- [ ] `bw5-deploy:deploy -Dbw5.deploy.environment=administrator` deploys the EAR to a TIBCO Administrator domain
-- [ ] `bw5-deploy:deploy -Dbw5.deploy.environment=container` deploys via Platform API REST (no TIBCO tools needed)
-- [ ] All build goals complete on vanilla JDK 11 + Maven 3.8.1 with no TIBCO software installed
-- [ ] A standard CI pipeline (`mvn clean deploy`) publishes to a Maven repository without TIBCO tools
+- [x] A `.projlib` published to Nexus/Artifactory is resolvable as `<dependency type="projlib">` in another project
+- [x] Java Code activities are correctly extracted, compiled, and bundled in the artifact
+- [x] Java Custom Functions in `src/main/java` are compiled, bytecode is Base64-injected into `.javaxpath`, and bundled in the artifact
+- [x] `mvn bw5:validate` reports XML errors, missing GVars, and XPath syntax issues without requiring a TIBCO installation; does not block EAR generation by default
+- [x] `mvn bw5:validate -Dbw5.validate.failOnError=true` fails the build when structural errors are found
+- [x] `mvn bw5:designer-setup` followed by opening the project in TIBCO Designer resolves all dependencies without manual file copying
+- [x] `mvn bw5:site` produces an HTML site with SVG diagrams using palette-specific activity icons for all standard activity types, with collapsible process/GV trees and per-process GV/SR cross-references
+- [x] `mvn bw5:site -Dbw5.site.generatePdf=true` produces a PDF with activity icons rendered as PNG images
+- [x] `mvn bw5:site -Dbw5.site.generateMarkdown=true` produces Markdown documentation alongside HTML
+- [ ] `bw5-deploy:deploy -Dbw5.deploy.environment=administrator` deploys the EAR to a TIBCO Administrator domain _(requires `bw5-deploy-plugin` — not yet implemented)_
+- [ ] `bw5-deploy:deploy -Dbw5.deploy.environment=container` deploys via Platform API REST _(requires `bw5-deploy-plugin` — not yet implemented)_
+- [x] All build goals complete on vanilla JDK 11 + Maven 3.8.1 with no TIBCO software installed
+- [x] A standard CI pipeline (`mvn clean deploy`) publishes to a Maven repository without TIBCO tools
 
 ---
 
-*This document reflects the implementation state as of 2026-06-22. Section 7 (Deployment) describes the planned `bw5-deploy-plugin`, which is not yet implemented. Multi-PAR (§6.7) and Adapter Archive (§6.8) are implemented and validated against TIBCO Designer reference EARs. Section 12 (Open Items) is particularly relevant for roadmap prioritisation discussions.*
+*This document reflects the implementation state as of 2026-06-22. All v1.0 build goals are implemented and validated against TIBCO Designer reference EARs across 15 real BW5 projects. The two remaining unchecked acceptance criteria (§13) require the `bw5-deploy-plugin` companion artifact, which is not yet implemented (see §7 and §12).*
