@@ -998,6 +998,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
             ? buildReachableList(visitedProcessPaths, processIndex)
             : processFiles;
 
+        // Expand directory references (e.g. /Certificates → all .cert files inside)
+        expandDirectoryRefs(referencedResourcePaths, resourceIndex);
+
         // SAR: alwaysInclude + transitively reachable resources (deduped)
         Set<String> sarPathsSeen = new LinkedHashSet<>();
         for (BwFile f : alwaysInclude) sarPathsSeen.add(normalizeBwPath(f.relativePath));
@@ -1122,23 +1125,57 @@ public class BwEarMojo extends AbstractBw5Mojo {
     /**
      * Returns {@code true} when {@code value} looks like an absolute BW resource path.
      *
-     * <p>Criteria:</p>
-     * <ul>
-     *   <li>Starts with {@code /}</li>
-     *   <li>Has a file extension (dot after the last {@code /})</li>
-     *   <li>That extension is registered in {@link #PAR_EXTENSIONS} or {@link #SAR_EXTENSIONS}</li>
-     * </ul>
-     *
-     * <p>Matching against the known extension sets rather than hard-coding element names means
-     * any TIBCO palette that embeds a BW resource path in an XML element value is automatically
-     * handled — no element-name whitelist maintenance needed.</p>
+     * <p>Two cases are accepted:</p>
+     * <ol>
+     *   <li><b>File reference</b> — path has a known extension registered in
+     *       {@link #PAR_EXTENSIONS} or via {@link #isSarExtension}.</li>
+     *   <li><b>Directory reference</b> — path has no extension at all (no {@code .} anywhere).
+     *       TIBCO BW5 processes can reference a directory path (e.g. {@code /Certificates})
+     *       meaning "include all SAR files under that directory". These are resolved by
+     *       {@link #expandDirectoryRefs} after the BFS completes.
+     *       XPath-like patterns ({@code ::}, {@code [}, {@code (}) are rejected to avoid
+     *       false positives from mapper expressions.</li>
+     * </ol>
      */
     private boolean isBwResourcePath(String value) {
         if (value == null || value.length() < 2 || value.charAt(0) != '/') return false;
         int dot = value.lastIndexOf('.');
-        if (dot <= 0) return false; // no extension
+        if (dot <= 0) {
+            // No extension — could be a directory reference (e.g. /Certificates).
+            // Reject XPath operators to avoid picking up mapper expressions.
+            return !value.contains("::") && !value.contains("[") && !value.contains("(");
+        }
         String ext = value.substring(dot).toLowerCase(Locale.ROOT);
         return PAR_EXTENSIONS.contains(ext) || isSarExtension(ext);
+    }
+
+    /**
+     * Expands directory references in {@code refs} to include all SAR resource files
+     * whose normalized path starts with that directory prefix.
+     *
+     * <p>TIBCO Designer includes all SAR files under a referenced directory path —
+     * e.g. {@code /Certificates} expands to all {@code .cert} files inside it.
+     * A directory reference is identified by having no file extension in its last segment.</p>
+     */
+    private void expandDirectoryRefs(Set<String> refs, Map<String, BwFile> resourceIndex) {
+        List<String> dirRefs = new ArrayList<>();
+        for (String path : refs) {
+            int lastSlash = path.lastIndexOf('/');
+            String lastName = path.substring(lastSlash + 1);
+            if (!lastName.isEmpty() && !lastName.contains(".")) {
+                dirRefs.add(path);
+            }
+        }
+        for (String dir : dirRefs) {
+            String prefix = dir + "/";
+            for (String resourcePath : resourceIndex.keySet()) {
+                if (resourcePath.startsWith(prefix)) {
+                    if (refs.add(resourcePath)) {
+                        getLog().debug("Directory ref expanded: " + dir + " → " + resourcePath);
+                    }
+                }
+            }
+        }
     }
 
     private static String normalizeBwPath(String path) {
