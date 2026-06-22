@@ -1,10 +1,10 @@
 # Product Requirements Document
 ## BW5 Maven Plugin (`bw5-maven-plugin`)
 
-**Version:** 1.4
-**Status:** Updated — Reflects actual implementation as of 2026-05-27
+**Version:** 1.5
+**Status:** Updated — Reflects actual implementation as of 2026-06-22
 **Author:** TIBCO BW5 Community
-**Date:** 2026-05-27
+**Date:** 2026-06-22
 
 ---
 
@@ -143,19 +143,21 @@ Managing a portfolio of BW5 and BW6 applications. Needs consistent toolchain con
 
 The goal shall produce a valid BW5 EAR without invoking `buildear`.
 
-**Single-PAR EAR structure (default):**
+**Single-PAR EAR structure (current implementation):**
 
 ```
 <artifactId>-<version>.ear
 ├── TIBCO.xml                 ← Generated deployment descriptor
 │                                FileAliases, Global Variables, Modules list
-├── <archiveName>.par         ← Process Archive
+├── Process Archive.par       ← Process Archive (default name; overridden by .archive descriptor)
 │   ├── TIBCO.xml             ← PAR descriptor (BwBPConfigurations, EXTERNAL_DEPENDENCIES)
 │   └── **/*.process          ← Process files, directory structure preserved
 └── Shared Archive.sar        ← Shared resources (connections, schemas, variables, etc.)
 ```
 
-**Multi-PAR EAR structure (when `<archives>` is configured):**
+> **Note — `archiveName` vs. PAR filename:** The `bw5.archiveName` parameter (`${project.artifactId}` by default) sets the **application name** used inside `TIBCO.xml` and `manifest-bw5.json`. It does **not** control the PAR filename. The PAR filename comes from the `.archive` descriptor's `processArchive/@name` attribute, or defaults to the hardcoded value `"Process Archive.par"` when no descriptor is configured. This matches TIBCO Designer's `buildEAR` behaviour.
+
+**Multi-PAR EAR structure** _(planned — see §6.7):_
 
 ```
 <artifactId>-<version>.ear
@@ -165,7 +167,7 @@ The goal shall produce a valid BW5 EAR without invoking `buildear`.
 └── Shared Archive.sar
 ```
 
-**Adapter EAR structure (when adapter archives are present):**
+**Adapter EAR structure** _(planned — see §6.8):_
 
 ```
 <artifactId>-<version>.ear
@@ -175,13 +177,14 @@ The goal shall produce a valid BW5 EAR without invoking `buildear`.
 ```
 
 **Requirements:**
-- The PAR name defaults to `${project.artifactId}`, configurable via `<archiveName>`
-- Multi-PAR projects configure process-to-archive assignments via `<archives>` plugin configuration (see §6.7)
-- Adapter Archive projects are detected by the presence of `.aar` or adapter descriptors; the archive type is configurable
+- The PAR filename defaults to `"Process Archive.par"`; overridden by the `.archive` descriptor's `processArchive/@name` attribute when `archiveDescriptorFile` is configured
 - Global variables are read from all `.substvar` files
 - projlib and JAR dependencies are registered as FileAliases in TIBCO.xml (never bundled in the EAR)
 - Compiled Java classes (Code activities and Custom Functions) are included in the PAR under `JavaCode/`
-- `.folder` files (TIBCO Designer folder metadata) are included by default; configurable via `includeFolderMetadata`
+- `.folder` files (TIBCO Designer folder metadata) are included in the SAR by default; configurable via `includeFolderMetadata`
+- Maven build descriptor files (`pom.xml`) are excluded from all archives
+- If `archiveDescriptorFile` is configured and the file is missing or malformed, the build fails with a descriptive error (no silent fallback)
+- If a process declared in the `.archive` descriptor's `processProperty` list is missing on disk, the build fails listing all missing files
 
 **Transitive dependency analysis (when `.archive` descriptor present):**
 
@@ -200,7 +203,7 @@ When an `.archive` descriptor is present, `bw5:bwear` performs a BFS traversal s
 **Requirements:**
 - `.projlib` is a ZIP archive preserving the full BW project directory structure
 - `/library.manifest` entry is included with Maven GAV metadata
-- When a `.libbuilder` descriptor is present, only Designer-managed files (as listed in the descriptor) are included — plus always includes `.substvar` and `.folder` files
+- When a `.libbuilder` descriptor is present, only Designer-managed files (as listed in the descriptor) are included — plus always includes `.substvar` files and `.folder` files for any directory (including the project root) that contains at least one listed resource
 - Without a `.libbuilder` descriptor: includes all BW files, excluding AESchemas, `.designtimelibs`, `vcrepo.dat`, `.DS_Store`, `Thumbs.db`, `.git`, `.svn`, `target/`
 - Compiled Java classes (Code activities and Custom Functions) included under `JavaCode/`
 - Projlib files install to and resolve from any standard Maven repository
@@ -246,56 +249,78 @@ my-custom-functions-lib/
 │       └── java/                  ← Unit tests for Custom Functions
 ```
 
-### 6.7 Multi-PAR Projects (`bw5:bwear` with `<archives>`)
+### 6.7 Multi-PAR Projects (`bw5:bwear` with multiple `<processArchive>` in `.archive` descriptor)
 
-Some BW5 projects are logically divided into multiple services (PARs) within one EAR. The split is defined in plugin configuration rather than by a Designer archive descriptor file.
+Some BW5 projects are logically divided into multiple services (PARs) within one EAR. In TIBCO Designer the split is defined in the project's `.archive` descriptor file via multiple `<processArchive>` elements — one per PAR. The plugin reads this file and replicates the same structure without invoking `buildEAR`.
 
-**Configuration:**
+**Designer `.archive` descriptor format (multi-PAR):**
 
 ```xml
-<plugin>
-    <groupId>com.tibco.bw</groupId>
-    <artifactId>bw5-maven-plugin</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-    <extensions>true</extensions>
-    <configuration>
-        <archives>
-            <archive>
-                <name>OrderService</name>
-                <includes>
-                    <include>Services/Order/**</include>
-                </includes>
-            </archive>
-            <archive>
-                <name>PaymentService</name>
-                <includes>
-                    <include>Services/Payment/**</include>
-                </includes>
-            </archive>
-        </archives>
-        <!-- Processes not matched by any archive go to a default PAR named after the artifactId -->
-        <defaultArchiveName>${project.artifactId}-common</defaultArchiveName>
-    </configuration>
-</plugin>
+<archive>
+    <processArchive name="OrderService">
+        <processProperty>
+            <name>/Services/Order/ReceiveOrder.process</name>
+        </processProperty>
+    </processArchive>
+    <processArchive name="PaymentService">
+        <processProperty>
+            <name>/Services/Payment/ProcessPayment.process</name>
+        </processProperty>
+    </processArchive>
+    <sharedArchive name="Shared Archive">
+        <sharedResources>
+            <name>/SharedResources</name>
+        </sharedResources>
+    </sharedArchive>
+</archive>
+```
+
+**Configuration (pom.xml — points to the Designer descriptor):**
+
+```xml
+<configuration>
+    <archiveDescriptorFile>${basedir}/MyApp.archive</archiveDescriptorFile>
+</configuration>
 ```
 
 **Requirements:**
-- Each `<archive>` element defines one PAR file in the EAR
-- Process files are assigned to archives using Ant-style glob patterns on their path within the BW project
-- A process not matching any explicit archive is assigned to the default archive
-- Each PAR gets its own TIBCO.xml descriptor
+- The plugin reads all `<processArchive>` elements from the `.archive` descriptor
+- Each `<processArchive>` element produces one PAR file in the EAR, named `<name>.par`
+- Each PAR gets its own TIBCO.xml descriptor with its own process list and `EXTERNAL_DEPENDENCIES`
+- Transitive dependency analysis is applied independently per PAR, starting from that PAR's `<processProperty>` entry points
+- The SAR is shared across all PARs and assembled from `<sharedArchive>` as usual
 - The EAR-level TIBCO.xml Modules section lists all PARs
+- If a process declared in any PAR's `<processProperty>` is missing on disk, the build fails listing all missing files
+- When no `.archive` descriptor is configured, the plugin falls back to single-PAR mode (existing behaviour)
 
 ### 6.8 Adapter Archive (AAR) Support (`bw5:bwear`)
 
-Adapter-based BW5 applications produce `.aar` files (Adapter Archives) instead of or in addition to `.par` files.
+Adapter-based BW5 applications produce `.aar` files (Adapter Archives) instead of or in addition to `.par` files. In TIBCO Designer, adapter archives are declared in the `.archive` descriptor via `<adapterArchive>` elements. The plugin reads this declaration and assembles the AAR without invoking `buildEAR`.
+
+**Designer `.archive` descriptor format (adapter EAR):**
+
+```xml
+<archive>
+    <adapterArchive name="SalesforceAdapter">
+        <processProperty>
+            <name>/Adapters/SalesforceService.serviceagent</name>
+        </processProperty>
+    </adapterArchive>
+    <sharedArchive name="Shared Archive">
+        <sharedResources>
+            <name>/SharedResources</name>
+        </sharedResources>
+    </sharedArchive>
+</archive>
+```
 
 **Requirements:**
-- The plugin detects adapter archives in the BW project via adapter descriptor files
-- `.aar` files are assembled using the same ZIP approach as PARs, with the appropriate internal structure for the adapter runtime
-- The `<archiveType>` parameter controls whether the output is a PAR, AAR, or both
-- Adapter-specific TIBCO.xml sections (adapter SDK properties) are generated correctly
-- Mixed EARs (both PAR and AAR) are supported for projects that combine standard BW processes with adapter services
+- The plugin reads `<adapterArchive>` elements from the `.archive` descriptor
+- Each `<adapterArchive>` produces one `.aar` file in the EAR, named `<name>.aar`
+- AAR internal structure follows the BW5 adapter runtime format (same ZIP layout as PAR with appropriate TIBCO.xml)
+- Mixed EARs (one or more PARs + one or more AARs) are supported: all `<processArchive>` and `<adapterArchive>` elements are processed and all resulting archives are included in the EAR
+- The EAR-level TIBCO.xml Modules section lists both PAR and AAR entries with their respective types
+- When no `<adapterArchive>` element is present in the descriptor, AAR assembly is skipped
 
 ### 6.9 Dependency Management
 
@@ -666,6 +691,7 @@ If a `.designtimelibs` file is present, the generated `pom.xml` includes comment
 
 - If `pom.xml` already exists and `bw5.init.force` is `false` (default), the goal fails with a clear error message rather than silently overwriting.
 - Set `bw5.init.force=true` to overwrite.
+- **Warning — `force=true` rewrites from scratch.** The existing `pom.xml` is not read. Any coordinate not explicitly re-supplied via `-D` (`artifactId`, `version`, etc.) is re-derived from the descriptor file name or reset to its default. Always re-supply every previously overridden value when using `force=true`, or edit the `pom.xml` directly instead.
 
 #### Key parameters
 
@@ -916,7 +942,7 @@ my-bw5-application/
 | **SVG diagrams from native coordinates + icon registry** | TIBCO Designer stores x/y activity positions in `.process` XML. Combined with a palette icon registry (base64 SVGs), the plugin generates diagrams that visually match the Designer canvas. Process groups and canvas labels are also rendered. |
 | **PDF diagrams pre-rendered to PNG via Batik** | Batik cannot load `data:` URIs directly (Java's URL class has no `data:` protocol handler). Icons are decoded to temp files, then Batik's `PNGTranscoder` renders the SVG to PNG using `RelaxedExternalResourceSecurity`. The PNG is base64-embedded in the PDF as an `<img>` element. |
 | **No lib.zip in EAR** | Production BW5 EARs reference JARs/projlibs via FileAliases — they are not bundled. The plugin replicates this model. |
-| **Multi-PAR via plugin config, not `.archiveDescriptor`** | Avoids reading a proprietary binary-format descriptor. Archive assignment via glob patterns in `pom.xml` is transparent and version-controlled. |
+| **Multi-PAR and AAR driven by `.archive` descriptor, not pom.xml** | The TIBCO Designer `.archive` file already defines the archive split (`<processArchive>`, `<adapterArchive>`) and is the authoritative source — reading it keeps the plugin compatible with Designer without requiring developers to duplicate the configuration in the pom.xml. |
 | **Transitive dependency BFS when `.archive` present** | Only files reachable from process entry points are included in the archive, matching the behaviour of `buildear` without invoking it. |
 | **Designer isolation via `target/.TIBCO/Designer5.prefs`** | Prevents `bw5:designer-setup` from corrupting the developer's global Designer preferences. The engine JVM is started with `-Duser.home=target`. |
 | **SpotBugs + PMD + OWASP Dependency Check** | Static analysis integrated into the `verify` phase. SpotBugs (effort=Max, threshold=Low) and PMD (best-practices, error-prone, performance rulesets) run on every build. OWASP dependency vulnerability scanning is skipped by default (slow NVD download) and enabled on demand with `-Dodc.skip=false`. |
@@ -998,7 +1024,23 @@ mvn deploy    # → published to Nexus/Artifactory
 
 ### 9.2 Multi-PAR BW5 Application
 
+The archive split is defined in the TIBCO Designer `.archive` descriptor already present in the project:
+
 ```xml
+<!-- MyApp.archive (committed alongside the BW project) -->
+<archive>
+    <processArchive name="OrderService">
+        <processProperty><name>/Services/Order/ReceiveOrder.process</name></processProperty>
+    </processArchive>
+    <processArchive name="PaymentService">
+        <processProperty><name>/Services/Payment/ProcessPayment.process</name></processProperty>
+    </processArchive>
+    <sharedArchive name="Shared Archive"/>
+</archive>
+```
+
+```xml
+<!-- pom.xml — just point to the descriptor -->
 <packaging>bwear</packaging>
 
 <dependencies>
@@ -1018,20 +1060,15 @@ mvn deploy    # → published to Nexus/Artifactory
             <version>1.0.0-SNAPSHOT</version>
             <extensions>true</extensions>
             <configuration>
-                <archives>
-                    <archive>
-                        <name>OrderService</name>
-                        <includes><include>Services/Order/**</include></includes>
-                    </archive>
-                    <archive>
-                        <name>PaymentService</name>
-                        <includes><include>Services/Payment/**</include></includes>
-                    </archive>
-                </archives>
+                <archiveDescriptorFile>${basedir}/MyApp.archive</archiveDescriptorFile>
             </configuration>
         </plugin>
     </plugins>
 </build>
+```
+
+```
+mvn package  →  OrderService.par + PaymentService.par + Shared Archive.sar inside the EAR
 ```
 
 ### 9.3 Documentation Generation
@@ -1082,11 +1119,9 @@ deploy-to-staging:
 | Parameter | Property | Default | Description |
 |---|---|---|---|
 | `bwProjectPath` | `bw5.bwProjectPath` | `${basedir}` | Root directory of BW5 project sources |
-| `archiveName` | `bw5.archiveName` | `${project.artifactId}` | PAR name within EAR (single-PAR mode) |
-| `archives` | — | — | Multi-PAR archive assignment configuration |
-| `defaultArchiveName` | — | `${project.artifactId}` | Archive name for unmatched processes in multi-PAR mode |
-| `archiveType` | `bw5.archiveType` | `par` | Archive type: `par`, `aar`, or `par+aar` |
-| `includeSharedArchive` | — | `true` | Whether to include the SAR in the EAR |
+| `archiveName` | `bw5.archiveName` | `${project.artifactId}` | Application name used in `TIBCO.xml` and `manifest-bw5.json` — does **not** control the PAR filename |
+| `archiveDescriptorFile` | `bw5.archiveDescriptorFile` | — | Path to TIBCO Designer `.archive` descriptor; drives PAR/AAR naming, entry points, transitive analysis, multi-PAR and AAR assembly |
+| `includeSharedArchive` | `bw5.includeSharedArchive` | `true` | Whether to include the SAR in the EAR |
 | `sharedArchiveName` | — | `Shared Archive` | SAR file name |
 | `earOnly` | `bw5.earOnly` | `false` | Assemble EAR only; skip deploy config file generation |
 | `generateDeployXml` | `bw5.generateDeployXml` | `true` | Generate `<finalName>-deploy.xml` |
@@ -1201,21 +1236,24 @@ The following items are out of scope for v1.0:
 
 | Item | Priority | Notes |
 |---|---|---|
-| **Maven archetype** | High | `mvn archetype:generate` templates for new `bwear` and `projlib` projects |
+| **Multi-PAR EAR assembly** | High | Read multiple `<processArchive>` elements from `.archive` descriptor; produce one PAR per element; apply transitive analysis per PAR (§6.7) |
+| **Adapter Archive (AAR) assembly** | High | Read `<adapterArchive>` elements from `.archive` descriptor; produce `.aar` files; support mixed PAR+AAR EARs (§6.8) |
+| **bw5-deploy-plugin** | High | Companion deploy plugin not yet implemented; §7 describes the design |
+| **Maven archetype** | Medium | `mvn archetype:generate` templates for new `bwear` and `projlib` projects |
 | **Integration test support** | Medium | `mvn integration-test` with local BW engine execution; opt-in, requires BW engine install |
 | **Enhanced mapping visualisation** | Medium | Graphical source→target mapping diagrams (Sankey-style) for complex XSLT |
 | **WSDL/service documentation** | Low | Service contract docs from `.wsdl` and `.serviceagent` files in `bw5:site` |
 | **Control Tower API implementation** | Blocked | Depends on Control Tower Platform API specification (§7.4) — implement when API is published |
 | **BW engine unit testing framework** | Low | Run individual BW processes as JUnit tests without full domain setup |
-| **bw5-deploy-plugin** | High | Companion deploy plugin not yet implemented; §7 describes the design |
 
 ---
 
 ## 13. Acceptance Criteria — v1.0.0
 
 - [ ] `mvn clean package` on a single-PAR `bwear` project produces a valid `.ear` deployable to TIBCO Administrator, **no TIBCO software on build machine**
-- [ ] `mvn clean package` on a multi-PAR `bwear` project (via `<archives>`) produces an EAR with multiple correctly-structured PAR files
-- [ ] `mvn clean package` on an adapter `bwear` project produces a valid EAR with an `.aar` archive
+- [ ] `mvn clean package` on a multi-PAR `bwear` project (multiple `<processArchive>` in `.archive` descriptor) produces an EAR with one correctly-structured PAR per archive element, each with its own TIBCO.xml
+- [ ] `mvn clean package` on an adapter `bwear` project (`<adapterArchive>` in `.archive` descriptor) produces a valid EAR with an `.aar` archive and correct EAR-level TIBCO.xml module entries
+- [ ] A mixed EAR (both `<processArchive>` and `<adapterArchive>`) produces all archive types in the same EAR
 - [ ] `mvn clean package` on a `projlib` project produces a valid `.projlib`
 - [ ] A `.projlib` published to Nexus/Artifactory is resolvable as `<dependency type="projlib">` in another project
 - [ ] Java Code activities are correctly extracted, compiled, and bundled in the artifact
@@ -1233,4 +1271,4 @@ The following items are out of scope for v1.0:
 
 ---
 
-*This document reflects the implementation state as of 2026-05-27. Section 7 (Deployment) describes the planned `bw5-deploy-plugin`, which is not yet implemented. Section 12 (Open Items) is particularly relevant for roadmap prioritisation discussions.*
+*This document reflects the implementation state as of 2026-06-22. Section 7 (Deployment) describes the planned `bw5-deploy-plugin`, which is not yet implemented. Multi-PAR (§6.7) and Adapter Archive (§6.8) support are v1.0 requirements currently under implementation. Section 12 (Open Items) is particularly relevant for roadmap prioritisation discussions.*
