@@ -113,9 +113,9 @@ bw5:init
 **No `buildear`. No TIBCO on the build agent. Ever.**
 
 - PAR(s) + SAR + `TIBCO.xml` assembled using `java.util.zip` — pure Java
-- **Single-PAR** (default): one PAR named `${artifactId}`
-- **Multi-PAR**: archive assignment via Ant-style glob patterns in `pom.xml` — no proprietary binary descriptor
-- **Adapter Archive (AAR)**: auto-detected from adapter descriptor files
+- **Single-PAR** (default): one PAR named `"Process Archive.par"` (or `processArchive/@name` from descriptor)
+- **Multi-PAR**: one PAR per `<processArchive>` element in the TIBCO Designer `.archive` descriptor — Designer-compatible, no pom.xml config needed
+- **Adapter Archive (AAR)**: one AAR per `<adapterArchive>` element in the `.archive` descriptor; `.adapter` file duplicated in SAR
 - Projlibs and JARs registered as **FileAliases** in `TIBCO.xml` — never bundled inside the EAR
 - Generates `deploy.xml`, `deploy.properties` and `values.yaml` as part of every `mvn package`
 - **Automatic dependency resolution** before assembly — opt out with `skipResolveDependencies=true`
