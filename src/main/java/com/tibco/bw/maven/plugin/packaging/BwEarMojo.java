@@ -264,7 +264,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
      * buildEAR only includes explicitly registered BW shared-resource types.
      */
     private static final Set<String> EXCLUDED_EXTENSIONS = new HashSet<>(Arrays.asList(
-        ".folder", ".aeschema", ".dat", ".classpath"
+        ".folder", ".aeschema", ".dat", ".classpath",
+        // TIBCO Designer archive descriptor — build metadata, not a BW shared resource
+        ".archive"
     ));
 
     /**
@@ -368,24 +370,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     String aarFileName = (aa.name != null && !aa.name.isEmpty())
                         ? aa.name + ".aar" : "Adapter Archive.aar";
                     File aarFile = new File(workDir, aarFileName);
-
-                    List<BwFile> aarParFiles = new ArrayList<>(allParFiles);
-                    List<BwFile> aarSarFiles = new ArrayList<>(allSarFiles);
-
-                    if (!aa.processPaths.isEmpty()) {
-                        promoteServiceAgentsFromDescriptor(aarParFiles, aarSarFiles, aa.processPaths);
-                        // AAR: filter by reachability — adapter archives own their service agents explicitly
-                        applyTransitiveDependencyAnalysis(aarParFiles, aarSarFiles,
-                            aa.processPaths, archiveDescriptor.sharedResourcePaths, true);
-                    }
-                    accumulateSarFiles(aarSarFiles, combinedSarFiles, seenSarPaths);
-
-                    List<String> sarPaths = toSarPaths(combinedSarFiles);
-                    List<ProcessParser.ProcessMetadata> meta = parseProcesses(aarParFiles, srcDir);
-                    buildPar(aarFile, aarParFiles, srcDir, meta, sarPaths);
+                    buildAar(aarFile, srcDir, aa);
                     moduleFiles.add(aarFile);
-                    getLog().info("AAR assembled: " + aarFile.getName()
-                        + " (" + aarFile.length() + " bytes, " + aarParFiles.size() + " serviceagent(s))");
+                    getLog().info("AAR assembled: " + aarFile.getName() + " (" + aarFile.length() + " bytes)");
                 }
 
             } else {
@@ -1166,6 +1153,56 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 return FileVisitResult.CONTINUE;
             }
         });
+    }
+
+    // -----------------------------------------------------------------------
+    //  AAR assembly
+    // -----------------------------------------------------------------------
+
+    /**
+     * Assembles a BW5 Adapter Archive ({@code .aar}) from the descriptor's
+     * {@code <adapterReference>} element.
+     *
+     * <p>An AAR contains exactly two entries:</p>
+     * <ol>
+     *   <li>{@code TIBCO.xml} — adapter-specific descriptor (SDK version, external deps,
+     *       RepoConfigUrl)</li>
+     *   <li>The {@code .adapter} file at its BW project path (relative to {@code srcDir})</li>
+     * </ol>
+     */
+    private void buildAar(File aarFile, File srcDir,
+                          ArchiveDescriptorParser.AdapterArchiveEntry aa) throws Exception {
+        String aarFileName = aarFile.getName();
+
+        // Locate the .adapter file on disk
+        String adapterFilePath = aa.getAdapterFilePath();
+        if (adapterFilePath == null || adapterFilePath.isEmpty()) {
+            throw new MojoExecutionException(
+                "adapterArchive '" + aa.name + "' has no <adapterReference> — cannot assemble AAR");
+        }
+        File adapterFile = new File(srcDir, adapterFilePath.replace('/', File.separatorChar));
+        if (!adapterFile.isFile()) {
+            // Try bwSourcesDirectory as root if different from srcDir
+            adapterFile = new File(bwProjectPath, adapterFilePath.replace('/', File.separatorChar));
+        }
+        if (!adapterFile.isFile()) {
+            throw new MojoExecutionException(
+                "Adapter file not found for AAR '" + aa.name + "': " + adapterFilePath
+                + "\nSearched under: " + srcDir.getAbsolutePath());
+        }
+
+        // Generate AAR-level TIBCO.xml
+        File aarTibcoXml = File.createTempFile("aar-TIBCO-", ".xml");
+        aarTibcoXml.deleteOnExit();
+        new TibcoXmlGenerator().generateAarDescriptor(
+            aarTibcoXml, aarFileName, aa.adapterReference, aa.getSdkVersionFourPart(), null);
+
+        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(aarFile))) {
+            zos.setLevel(Deflater.DEFAULT_COMPRESSION);
+            addToZip(zos, "TIBCO.xml", aarTibcoXml);
+            // Store adapter file preserving its BW project path (without leading slash)
+            addToZip(zos, adapterFilePath, adapterFile);
+        }
     }
 
     // -----------------------------------------------------------------------

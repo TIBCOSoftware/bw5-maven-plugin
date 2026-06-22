@@ -123,18 +123,118 @@ public class TibcoXmlGenerator {
             sb.append("    </NameValuePairs>\n");
         }
 
-        // Modules: one entry per PAR/AAR
+        // Modules: ONE block listing all PAR/AAR filenames (matches TIBCO buildEAR format)
         sb.append("    <DeploymentDescriptorFactory>\n");
         sb.append("        <name>{http://www.tibco.com/xmlns/dd}Modules</name>\n");
         sb.append("        <deploymentDescriptorFactoryClassName>com.tibco.archive.helpers.Modules</deploymentDescriptorFactoryClassName>\n");
         sb.append("    </DeploymentDescriptorFactory>\n");
+        sb.append("    <Modules>\n");
+        sb.append("        <name>Modules</name>\n");
         for (String moduleFileName : moduleFileNames) {
-            sb.append("    <Modules>\n");
-            sb.append("        <name>Modules</name>\n");
             sb.append("        <pathName>").append(escape(moduleFileName)).append("</pathName>\n");
-            sb.append("    </Modules>\n");
         }
+        sb.append("    </Modules>\n");
 
+        sb.append("</DeploymentDescriptors>\n");
+
+        write(outputFile, sb.toString());
+    }
+
+    // -----------------------------------------------------------------------
+    //  AAR-level TIBCO.xml
+    // -----------------------------------------------------------------------
+
+    /**
+     * Generates the AAR-level TIBCO.xml deployment descriptor.
+     *
+     * @param outputFile       target file to write
+     * @param aarFileName      AAR filename (e.g. "GAC_RPC_JMS_Topic.aar")
+     * @param adapterReference raw {@code adapterReference} value from the {@code .archive}
+     *                         descriptor (e.g. {@code /path/Foo.adapter#adapter.GenericAdapterConfiguration})
+     * @param sdkVersionFour   four-part SDK version (e.g. {@code 5.3.0.0})
+     * @param owner            owner string
+     */
+    public void generateAarDescriptor(
+            File outputFile,
+            String aarFileName,
+            String adapterReference,
+            String sdkVersionFour,
+            String owner) throws IOException {
+
+        String date = new SimpleDateFormat(DATE_FORMAT, Locale.ROOT).format(new Date());
+        String effectiveOwner = (owner == null || owner.isEmpty())
+            ? System.getProperty("user.name", "unknown") : owner;
+
+        // Derive paths from adapterReference:
+        // /path/to/Foo.adapter#frag  →  adapterFilePath = /path/to/Foo.adapter
+        // repoConfigUrl = path/to/Foo (no leading slash, no extension)
+        // instanceID = Foo
+        String adapterFilePath = adapterReference != null ? adapterReference : "";
+        int hash = adapterFilePath.indexOf('#');
+        if (hash >= 0) adapterFilePath = adapterFilePath.substring(0, hash);
+
+        String repoConfigUrl = adapterFilePath.startsWith("/")
+            ? adapterFilePath.substring(1) : adapterFilePath;
+        int lastDot = repoConfigUrl.lastIndexOf('.');
+        if (lastDot > 0) repoConfigUrl = repoConfigUrl.substring(0, lastDot);
+
+        String instanceID = repoConfigUrl;
+        int lastSlash = instanceID.lastIndexOf('/');
+        if (lastSlash >= 0) instanceID = instanceID.substring(lastSlash + 1);
+
+        // EXTERNAL_RESOURCE_DEPENDENCY: AE schemas + the adapter reference
+        String extDep = "/AESchemas/ae.aeschema,"
+            + (adapterReference != null ? adapterReference : "")
+            + ",/AESchemas/ae/BW/AESchema.aeschema";
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        sb.append("<DeploymentDescriptors xmlns=\"http://www.tibco.com/xmlns/dd\">\n");
+        sb.append("    <name>").append(escape(aarFileName)).append("</name>\n");
+        sb.append("    <version>1</version>\n");
+        sb.append("    <owner>").append(escape(effectiveOwner)).append("</owner>\n");
+        sb.append("    <creationDate>").append(date).append("</creationDate>\n");
+
+        sb.append("    <DeploymentDescriptorFactory>\n");
+        sb.append("        <name>{http://www.tibco.com/xmlns/dd}StartAsOneOf</name>\n");
+        sb.append("        <deploymentDescriptorFactoryClassName>com.tibco.archive.helpers.StartAsOneOf</deploymentDescriptorFactoryClassName>\n");
+        sb.append("    </DeploymentDescriptorFactory>\n");
+        sb.append("    <StartAsOneOf>\n");
+        sb.append("        <name>StartAsOneOf</name>\n");
+        sb.append("        <ComponentSoftwareReference>\n");
+        sb.append("            <componentSoftwareName>adapter</componentSoftwareName>\n");
+        sb.append("            <minimumComponentSoftwareVersion>").append(escape(sdkVersionFour)).append("</minimumComponentSoftwareVersion>\n");
+        sb.append("            <minimumTRAVersion>5.1.0.0</minimumTRAVersion>\n");
+        sb.append("            <configVersion>").append(escape(sdkVersionFour)).append("</configVersion>\n");
+        sb.append("            <keyword>Adapter</keyword>\n");
+        sb.append("        </ComponentSoftwareReference>\n");
+        sb.append("    </StartAsOneOf>\n");
+
+        sb.append("    <DeploymentDescriptorFactory>\n");
+        sb.append("        <name>{http://www.tibco.com/xmlns/dd}NameValuePairs</name>\n");
+        sb.append("        <deploymentDescriptorFactoryClassName>com.tibco.archive.helpers.NameValuePairs</deploymentDescriptorFactoryClassName>\n");
+        sb.append("    </DeploymentDescriptorFactory>\n");
+        sb.append("    <NameValuePairs>\n");
+        sb.append("        <name>EXTERNAL_DEPENDENCIES</name>\n");
+        sb.append("        <NameValuePair>\n");
+        sb.append("            <name>EXTERNAL_RESOURCE_DEPENDENCY</name>\n");
+        sb.append("            <value>").append(escape(extDep)).append("</value>\n");
+        sb.append("            <description>External resource configuration required by the archive.</description>\n");
+        sb.append("            <requiresConfiguration>false</requiresConfiguration>\n");
+        sb.append("            <disableConfigureAtDeployment>true</disableConfigureAtDeployment>\n");
+        sb.append("        </NameValuePair>\n");
+        sb.append("    </NameValuePairs>\n");
+
+        sb.append("    <DeploymentDescriptorFactory>\n");
+        sb.append("        <name>{http://www.tibco.com/xmlns/configurl}RepoConfigUrl</name>\n");
+        sb.append("        <deploymentDescriptorFactoryClassName>com.tibco.dd.repo.RepoConfigUrl</deploymentDescriptorFactoryClassName>\n");
+        sb.append("        <deploymentDescriptorXsdFileName>com/tibco/dd/repo/RepoConfigUrl.xsd</deploymentDescriptorXsdFileName>\n");
+        sb.append("    </DeploymentDescriptorFactory>\n");
+        sb.append("    <configurl:RepoConfigUrl xmlns:configurl=\"http://www.tibco.com/xmlns/configurl\">\n");
+        sb.append("        <name>TIBCO Repository Server Configuration URL</name>\n");
+        sb.append("        <configurl:repoConfigUrl>").append(escape(repoConfigUrl)).append("</configurl:repoConfigUrl>\n");
+        sb.append("        <configurl:instanceID>").append(escape(instanceID)).append("</configurl:instanceID>\n");
+        sb.append("    </configurl:RepoConfigUrl>\n");
         sb.append("</DeploymentDescriptors>\n");
 
         write(outputFile, sb.toString());

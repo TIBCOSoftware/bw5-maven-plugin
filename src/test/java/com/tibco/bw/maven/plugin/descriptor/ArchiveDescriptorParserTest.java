@@ -97,16 +97,20 @@ public class ArchiveDescriptorParserTest {
             "  <enterpriseArchive>\n"
             + "    <name>AdapterApp</name>\n"
             + "    <adapterArchive name=\"SalesforceAdapter\">\n"
-            + "      <processProperty>/Adapters/SalesforceService.serviceagent</processProperty>\n"
+            + "      <adapterReference>/Adapters/Foo.adapter#adapter.GenericAdapterConfiguration</adapterReference>\n"
+            + "      <sdkVersion>5.3.0</sdkVersion>\n"
             + "    </adapterArchive>\n"
             + "    <sharedArchive name=\"Shared Archive\"/>\n"
             + "  </enterpriseArchive>\n");
         ArchiveDescriptorParser.ArchiveDescriptor d = new ArchiveDescriptorParser().parse(tmp);
         assertEquals(0, d.processArchives.size());
         assertEquals(1, d.adapterArchives.size());
-        assertEquals("SalesforceAdapter", d.adapterArchives.get(0).name);
-        assertEquals("/Adapters/SalesforceService.serviceagent",
-            d.adapterArchives.get(0).processPaths.get(0));
+        ArchiveDescriptorParser.AdapterArchiveEntry aar = d.adapterArchives.get(0);
+        assertEquals("SalesforceAdapter", aar.name);
+        assertEquals("/Adapters/Foo.adapter#adapter.GenericAdapterConfiguration", aar.adapterReference);
+        assertEquals("5.3.0", aar.sdkVersion);
+        assertEquals("Adapters/Foo.adapter", aar.getAdapterFilePath());
+        assertEquals("5.3.0.0", aar.getSdkVersionFourPart());
         assertTrue(d.hasAdapterArchives());
         assertFalse(d.isMultiPar());
     }

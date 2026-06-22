@@ -94,13 +94,8 @@ public class ArchiveDescriptorParser {
         for (Element aa : getChildrenNoNs(enterpriseArchive, "adapterArchive")) {
             AdapterArchiveEntry entry = new AdapterArchiveEntry();
             entry.name = aa.getAttributeValue("name");
-            String processPropertyText = getTextNoNs(aa, "processProperty");
-            if (processPropertyText != null && !processPropertyText.isBlank()) {
-                for (String rawPath : processPropertyText.split(",")) {
-                    String path = rawPath.trim();
-                    if (!path.isEmpty()) entry.processPaths.add(path);
-                }
-            }
+            entry.adapterReference = getTextNoNs(aa, "adapterReference");
+            entry.sdkVersion = getTextNoNs(aa, "sdkVersion");
             descriptor.adapterArchives.add(entry);
         }
 
@@ -159,8 +154,33 @@ public class ArchiveDescriptorParser {
     public static class AdapterArchiveEntry {
         /** Archive name from {@code adapterArchive/@name} — becomes the AAR filename. */
         public String name;
-        /** Entry-point serviceagent paths from {@code processProperty}. */
-        public List<String> processPaths = new ArrayList<>();
+        /**
+         * Raw value of {@code <adapterReference>}, e.g.
+         * {@code /path/to/Foo.adapter#adapter.GenericAdapterConfiguration}.
+         */
+        public String adapterReference;
+        /** SDK version from {@code <sdkVersion>}, e.g. {@code 5.3.0}. */
+        public String sdkVersion;
+
+        /**
+         * BW path of the {@code .adapter} file — {@code adapterReference} with the
+         * {@code #...} fragment stripped and the leading {@code /} removed.
+         * Returns {@code null} when {@code adapterReference} is null.
+         */
+        public String getAdapterFilePath() {
+            if (adapterReference == null) return null;
+            String path = adapterReference;
+            int hash = path.indexOf('#');
+            if (hash >= 0) path = path.substring(0, hash);
+            return path.startsWith("/") ? path.substring(1) : path;
+        }
+
+        /** Minimum/config SDK version as a 4-part string, e.g. {@code 5.3.0} → {@code 5.3.0.0}. */
+        public String getSdkVersionFourPart() {
+            if (sdkVersion == null || sdkVersion.isEmpty()) return "5.0.0.0";
+            long dots = sdkVersion.chars().filter(c -> c == '.').count();
+            return dots >= 3 ? sdkVersion : sdkVersion + ".0";
+        }
     }
 
     /**
