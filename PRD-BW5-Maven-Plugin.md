@@ -1236,8 +1236,6 @@ The following items are out of scope for v1.0:
 
 | Item | Priority | Notes |
 |---|---|---|
-| **Multi-PAR EAR assembly** | High | Read multiple `<processArchive>` elements from `.archive` descriptor; produce one PAR per element; apply transitive analysis per PAR (§6.7) |
-| **Adapter Archive (AAR) assembly** | High | Read `<adapterArchive>` elements from `.archive` descriptor; produce `.aar` files; support mixed PAR+AAR EARs (§6.8) |
 | **bw5-deploy-plugin** | High | Companion deploy plugin not yet implemented; §7 describes the design |
 | **Maven archetype** | Medium | `mvn archetype:generate` templates for new `bwear` and `projlib` projects |
 | **Integration test support** | Medium | `mvn integration-test` with local BW engine execution; opt-in, requires BW engine install |
@@ -1250,11 +1248,11 @@ The following items are out of scope for v1.0:
 
 ## 13. Acceptance Criteria — v1.0.0
 
-- [ ] `mvn clean package` on a single-PAR `bwear` project produces a valid `.ear` deployable to TIBCO Administrator, **no TIBCO software on build machine**
-- [ ] `mvn clean package` on a multi-PAR `bwear` project (multiple `<processArchive>` in `.archive` descriptor) produces an EAR with one correctly-structured PAR per archive element, each with its own TIBCO.xml
-- [ ] `mvn clean package` on an adapter `bwear` project (`<adapterArchive>` in `.archive` descriptor) produces a valid EAR with an `.aar` archive and correct EAR-level TIBCO.xml module entries
-- [ ] A mixed EAR (both `<processArchive>` and `<adapterArchive>`) produces all archive types in the same EAR
-- [ ] `mvn clean package` on a `projlib` project produces a valid `.projlib`
+- [x] `mvn clean package` on a single-PAR `bwear` project produces a valid `.ear` deployable to TIBCO Administrator, **no TIBCO software on build machine**
+- [x] `mvn clean package` on a multi-PAR `bwear` project (multiple `<processArchive>` in `.archive` descriptor) produces an EAR with one correctly-structured PAR per archive element, each with its own TIBCO.xml
+- [x] `mvn clean package` on an adapter `bwear` project (`<adapterArchive>` in `.archive` descriptor) produces a valid EAR with an `.aar` archive and correct EAR-level TIBCO.xml module entries
+- [x] A mixed EAR (both `<processArchive>` and `<adapterArchive>`) produces all archive types in the same EAR
+- [x] `mvn clean package` on a `projlib` project produces a valid `.projlib`
 - [ ] A `.projlib` published to Nexus/Artifactory is resolvable as `<dependency type="projlib">` in another project
 - [ ] Java Code activities are correctly extracted, compiled, and bundled in the artifact
 - [ ] Java Custom Functions in `src/main/java` are compiled, bytecode is Base64-injected into `.javaxpath`, and bundled in the artifact
@@ -1271,4 +1269,4 @@ The following items are out of scope for v1.0:
 
 ---
 
-*This document reflects the implementation state as of 2026-06-22. Section 7 (Deployment) describes the planned `bw5-deploy-plugin`, which is not yet implemented. Multi-PAR (§6.7) and Adapter Archive (§6.8) support are v1.0 requirements currently under implementation. Section 12 (Open Items) is particularly relevant for roadmap prioritisation discussions.*
+*This document reflects the implementation state as of 2026-06-22. Section 7 (Deployment) describes the planned `bw5-deploy-plugin`, which is not yet implemented. Multi-PAR (§6.7) and Adapter Archive (§6.8) are implemented and validated against TIBCO Designer reference EARs. Section 12 (Open Items) is particularly relevant for roadmap prioritisation discussions.*

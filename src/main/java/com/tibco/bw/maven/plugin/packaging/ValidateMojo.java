@@ -163,11 +163,14 @@ public class ValidateMojo extends AbstractBw5Mojo {
         for (File f : archiveFiles) {
             try {
                 ArchiveDescriptorParser.ArchiveDescriptor desc = parser.parse(f);
-                for (String path : desc.getProcessPaths()) {
-                    String relative = path.startsWith("/") ? path.substring(1) : path;
-                    if (!new File(bwProjectPath, relative).isFile()) {
-                        issues.add(new Issue(Severity.ERROR, "ARCHIVE",
-                            rel(f) + ": declared process not found on disk: " + path));
+                // Validate every processArchive entry (multi-PAR aware)
+                for (ArchiveDescriptorParser.ProcessArchiveEntry pa : desc.processArchives) {
+                    for (String path : pa.processPaths) {
+                        String relative = path.startsWith("/") ? path.substring(1) : path;
+                        if (!new File(bwProjectPath, relative).isFile()) {
+                            issues.add(new Issue(Severity.ERROR, "ARCHIVE",
+                                rel(f) + " [" + pa.name + "]: declared process not found on disk: " + path));
+                        }
                     }
                 }
             } catch (Exception ignored) {

@@ -416,11 +416,12 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 if (archiveDescriptor != null && archiveDescriptor.hasExplicitProcessList()) {
                     promoteServiceAgentsFromDescriptor(parFiles, sarFiles,
                         archiveDescriptor.getProcessPaths());
-                    // Single-PAR: keep ALL processes (matching buildEAR); processProperty is
-                    // only for deployment startup ordering, not a packaging filter.
+                    // Single-PAR: same filtering as multi-PAR — only processes reachable from
+                    // the processProperty entry points are included. Processes that exist on disk
+                    // but are not reachable from any entry point are excluded, matching buildEAR.
                     applyTransitiveDependencyAnalysis(parFiles, sarFiles,
                         archiveDescriptor.getProcessPaths(), archiveDescriptor.sharedResourcePaths,
-                        false);
+                        true);
                 }
 
                 String parFileName = "Process Archive.par";
