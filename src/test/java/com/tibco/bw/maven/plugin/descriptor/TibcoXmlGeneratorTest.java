@@ -278,7 +278,8 @@ public class TibcoXmlGeneratorTest {
             List<SubstVarParser.GlobalVariable> vars) throws Exception {
         File tmp = File.createTempFile("ear-tibco", ".xml");
         tmp.deleteOnExit();
-        new TibcoXmlGenerator().generateEarDescriptor(tmp, earName, parFileName, projlibs, jars, vars, "test-owner");
+        new TibcoXmlGenerator().generateEarDescriptor(tmp, earName,
+            java.util.Collections.singletonList(parFileName), projlibs, jars, vars, "test-owner");
         return new SAXBuilder().build(tmp);
     }
 

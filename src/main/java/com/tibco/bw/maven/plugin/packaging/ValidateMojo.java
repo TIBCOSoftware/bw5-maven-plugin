@@ -163,7 +163,7 @@ public class ValidateMojo extends AbstractBw5Mojo {
         for (File f : archiveFiles) {
             try {
                 ArchiveDescriptorParser.ArchiveDescriptor desc = parser.parse(f);
-                for (String path : desc.processPaths) {
+                for (String path : desc.getProcessPaths()) {
                     String relative = path.startsWith("/") ? path.substring(1) : path;
                     if (!new File(bwProjectPath, relative).isFile()) {
                         issues.add(new Issue(Severity.ERROR, "ARCHIVE",

@@ -39,18 +39,18 @@ public class TibcoXmlGenerator {
     /**
      * Generates the EAR-level TIBCO.xml deployment descriptor.
      *
-     * @param outputFile     target file to write
-     * @param earName        EAR artifact name (e.g. "MyApplication")
-     * @param parFileName    PAR file name inside the EAR (e.g. "MyApplication.par")
-     * @param projlibDeps    list of projlib (bw5module) dependencies
-     * @param jarDeps        list of JAR dependencies
-     * @param globalVars     list of global variables from .substvar files
-     * @param owner          owner string (defaults to system user)
+     * @param outputFile      target file to write
+     * @param earName         EAR artifact name (e.g. "MyApplication")
+     * @param moduleFileNames PAR/AAR filenames inside the EAR (e.g. ["OrderService.par", "PaymentService.par"])
+     * @param projlibDeps     list of projlib (bw5module) dependencies
+     * @param jarDeps         list of JAR dependencies
+     * @param globalVars      list of global variables from .substvar files
+     * @param owner           owner string (defaults to system user)
      */
     public void generateEarDescriptor(
             File outputFile,
             String earName,
-            String parFileName,
+            List<String> moduleFileNames,
             List<Artifact> projlibDeps,
             List<Artifact> jarDeps,
             List<SubstVarParser.GlobalVariable> globalVars,
@@ -123,15 +123,17 @@ public class TibcoXmlGenerator {
             sb.append("    </NameValuePairs>\n");
         }
 
-        // Modules: PAR reference
+        // Modules: one entry per PAR/AAR
         sb.append("    <DeploymentDescriptorFactory>\n");
         sb.append("        <name>{http://www.tibco.com/xmlns/dd}Modules</name>\n");
         sb.append("        <deploymentDescriptorFactoryClassName>com.tibco.archive.helpers.Modules</deploymentDescriptorFactoryClassName>\n");
         sb.append("    </DeploymentDescriptorFactory>\n");
-        sb.append("    <Modules>\n");
-        sb.append("        <name>Modules</name>\n");
-        sb.append("        <pathName>").append(escape(parFileName)).append("</pathName>\n");
-        sb.append("    </Modules>\n");
+        for (String moduleFileName : moduleFileNames) {
+            sb.append("    <Modules>\n");
+            sb.append("        <name>Modules</name>\n");
+            sb.append("        <pathName>").append(escape(moduleFileName)).append("</pathName>\n");
+            sb.append("    </Modules>\n");
+        }
 
         sb.append("</DeploymentDescriptors>\n");
 

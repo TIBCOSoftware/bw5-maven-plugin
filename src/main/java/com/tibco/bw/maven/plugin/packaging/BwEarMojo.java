@@ -304,83 +304,137 @@ public class BwEarMojo extends AbstractBw5Mojo {
             // 0. Optionally load the .archive descriptor
             ArchiveDescriptorParser.ArchiveDescriptor archiveDescriptor = loadArchiveDescriptor();
 
-            // 1. Collect and classify project files
-            List<BwFile> parFiles = new ArrayList<>();
-            List<BwFile> sarFiles = new ArrayList<>();
+            // 1. Collect all project files into a shared pool
+            List<BwFile> allParFiles = new ArrayList<>();
+            List<BwFile> allSarFiles = new ArrayList<>();
             List<BwFile> metadataFiles = new ArrayList<>();
-            collectFiles(srcDir, srcDir, parFiles, sarFiles, metadataFiles);
+            collectFiles(srcDir, srcDir, allParFiles, allSarFiles, metadataFiles);
+            collectFilesFromProjlibs(allParFiles, allSarFiles, metadataFiles);
 
-            // Extract and collect files from projlib ZIP dependencies
-            collectFilesFromProjlibs(parFiles, sarFiles, metadataFiles);
-
-            // Promote serviceagents listed in processProperty from SAR to PAR
-            if (archiveDescriptor != null && archiveDescriptor.hasExplicitProcessList()) {
-                promoteServiceAgentsFromDescriptor(parFiles, sarFiles, archiveDescriptor.processPaths);
-            }
-
-            // Apply transitive dependency analysis from processProperty entry points.
-            // This matches buildear behaviour: only reachable processes and referenced
-            // resources are packaged; .javaxpath and sharedResources paths are always included.
-            if (archiveDescriptor != null && archiveDescriptor.hasExplicitProcessList()) {
-                applyTransitiveDependencyAnalysis(parFiles, sarFiles,
-                    archiveDescriptor.processPaths, archiveDescriptor.sharedResourcePaths);
-            }
-
-            getLog().info("Process files (PAR): " + parFiles.size());
-            getLog().info("Shared resource files (SAR): " + sarFiles.size());
-
-            // 2. Parse process metadata for TIBCO.xml generation
-            List<ProcessParser.ProcessMetadata> processMetadata = parseProcesses(parFiles, srcDir);
-
-            // 3. Parse global variables from .substvar metadata files
+            // 2. Parse global variables from .substvar metadata files
             List<SubstVarParser.GlobalVariable> globalVars = parseGlobalVars(metadataFiles);
             getLog().info("Global variables: " + globalVars.size());
 
-            // 4. Generate work directory for descriptor generation
+            // 3. Work directory
             File workDir = new File(project.getBuild().getDirectory(), "bw5-assembly");
             if (!workDir.mkdirs() && !workDir.isDirectory()) {
                 throw new MojoExecutionException("Failed to create directory: " + workDir.getAbsolutePath());
             }
 
-            // 5. Determine PAR and SAR names: .archive descriptor takes precedence over defaults
-            String parFileName = "Process Archive.par";
-            if (archiveDescriptor != null
-                    && archiveDescriptor.processArchiveName != null
-                    && !archiveDescriptor.processArchiveName.isEmpty()) {
-                parFileName = archiveDescriptor.processArchiveName + ".par";
-            }
+            // 4. Override SAR name from descriptor if present
             if (archiveDescriptor != null
                     && archiveDescriptor.sharedArchiveName != null
                     && !archiveDescriptor.sharedArchiveName.isEmpty()) {
                 sharedArchiveName = archiveDescriptor.sharedArchiveName;
             }
-            File parFile = new File(workDir, parFileName);
 
-            // Build SAR resource paths for EXTERNAL_DEPENDENCIES in PAR TIBCO.xml
-            List<String> sarPaths = new ArrayList<>();
-            for (BwFile bwf : sarFiles) {
-                String path = bwf.relativePath.startsWith("/") ? bwf.relativePath : "/" + bwf.relativePath;
-                sarPaths.add(path);
+            // 5. Assemble PAR(s) and AAR(s) — multi-archive or single-PAR
+            List<File> moduleFiles = new ArrayList<>();  // all PAR/AAR files for this EAR
+            // SAR resources accumulated across all archives (union, deduped by path)
+            List<BwFile> combinedSarFiles = new ArrayList<>();
+            Set<String> seenSarPaths = new LinkedHashSet<>();
+
+            boolean multiArchiveMode = archiveDescriptor != null
+                && (archiveDescriptor.isMultiPar() || archiveDescriptor.hasAdapterArchives());
+
+            if (multiArchiveMode) {
+                // ---- Multi-PAR: one PAR per <processArchive> element ----
+                for (ArchiveDescriptorParser.ProcessArchiveEntry pa : archiveDescriptor.processArchives) {
+                    String parFileName = (pa.name != null && !pa.name.isEmpty())
+                        ? pa.name + ".par" : "Process Archive.par";
+                    File parFile = new File(workDir, parFileName);
+
+                    List<BwFile> parFiles = new ArrayList<>(allParFiles);
+                    List<BwFile> sarFiles = new ArrayList<>(allSarFiles);
+
+                    if (pa.hasExplicitProcessList()) {
+                        promoteServiceAgentsFromDescriptor(parFiles, sarFiles, pa.processPaths);
+                        applyTransitiveDependencyAnalysis(parFiles, sarFiles,
+                            pa.processPaths, archiveDescriptor.sharedResourcePaths);
+                    }
+                    accumulateSarFiles(sarFiles, combinedSarFiles, seenSarPaths);
+
+                    List<String> sarPaths = toSarPaths(combinedSarFiles);
+                    List<ProcessParser.ProcessMetadata> meta = parseProcesses(parFiles, srcDir);
+                    buildPar(parFile, parFiles, srcDir, meta, sarPaths);
+                    moduleFiles.add(parFile);
+                    getLog().info("PAR assembled: " + parFile.getName()
+                        + " (" + parFile.length() + " bytes, " + parFiles.size() + " process(es))");
+                }
+
+                // ---- AAR: one AAR per <adapterArchive> element ----
+                for (ArchiveDescriptorParser.AdapterArchiveEntry aa : archiveDescriptor.adapterArchives) {
+                    String aarFileName = (aa.name != null && !aa.name.isEmpty())
+                        ? aa.name + ".aar" : "Adapter Archive.aar";
+                    File aarFile = new File(workDir, aarFileName);
+
+                    List<BwFile> aarParFiles = new ArrayList<>(allParFiles);
+                    List<BwFile> aarSarFiles = new ArrayList<>(allSarFiles);
+
+                    if (!aa.processPaths.isEmpty()) {
+                        promoteServiceAgentsFromDescriptor(aarParFiles, aarSarFiles, aa.processPaths);
+                        applyTransitiveDependencyAnalysis(aarParFiles, aarSarFiles,
+                            aa.processPaths, archiveDescriptor.sharedResourcePaths);
+                    }
+                    accumulateSarFiles(aarSarFiles, combinedSarFiles, seenSarPaths);
+
+                    List<String> sarPaths = toSarPaths(combinedSarFiles);
+                    List<ProcessParser.ProcessMetadata> meta = parseProcesses(aarParFiles, srcDir);
+                    buildPar(aarFile, aarParFiles, srcDir, meta, sarPaths);
+                    moduleFiles.add(aarFile);
+                    getLog().info("AAR assembled: " + aarFile.getName()
+                        + " (" + aarFile.length() + " bytes, " + aarParFiles.size() + " serviceagent(s))");
+                }
+
+            } else {
+                // ---- Single-PAR mode (default or single processArchive) ----
+                List<BwFile> parFiles = new ArrayList<>(allParFiles);
+                List<BwFile> sarFiles = new ArrayList<>(allSarFiles);
+
+                if (archiveDescriptor != null && archiveDescriptor.hasExplicitProcessList()) {
+                    promoteServiceAgentsFromDescriptor(parFiles, sarFiles,
+                        archiveDescriptor.getProcessPaths());
+                    applyTransitiveDependencyAnalysis(parFiles, sarFiles,
+                        archiveDescriptor.getProcessPaths(), archiveDescriptor.sharedResourcePaths);
+                }
+
+                String parFileName = "Process Archive.par";
+                String descriptorParName = archiveDescriptor != null
+                    ? archiveDescriptor.getProcessArchiveName() : null;
+                if (descriptorParName != null && !descriptorParName.isEmpty()) {
+                    parFileName = descriptorParName + ".par";
+                }
+
+                getLog().info("Process files (PAR): " + parFiles.size());
+                getLog().info("Shared resource files (SAR): " + sarFiles.size());
+
+                accumulateSarFiles(sarFiles, combinedSarFiles, seenSarPaths);
+                List<String> sarPaths = toSarPaths(combinedSarFiles);
+                List<ProcessParser.ProcessMetadata> meta = parseProcesses(parFiles, srcDir);
+                File parFile = new File(workDir, parFileName);
+                buildPar(parFile, parFiles, srcDir, meta, sarPaths);
+                moduleFiles.add(parFile);
+                getLog().info("PAR assembled: " + parFile.getName() + " (" + parFile.length() + " bytes)");
             }
 
-            buildPar(parFile, parFiles, srcDir, processMetadata, sarPaths);
-            getLog().info("PAR assembled: " + parFile.getName() + " (" + parFile.length() + " bytes)");
-
-            // 6. Build the SAR (may be empty but always present)
+            // 6. Build the SAR (shared across all PARs/AARs)
             File sarFile = null;
             if (includeSharedArchive) {
                 sarFile = new File(workDir, sharedArchiveName + ".sar");
-                buildSar(sarFile, sarFiles, srcDir);
+                buildSar(sarFile, combinedSarFiles, srcDir);
                 getLog().info("SAR assembled: " + sarFile.getName() + " (" + sarFile.length() + " bytes)");
             }
 
-            // 7. Generate EAR-level TIBCO.xml
+            // 7. Generate EAR-level TIBCO.xml — lists all PAR/AAR modules
+            List<String> moduleFileNames = new ArrayList<>();
+            for (File mf : moduleFiles) moduleFileNames.add(mf.getName());
+
             File earTibcoXml = new File(workDir, "TIBCO.xml");
             TibcoXmlGenerator generator = new TibcoXmlGenerator();
             generator.generateEarDescriptor(
                 earTibcoXml,
                 archiveName,
-                parFileName,
+                moduleFileNames,
                 getProjectlibDependencies(),
                 getJarDependencies(),
                 globalVars,
@@ -394,26 +448,27 @@ public class BwEarMojo extends AbstractBw5Mojo {
             File manifestFile = null;
             if (!skipManifest) {
                 List<File> sharedHttpFiles = new ArrayList<>();
-                for (BwFile bwf : sarFiles) {
+                for (BwFile bwf : combinedSarFiles) {
                     if (bwf.file.getName().toLowerCase(Locale.ROOT).endsWith(".sharedhttp")) {
                         sharedHttpFiles.add(bwf.file);
                     }
                 }
-                List<File> processFiles = new ArrayList<>();
-                for (BwFile bwf : parFiles) {
+                // Collect all process files across all module files (for manifest)
+                List<File> allProcessFiles = new ArrayList<>();
+                for (BwFile bwf : allParFiles) {
                     if (bwf.file.getName().toLowerCase(Locale.ROOT).endsWith(".process")) {
-                        processFiles.add(bwf.file);
+                        allProcessFiles.add(bwf.file);
                     }
                 }
                 manifestFile = new ManifestBw5Generator().generate(
-                    archiveName, project.getVersion(), globalVars, sharedHttpFiles, processFiles, workDir);
+                    archiveName, project.getVersion(), globalVars, sharedHttpFiles, allProcessFiles, workDir);
                 getLog().info("manifest-bw5.json generated.");
             }
 
             // 9. Assemble the final EAR
             String earFileName = project.getBuild().getFinalName() + ".ear";
             File earFile = new File(project.getBuild().getDirectory(), earFileName);
-            buildEar(earFile, earTibcoXml, parFile, sarFile, manifestFile);
+            buildEar(earFile, earTibcoXml, moduleFiles, sarFile, manifestFile);
 
             getLog().info("EAR assembled: " + earFile.getAbsolutePath() + " (" + earFile.length() + " bytes)");
 
@@ -1200,13 +1255,16 @@ public class BwEarMojo extends AbstractBw5Mojo {
     //  EAR assembly
     // -----------------------------------------------------------------------
 
-    private void buildEar(File earFile, File tibcoXml, File parFile,
+    private void buildEar(File earFile, File tibcoXml, List<File> moduleFiles,
                           File sarFile, File manifestFile) throws Exception {
         try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(earFile))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);
 
             addToZip(zos, "TIBCO.xml", tibcoXml);
-            addToZip(zos, parFile.getName(), parFile);
+
+            for (File moduleFile : moduleFiles) {
+                addToZip(zos, moduleFile.getName(), moduleFile);
+            }
 
             if (sarFile != null && sarFile.exists()) {
                 addToZip(zos, sharedArchiveName + ".sar", sarFile);
@@ -1216,6 +1274,26 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 addToZip(zos, "manifest-bw5.json", manifestFile);
             }
         }
+    }
+
+    /** Adds SAR files from {@code source} into {@code accumulated}, deduped by normalized BW path. */
+    private void accumulateSarFiles(List<BwFile> source, List<BwFile> accumulated,
+                                    Set<String> seen) {
+        for (BwFile bwf : source) {
+            if (seen.add(normalizeBwPath(bwf.relativePath))) {
+                accumulated.add(bwf);
+            }
+        }
+    }
+
+    /** Converts accumulated SAR files to leading-slash BW paths for EXTERNAL_DEPENDENCIES. */
+    private List<String> toSarPaths(List<BwFile> sarFiles) {
+        List<String> paths = new ArrayList<>();
+        for (BwFile bwf : sarFiles) {
+            String path = bwf.relativePath.startsWith("/") ? bwf.relativePath : "/" + bwf.relativePath;
+            paths.add(path);
+        }
+        return paths;
     }
 
     // -----------------------------------------------------------------------
