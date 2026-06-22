@@ -208,7 +208,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
      *
      * <pre>mvn package -Dbw5.includeFolderMetadata=false</pre>
      */
-    @Parameter(defaultValue = "true", property = "bw5.includeFolderMetadata")
+    @Parameter(defaultValue = "false", property = "bw5.includeFolderMetadata")
     private boolean includeFolderMetadata;
 
     private static final Namespace JCF_NS =
@@ -224,13 +224,24 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
     /**
      * File extensions for shared BW resources that go into the SAR.
-     * Excludes metadata files (.folder, .substvar, .aeschema) and version-control
-     * files (.dat) which buildEAR never includes in the SAR.
+     *
+     * <p>This set drives two behaviours:</p>
+     * <ol>
+     *   <li><b>File collection</b> — any file whose extension is in this set is a SAR
+     *       candidate when scanning the project directory.</li>
+     *   <li><b>Reference detection</b> — {@link #isBwResourcePath} uses this set to
+     *       recognise BW resource path values embedded in process XML files, making
+     *       reference scanning generic: any future TIBCO palette that stores a path
+     *       to a resource with a registered extension is detected automatically, without
+     *       needing to know the XML element name.</li>
+     * </ol>
      */
     private static final Set<String> SAR_EXTENSIONS = new HashSet<>(Arrays.asList(
         // Connection / transport
         ".rvtransport", ".sharedhttp", ".sharedjdbc", ".sharedjmscon", ".sharedjmsapp",
         ".httpProxy", ".sharedpartner",
+        // FTP
+        ".sharedftp",
         // Variables / locks
         ".sharedvariable", ".jobsharedvariable", ".sharedLock",
         // Service / security
@@ -238,6 +249,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
         ".contextResource",
         // Schema / WSDL
         ".wsdl", ".xsd",
+        // AE adapter schemas (adapter projects reference these from process XML)
+        ".aeschema",
         // Identity / certificates
         ".id", ".cert",
         // Other resources
@@ -247,7 +260,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
         // Companion data files (e.g. DocumentStore.xml alongside .sharedvariable)
         ".xml",
         // TIBCO shared parse schemas
-        ".sharedparse"
+        ".sharedparse",
+        // Adapter configuration descriptors (AARs reference these from adapterReference)
+        ".adapter"
     ));
 
     /**
@@ -259,23 +274,28 @@ public class BwEarMojo extends AbstractBw5Mojo {
     ));
 
     /**
-     * File extensions that are always excluded (TIBCO Designer metadata,
-     * system schemas, version-control files, generic XML data files, etc.).
+     * File extensions that are always excluded regardless of project type.
      * buildEAR only includes explicitly registered BW shared-resource types.
      */
     private static final Set<String> EXCLUDED_EXTENSIONS = new HashSet<>(Arrays.asList(
-        ".folder", ".aeschema", ".dat", ".classpath",
+        ".folder", ".dat", ".classpath",
         // TIBCO Designer archive descriptor — build metadata, not a BW shared resource
         ".archive"
     ));
 
     /**
      * File/directory names to exclude from packaging.
-     * AESchemas is a standard TIBCO Designer system-schema directory.
      * vcrepo.dat is version-control metadata.
+     *
+     * <p>Note: {@code AESchemas} is intentionally NOT excluded here. Adapter projects
+     * reference {@code /AESchemas/ae.aeschema} and {@code /AESchemas/ae/BW/AESchema.aeschema}
+     * from process XML files. Those references are picked up by the content-based
+     * {@link #isBwResourcePath} scanner, so the directory must be reachable for collection.
+     * For non-adapter projects no process references these paths, so they are excluded
+     * naturally by transitive analysis.</p>
      */
     private static final Set<String> EXCLUDED_NAMES = new HashSet<>(Arrays.asList(
-        ".DS_Store", "Thumbs.db", ".git", ".svn", "target", "AESchemas", "vcrepo.dat",
+        ".DS_Store", "Thumbs.db", ".git", ".svn", "target", "vcrepo.dat",
         ".designtimelibs", "Deployment", "library.manifest",
         // Deployment-time config and version-info directories present in some projlibs
         // — these are not BW shared resources and buildear never includes them in the EAR
@@ -826,19 +846,12 @@ public class BwEarMojo extends AbstractBw5Mojo {
     //  Transitive dependency analysis
     // -----------------------------------------------------------------------
 
-    /** BW5 process XML element names whose text content is a BW resource path. */
-    private static final List<String> RESOURCE_REF_ELEMENTS = Arrays.asList(
-        "processName",          // subprocess call (com.tibco.pe.core.CallProcessActivity)
-        "ConnectionReference",  // JMS / HTTP / partner connections
-        "sharedChannel",        // HTTP shared channel (.sharedhttp)
-        "variableConfig",       // shared variables and job shared variables
-        "initialValueRef",      // companion XML referenced from .sharedvariable / .jobsharedvariable
-        "criticalSectionLock",  // critical section lock resource (.sharedLock)
-        "stylesheet",           // XSLT transform references
-        "JavaGlobalInstance",   // service agent instances (Cache, EMS, Scheduler…)
-        "ParseSharedConfig",    // shared parse schemas
-        "JavaSchemaResource"    // Java-defined schema resources (.javaschema)
-    );
+    // RESOURCE_REF_ELEMENTS has been removed. Reference detection is now content-based:
+    // any element whose text value looks like a BW resource path (starts with "/" and
+    // has an extension registered in PAR_EXTENSIONS or SAR_EXTENSIONS) is treated as
+    // a resource reference — regardless of the XML element name. This makes reference
+    // scanning generic: any new TIBCO palette that stores a resource path in an XML
+    // element is covered automatically without code changes. See isBwResourcePath().
 
     /**
      * Performs transitive dependency analysis, updating {@code parFiles} and {@code sarFiles}
@@ -946,13 +959,16 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 if (norm.endsWith(".process")) {
                     if (!visitedProcessPaths.contains(norm)) queue.add(norm);
                 } else if (referencedResourcePaths.add(norm)) {
-                    // Add same-base-name companion .xml (e.g. DocumentStore.xml for .sharedvariable)
+                    // Add same-base-name companion .xml (e.g. DocumentStore.xml for .sharedvariable).
+                    // Kept as belt-and-suspenders for files that don't use initialValueRef.
                     if (norm.endsWith(".sharedvariable") || norm.endsWith(".jobsharedvariable")) {
                         referencedResourcePaths.add(norm.replaceAll("\\.[^.]+$", ".xml"));
                     }
-                    // Follow schemaLocation refs inside shared-resource files
-                    if (norm.endsWith(".sharedvariable") || norm.endsWith(".jobsharedvariable")
-                            || norm.endsWith(".sharedparse")) {
+                    // Follow internal references inside ANY SAR-typed shared resource file
+                    // (e.g. .sharedhttp → .id/.cert, .sharedvariable → .xsd, etc.).
+                    // Using the extension set keeps this generic: any new resource type added
+                    // to SAR_EXTENSIONS is automatically traversed without further code changes.
+                    if (SAR_EXTENSIONS.contains(getExtension(norm))) {
                         followSharedResourceRefs(norm, resourceIndex, referencedResourcePaths);
                     }
                     // Follow XSD imports transitively
@@ -1065,14 +1081,12 @@ public class BwEarMojo extends AbstractBw5Mojo {
     }
 
     /**
-     * Parses a BW5 process (or XSD) file and returns all BW resource paths it references.
+     * Parses a BW5 process or shared-resource file and returns all BW resource paths it references.
      *
-     * <p>Extracted from:
-     * <ul>
-     *   <li>Text content of elements named in {@link #RESOURCE_REF_ELEMENTS}</li>
-     *   <li>{@code schemaLocation} attributes (XSD imports in process namespaces)</li>
-     * </ul>
-     * Only paths starting with {@code /} are returned (absolute BW project paths).</p>
+     * <p>Uses content-based detection rather than a fixed list of element names: any XML
+     * element whose trimmed text value passes {@link #isBwResourcePath} is treated as a
+     * resource reference. This covers all current TIBCO palettes and future ones without
+     * requiring code changes. {@code schemaLocation} attributes are also scanned.</p>
      */
     private Set<String> extractBwResourceRefs(File file) {
         Set<String> refs = new LinkedHashSet<>();
@@ -1080,12 +1094,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
             SAXBuilder builder = new SAXBuilder();
             Document doc = builder.build(file);
             for (Element e : doc.getDescendants(Filters.element())) {
-                // Element text references
-                if (RESOURCE_REF_ELEMENTS.contains(e.getName())) {
-                    String text = e.getTextTrim();
-                    if (text.startsWith("/")) refs.add(text);
-                }
-                // schemaLocation attribute (xsd:import in process + XSD files)
+                String text = e.getTextTrim();
+                if (isBwResourcePath(text)) refs.add(text);
                 String schemaLoc = e.getAttributeValue("schemaLocation");
                 if (schemaLoc != null && schemaLoc.startsWith("/")) refs.add(schemaLoc);
             }
@@ -1093,6 +1103,28 @@ public class BwEarMojo extends AbstractBw5Mojo {
             getLog().debug("Could not parse refs from " + file.getName() + ": " + e.getMessage());
         }
         return refs;
+    }
+
+    /**
+     * Returns {@code true} when {@code value} looks like an absolute BW resource path.
+     *
+     * <p>Criteria:</p>
+     * <ul>
+     *   <li>Starts with {@code /}</li>
+     *   <li>Has a file extension (dot after the last {@code /})</li>
+     *   <li>That extension is registered in {@link #PAR_EXTENSIONS} or {@link #SAR_EXTENSIONS}</li>
+     * </ul>
+     *
+     * <p>Matching against the known extension sets rather than hard-coding element names means
+     * any TIBCO palette that embeds a BW resource path in an XML element value is automatically
+     * handled — no element-name whitelist maintenance needed.</p>
+     */
+    private boolean isBwResourcePath(String value) {
+        if (value == null || value.length() < 2 || value.charAt(0) != '/') return false;
+        int dot = value.lastIndexOf('.');
+        if (dot <= 0) return false; // no extension
+        String ext = value.substring(dot).toLowerCase(Locale.ROOT);
+        return PAR_EXTENSIONS.contains(ext) || SAR_EXTENSIONS.contains(ext);
     }
 
     private static String normalizeBwPath(String path) {
@@ -1200,8 +1232,11 @@ public class BwEarMojo extends AbstractBw5Mojo {
         try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(aarFile))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);
             addToZip(zos, "TIBCO.xml", aarTibcoXml);
-            // Store adapter file preserving its BW project path (without leading slash)
-            addToZip(zos, adapterFilePath, adapterFile);
+            // Store adapter file with leading slash to match TIBCO Designer's AAR format,
+            // where the BW runtime uses the absolute repository path as the entry key.
+            String aarEntryPath = adapterFilePath.startsWith("/")
+                ? adapterFilePath : "/" + adapterFilePath;
+            addToZip(zos, aarEntryPath, adapterFile);
         }
     }
 
