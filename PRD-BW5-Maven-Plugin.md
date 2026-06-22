@@ -315,11 +315,12 @@ Adapter-based BW5 applications produce `.aar` files (Adapter Archives) instead o
 ```
 
 **Requirements:**
-- The plugin reads `<adapterArchive>` elements from the `.archive` descriptor
-- Each `<adapterArchive>` produces one `.aar` file in the EAR, named `<name>.aar`
-- AAR internal structure follows the BW5 adapter runtime format (same ZIP layout as PAR with appropriate TIBCO.xml)
-- Mixed EARs (one or more PARs + one or more AARs) are supported: all `<processArchive>` and `<adapterArchive>` elements are processed and all resulting archives are included in the EAR
-- The EAR-level TIBCO.xml Modules section lists both PAR and AAR entries with their respective types
+- AAR assembly is driven entirely by `<adapterArchive>` elements in the `.archive` descriptor — there is no auto-detection and no `archiveType` parameter
+- Each `<adapterArchive>` produces one `.aar` file named `<name>.aar`
+- Each AAR contains two entries: `TIBCO.xml` (adapter-specific descriptor with `StartAsOneOf`/SDK version, `EXTERNAL_DEPENDENCIES`, and `RepoConfigUrl` sections) and the `.adapter` file at its absolute BW repository path (with leading `/`)
+- The `.adapter` file is also duplicated in the SAR, matching TIBCO Designer behaviour
+- AESchemas (`/AESchemas/ae.aeschema`, `/AESchemas/ae/BW/AESchema.aeschema`) are included in the SAR when referenced by adapter process files
+- Mixed EARs (any combination of `<processArchive>` and `<adapterArchive>` elements) are supported; the EAR-level TIBCO.xml lists all modules in a single `<Modules>` block
 - When no `<adapterArchive>` element is present in the descriptor, AAR assembly is skipped
 
 ### 6.9 Dependency Management
