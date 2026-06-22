@@ -349,8 +349,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
                     if (pa.hasExplicitProcessList()) {
                         promoteServiceAgentsFromDescriptor(parFiles, sarFiles, pa.processPaths);
+                        // Multi-PAR: filter processes by reachability so each PAR owns its own set
                         applyTransitiveDependencyAnalysis(parFiles, sarFiles,
-                            pa.processPaths, archiveDescriptor.sharedResourcePaths);
+                            pa.processPaths, archiveDescriptor.sharedResourcePaths, true);
                     }
                     accumulateSarFiles(sarFiles, combinedSarFiles, seenSarPaths);
 
@@ -373,8 +374,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
                     if (!aa.processPaths.isEmpty()) {
                         promoteServiceAgentsFromDescriptor(aarParFiles, aarSarFiles, aa.processPaths);
+                        // AAR: filter by reachability — adapter archives own their service agents explicitly
                         applyTransitiveDependencyAnalysis(aarParFiles, aarSarFiles,
-                            aa.processPaths, archiveDescriptor.sharedResourcePaths);
+                            aa.processPaths, archiveDescriptor.sharedResourcePaths, true);
                     }
                     accumulateSarFiles(aarSarFiles, combinedSarFiles, seenSarPaths);
 
@@ -394,8 +396,11 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 if (archiveDescriptor != null && archiveDescriptor.hasExplicitProcessList()) {
                     promoteServiceAgentsFromDescriptor(parFiles, sarFiles,
                         archiveDescriptor.getProcessPaths());
+                    // Single-PAR: keep ALL processes (matching buildEAR); processProperty is
+                    // only for deployment startup ordering, not a packaging filter.
                     applyTransitiveDependencyAnalysis(parFiles, sarFiles,
-                        archiveDescriptor.getProcessPaths(), archiveDescriptor.sharedResourcePaths);
+                        archiveDescriptor.getProcessPaths(), archiveDescriptor.sharedResourcePaths,
+                        false);
                 }
 
                 String parFileName = "Process Archive.par";
@@ -838,7 +843,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
     private static final List<String> RESOURCE_REF_ELEMENTS = Arrays.asList(
         "processName",          // subprocess call (com.tibco.pe.core.CallProcessActivity)
         "ConnectionReference",  // JMS / HTTP / partner connections
+        "sharedChannel",        // HTTP shared channel (.sharedhttp)
         "variableConfig",       // shared variables and job shared variables
+        "initialValueRef",      // companion XML referenced from .sharedvariable / .jobsharedvariable
+        "criticalSectionLock",  // critical section lock resource (.sharedLock)
         "stylesheet",           // XSLT transform references
         "JavaGlobalInstance",   // service agent instances (Cache, EMS, Scheduler…)
         "ParseSharedConfig",    // shared parse schemas
@@ -846,27 +854,31 @@ public class BwEarMojo extends AbstractBw5Mojo {
     );
 
     /**
-     * Replaces {@code parFiles} and {@code sarFiles} in-place with only the processes
-     * and resources reachable from the {@code processProperty} entry points via
-     * transitive subprocess-call and resource-reference analysis.
+     * Performs transitive dependency analysis, updating {@code parFiles} and {@code sarFiles}
+     * in-place.
      *
-     * <p>Always-include sets:</p>
+     * <p><b>PAR content ({@code filterParByReachability}):</b></p>
      * <ul>
-     *   <li>{@code .javaxpath} (Java Custom Function) files — XPath function calls are
-     *       not statically traceable.</li>
-     *   <li>Files matching the {@code sharedResources} paths declared in the
-     *       {@code .archive} descriptor — buildear includes these unconditionally,
-     *       e.g. an entire schema directory or a config deployment tree.</li>
+     *   <li>{@code false} (single-PAR mode) — ALL process files are kept in the PAR regardless
+     *       of reachability. This matches {@code buildEAR} behaviour: the {@code processProperty}
+     *       list in the {@code .archive} descriptor drives TIBCO Administrator startup ordering,
+     *       not which processes get packaged. Entry points are validated for existence but the BFS
+     *       is seeded from ALL processes to discover SAR resources.</li>
+     *   <li>{@code true} (multi-PAR mode) — only processes reachable from the declared entry
+     *       points are kept. Each PAR owns its own process set.</li>
      * </ul>
      *
-     * <p>Non-process entries already in {@code parFiles} (e.g. promoted serviceagents)
-     * are preserved unconditionally.</p>
+     * <p><b>SAR content:</b> always filtered to the transitively reachable resources, plus
+     * always-include items ({@code .javaxpath} files and {@code sharedResources} paths).</p>
+     *
+     * <p>Non-process entries in {@code parFiles} (e.g. promoted serviceagents) are always kept.</p>
      */
     private void applyTransitiveDependencyAnalysis(List<BwFile> parFiles, List<BwFile> sarFiles,
                                                    List<String> entryPoints,
-                                                   List<String> sharedResourcePaths)
+                                                   List<String> sharedResourcePaths,
+                                                   boolean filterParByReachability)
             throws MojoExecutionException {
-        // Separate out promoted service agents — they stay in PAR unconditionally
+        // Separate promoted service agents (always stay in PAR) from process files
         List<BwFile> promotedParEntries = new ArrayList<>();
         List<BwFile> processFiles = new ArrayList<>();
         for (BwFile f : parFiles) {
@@ -877,9 +889,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
             }
         }
 
-        // Separate always-include SAR files from files subject to transitive filtering:
-        //   • .javaxpath — XPath function calls are not statically traceable
-        //   • files under sharedResources paths — buildear includes these unconditionally
+        // Separate always-include SAR files from files subject to transitive filtering
         List<BwFile> alwaysInclude = new ArrayList<>();
         List<BwFile> otherSarFiles = new ArrayList<>();
         for (BwFile f : sarFiles) {
@@ -891,25 +901,20 @@ public class BwEarMojo extends AbstractBw5Mojo {
             }
         }
 
-        // Build path → BwFile indices
         Map<String, BwFile> processIndex = buildBwIndex(processFiles);
         Map<String, BwFile> resourceIndex = buildBwIndex(otherSarFiles);
 
-        // BFS from .process entry points
         Set<String> visitedProcessPaths = new LinkedHashSet<>();
         Set<String> referencedResourcePaths = new LinkedHashSet<>();
         Queue<String> queue = new ArrayDeque<>();
 
-        // Validate that every .process declared in the .archive descriptor exists on disk.
-        // These are explicit entry points — a missing file is always a build error.
+        // Validate that every .process declared in the descriptor exists on disk
         List<String> missingEntryPoints = new ArrayList<>();
         for (String ep : entryPoints) {
             String norm = normalizeBwPath(ep);
             if (norm.endsWith(".process")) {
                 if (!processIndex.containsKey(norm)) {
                     missingEntryPoints.add(ep);
-                } else {
-                    queue.add(norm);
                 }
             }
             // .serviceagent entries already handled by promoteServiceAgentsFromDescriptor
@@ -923,13 +928,28 @@ public class BwEarMojo extends AbstractBw5Mojo {
             throw new MojoExecutionException(msg.toString());
         }
 
+        // Seed the BFS:
+        // • filterParByReachability=true (multi-PAR): only declared entry points — tightly
+        //   scopes each PAR to its assigned processes plus any subprocesses they call.
+        // • filterParByReachability=false (single-PAR): ALL process files — matches buildEAR
+        //   which packages every process regardless of processProperty membership.
+        if (filterParByReachability) {
+            for (String ep : entryPoints) {
+                String norm = normalizeBwPath(ep);
+                if (norm.endsWith(".process")) queue.add(norm);
+            }
+        } else {
+            for (BwFile pf : processFiles) {
+                queue.add(normalizeBwPath(pf.relativePath));
+            }
+        }
+
         while (!queue.isEmpty()) {
             String path = queue.poll();
             if (!visitedProcessPaths.add(path)) continue;
 
             BwFile bwf = processIndex.get(path);
             if (bwf == null) {
-                // Transitively discovered reference — may be a dynamic call; skip silently.
                 getLog().debug("Transitive: process not found: " + path);
                 continue;
             }
@@ -939,13 +959,11 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 if (norm.endsWith(".process")) {
                     if (!visitedProcessPaths.contains(norm)) queue.add(norm);
                 } else if (referencedResourcePaths.add(norm)) {
-                    // Add companion .xml for sharedvariable / jobsharedvariable
+                    // Add same-base-name companion .xml (e.g. DocumentStore.xml for .sharedvariable)
                     if (norm.endsWith(".sharedvariable") || norm.endsWith(".jobsharedvariable")) {
                         referencedResourcePaths.add(norm.replaceAll("\\.[^.]+$", ".xml"));
                     }
-                    // Follow schemaLocation refs declared inside shared-resource files:
-                    // .sharedvariable, .jobsharedvariable, and .sharedparse all embed an
-                    // <import schemaLocation="..."/> that points to the XSD they're typed by.
+                    // Follow schemaLocation refs inside shared-resource files
                     if (norm.endsWith(".sharedvariable") || norm.endsWith(".jobsharedvariable")
                             || norm.endsWith(".sharedparse")) {
                         followSharedResourceRefs(norm, resourceIndex, referencedResourcePaths);
@@ -958,18 +976,14 @@ public class BwEarMojo extends AbstractBw5Mojo {
             }
         }
 
-        // Rebuild PAR: promoted entries + reachable processes
-        List<BwFile> reachableProcesses = new ArrayList<>();
-        for (String path : visitedProcessPaths) {
-            BwFile f = processIndex.get(path);
-            if (f != null) reachableProcesses.add(f);
-        }
+        // PAR: all promoted entries + either all processes or only reachable ones
+        List<BwFile> parProcesses = filterParByReachability
+            ? buildReachableList(visitedProcessPaths, processIndex)
+            : processFiles;
 
-        // Rebuild SAR: alwaysInclude + transitively reachable resources (deduped)
+        // SAR: alwaysInclude + transitively reachable resources (deduped)
         Set<String> sarPathsSeen = new LinkedHashSet<>();
-        for (BwFile f : alwaysInclude) {
-            sarPathsSeen.add(normalizeBwPath(f.relativePath));
-        }
+        for (BwFile f : alwaysInclude) sarPathsSeen.add(normalizeBwPath(f.relativePath));
         List<BwFile> reachableResources = new ArrayList<>(alwaysInclude);
         for (String path : referencedResourcePaths) {
             BwFile f = resourceIndex.get(path);
@@ -979,15 +993,25 @@ public class BwEarMojo extends AbstractBw5Mojo {
         }
 
         getLog().info("Transitive analysis: "
-            + reachableProcesses.size() + "/" + processFiles.size() + " processes, "
-            + reachableResources.size() + "/" + (otherSarFiles.size() + alwaysInclude.size())
+            + parProcesses.size() + "/" + processFiles.size() + " processes"
+            + (filterParByReachability ? " (filtered)" : " (all)")
+            + ", " + reachableResources.size() + "/" + (otherSarFiles.size() + alwaysInclude.size())
             + " resources (always-include: " + alwaysInclude.size() + ")");
 
         parFiles.clear();
         parFiles.addAll(promotedParEntries);
-        parFiles.addAll(reachableProcesses);
+        parFiles.addAll(parProcesses);
         sarFiles.clear();
         sarFiles.addAll(reachableResources);
+    }
+
+    private List<BwFile> buildReachableList(Set<String> visitedPaths, Map<String, BwFile> index) {
+        List<BwFile> result = new ArrayList<>();
+        for (String path : visitedPaths) {
+            BwFile f = index.get(path);
+            if (f != null) result.add(f);
+        }
+        return result;
     }
 
     /**
