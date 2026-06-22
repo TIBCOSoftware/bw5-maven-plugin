@@ -406,6 +406,23 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     buildAar(aarFile, srcDir, aa);
                     moduleFiles.add(aarFile);
                     getLog().info("AAR assembled: " + aarFile.getName() + " (" + aarFile.length() + " bytes)");
+
+                    // TIBCO Designer duplicates each .adapter file in the SAR in addition
+                    // to placing it inside its dedicated AAR. Replicate that behaviour.
+                    String adapterFilePath = aa.getAdapterFilePath();
+                    if (adapterFilePath != null) {
+                        File adapterFile = new File(srcDir, adapterFilePath.replace('/', File.separatorChar));
+                        if (!adapterFile.isFile()) {
+                            adapterFile = new File(bwProjectPath, adapterFilePath.replace('/', File.separatorChar));
+                        }
+                        if (adapterFile.isFile()) {
+                            accumulateSarFiles(
+                                Collections.singletonList(new BwFile(adapterFile, adapterFilePath)),
+                                combinedSarFiles, seenSarPaths);
+                        } else {
+                            getLog().warn("Could not duplicate adapter file in SAR (not found): " + adapterFilePath);
+                        }
+                    }
                 }
 
             } else {
