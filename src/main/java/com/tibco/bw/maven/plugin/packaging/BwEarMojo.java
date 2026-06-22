@@ -223,33 +223,48 @@ public class BwEarMojo extends AbstractBw5Mojo {
     ));
 
     /**
-     * File extensions for shared BW resources that go into the SAR.
+     * Explicit SAR extensions for resource types that do NOT follow the {@code .shared*} /
+     * {@code .jobshared*} naming convention. All {@code .shared*} and {@code .jobshared*}
+     * extensions are covered generically by {@link #isSarExtension} — adding a new TIBCO
+     * palette connection type (e.g. {@code .sharedsap}) requires no code change.
      *
-     * <p>This set drives two behaviours:</p>
+     * <p>Use {@link #isSarExtension(String)} rather than querying this set directly.</p>
+     */
+    /**
+     * Returns {@code true} if {@code ext} identifies a BW5 shared-archive (SAR) resource type.
+     *
+     * <p>Two rules apply:</p>
      * <ol>
-     *   <li><b>File collection</b> — any file whose extension is in this set is a SAR
-     *       candidate when scanning the project directory.</li>
-     *   <li><b>Reference detection</b> — {@link #isBwResourcePath} uses this set to
-     *       recognise BW resource path values embedded in process XML files, making
-     *       reference scanning generic: any future TIBCO palette that stores a path
-     *       to a resource with a registered extension is detected automatically, without
-     *       needing to know the XML element name.</li>
+     *   <li>Any extension starting with {@code .shared} is a SAR type — this covers all
+     *       current TIBCO palette connection types ({@code .sharedhttp}, {@code .sharedjdbc},
+     *       {@code .sharedjmscon}, {@code .sharedftp}, etc.) and any future ones without
+     *       requiring a code change.</li>
+     *   <li>Extensions listed in {@link #SAR_EXTENSIONS} (non-{@code .shared*} types that
+     *       are nevertheless SAR resources).</li>
      * </ol>
      */
+    private static boolean isSarExtension(String ext) {
+        if (ext == null || ext.isEmpty()) return false;
+        return ext.startsWith(".shared") || SAR_EXTENSIONS.contains(ext);
+    }
+
+    /**
+     * Explicit SAR extensions for resource types whose names do NOT start with {@code .shared}.
+     * All {@code .shared*} extensions are handled generically by {@link #isSarExtension}.
+     *
+     * <p>Use {@link #isSarExtension(String)} rather than querying this set directly.</p>
+     */
     private static final Set<String> SAR_EXTENSIONS = new HashSet<>(Arrays.asList(
-        // Connection / transport
-        ".rvtransport", ".sharedhttp", ".sharedjdbc", ".sharedjmscon", ".sharedjmsapp",
-        ".httpProxy", ".sharedpartner",
-        // FTP
-        ".sharedftp",
-        // Variables / locks
-        ".sharedvariable", ".jobsharedvariable", ".sharedLock",
+        // Transport (not .shared* prefixed)
+        ".rvtransport", ".httpProxy",
+        // Fixed shared type (only one variant exists)
+        ".jobsharedvariable",
         // Service / security
         ".serviceagent", ".securityPolicy", ".securityPolicyAssociation",
         ".contextResource",
         // Schema / WSDL
         ".wsdl", ".xsd",
-        // AE adapter schemas (adapter projects reference these from process XML)
+        // AE adapter schemas (adapter projects reference via /AESchemas/...)
         ".aeschema",
         // Identity / certificates
         ".id", ".cert",
@@ -259,9 +274,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
         ".javaxpath",
         // Companion data files (e.g. DocumentStore.xml alongside .sharedvariable)
         ".xml",
-        // TIBCO shared parse schemas
-        ".sharedparse",
-        // Adapter configuration descriptors (AARs reference these from adapterReference)
+        // Adapter configuration descriptors
         ".adapter"
     ));
 
@@ -597,7 +610,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     parFiles.add(bwf);
                 } else if (METADATA_EXTENSIONS.contains(ext)) {
                     metadataFiles.add(bwf);
-                } else if (SAR_EXTENSIONS.contains(ext)) {
+                } else if (isSarExtension(ext)) {
                     sarFiles.add(bwf);
                 } else {
                     // Unknown extension: include in SAR for safety
@@ -968,7 +981,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     // (e.g. .sharedhttp → .id/.cert, .sharedvariable → .xsd, etc.).
                     // Using the extension set keeps this generic: any new resource type added
                     // to SAR_EXTENSIONS is automatically traversed without further code changes.
-                    if (SAR_EXTENSIONS.contains(getExtension(norm))) {
+                    if (isSarExtension(getExtension(norm))) {
                         followSharedResourceRefs(norm, resourceIndex, referencedResourcePaths);
                     }
                     // Follow XSD imports transitively
@@ -1124,7 +1137,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
         int dot = value.lastIndexOf('.');
         if (dot <= 0) return false; // no extension
         String ext = value.substring(dot).toLowerCase(Locale.ROOT);
-        return PAR_EXTENSIONS.contains(ext) || SAR_EXTENSIONS.contains(ext);
+        return PAR_EXTENSIONS.contains(ext) || isSarExtension(ext);
     }
 
     private static String normalizeBwPath(String path) {
