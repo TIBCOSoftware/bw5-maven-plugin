@@ -172,7 +172,7 @@ public class Bw5ModuleMojo extends AbstractBw5Mojo {
         Set<String> includedDirPrefixes = null;
         if (descriptor != null && descriptor.hasExplicitResourceList()) {
             includedResources = new HashSet<>(descriptor.resources);
-            includedDirPrefixes = buildDirPrefixes(includedResources);
+            includedDirPrefixes = LibBuilderFilter.buildDirPrefixes(includedResources);
         }
 
         final Set<String> finalResources = includedResources;
@@ -219,7 +219,7 @@ public class Bw5ModuleMojo extends AbstractBw5Mojo {
                     String relativePath = srcPath.relativize(file).toString()
                         .replace(File.separatorChar, '/');
 
-                    if (shouldInclude(relativePath, name, finalResources, finalDirPrefixes)) {
+                    if (LibBuilderFilter.shouldInclude(relativePath, name, finalResources, finalDirPrefixes)) {
                         addToZip(zos, relativePath, file.toFile());
                     }
                     return FileVisitResult.CONTINUE;
@@ -243,60 +243,66 @@ public class Bw5ModuleMojo extends AbstractBw5Mojo {
     }
 
     /**
-     * Decides whether a file should be included in the projlib.
-     *
-     * <p>When no .libbuilder is present ({@code includedResources == null}): include everything.</p>
-     *
-     * <p>When a .libbuilder is present:</p>
-     * <ul>
-     *   <li>{@code .substvar} files — always included (global variable definitions)</li>
-     *   <li>{@code .folder} files — included only if their parent directory contains
-     *       at least one resource from the explicit list</li>
-     *   <li>All other files — included only if explicitly listed in {@code resources}</li>
-     * </ul>
+     * Pure filtering logic for .libbuilder-driven projlib assembly.
+     * Extracted as a package-private static inner class to keep the Mojo's
+     * own methods private while still allowing direct unit testing.
      */
-    private boolean shouldInclude(String relativePath, String fileName,
-            Set<String> includedResources, Set<String> includedDirPrefixes) {
+    static final class LibBuilderFilter {
 
-        if (includedResources == null) {
-            // No .libbuilder: include everything (minus EXCLUDED_NAMES already handled)
-            return true;
-        }
+        private LibBuilderFilter() {}
 
-        // .substvar files are always included (contain global variable definitions)
-        if (fileName.endsWith(".substvar")) {
-            return true;
-        }
+        /**
+         * Decides whether a file should be included in the projlib.
+         *
+         * <p>When no .libbuilder is present ({@code includedResources == null}): include everything.</p>
+         *
+         * <p>When a .libbuilder is present:</p>
+         * <ul>
+         *   <li>{@code .substvar} files — always included (global variable definitions)</li>
+         *   <li>{@code .folder} files — included only if their parent directory contains
+         *       at least one resource from the explicit list (root .folder included when
+         *       any root-level resource is listed)</li>
+         *   <li>All other files — included only if explicitly listed in {@code resources}</li>
+         * </ul>
+         */
+        static boolean shouldInclude(String relativePath, String fileName,
+                Set<String> includedResources, Set<String> includedDirPrefixes) {
 
-        // .folder files are included when their containing directory has listed resources
-        if (fileName.equals(".folder")) {
-            String dir = parentDir(relativePath);
-            return dir.isEmpty() ? false : includedDirPrefixes.contains(dir);
-        }
-
-        // All other files must be explicitly listed
-        return includedResources.contains(relativePath);
-    }
-
-    /**
-     * Builds the set of directory path prefixes for all listed resources.
-     * E.g. resource "Common/ARC/Process.process" → prefixes {"Common", "Common/ARC"}
-     */
-    private Set<String> buildDirPrefixes(Set<String> resources) {
-        Set<String> dirs = new HashSet<>();
-        for (String resource : resources) {
-            String dir = parentDir(resource);
-            while (!dir.isEmpty()) {
-                dirs.add(dir);
-                dir = parentDir(dir);
+            if (includedResources == null) {
+                return true;
             }
+            if (fileName.endsWith(".substvar")) {
+                return true;
+            }
+            if (fileName.equals(".folder")) {
+                return includedDirPrefixes.contains(parentDir(relativePath));
+            }
+            return includedResources.contains(relativePath);
         }
-        return dirs;
-    }
 
-    private String parentDir(String path) {
-        int slash = path.lastIndexOf('/');
-        return slash > 0 ? path.substring(0, slash) : "";
+        /**
+         * Builds the set of directory path prefixes for all listed resources.
+         * Adds {@code ""} when a resource sits directly at the root, marking the
+         * root directory as having listed resources so a root-level {@code .folder}
+         * is correctly included by {@link #shouldInclude}.
+         */
+        static Set<String> buildDirPrefixes(Set<String> resources) {
+            Set<String> dirs = new HashSet<>();
+            for (String resource : resources) {
+                String dir = parentDir(resource);
+                dirs.add(dir);  // "" for root-level resources
+                while (!dir.isEmpty()) {
+                    dir = parentDir(dir);
+                    if (!dir.isEmpty()) dirs.add(dir);
+                }
+            }
+            return dirs;
+        }
+
+        static String parentDir(String path) {
+            int slash = path.lastIndexOf('/');
+            return slash > 0 ? path.substring(0, slash) : "";
+        }
     }
 
     // -----------------------------------------------------------------------
