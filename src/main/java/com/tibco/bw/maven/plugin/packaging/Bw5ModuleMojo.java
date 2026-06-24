@@ -177,6 +177,7 @@ public class Bw5ModuleMojo extends AbstractBw5Mojo {
 
         final Set<String> finalResources = includedResources;
         final Set<String> finalDirPrefixes = includedDirPrefixes;
+        final Set<String> foundResources = (finalResources != null) ? new HashSet<>() : null;
 
         try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(projlibFile))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);
@@ -221,6 +222,9 @@ public class Bw5ModuleMojo extends AbstractBw5Mojo {
 
                     if (LibBuilderFilter.shouldInclude(relativePath, name, finalResources, finalDirPrefixes)) {
                         addToZip(zos, relativePath, file.toFile());
+                        if (foundResources != null && finalResources.contains(relativePath)) {
+                            foundResources.add(relativePath);
+                        }
                     }
                     return FileVisitResult.CONTINUE;
                 }
@@ -238,6 +242,16 @@ public class Bw5ModuleMojo extends AbstractBw5Mojo {
                         return FileVisitResult.CONTINUE;
                     }
                 });
+            }
+        }
+
+        // Warn about resources declared in .libbuilder but not found on disk
+        if (foundResources != null) {
+            for (String resource : finalResources) {
+                if (!foundResources.contains(resource)) {
+                    getLog().warn(".libbuilder declares resource not found on disk: " + resource
+                        + " — it will be missing from the projlib");
+                }
             }
         }
     }
