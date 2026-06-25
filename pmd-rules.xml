@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<ruleset name="bw5-maven-plugin"
+    xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0
+                        https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>PMD ruleset for bw5-maven-plugin: SonarQube-equivalent best-practices
+    with noisy/low-value rules suppressed globally.</description>
+
+    <!-- ===== Best Practices ===== -->
+    <rule ref="category/java/bestpractices.xml">
+        <!-- Often necessary in parser loops (new entry per iteration is correct) -->
+        <exclude name="AvoidInstantiatingObjectsInLoops"/>
+        <!-- Maven Log handles lazy evaluation internally -->
+        <exclude name="GuardLogStatement"/>
+    </rule>
+
+    <!-- ===== Error Prone ===== -->
+    <rule ref="category/java/errorprone.xml">
+        <!-- High false-positive rate in try/catch and loop patterns -->
+        <exclude name="DataflowAnomalyAnalysis"/>
+        <!-- Sometimes intentional (e.g. while ((line = reader.readLine()) != null)) -->
+        <exclude name="AssignmentInOperand"/>
+        <!-- Creates unnecessary constants in XML-generation code -->
+        <exclude name="AvoidDuplicateLiterals"/>
+        <!-- Too strict for conditional parsing logic -->
+        <exclude name="AvoidLiteralsInIfCondition"/>
+    </rule>
+
+    <!-- ===== Performance ===== -->
+    <rule ref="category/java/performance.xml">
+        <!-- Minor micro-opt; chained .append() calls reduce readability -->
+        <exclude name="ConsecutiveAppendsShouldReuse"/>
+        <!-- Combining string literals saves no meaningful allocation -->
+        <exclude name="ConsecutiveLiteralAppends"/>
+        <!-- '\n' vs "\n" is a trivial distinction with no real impact -->
+        <exclude name="AppendCharacterWithChar"/>
+        <!-- JVM StringBuilder resize is negligible; initial-size hints add noise -->
+        <exclude name="InsufficientStringBufferDeclaration"/>
+        <!-- s.startsWith("x") is more readable than s.charAt(0) == 'x' -->
+        <exclude name="SimplifyStartsWith"/>
+    </rule>
+
+</ruleset>
