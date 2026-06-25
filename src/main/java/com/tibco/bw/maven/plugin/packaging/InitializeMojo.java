@@ -41,6 +41,7 @@ public class InitializeMojo extends AbstractBw5Mojo {
         getLog().info("BW5 build environment initialized.");
     }
 
+    @SuppressWarnings("PMD.UnusedFormalParameter")
     private void mkdirs(java.io.File dir, String name) throws MojoExecutionException {
         if (!dir.exists() && !dir.mkdirs()) {
             throw new MojoExecutionException("Could not create directory: " + dir.getAbsolutePath());

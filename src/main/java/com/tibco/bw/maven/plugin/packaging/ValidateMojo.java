@@ -434,8 +434,8 @@ public class ValidateMojo extends AbstractBw5Mojo {
     /** Accepts any namespace prefix by mapping it to a synthetic URN. */
     @SuppressWarnings("rawtypes")
     private static final class AnyPrefixNamespaceContext implements NamespaceContext {
-        public String getNamespaceURI(String prefix) { return "urn:" + prefix; }
-        public String getPrefix(String uri)          { return null; }
-        public Iterator getPrefixes(String uri)      { return Collections.emptyIterator(); }
+        @Override public String getNamespaceURI(String prefix) { return "urn:" + prefix; }
+        @Override public String getPrefix(String uri)          { return null; }
+        @Override public Iterator getPrefixes(String uri)      { return Collections.emptyIterator(); }
     }
 }

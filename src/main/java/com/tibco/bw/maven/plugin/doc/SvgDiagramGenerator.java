@@ -33,8 +33,10 @@ public class SvgDiagramGenerator {
         }
 
         // Calculate canvas bounds from raw process coordinates
-        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
         for (ProcessDocModel.Activity a : activities) {
             minX = Math.min(minX, a.x); minY = Math.min(minY, a.y);
             maxX = Math.max(maxX, a.x); maxY = Math.max(maxY, a.y);

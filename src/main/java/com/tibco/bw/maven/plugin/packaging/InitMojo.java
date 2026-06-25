@@ -12,6 +12,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -171,7 +172,7 @@ public class InitMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        if (groupId == null || groupId.trim().isEmpty()) {
+        if (groupId == null || groupId.isBlank()) {
             groupId = "com.tibco";
         }
 
@@ -210,7 +211,7 @@ public class InitMojo extends AbstractMojo {
             String name = readLibBuilderName(libBuilderFile);
             if (name == null || name.isEmpty()) name = stripExtension(libBuilderFile.getName());
             detection = new DetectionResult("projlib", toArtifactId(name), libBuilderFile.getName());
-        } else if (packaging != null && !packaging.trim().isEmpty()) {
+        } else if (packaging != null && !packaging.isBlank()) {
             detection = detectProjectWithPackaging(projectDir, packaging.trim().toLowerCase(Locale.ROOT));
         } else {
             try {
@@ -223,11 +224,11 @@ public class InitMojo extends AbstractMojo {
             }
         }
 
-        String resolvedArtifactId = (artifactId != null && !artifactId.trim().isEmpty())
+        String resolvedArtifactId = (artifactId != null && !artifactId.isBlank())
             ? artifactId.trim()
             : detection.defaultArtifactId;
 
-        String resolvedVersion = (version != null && !version.trim().isEmpty())
+        String resolvedVersion = (version != null && !version.isBlank())
             ? version.trim()
             : "1.0.0-SNAPSHOT";
 
@@ -246,7 +247,7 @@ public class InitMojo extends AbstractMojo {
         String pomContent = generatePomXml(groupId.trim(), resolvedArtifactId, resolvedVersion,
             detection.packaging, detection.descriptorFileName, designTimePaths);
 
-        try (Writer w = new OutputStreamWriter(new FileOutputStream(pomFile), StandardCharsets.UTF_8)) {
+        try (Writer w = new OutputStreamWriter(Files.newOutputStream(pomFile.toPath()), StandardCharsets.UTF_8)) {
             w.write(pomContent);
         } catch (IOException e) {
             throw new MojoExecutionException("Failed to write pom.xml: " + e.getMessage(), e);
@@ -336,7 +337,7 @@ public class InitMojo extends AbstractMojo {
      */
     DetectionResult detectProjectWithPackaging(File dir, String packagingOverride)
             throws MojoExecutionException {
-        if (!packagingOverride.equals("bwear") && !packagingOverride.equals("projlib")) {
+        if (!"bwear".equals(packagingOverride) && !"projlib".equals(packagingOverride)) {
             throw new MojoExecutionException(
                 "Invalid packaging '" + packagingOverride + "'. Must be 'bwear' or 'projlib'.");
         }
@@ -526,7 +527,7 @@ public class InitMojo extends AbstractMojo {
      * {@code "Framework Common"} → {@code "framework-common"}</p>
      */
     static String toArtifactId(String name) {
-        if (name == null || name.trim().isEmpty()) return "my-bw5-project";
+        if (name == null || name.isBlank()) return "my-bw5-project";
         return name.trim()
                    .toLowerCase(Locale.ROOT)
                    .replaceAll("[^a-z0-9-]", "-")

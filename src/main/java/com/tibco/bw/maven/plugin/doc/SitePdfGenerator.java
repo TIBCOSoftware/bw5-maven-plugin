@@ -63,7 +63,7 @@ public class SitePdfGenerator {
             throw new IOException("Failed to create directory: " + parentDir);
         }
         String xhtml = buildXhtml(processes);
-        try (OutputStream os = new BufferedOutputStream(new FileOutputStream(outputFile))) {
+        try (OutputStream os = new BufferedOutputStream(java.nio.file.Files.newOutputStream(outputFile.toPath()))) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
             builder.useFastMode();
             builder.useSVGDrawer(new BatikSVGDrawer());
@@ -611,7 +611,10 @@ public class SitePdfGenerator {
         Matcher m = IMAGE_ELEMENT.matcher(svg);
         StringBuffer result = new StringBuffer();
         while (m.find()) {
-            String x = m.group(1), y = m.group(2), w = m.group(3), h = m.group(4);
+            String x = m.group(1);
+            String y = m.group(2);
+            String w = m.group(3);
+            String h = m.group(4);
             String dataUri = m.group(5); // href (same value in xlink:href)
             String fileUri = dataUriToTempFile(dataUri);
             String replacement;
@@ -645,7 +648,7 @@ public class SitePdfGenerator {
                 : dataUri.substring(comma + 1).getBytes(StandardCharsets.UTF_8);
             File tmp = File.createTempFile("bw5-icon-", "." + ext);
             tmp.deleteOnExit();
-            try (FileOutputStream fos = new FileOutputStream(tmp)) {
+            try (OutputStream fos = java.nio.file.Files.newOutputStream(tmp.toPath())) {
                 fos.write(bytes);
             }
             String fileUri = tmp.toURI().toString();

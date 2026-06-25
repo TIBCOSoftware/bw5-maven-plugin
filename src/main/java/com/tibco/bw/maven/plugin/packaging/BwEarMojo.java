@@ -8,7 +8,6 @@ import com.tibco.bw.maven.plugin.descriptor.ProcessParser;
 import com.tibco.bw.maven.plugin.descriptor.PropertyMerger;
 import com.tibco.bw.maven.plugin.descriptor.SubstVarParser;
 import com.tibco.bw.maven.plugin.descriptor.TibcoXmlGenerator;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -618,7 +617,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 if (EXCLUDED_EXTENSIONS.contains(ext)) {
                     // .folder files are TIBCO Designer display metadata; include when the flag
                     // is set so the SAR matches buildear output for sharedResources paths.
-                    if (!includeFolderMetadata || !ext.equals(".folder")) continue;
+                    if (!includeFolderMetadata || !".folder".equals(ext)) continue;
                 }
 
                 String relativePath = rootDir.toURI().relativize(f.toURI()).getPath();
@@ -669,7 +668,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                         throw new IOException("Failed to create directory: " + parentFile.getAbsolutePath());
                     }
                     try (InputStream is = zip.getInputStream(entry);
-                         OutputStream os = new FileOutputStream(outFile)) {
+                         OutputStream os = Files.newOutputStream(outFile.toPath())) {
                         IOUtils.copy(is, os);
                     }
                 }
@@ -688,6 +687,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
     //  Process metadata parsing
     // -----------------------------------------------------------------------
 
+    @SuppressWarnings("PMD.UnusedFormalParameter")
     private List<ProcessParser.ProcessMetadata> parseProcesses(List<BwFile> parFiles, File srcDir) {
         List<ProcessParser.ProcessMetadata> result = new ArrayList<>();
         ProcessParser parser = new ProcessParser();
@@ -1220,7 +1220,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
             null
         );
 
-        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(parFile))) {
+        try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(parFile.toPath()))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);
 
             // Add TIBCO.xml
@@ -1297,7 +1297,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
         new TibcoXmlGenerator().generateAarDescriptor(
             aarTibcoXml, aarFileName, aa.adapterReference, aa.getSdkVersionFourPart(), null);
 
-        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(aarFile))) {
+        try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(aarFile.toPath()))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);
             addToZip(zos, "TIBCO.xml", aarTibcoXml);
             // Store adapter file with leading slash to match TIBCO Designer's AAR format,
@@ -1312,8 +1312,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
     //  SAR assembly
     // -----------------------------------------------------------------------
 
+    @SuppressWarnings("PMD.UnusedFormalParameter")
     private void buildSar(File sarFile, List<BwFile> sarFiles, File srcDir) throws Exception {
-        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(sarFile))) {
+        try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(sarFile.toPath()))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);
             Set<String> added = new HashSet<>();
             for (BwFile bwf : sarFiles) {
@@ -1380,7 +1381,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
         File temp = File.createTempFile("bw5-jcf-", ".javaxpath");
         temp.deleteOnExit();
         XMLOutputter xmlOut = new XMLOutputter(Format.getRawFormat().setEncoding("UTF-8"));
-        try (Writer w = new OutputStreamWriter(new FileOutputStream(temp), StandardCharsets.UTF_8)) {
+        try (Writer w = new OutputStreamWriter(Files.newOutputStream(temp.toPath()), StandardCharsets.UTF_8)) {
             xmlOut.output(doc, w);
         }
         return temp;
@@ -1421,7 +1422,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
     private void buildEar(File earFile, File tibcoXml, List<File> moduleFiles,
                           File sarFile, File manifestFile) throws Exception {
-        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(earFile))) {
+        try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(earFile.toPath()))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);
 
             addToZip(zos, "TIBCO.xml", tibcoXml);
@@ -1466,12 +1467,12 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
     private void addToZip(ZipOutputStream zos, String entryName, File file) throws IOException {
         // Normalize path separators
-        entryName = entryName.replace(File.separatorChar, '/');
+        String normalizedName = entryName.replace(File.separatorChar, '/');
 
-        ZipEntry entry = new ZipEntry(entryName);
+        ZipEntry entry = new ZipEntry(normalizedName);
         entry.setTime(file.lastModified());
         zos.putNextEntry(entry);
-        try (InputStream in = new FileInputStream(file)) {
+        try (InputStream in = Files.newInputStream(file.toPath())) {
             IOUtils.copy(in, zos);
         }
         zos.closeEntry();

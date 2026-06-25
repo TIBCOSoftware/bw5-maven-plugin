@@ -179,7 +179,7 @@ public class Bw5ModuleMojo extends AbstractBw5Mojo {
         final Set<String> finalDirPrefixes = includedDirPrefixes;
         final Set<String> foundResources = (finalResources != null) ? new HashSet<>() : null;
 
-        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(projlibFile))) {
+        try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(projlibFile.toPath()))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);
 
             // Add /library.manifest (always first, with leading / matching Designer convention)
@@ -288,7 +288,7 @@ public class Bw5ModuleMojo extends AbstractBw5Mojo {
             if (fileName.endsWith(".substvar")) {
                 return true;
             }
-            if (fileName.equals(".folder")) {
+            if (".folder".equals(fileName)) {
                 return includedDirPrefixes.contains(parentDir(relativePath));
             }
             return includedResources.contains(relativePath);
@@ -343,11 +343,11 @@ public class Bw5ModuleMojo extends AbstractBw5Mojo {
     }
 
     private void addToZip(ZipOutputStream zos, String entryName, File file) throws IOException {
-        entryName = entryName.replace(File.separatorChar, '/');
-        ZipEntry entry = new ZipEntry(entryName);
+        String normalizedName = entryName.replace(File.separatorChar, '/');
+        ZipEntry entry = new ZipEntry(normalizedName);
         entry.setTime(file.lastModified());
         zos.putNextEntry(entry);
-        try (InputStream in = new FileInputStream(file)) {
+        try (InputStream in = Files.newInputStream(file.toPath())) {
             IOUtils.copy(in, zos);
         }
         zos.closeEntry();

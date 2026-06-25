@@ -30,7 +30,7 @@ public class DesignTimeLibsParser {
     public List<String> parse(File file) throws IOException {
         List<String> paths = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
+                new InputStreamReader(java.nio.file.Files.newInputStream(file.toPath()), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 line = line.trim();

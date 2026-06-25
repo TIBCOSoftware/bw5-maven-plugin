@@ -176,6 +176,7 @@ public class ArchiveDescriptorParser {
         }
 
         /** Minimum/config SDK version as a 4-part string, e.g. {@code 5.3.0} → {@code 5.3.0.0}. */
+        @SuppressWarnings("PMD.AvoidUsingHardCodedIP")
         public String getSdkVersionFourPart() {
             if (sdkVersion == null || sdkVersion.isEmpty()) return "5.0.0.0";
             long dots = sdkVersion.chars().filter(c -> c == '.').count();

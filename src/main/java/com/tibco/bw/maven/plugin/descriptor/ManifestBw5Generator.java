@@ -65,7 +65,7 @@ public class ManifestBw5Generator {
         String json = renderJson(appName, appVersion, properties, endpoints);
 
         File out = new File(workDir, "manifest-bw5.json");
-        try (Writer w = new OutputStreamWriter(new FileOutputStream(out), StandardCharsets.UTF_8)) {
+        try (Writer w = new OutputStreamWriter(java.nio.file.Files.newOutputStream(out.toPath()), StandardCharsets.UTF_8)) {
             w.write(json);
         }
         return out;

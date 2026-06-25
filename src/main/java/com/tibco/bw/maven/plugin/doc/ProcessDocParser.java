@@ -3,9 +3,7 @@ package com.tibco.bw.maven.plugin.doc;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.Namespace;
-import org.jdom2.filter.Filters;
 import org.jdom2.input.SAXBuilder;
-import org.jdom2.xpath.XPathFactory;
 
 import java.io.File;
 import java.util.*;
@@ -18,7 +16,7 @@ public class ProcessDocParser {
     private static final Namespace PD = Namespace.getNamespace("pd", "http://xmlns.tibco.com/bw/process/2003");
     private static final Namespace XSL = Namespace.getNamespace("xsl", "http://www.w3.org/1999/XSL/Transform");
 
-    private int chooseCounter = 0;
+    private int chooseCounter;
 
     public ProcessDocModel parse(File processFile) throws Exception {
         SAXBuilder builder = new SAXBuilder();
@@ -220,6 +218,7 @@ public class ProcessDocParser {
         return result;
     }
 
+    @SuppressWarnings("PMD.CompareObjectsWithEquals")
     private void collectMappings(Element el, List<String> pathStack,
                                   String currentCondition, String conditionKind,
                                   int chooseId,
@@ -333,7 +332,7 @@ public class ProcessDocParser {
         // Recurse into children with this element as part of the path
         if (!children.isEmpty()) {
             List<String> newPath = new ArrayList<>(pathStack);
-            if (!tag.equals("inputBindings") && !tag.contains(":")) {
+            if (!"inputBindings".equals(tag) && !tag.contains(":")) {
                 newPath.add(tag);
             }
             for (Element child : children) {
@@ -364,8 +363,8 @@ public class ProcessDocParser {
         int count = 0;
         for (Element child : configEl.getChildren()) {
             String name = child.getName();
-            if (name.equals("Headers") || name.equals("InputHeaders") || name.equals("OutputHeaders")
-                    || name.equals("element") || name.equals("complexType") || name.equals("sequence")) {
+            if ("Headers".equals(name) || "InputHeaders".equals(name) || "OutputHeaders".equals(name)
+                    || "element".equals(name) || "complexType".equals(name) || "sequence".equals(name)) {
                 continue;
             }
             String val = child.getTextTrim();
@@ -411,6 +410,7 @@ public class ProcessDocParser {
         try { return Integer.parseInt(s); } catch (NumberFormatException e) { return defaultVal; }
     }
 
+    @SuppressWarnings("PMD.UnusedFormalParameter")
     private int intAttr(Element el, String nsAttr, Element fallbackParent, String fallbackChild, int defaultVal) {
         // Try pd:x attribute first, then x child element
         String val = el.getAttributeValue("x");

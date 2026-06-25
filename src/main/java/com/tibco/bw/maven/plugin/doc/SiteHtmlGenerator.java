@@ -6,6 +6,7 @@ import org.apache.maven.project.MavenProject;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,8 +33,8 @@ public class SiteHtmlGenerator {
 
     // Cross-reference data, populated in generateIndex()
     private List<ProcessDocModel> allProcesses = Collections.emptyList();
-    private List<SharedResourceModel> sharedResources = Collections.emptyList();
-    private List<SubstVarParser.GlobalVariable> globalVars = Collections.emptyList();
+    private List<SharedResourceModel> sharedResources;
+    private List<SubstVarParser.GlobalVariable> globalVars;
     /** processFileName → model (key = safeFileName(fullName), no extension) */
     private final Map<String, ProcessDocModel> fileToModel = new LinkedHashMap<>();
     /** model.name → HTML file path relative to outputDir root (e.g. "processes/Common_ARC_BA1N_Main.html") */
@@ -405,7 +406,6 @@ public class SiteHtmlGenerator {
             w.write("    <thead><tr><th>Flow</th><th>Condition</th></tr></thead>\n");
             w.write("    <tbody>\n");
             for (ProcessDocModel.Transition tr : model.transitions) {
-                String ct = tr.conditionType != null ? tr.conditionType.toLowerCase(java.util.Locale.ROOT) : "always";
                 // Only show the XPath expression when one is present; arrow colour already conveys type
                 String condCell = (tr.condition != null && !tr.condition.isEmpty())
                     ? "<code class=\"tr-cond-expr\">" + esc(tr.condition) + "</code>"
@@ -499,6 +499,7 @@ public class SiteHtmlGenerator {
         w.write("</header>\n");
     }
 
+    @SuppressWarnings("PMD.UnusedFormalParameter")
     private void writeSidebarHtml(Writer w, List<ProcessDocModel> processes,
                                    String currentPath) throws IOException {
         w.write("<aside class=\"sidebar\" id=\"sidebar\">\n");
@@ -512,6 +513,7 @@ public class SiteHtmlGenerator {
         w.write("</aside>\n");
     }
 
+    @SuppressWarnings("PMD.CompareObjectsWithEquals")
     private void writePrevNext(Writer w, ProcessDocModel model) throws IOException {
         int idx = -1;
         for (int i = 0; i < allProcesses.size(); i++) {
@@ -543,10 +545,13 @@ public class SiteHtmlGenerator {
     private String buildTransitionSvg(ProcessDocModel.Transition tr,
                                        Map<String, ProcessDocModel.Activity> actByName) {
         // SVG layout constants
-        final int W = 320, H = 48;
-        final int ICON = 20, ICON_R = ICON / 2;  // icon size and radius
+        final int W = 320;
+        final int H = 48;
+        final int ICON = 20;
+        final int ICON_R = ICON / 2;  // icon size and radius
         // Source zone centre x, Target zone centre x
-        final int SRC_X = 36, TGT_X = W - 36;
+        final int SRC_X = 36;
+        final int TGT_X = W - 36;
         final int CY = 18;  // vertical centre for icon and arrow
         final int NAME_Y = H - 6;  // name label baseline
 
@@ -563,7 +568,8 @@ public class SiteHtmlGenerator {
         int cx1 = arrowX1 + (arrowX2 - arrowX1) / 3;
         int cx2 = arrowX2 - (arrowX2 - arrowX1) / 3;
         // Arrowhead tip and base
-        int tipX = arrowX2, tipY = CY;
+        int tipX = arrowX2;
+        int tipY = CY;
         int ah = 5;  // arrowhead half-height
         int ab = 8;  // arrowhead length
 
@@ -602,6 +608,7 @@ public class SiteHtmlGenerator {
     }
 
     /** Returns the icon element for a mini transition SVG, or a plain circle for unknown activities. */
+    @SuppressWarnings("PMD.UnusedFormalParameter")
     private String activityMiniIcon(ProcessDocModel.Activity act, String fallbackName,
                                      int cx, int cy, int size) {
         if (act == null) {
@@ -656,6 +663,7 @@ public class SiteHtmlGenerator {
         w.write("</div>\n");
     }
 
+    @SuppressWarnings("PMD.UnusedFormalParameter")
     private void writeActivityDetailTable(Writer w, ProcessDocModel.Activity a,
                                            String calledHref) throws IOException {
         w.write("<table class=\"detail-table\">\n");
@@ -717,7 +725,7 @@ public class SiteHtmlGenerator {
         /** Mapping indices that terminate at this node (can be multiple for shared paths). */
         final List<Integer> mappingIdxs = new ArrayList<>();
         /** Non-zero for virtual branch nodes (WHEN/OTHERWISE/IF/FOR-EACH); used by JS to align branch items. */
-        int branchId = 0;
+        int branchId;
 
         MTreeNode(String label) { this.label = label; }
 
@@ -841,7 +849,7 @@ public class SiteHtmlGenerator {
         for (MTreeNode child : node.children) {
             boolean isWhenNode      = child.label.startsWith("~WHEN:");
             boolean isIfNode        = child.label.startsWith("~IF:");
-            boolean isOtherwiseNode = child.label.equals("~OTHERWISE");
+            boolean isOtherwiseNode = "~OTHERWISE".equals(child.label);
             boolean isForEachNode   = child.label.startsWith("~FOR-EACH:");
             // GV path: this node is inside a _globalVariables subtree
             boolean isGvNode = inGvPath || "$_globalVariables".equals(child.label);
@@ -1030,6 +1038,7 @@ public class SiteHtmlGenerator {
         renderProcessDirNode(w, root, 0, true);
     }
 
+    @SuppressWarnings("PMD.UnusedFormalParameter")
     private void renderProcessDirNode(Writer w, DirNode node, int depth, boolean isRoot) throws IOException {
         String indent = "  ".repeat(depth + 1);
         // Render sub-folders first
@@ -1520,7 +1529,7 @@ public class SiteHtmlGenerator {
 
     private Writer writer(File file) throws IOException {
         mkdirs(file.getParentFile());
-        return new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8);
+        return new OutputStreamWriter(Files.newOutputStream(file.toPath()), StandardCharsets.UTF_8);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

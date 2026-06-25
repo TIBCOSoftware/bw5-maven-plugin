@@ -75,7 +75,7 @@ public class PullMojo extends AbstractBw5Mojo {
      * <pre>mvn bw5:designer-setup -Dbw5.designerSetup.launchDesigner=true</pre>
      */
     @Parameter(defaultValue = "false", property = "bw5.designerSetup.launchDesigner")
-    private boolean launchDesigner;
+    private boolean shouldLaunchDesigner;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -92,7 +92,7 @@ public class PullMojo extends AbstractBw5Mojo {
 
         if (projlibs.isEmpty() && jars.isEmpty()) {
             getLog().info("No projlib or JAR dependencies declared — nothing to pull.");
-            if (launchDesigner) {
+            if (shouldLaunchDesigner) {
                 launchDesigner();
             }
             return;
@@ -140,7 +140,7 @@ public class PullMojo extends AbstractBw5Mojo {
         ensureGitignore();
 
         // Optionally launch Designer
-        if (launchDesigner) {
+        if (shouldLaunchDesigner) {
             launchDesigner();
         }
     }
@@ -168,7 +168,7 @@ public class PullMojo extends AbstractBw5Mojo {
         List<String> lines = new ArrayList<>();
         if (systemPrefs.exists()) {
             try (BufferedReader r = new BufferedReader(
-                    new InputStreamReader(new FileInputStream(systemPrefs), StandardCharsets.ISO_8859_1))) {
+                    new InputStreamReader(java.nio.file.Files.newInputStream(systemPrefs.toPath()), StandardCharsets.ISO_8859_1))) {
                 String line;
                 while ((line = r.readLine()) != null) {
                     if (!line.startsWith("filealias.pref.")) {
@@ -204,7 +204,7 @@ public class PullMojo extends AbstractBw5Mojo {
             throw new MojoExecutionException("Failed to create directory: " + prefsParent.getAbsolutePath());
         }
         try (Writer w = new OutputStreamWriter(
-                new FileOutputStream(targetPrefs), StandardCharsets.ISO_8859_1)) {
+                java.nio.file.Files.newOutputStream(targetPrefs.toPath()), StandardCharsets.ISO_8859_1)) {
             for (String line : lines) {
                 w.write(line);
                 w.write("\n");
@@ -216,7 +216,7 @@ public class PullMojo extends AbstractBw5Mojo {
 
         getLog().info("Generated: " + targetPrefs.getAbsolutePath()
             + " (" + idx + " filealias entries)");
-        if (!launchDesigner) {
+        if (!shouldLaunchDesigner) {
             getLog().info("To open Designer with these aliases, run:");
             getLog().info("  JAVA_TOOL_OPTIONS=\"-Duser.home=" + project.getBuild().getDirectory()
                 + "\" designer " + bwProjectPath.getAbsolutePath());
@@ -288,7 +288,7 @@ public class PullMojo extends AbstractBw5Mojo {
         List<String> manualCoords = new ArrayList<>();
         if (designtimeLibsFile.exists()) {
             try (BufferedReader r = new BufferedReader(
-                    new InputStreamReader(new FileInputStream(designtimeLibsFile), StandardCharsets.ISO_8859_1))) {
+                    new InputStreamReader(java.nio.file.Files.newInputStream(designtimeLibsFile.toPath()), StandardCharsets.ISO_8859_1))) {
                 String line;
                 while ((line = r.readLine()) != null) {
                     line = line.trim();
@@ -322,7 +322,7 @@ public class PullMojo extends AbstractBw5Mojo {
         }
 
         try (Writer w = new OutputStreamWriter(
-                new FileOutputStream(designtimeLibsFile), StandardCharsets.ISO_8859_1)) {
+                java.nio.file.Files.newOutputStream(designtimeLibsFile.toPath()), StandardCharsets.ISO_8859_1)) {
             w.write(sb.toString());
         } catch (IOException e) {
             throw new MojoExecutionException(

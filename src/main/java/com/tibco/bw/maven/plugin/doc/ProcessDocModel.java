@@ -55,8 +55,6 @@ public class ProcessDocModel {
         public boolean isStarter;
         /** Whether this is the end node */
         public boolean isEnd;
-        private int endX;
-        private int endY;
         /** Raw config summary string (legacy fallback) */
         public String configSummary;
         /** Structured config key→value pairs for tabular display */

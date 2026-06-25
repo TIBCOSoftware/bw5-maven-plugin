@@ -121,6 +121,26 @@
                 </executions>
             </plugin>
 
+            <!-- Static analysis: Checkstyle (style and best-practices) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>3.3.1</version>
+                <configuration>
+                    <configLocation>checkstyle.xml</configLocation>
+                    <failOnViolation>false</failOnViolation>
+                    <logViolationsToConsole>true</logViolationsToConsole>
+                    <excludes>**/HelpMojo.java</excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>checkstyle-check</id>
+                        <phase>verify</phase>
+                        <goals><goal>check</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- Static analysis: PMD (code quality rules similar to SonarQube default profile) -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -131,9 +151,7 @@
                     <failOnViolation>false</failOnViolation>
                     <printFailingErrors>true</printFailingErrors>
                     <rulesets>
-                        <ruleset>/category/java/bestpractices.xml</ruleset>
-                        <ruleset>/category/java/errorprone.xml</ruleset>
-                        <ruleset>/category/java/performance.xml</ruleset>
+                        <ruleset>pmd-rules.xml</ruleset>
                     </rulesets>
                     <excludeFromFailureFile>pmd-exclude.properties</excludeFromFailureFile>
                     <excludeRoots>
@@ -253,9 +271,7 @@
                 <configuration>
                     <targetJdk>11</targetJdk>
                     <rulesets>
-                        <ruleset>/category/java/bestpractices.xml</ruleset>
-                        <ruleset>/category/java/errorprone.xml</ruleset>
-                        <ruleset>/category/java/performance.xml</ruleset>
+                        <ruleset>pmd-rules.xml</ruleset>
                     </rulesets>
                     <excludeRoots>
                         <excludeRoot>${project.build.directory}/generated-sources</excludeRoot>

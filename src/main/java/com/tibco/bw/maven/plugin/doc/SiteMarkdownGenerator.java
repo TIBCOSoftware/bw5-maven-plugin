@@ -166,14 +166,14 @@ public class SiteMarkdownGenerator {
             w.write("| # | Name | Type |\n|---|------|------|\n");
             int i = 1;
             for (ProcessDocModel.Activity a : acts) {
-                String typeStr = "`" + mdEsc(a.shortType()) + "`";
+                StringBuilder typeStr = new StringBuilder("`").append(mdEsc(a.shortType())).append("`");
                 if (a.calledProcessPath != null) {
                     // Try to link to the called process
                     for (ProcessDocModel target : allProcesses) {
                         String tpath = target.name != null ? target.name : target.displayName;
                         if (tpath.contains(a.calledProcessPath) || a.calledProcessPath.contains(lastSegment(tpath))) {
-                            typeStr += " → [" + mdEsc(fullDisplayName(target)) + "]("
-                                + mdFileName(target) + ".md)";
+                            typeStr.append(" → [").append(mdEsc(fullDisplayName(target))).append("](")
+                                .append(mdFileName(target)).append(".md)");
                             break;
                         }
                     }
@@ -230,6 +230,6 @@ public class SiteMarkdownGenerator {
 
     private Writer writer(File file) throws IOException {
         mkdirs(file.getParentFile());
-        return new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8);
+        return new OutputStreamWriter(java.nio.file.Files.newOutputStream(file.toPath()), StandardCharsets.UTF_8);
     }
 }
