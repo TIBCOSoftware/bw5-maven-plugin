@@ -590,12 +590,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
             List<SubstVarParser.GlobalVariable> vars) throws MojoExecutionException {
         try {
             PropertyMerger merger = new PropertyMerger();
-            Map<String, String> mavenProps = new LinkedHashMap<>();
-            for (Map.Entry<Object, Object> e : project.getProperties().entrySet()) {
-                if (e.getKey() instanceof String && e.getValue() instanceof String) {
-                    mavenProps.put((String) e.getKey(), (String) e.getValue());
-                }
-            }
+            Map<String, String> mavenProps = getAllMavenProperties();
             List<SubstVarParser.GlobalVariable> merged =
                 merger.merge(vars, globalPropertiesFile, projectPropertiesFile, mavenProps);
             long changed = 0;

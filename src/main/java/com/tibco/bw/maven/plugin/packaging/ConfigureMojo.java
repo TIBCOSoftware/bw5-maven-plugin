@@ -179,7 +179,7 @@ public class ConfigureMojo extends AbstractBw5Mojo {
 
             // 3. Merge overrides
             PropertyMerger merger = new PropertyMerger();
-            Map<String, String> mavenProps = toStringMap(project.getProperties());
+            Map<String, String> mavenProps = getAllMavenProperties();
             List<SubstVarParser.GlobalVariable> mergedVars =
                 merger.merge(allVars, globalPropertiesFile, projectPropertiesFile, mavenProps);
 
@@ -277,11 +277,9 @@ public class ConfigureMojo extends AbstractBw5Mojo {
     }
 
     private long countMavenProps(String prefix) {
-        long count = 0;
-        for (Object key : project.getProperties().keySet()) {
-            if (key instanceof String && ((String) key).startsWith(prefix)) count++;
-        }
-        return count;
+        return getAllMavenProperties().keySet().stream()
+            .filter(k -> k.startsWith(prefix))
+            .count();
     }
 
     private void logMergeStats(List<SubstVarParser.GlobalVariable> original,
@@ -304,14 +302,4 @@ public class ConfigureMojo extends AbstractBw5Mojo {
         }
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    private Map<String, String> toStringMap(java.util.Properties props) {
-        Map<String, String> map = new LinkedHashMap<>();
-        for (Map.Entry<Object, Object> e : props.entrySet()) {
-            if (e.getKey() instanceof String && e.getValue() instanceof String) {
-                map.put((String) e.getKey(), (String) e.getValue());
-            }
-        }
-        return map;
-    }
 }

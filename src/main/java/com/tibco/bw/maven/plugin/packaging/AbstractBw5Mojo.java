@@ -2,6 +2,7 @@ package com.tibco.bw.maven.plugin.packaging;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -10,7 +11,10 @@ import org.apache.maven.project.MavenProject;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 /**
@@ -22,6 +26,10 @@ public abstract class AbstractBw5Mojo extends AbstractMojo {
     /** The Maven project. */
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     protected MavenProject project;
+
+    /** The Maven session (provides access to CLI -D user properties). */
+    @Parameter(defaultValue = "${session}", readonly = true, required = true)
+    protected MavenSession session;
 
     /**
      * Root directory of the BW5 project sources.
@@ -73,6 +81,28 @@ public abstract class AbstractBw5Mojo extends AbstractMojo {
      */
     @Parameter(defaultValue = "false", property = "bw5.skip")
     protected boolean skip;
+
+    /**
+     * Returns a merged view of all Maven properties visible to this mojo.
+     *
+     * <p>POM {@code <properties>} entries are loaded first; CLI {@code -D} flags
+     * (session user properties) are overlaid on top, so they take the highest priority.
+     * This is the correct source for {@code bw5.global.*} and {@code bw5.project.*}
+     * override resolution.</p>
+     */
+    protected Map<String, String> getAllMavenProperties() {
+        Map<String, String> props = new LinkedHashMap<>();
+        Properties pomProps = project.getProperties();
+        for (String key : pomProps.stringPropertyNames()) {
+            props.put(key, pomProps.getProperty(key));
+        }
+        // CLI -D user properties override POM properties
+        Properties userProps = session.getUserProperties();
+        for (String key : userProps.stringPropertyNames()) {
+            props.put(key, userProps.getProperty(key));
+        }
+        return props;
+    }
 
     /**
      * Copies all projlib and JAR dependencies to {@code bwLibDirectory} (target/bw-lib).
