@@ -408,7 +408,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 }
 
                 // ---- AAR: one AAR per <adapterArchive> element ----
-                List<File> adapterDefFiles = new ArrayList<>();
+                // Maps adapter definition file → sdkVersion string (to decide schema expansion mode).
+                Map<File, String> adapterDefFiles = new LinkedHashMap<>();
                 for (ArchiveDescriptorParser.AdapterArchiveEntry aa : archiveDescriptor.adapterArchives) {
                     String aarFileName = (aa.name != null && !aa.name.isEmpty())
                         ? aa.name + ".aar" : "Adapter Archive.aar";
@@ -433,7 +434,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                             } else {
                                 // Adapter definition files (.adb, .adsap, etc.) go only in the AAR.
                                 // Collect them so we can scan their aeschema references for the SAR.
-                                adapterDefFiles.add(adapterFile);
+                                adapterDefFiles.put(adapterFile, aa.sdkVersion);
                             }
                         } else {
                             getLog().warn("Could not locate adapter file for AAR '" + aa.name + "': " + adapterFilePath);
@@ -441,14 +442,25 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     }
                 }
 
-                // Collect all aeschemas (and other SAR resources) transitively referenced by
-                // adapter definition files (.adb, .adsap, etc.) and add them to the SAR.
+                // Collect all aeschemas (and other SAR resources) referenced by adapter definition
+                // files (.adb, .adsap, etc.) and add them to the SAR.
+                // Old ADB SDK versions (< 7.3.0) cause TIBCO Designer to include the entire
+                // /AESchemas/ae/<type>/ directory rather than only the transitively referenced files.
                 if (!adapterDefFiles.isEmpty()) {
                     Map<String, BwFile> resourceIndex = buildBwIndex(allSarFiles);
                     Set<String> referencedResourcePaths = new LinkedHashSet<>();
-                    for (File defFile : adapterDefFiles) {
+                    Set<String> wholeDirectoryPrefixes = new LinkedHashSet<>();
+
+                    for (Map.Entry<File, String> defEntry : adapterDefFiles.entrySet()) {
+                        File defFile = defEntry.getKey();
+                        boolean oldSdk = isOldAdbSdkVersion(defEntry.getValue());
                         for (String ref : extractBwResourceRefs(defFile)) {
                             String norm = normalizeBwPath(ref);
+                            if (norm.endsWith(".aeschema") && oldSdk) {
+                                // Old SDK: remember the directory so we can add all aeschemas in it.
+                                int slash = norm.lastIndexOf('/');
+                                if (slash > 0) wholeDirectoryPrefixes.add(norm.substring(0, slash + 1));
+                            }
                             if (referencedResourcePaths.add(norm)) {
                                 if (isSarExtension(getExtension(norm))) {
                                     followSharedResourceRefs(norm, resourceIndex, referencedResourcePaths);
@@ -459,6 +471,17 @@ public class BwEarMojo extends AbstractBw5Mojo {
                             }
                         }
                     }
+
+                    // Old-SDK directory expansion: add every aeschema in the collected directories.
+                    for (String dirPrefix : wholeDirectoryPrefixes) {
+                        getLog().info("Old ADB SDK: expanding all aeschemas under " + dirPrefix);
+                        for (Map.Entry<String, BwFile> e : resourceIndex.entrySet()) {
+                            if (e.getKey().startsWith(dirPrefix) && e.getKey().endsWith(".aeschema")) {
+                                referencedResourcePaths.add(e.getKey());
+                            }
+                        }
+                    }
+
                     for (String path : referencedResourcePaths) {
                         BwFile f = resourceIndex.get(path);
                         if (f != null) {
@@ -1299,6 +1322,25 @@ public class BwEarMojo extends AbstractBw5Mojo {
         if (path == null) return "";
         String s = path.replace('\\', '/').trim();
         return s.startsWith("/") ? s.substring(1) : s;
+    }
+
+    /**
+     * Returns true when the ADB adapter SDK version is older than 7.3.0.
+     * <p>Old ADB SDK versions (5.x, 7.0, 7.1, 7.2) cause TIBCO Designer to load the entire
+     * {@code /AESchemas/ae/ADB/} directory rather than only the schemas transitively referenced
+     * by the adapter's {@code loadUrl} entries. Version 7.3.0 and later switched to transitive-only
+     * resolution, which is what the plugin normally does.
+     */
+    private static boolean isOldAdbSdkVersion(String sdkVersion) {
+        if (sdkVersion == null || sdkVersion.isEmpty()) return false;
+        String[] parts = sdkVersion.split("\\.", -1);
+        try {
+            int major = Integer.parseInt(parts[0].trim());
+            int minor = parts.length > 1 ? Integer.parseInt(parts[1].trim()) : 0;
+            return major < 7 || (major == 7 && minor < 3);
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     // -----------------------------------------------------------------------
