@@ -408,6 +408,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 }
 
                 // ---- AAR: one AAR per <adapterArchive> element ----
+                List<File> adapterDefFiles = new ArrayList<>();
                 for (ArchiveDescriptorParser.AdapterArchiveEntry aa : archiveDescriptor.adapterArchives) {
                     String aarFileName = (aa.name != null && !aa.name.isEmpty())
                         ? aa.name + ".aar" : "Adapter Archive.aar";
@@ -416,8 +417,6 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     moduleFiles.add(aarFile);
                     getLog().info("AAR assembled: " + aarFile.getName() + " (" + aarFile.length() + " bytes)");
 
-                    // TIBCO Designer duplicates each .adapter file in the SAR in addition
-                    // to placing it inside its dedicated AAR. Replicate that behaviour.
                     String adapterFilePath = aa.getAdapterFilePath();
                     if (adapterFilePath != null) {
                         File adapterFile = new File(srcDir, adapterFilePath.replace('/', File.separatorChar));
@@ -425,11 +424,45 @@ public class BwEarMojo extends AbstractBw5Mojo {
                             adapterFile = new File(bwProjectPath, adapterFilePath.replace('/', File.separatorChar));
                         }
                         if (adapterFile.isFile()) {
-                            accumulateSarFiles(
-                                Collections.singletonList(new BwFile(adapterFile, adapterFilePath)),
-                                combinedSarFiles, seenSarPaths);
+                            if (adapterFilePath.toLowerCase(Locale.ROOT).endsWith(".adapter")) {
+                                // TIBCO Designer duplicates each .adapter file in the SAR in addition
+                                // to placing it inside its dedicated AAR. Replicate that behaviour.
+                                accumulateSarFiles(
+                                    Collections.singletonList(new BwFile(adapterFile, adapterFilePath)),
+                                    combinedSarFiles, seenSarPaths);
+                            } else {
+                                // Adapter definition files (.adb, .adsap, etc.) go only in the AAR.
+                                // Collect them so we can scan their aeschema references for the SAR.
+                                adapterDefFiles.add(adapterFile);
+                            }
                         } else {
-                            getLog().warn("Could not duplicate adapter file in SAR (not found): " + adapterFilePath);
+                            getLog().warn("Could not locate adapter file for AAR '" + aa.name + "': " + adapterFilePath);
+                        }
+                    }
+                }
+
+                // Collect all aeschemas (and other SAR resources) transitively referenced by
+                // adapter definition files (.adb, .adsap, etc.) and add them to the SAR.
+                if (!adapterDefFiles.isEmpty()) {
+                    Map<String, BwFile> resourceIndex = buildBwIndex(allSarFiles);
+                    Set<String> referencedResourcePaths = new LinkedHashSet<>();
+                    for (File defFile : adapterDefFiles) {
+                        for (String ref : extractBwResourceRefs(defFile)) {
+                            String norm = normalizeBwPath(ref);
+                            if (referencedResourcePaths.add(norm)) {
+                                if (isSarExtension(getExtension(norm))) {
+                                    followSharedResourceRefs(norm, resourceIndex, referencedResourcePaths);
+                                }
+                                if (norm.endsWith(".aeschema")) {
+                                    followAeschemaImports(norm, resourceIndex, referencedResourcePaths);
+                                }
+                            }
+                        }
+                    }
+                    for (String path : referencedResourcePaths) {
+                        BwFile f = resourceIndex.get(path);
+                        if (f != null) {
+                            accumulateSarFiles(Collections.singletonList(f), combinedSarFiles, seenSarPaths);
                         }
                     }
                 }
@@ -638,6 +671,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     // is set so the SAR matches buildear output for sharedResources paths.
                     if (!includeFolderMetadata || !".folder".equals(ext)) continue;
                 }
+                // Adapter definition files (.adb, .adsap, .addr3, …) go ONLY inside their
+                // dedicated AAR — never in the SAR. The rule is: any extension starting with
+                // ".ad" that is NOT ".adapter" (which Designer duplicates into the SAR).
+                if (ext.startsWith(".ad") && !".adapter".equals(ext)) continue;
 
                 String relativePath = rootDir.toURI().relativize(f.toURI()).getPath();
                 BwFile bwf = new BwFile(f, relativePath);
