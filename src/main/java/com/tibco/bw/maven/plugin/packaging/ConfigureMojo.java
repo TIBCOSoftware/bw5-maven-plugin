@@ -263,11 +263,11 @@ public class ConfigureMojo extends AbstractBw5Mojo {
     private void logConfiguredSources() {
         if (globalPropertiesFile != null) {
             getLog().info("Global properties  : " + globalPropertiesFile.getAbsolutePath()
-                + (globalPropertiesFile.isFile() ? "" : " (not found — skipping)"));
+                + (globalPropertiesFile.isFile() ? "" : " (not found)"));
         }
         if (projectPropertiesFile != null) {
             getLog().info("Project properties : " + projectPropertiesFile.getAbsolutePath()
-                + (projectPropertiesFile.isFile() ? "" : " (not found — skipping)"));
+                + (projectPropertiesFile.isFile() ? "" : " (not found)"));
         }
         // Count inline Maven property overrides
         long globalCount  = countMavenProps(PropertyMerger.GLOBAL_PREFIX);

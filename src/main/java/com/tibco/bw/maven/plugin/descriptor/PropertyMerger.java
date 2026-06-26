@@ -64,7 +64,10 @@ public class PropertyMerger {
         Map<String, String> projectOverrides = new LinkedHashMap<>();
 
         // 1. Global properties file
-        if (globalPropsFile != null && globalPropsFile.isFile()) {
+        if (globalPropsFile != null) {
+            if (!globalPropsFile.isFile()) {
+                throw new IOException("Global properties file not found: " + globalPropsFile.getAbsolutePath());
+            }
             globalOverrides.putAll(loadProperties(globalPropsFile));
         }
         // 2. Maven properties with bw5.global. prefix (override file values)
@@ -76,7 +79,10 @@ public class PropertyMerger {
             }
         }
         // 3. Project properties file
-        if (projectPropsFile != null && projectPropsFile.isFile()) {
+        if (projectPropsFile != null) {
+            if (!projectPropsFile.isFile()) {
+                throw new IOException("Project properties file not found: " + projectPropsFile.getAbsolutePath());
+            }
             projectOverrides.putAll(loadProperties(projectPropsFile));
         }
         // 4. Maven properties with bw5.project. prefix (highest priority)

@@ -587,7 +587,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
     // -----------------------------------------------------------------------
 
     private List<SubstVarParser.GlobalVariable> applyPropertyOverrides(
-            List<SubstVarParser.GlobalVariable> vars) {
+            List<SubstVarParser.GlobalVariable> vars) throws MojoExecutionException {
         try {
             PropertyMerger merger = new PropertyMerger();
             Map<String, String> mavenProps = new LinkedHashMap<>();
@@ -604,6 +604,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
             }
             if (changed > 0) getLog().info("Property overrides applied: " + changed + " variable(s) changed");
             return merged;
+        } catch (IOException e) {
+            throw new MojoExecutionException(e.getMessage(), e);
         } catch (Exception e) {
             getLog().warn("Could not apply property overrides: " + e.getMessage() + " — using .substvar defaults");
             return vars;
