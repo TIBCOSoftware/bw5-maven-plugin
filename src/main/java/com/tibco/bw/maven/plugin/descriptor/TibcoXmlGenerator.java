@@ -40,7 +40,8 @@ public class TibcoXmlGenerator {
      * Generates the EAR-level TIBCO.xml deployment descriptor.
      *
      * @param outputFile      target file to write
-     * @param earName         EAR artifact name (e.g. "MyApplication")
+     * @param earName         EAR archive name (from the .archive descriptor {@code <name>} element)
+     * @param earVersion      version string written to {@code <version>} (e.g. "1" for pom version 1.0.0-SNAPSHOT)
      * @param moduleFileNames PAR/AAR filenames inside the EAR (e.g. ["OrderService.par", "PaymentService.par"])
      * @param projlibDeps     list of projlib (bw5module) dependencies
      * @param jarDeps         list of JAR dependencies
@@ -50,6 +51,7 @@ public class TibcoXmlGenerator {
     public void generateEarDescriptor(
             File outputFile,
             String earName,
+            String earVersion,
             List<String> moduleFileNames,
             List<Artifact> projlibDeps,
             List<Artifact> jarDeps,
@@ -64,7 +66,7 @@ public class TibcoXmlGenerator {
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         sb.append("<DeploymentDescriptors xmlns=\"http://www.tibco.com/xmlns/dd\">\n");
         sb.append("    <name>").append(escape(earName)).append("</name>\n");
-        sb.append("    <version>1</version>\n");
+        sb.append("    <version>").append(escape(earVersion)).append("</version>\n");
         sb.append("    <owner>").append(escape(effectiveOwner)).append("</owner>\n");
         sb.append("    <creationDate>").append(date).append("</creationDate>\n");
         sb.append("    <isApplicationArchive>true</isApplicationArchive>\n");
@@ -255,9 +257,17 @@ public class TibcoXmlGenerator {
 
     private void appendGlobalVar(StringBuilder sb, SubstVarParser.GlobalVariable var) {
         String tag = getGlobalVarTag(var.type);
+        String value = var.value;
+        if ("boolean".equalsIgnoreCase(var.type)) {
+            if ("1".equals(value) || "true".equalsIgnoreCase(value)) {
+                value = "true";
+            } else {
+                value = "false";
+            }
+        }
         sb.append("        <").append(tag).append(">\n");
         sb.append("            <name>").append(escape(var.name)).append("</name>\n");
-        appendValue(sb, "            ", var.value);
+        appendValue(sb, "            ", value);
         if (var.description != null && !var.description.isEmpty()) {
             sb.append("            <description>").append(escape(var.description)).append("</description>\n");
         }
@@ -270,6 +280,7 @@ public class TibcoXmlGenerator {
         switch (type.toLowerCase(Locale.ROOT)) {
             case "password": return "NameValuePairPassword";
             case "boolean":  return "NameValuePairBoolean";
+            case "integer":  return "NameValuePairInteger";
             default:         return "NameValuePair";
         }
     }

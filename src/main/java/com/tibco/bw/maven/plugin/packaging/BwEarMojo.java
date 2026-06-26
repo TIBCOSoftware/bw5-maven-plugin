@@ -255,12 +255,12 @@ public class BwEarMojo extends AbstractBw5Mojo {
      */
     private static final Set<String> SAR_EXTENSIONS = new HashSet<>(Arrays.asList(
         // Transport (not .shared* prefixed)
-        ".rvtransport", ".httpProxy",
+        ".rvtransport", ".httpproxy",
         // Fixed shared type (only one variant exists)
         ".jobsharedvariable",
         // Service / security
-        ".serviceagent", ".securityPolicy", ".securityPolicyAssociation",
-        ".contextResource",
+        ".serviceagent", ".securitypolicy", ".securitypolicyassociation",
+        ".contextresource",
         // Schema / WSDL
         ".wsdl", ".xsd",
         // AE adapter schemas (adapter projects reference via /AESchemas/...)
@@ -274,7 +274,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
         // Companion data files (e.g. DocumentStore.xml alongside .sharedvariable)
         ".xml",
         // Adapter configuration descriptors
-        ".adapter"
+        ".adapter",
+        // Java archive library references (referenced by javaArchive element)
+        ".aliaslib"
     ));
 
     /**
@@ -294,6 +296,14 @@ public class BwEarMojo extends AbstractBw5Mojo {
         // TIBCO Designer archive descriptor — build metadata, not a BW shared resource
         ".archive"
     ));
+
+    /**
+     * Matches relative aeschema cross-references inside .aeschema files, e.g.
+     * {@code AESchemas/ae.aeschema} or {@code AESchemas/ae/ADB/adbmetadata.aeschema}.
+     * These have no leading slash and are resolved relative to the project root.
+     */
+    private static final java.util.regex.Pattern RELATIVE_AESCHEMA_REF =
+        java.util.regex.Pattern.compile("\\bAESchemas/[^\\s<>\"'#\\\\]+\\.aeschema");
 
     /**
      * File/directory names to exclude from packaging.
@@ -472,10 +482,19 @@ public class BwEarMojo extends AbstractBw5Mojo {
             for (File mf : moduleFiles) moduleFileNames.add(mf.getName());
 
             File earTibcoXml = new File(workDir, "TIBCO.xml");
+            String effectiveEarName = (archiveDescriptor != null
+                    && archiveDescriptor.earName != null
+                    && !archiveDescriptor.earName.isEmpty())
+                ? archiveDescriptor.earName : archiveName;
+            String projectVersion = project.getVersion();
+            String majorVersion = projectVersion.contains(".")
+                ? projectVersion.substring(0, projectVersion.indexOf('.'))
+                : projectVersion;
             TibcoXmlGenerator generator = new TibcoXmlGenerator();
             generator.generateEarDescriptor(
                 earTibcoXml,
-                archiveName,
+                effectiveEarName,
+                majorVersion,
                 moduleFileNames,
                 getProjectlibDependencies(),
                 getJarDependencies(),
@@ -735,6 +754,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 getLog().warn("Could not parse substvar file: " + bwf.file.getName() + " - " + e.getMessage());
             }
         }
+        result.sort((a, b) -> a.name.compareToIgnoreCase(b.name));
         return result;
     }
 
@@ -925,6 +945,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
         List<BwFile> otherSarFiles = new ArrayList<>();
         for (BwFile f : sarFiles) {
             if (f.file.getName().endsWith(".javaxpath")
+                    || f.file.getName().endsWith(".sharedjdbc")
                     || isUnderSharedResourcePath(f, sharedResourcePaths)) {
                 alwaysInclude.add(f);
             } else {
@@ -1006,6 +1027,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     if (norm.endsWith(".xsd")) {
                         followXsdImports(norm, resourceIndex, referencedResourcePaths);
                     }
+                    // Follow relative aeschema cross-references transitively
+                    if (norm.endsWith(".aeschema")) {
+                        followAeschemaImports(norm, resourceIndex, referencedResourcePaths);
+                    }
                 }
             }
         }
@@ -1086,6 +1111,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 if (norm.endsWith(".xsd")) {
                     followXsdImports(norm, resourceIndex, visited);
                 }
+                if (norm.endsWith(".aeschema")) {
+                    followAeschemaImports(norm, resourceIndex, visited);
+                }
             }
         }
     }
@@ -1115,6 +1143,33 @@ public class BwEarMojo extends AbstractBw5Mojo {
     }
 
     /**
+     * Recursively follows relative aeschema cross-references inside a {@code .aeschema} file.
+     *
+     * <p>TIBCO aeschema files reference peer schemas using relative paths such as
+     * {@code AESchemas/ae.aeschema} (no leading slash). Each match is prepended with
+     * {@code /} and normalised before index lookup, then followed recursively.</p>
+     */
+    private void followAeschemaImports(String aeschemaPath, Map<String, BwFile> resourceIndex,
+                                       Set<String> visited) {
+        BwFile f = resourceIndex.get(aeschemaPath);
+        if (f == null) return;
+        try {
+            String content = new String(
+                java.nio.file.Files.readAllBytes(f.file.toPath()),
+                java.nio.charset.StandardCharsets.UTF_8);
+            java.util.regex.Matcher m = RELATIVE_AESCHEMA_REF.matcher(content);
+            while (m.find()) {
+                String norm = normalizeBwPath("/" + m.group());
+                if (visited.add(norm)) {
+                    followAeschemaImports(norm, resourceIndex, visited);
+                }
+            }
+        } catch (IOException ex) {
+            getLog().debug("Could not scan aeschema imports from " + f.file.getName());
+        }
+    }
+
+    /**
      * Parses a BW5 process or shared-resource file and returns all BW resource paths it references.
      *
      * <p>Uses content-based detection rather than a fixed list of element names: any XML
@@ -1129,9 +1184,20 @@ public class BwEarMojo extends AbstractBw5Mojo {
             Document doc = builder.build(file);
             for (Element e : doc.getDescendants(Filters.element())) {
                 String text = e.getTextTrim();
-                if (isBwResourcePath(text)) refs.add(text);
+                if (isBwResourcePath(text)) {
+                    refs.add(text);
+                } else if (text.contains("#") && text.contains(".aeschema")
+                           && !"messageSchemaURI".equals(e.getName())) {
+                    // Adapter palette elements (aeMeta, customOutputMeta, …) reference schemas
+                    // as /path/to/schema.aeschema#class.X — strip the fragment to get the file.
+                    // messageSchemaURI is excluded: it is a runtime type hint, not a schema import.
+                    String stripped = text.substring(0, text.indexOf('#'));
+                    if (isBwResourcePath(stripped)) refs.add(stripped);
+                }
                 String schemaLoc = e.getAttributeValue("schemaLocation");
                 if (schemaLoc != null && schemaLoc.startsWith("/")) refs.add(schemaLoc);
+                String locationAttr = e.getAttributeValue("location");
+                if (locationAttr != null && isBwResourcePath(locationAttr)) refs.add(locationAttr);
             }
         } catch (org.jdom2.JDOMException | IOException e) {
             getLog().debug("Could not parse refs from " + file.getName() + ": " + e.getMessage());
