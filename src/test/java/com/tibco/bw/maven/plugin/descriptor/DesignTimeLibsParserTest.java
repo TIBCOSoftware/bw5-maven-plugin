@@ -122,6 +122,57 @@ public class DesignTimeLibsParserTest {
     }
 
     // -----------------------------------------------------------------------
+    //  DEF-003: Designer "N=path=description" format — artifactId must not be "="
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void parsesDesignerNativeFormatWithDescription() throws Exception {
+        // TIBCO Designer writes: N=FilePath=HumanReadableAlias
+        File f = writeTemp("1=/opt/tibco/libs/FrameworkCommon.projlib=Framework Common\n"
+                         + "2=C:\\tibco\\libs\\AnotherLib.projlib=Another Library\n");
+        List<String> paths = new DesignTimeLibsParser().parse(f);
+        assertEquals(2, paths.size());
+        assertEquals("/opt/tibco/libs/FrameworkCommon.projlib", paths.get(0));
+        assertEquals("C:\\tibco\\libs\\AnotherLib.projlib", paths.get(1));
+    }
+
+    @Test
+    public void extractLibNameFromDesignerNativeFormat() throws Exception {
+        // After parse() strips N= prefix: "FilePath=Description" — extractLibName must yield just the name
+        File f = writeTemp("1=/opt/tibco/libs/FrameworkCommon.projlib=Framework Common\n");
+        List<String> paths = new DesignTimeLibsParser().parse(f);
+        assertEquals("FrameworkCommon", DesignTimeLibsParser.extractLibName(paths.get(0)));
+    }
+
+    @Test
+    public void parseDoesNotProduceEqualsAsArtifactId() throws Exception {
+        // Regression for DEF-003: a Designer entry with empty path after N= must not yield "="
+        File f = writeTemp("1==Some Description\n");
+        List<String> paths = new DesignTimeLibsParser().parse(f);
+        // The stripped value is "=Some Description" → stripDesignerDescription → ""  → not added
+        assertTrue("Entry with empty path must be skipped entirely", paths.isEmpty());
+    }
+
+    @Test
+    public void stripDesignerDescriptionLeavesPluginMavenCoordIntact() {
+        // Maven coordinates written by bw5:designer-setup end with \= (escaped equals) — must survive
+        String coord = "com.example\\:framework-common\\:1.0.0\\:projlib\\=";
+        assertEquals(coord, DesignTimeLibsParser.stripDesignerDescription(coord));
+    }
+
+    @Test
+    public void stripDesignerDescriptionStripsUnescapedEquals() {
+        assertEquals("/opt/tibco/libs/FrameworkCommon.projlib",
+            DesignTimeLibsParser.stripDesignerDescription("/opt/tibco/libs/FrameworkCommon.projlib=Framework Common"));
+    }
+
+    @Test
+    public void stripDesignerDescriptionHandlesNoEquals() {
+        assertEquals("/opt/tibco/libs/FrameworkCommon.projlib",
+            DesignTimeLibsParser.stripDesignerDescription("/opt/tibco/libs/FrameworkCommon.projlib"));
+    }
+
+    // -----------------------------------------------------------------------
     //  Helpers
     // -----------------------------------------------------------------------
 

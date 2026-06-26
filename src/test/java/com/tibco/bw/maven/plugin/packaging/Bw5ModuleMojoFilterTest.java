@@ -42,22 +42,23 @@ public class Bw5ModuleMojoFilterTest {
     }
 
     @Test
-    public void buildDirPrefixesDoesNotMarkRootWhenOnlyNestedResourcesListed() {
+    public void buildDirPrefixesAlwaysIncludesRootEvenForNestedResources() {
+        // DEF-012 regression: root "" must always be in the set so the root .folder is included
         Set<String> resources = new HashSet<>(Collections.singletonList("Common/MyProcess.process"));
         Set<String> prefixes = Bw5ModuleMojo.LibBuilderFilter.buildDirPrefixes(resources);
         assertTrue(prefixes.contains("Common"));
-        assertFalse("Root '' must not be present when no root-level resource is listed",
-            prefixes.contains(""));
+        assertTrue("Root '' must always be present (DEF-012 fix)", prefixes.contains(""));
     }
 
     @Test
-    public void buildDirPrefixesIncludesAllAncestors() {
+    public void buildDirPrefixesIncludesAllAncestorsAndRoot() {
+        // DEF-012 regression: root "" included for deeply nested resources
         Set<String> resources = new HashSet<>(Collections.singletonList("A/B/C/file.process"));
         Set<String> prefixes = Bw5ModuleMojo.LibBuilderFilter.buildDirPrefixes(resources);
         assertTrue(prefixes.contains("A/B/C"));
         assertTrue(prefixes.contains("A/B"));
         assertTrue(prefixes.contains("A"));
-        assertFalse(prefixes.contains(""));
+        assertTrue("Root '' must always be included (DEF-012 fix)", prefixes.contains(""));
     }
 
     // -----------------------------------------------------------------------
@@ -96,10 +97,11 @@ public class Bw5ModuleMojoFilterTest {
     }
 
     @Test
-    public void shouldExcludeRootFolderWhenNoRootResourceIsListed() {
+    public void shouldIncludeRootFolderEvenWhenNoRootResourceIsListed() {
+        // DEF-012 regression: root .folder must always be included because it carries BW project metadata
         Set<String> resources = new HashSet<>(Collections.singletonList("sub/MyProcess.process"));
         Set<String> prefixes = Bw5ModuleMojo.LibBuilderFilter.buildDirPrefixes(resources);
-        assertFalse("Root .folder must be excluded when no root-level resource is listed",
+        assertTrue("Root .folder must be included even when no root-level resource is listed (DEF-012)",
             Bw5ModuleMojo.LibBuilderFilter.shouldInclude(".folder", ".folder", resources, prefixes));
     }
 

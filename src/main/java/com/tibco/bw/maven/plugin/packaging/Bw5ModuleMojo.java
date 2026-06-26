@@ -296,18 +296,19 @@ public class Bw5ModuleMojo extends AbstractBw5Mojo {
 
         /**
          * Builds the set of directory path prefixes for all listed resources.
-         * Adds {@code ""} when a resource sits directly at the root, marking the
-         * root directory as having listed resources so a root-level {@code .folder}
-         * is correctly included by {@link #shouldInclude}.
+         *
+         * <p>The empty string {@code ""} represents the project root and is always
+         * included so that the root-level {@code .folder} file is included regardless
+         * of whether any resource sits directly at the root.</p>
          */
         static Set<String> buildDirPrefixes(Set<String> resources) {
             Set<String> dirs = new HashSet<>();
             for (String resource : resources) {
                 String dir = parentDir(resource);
-                dirs.add(dir);  // "" for root-level resources
+                dirs.add(dir);
                 while (!dir.isEmpty()) {
                     dir = parentDir(dir);
-                    if (!dir.isEmpty()) dirs.add(dir);
+                    dirs.add(dir);  // adds "" when reaching root, always including root .folder
                 }
             }
             return dirs;
