@@ -216,8 +216,8 @@ public class ValidateMojo extends AbstractBw5Mojo {
 
     // ── 4. Global variables ──────────────────────────────────────────────────
 
-    private void validateGlobalVariables(List<File> processFiles, List<File> substVarFiles,
-                                          List<Issue> issues) {
+    void validateGlobalVariables(List<File> processFiles, List<File> substVarFiles,
+                                 List<Issue> issues) {
         SubstVarParser parser = new SubstVarParser();
         Set<String> defined = new LinkedHashSet<>();
         for (File f : substVarFiles) {
@@ -237,7 +237,7 @@ public class ValidateMojo extends AbstractBw5Mojo {
 
         for (String ref : referenced) {
             if (!defined.contains(ref)) {
-                issues.add(new Issue(Severity.ERROR, "GVAR",
+                issues.add(new Issue(Severity.WARNING, "GVAR",
                     "Global variable referenced but not defined: %%" + ref + "%%"));
             }
         }
