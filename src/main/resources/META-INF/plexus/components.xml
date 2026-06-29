@@ -49,6 +49,7 @@
                     <compile>org.apache.maven.plugins:maven-compiler-plugin:compile</compile>
                     <process-classes>com.tibco.bw:bw5-maven-plugin:prepare-jcf-bytecode</process-classes>
                     <package>com.tibco.bw:bw5-maven-plugin:bwear</package>
+                    <verify>com.tibco.bw:bw5-maven-plugin:validate</verify>
                     <install>org.apache.maven.plugins:maven-install-plugin:install</install>
                     <deploy>org.apache.maven.plugins:maven-deploy-plugin:deploy</deploy>
                 </phases>

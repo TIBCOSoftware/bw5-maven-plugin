@@ -2,7 +2,7 @@ package com.tibco.bw.maven.plugin.packaging;
 
 import com.tibco.bw.maven.plugin.descriptor.ArchiveDescriptorParser;
 import com.tibco.bw.maven.plugin.descriptor.SubstVarParser;
-import org.apache.maven.artifact.Artifact;
+import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -50,7 +50,7 @@ import java.util.stream.Stream;
 @Mojo(
     name = "validate",
     defaultPhase = LifecyclePhase.VERIFY,
-    requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME,
+    requiresDependencyResolution = ResolutionScope.NONE,
     threadSafe = false
 )
 public class ValidateMojo extends AbstractBw5Mojo {
@@ -254,21 +254,45 @@ public class ValidateMojo extends AbstractBw5Mojo {
 
     // ── 5. Maven dependency resolution ──────────────────────────────────────
 
-    private void validateDependencies(List<Issue> issues) {
-        for (Artifact a : getProjectlibDependencies()) {
-            if (a.getFile() == null || !a.getFile().isFile()) {
+    /**
+     * Checks that all declared projlib and JAR dependencies are present in the local
+     * Maven repository.
+     *
+     * <p>Uses {@code project.getDependencies()} (POM-declared) rather than
+     * {@code project.getArtifacts()} (framework-resolved), because this goal runs with
+     * {@code requiresDependencyResolution = NONE}: if Maven tried to resolve artifacts
+     * before the goal ran and a dep was absent, it would exit with
+     * {@code DependencyResolutionException} before the goal could report a DEP issue.
+     * Checking the local-repo path directly gives the same result without Maven aborting.</p>
+     */
+    void validateDependencies(List<Issue> issues) {
+        String localRepoBase = session.getLocalRepository().getBasedir();
+        for (Dependency dep : project.getDependencies()) {
+            String scope = dep.getScope();
+            if ("test".equals(scope) || "system".equals(scope) || "provided".equals(scope)) {
+                continue;
+            }
+            String type = (dep.getType() != null && !dep.getType().isEmpty()) ? dep.getType() : "jar";
+            if (!"projlib".equals(type) && !"jar".equals(type)) continue;
+
+            File localFile = localRepoArtifactPath(localRepoBase,
+                dep.getGroupId(), dep.getArtifactId(), dep.getVersion(), type);
+            if (!localFile.isFile()) {
                 issues.add(new Issue(Severity.ERROR, "DEP",
-                    "Projlib not resolved in local repository: "
-                    + a.getGroupId() + ":" + a.getArtifactId() + ":" + a.getVersion()));
+                    dep.getGroupId() + ":" + dep.getArtifactId() + ":" + dep.getVersion()
+                    + " [" + type + "] not found in local repository"));
             }
         }
-        for (Artifact a : getJarDependencies()) {
-            if (a.getFile() == null || !a.getFile().isFile()) {
-                issues.add(new Issue(Severity.ERROR, "DEP",
-                    "JAR not resolved in local repository: "
-                    + a.getGroupId() + ":" + a.getArtifactId() + ":" + a.getVersion()));
-            }
-        }
+    }
+
+    /** Computes the canonical local-repository path for a Maven artifact. Package-private for testing. */
+    static File localRepoArtifactPath(String repoBase, String groupId,
+                                       String artifactId, String version, String type) {
+        String groupPath = groupId.replace('.', File.separatorChar);
+        String filename   = artifactId + "-" + version + "." + type;
+        return new File(repoBase,
+            groupPath + File.separator + artifactId + File.separator + version
+            + File.separator + filename);
     }
 
     // ── 6. XPath syntax ─────────────────────────────────────────────────────
