@@ -1094,6 +1094,18 @@ public class BwEarMojo extends AbstractBw5Mojo {
             }
         }
 
+        // Follow XSD import chains for sharedResources (alwaysInclude) XSDs.
+        // These files bypass the BFS (they go to alwaysInclude, not resourceIndex), so their
+        // transitive imports must be discovered separately. Build an extended index that includes
+        // alwaysInclude entries so followXsdImports can read the files.
+        Map<String, BwFile> extIndex = new HashMap<>(resourceIndex);
+        for (BwFile f : alwaysInclude) extIndex.put(normalizeBwPath(f.relativePath), f);
+        for (BwFile f : alwaysInclude) {
+            if (f.file.getName().endsWith(".xsd")) {
+                followXsdImports(normalizeBwPath(f.relativePath), extIndex, referencedResourcePaths);
+            }
+        }
+
         // PAR: all promoted entries + either all processes or only reachable ones
         List<BwFile> parProcesses = filterParByReachability
             ? buildReachableList(visitedProcessPaths, processIndex)
@@ -1216,7 +1228,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 String schemaLoc = e.getAttributeValue("schemaLocation");
                 if (schemaLoc == null || schemaLoc.startsWith("/") || schemaLoc.startsWith("http")) continue;
                 if (!schemaLoc.endsWith(".xsd")) continue;
-                String resolved = normalizeBwPath(parentBwDir + schemaLoc);
+                // Normalize ".." segments (e.g. "XSD/Status/../Common/HEADER.xsd" → "XSD/Common/HEADER.xsd")
+                String raw = normalizeBwPath(parentBwDir + schemaLoc);
+                String resolved = java.nio.file.Paths.get(raw).normalize().toString().replace(java.io.File.separatorChar, '/');
                 if (visited.add(resolved)) {
                     followXsdImports(resolved, resourceIndex, visited);
                 }
