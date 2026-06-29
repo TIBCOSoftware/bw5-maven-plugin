@@ -270,6 +270,97 @@ public class TibcoXmlGeneratorTest {
     }
 
     // -----------------------------------------------------------------------
+    //  TRA_PROPERTIES_VARIABLES tests (PAR and AAR)
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void parDescriptorTRAPropertiesVarsAbsentWhenNoRequiredVars() throws Exception {
+        SubstVarParser.GlobalVariable optional = new SubstVarParser.GlobalVariable();
+        optional.name = "ServerHost";
+        optional.value = "localhost";
+        optional.type = "String";
+        optional.requiresConfiguration = false;
+
+        Document doc = generatePar("Process Archive.par",
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.singletonList(optional));
+
+        assertNull("TRA_PROPERTIES_VARIABLES must be absent when no vars require configuration",
+                findNamedBlock(doc, "TRA_PROPERTIES_VARIABLES"));
+    }
+
+    @Test
+    public void parDescriptorTRAPropertiesVarsEmittedForRequiredVar() throws Exception {
+        SubstVarParser.GlobalVariable required = new SubstVarParser.GlobalVariable();
+        required.name = "DbPassword";
+        required.value = "";
+        required.type = "password";
+        required.requiresConfiguration = true;
+
+        Document doc = generatePar("Process Archive.par",
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.singletonList(required));
+
+        Element traBlock = findNamedBlock(doc, "TRA_PROPERTIES_VARIABLES");
+        assertNotNull("TRA_PROPERTIES_VARIABLES must be present when a var requiresConfiguration", traBlock);
+        Element nvp = firstNamedNvp(traBlock, "DbPassword");
+        assertNotNull("DbPassword must appear in TRA_PROPERTIES_VARIABLES", nvp);
+        assertEquals("true", child(nvp, "requiresConfiguration").getTextTrim());
+    }
+
+    @Test
+    public void parDescriptorTRAPropertiesVarsOnlyIncludesRequiredVars() throws Exception {
+        SubstVarParser.GlobalVariable req = new SubstVarParser.GlobalVariable();
+        req.name = "ApiKey";
+        req.value = "";
+        req.type = "String";
+        req.requiresConfiguration = true;
+
+        SubstVarParser.GlobalVariable opt = new SubstVarParser.GlobalVariable();
+        opt.name = "LogLevel";
+        opt.value = "INFO";
+        opt.type = "String";
+        opt.requiresConfiguration = false;
+
+        Document doc = generatePar("Process Archive.par",
+                Collections.emptyList(), Collections.emptyList(),
+                Arrays.asList(req, opt));
+
+        Element traBlock = findNamedBlock(doc, "TRA_PROPERTIES_VARIABLES");
+        assertNotNull(traBlock);
+        assertNotNull("ApiKey must be in TRA block", firstNamedNvp(traBlock, "ApiKey"));
+        assertNull("LogLevel must NOT be in TRA block (not required)", firstNamedNvp(traBlock, "LogLevel"));
+    }
+
+    @Test
+    public void aarDescriptorTRAPropertiesVarsEmittedForRequiredVar() throws Exception {
+        SubstVarParser.GlobalVariable required = new SubstVarParser.GlobalVariable();
+        required.name = "EndpointUrl";
+        required.value = "https://example.com";
+        required.type = "String";
+        required.requiresConfiguration = true;
+
+        Document doc = generateAar("MyAdapter.aar",
+                "/BusinessDomains/EAI/Adapters/MyAdapter.adapter#adapter.MyAdapter",
+                Collections.singletonList(required));
+
+        Element traBlock = findNamedBlock(doc, "TRA_PROPERTIES_VARIABLES");
+        assertNotNull("TRA_PROPERTIES_VARIABLES must be present in AAR for required vars", traBlock);
+        assertNotNull("EndpointUrl must appear in AAR TRA block",
+                firstNamedNvp(traBlock, "EndpointUrl"));
+    }
+
+    @Test
+    public void aarDescriptorTRAPropertiesVarsAbsentWhenEmpty() throws Exception {
+        Document doc = generateAar("MyAdapter.aar",
+                "/BusinessDomains/EAI/Adapters/MyAdapter.adapter#adapter.MyAdapter",
+                Collections.emptyList());
+
+        assertNull("TRA_PROPERTIES_VARIABLES must be absent in AAR when no vars require configuration",
+                findNamedBlock(doc, "TRA_PROPERTIES_VARIABLES"));
+    }
+
+    // -----------------------------------------------------------------------
     //  Helpers
     // -----------------------------------------------------------------------
 
@@ -286,9 +377,26 @@ public class TibcoXmlGeneratorTest {
     private Document generatePar(String parFileName,
             List<ProcessParser.ProcessMetadata> processes,
             List<String> sarPaths) throws Exception {
+        return generatePar(parFileName, processes, sarPaths, Collections.emptyList());
+    }
+
+    private Document generatePar(String parFileName,
+            List<ProcessParser.ProcessMetadata> processes,
+            List<String> sarPaths,
+            List<SubstVarParser.GlobalVariable> globalVars) throws Exception {
         File tmp = File.createTempFile("par-tibco", ".xml");
         tmp.deleteOnExit();
-        new TibcoXmlGenerator().generateParDescriptor(tmp, parFileName, processes, sarPaths, java.util.Collections.emptyList(), "test-owner");
+        new TibcoXmlGenerator().generateParDescriptor(tmp, parFileName, processes, sarPaths,
+            Collections.emptyList(), globalVars, "test-owner");
+        return new SAXBuilder().build(tmp);
+    }
+
+    private Document generateAar(String aarFileName, String adapterRef,
+            List<SubstVarParser.GlobalVariable> globalVars) throws Exception {
+        File tmp = File.createTempFile("aar-tibco", ".xml");
+        tmp.deleteOnExit();
+        new TibcoXmlGenerator().generateAarDescriptor(tmp, aarFileName, adapterRef,
+            "7.3.2.0", globalVars, "test-owner");
         return new SAXBuilder().build(tmp);
     }
 

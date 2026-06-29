@@ -161,6 +161,7 @@ public class TibcoXmlGenerator {
             String aarFileName,
             String adapterReference,
             String sdkVersionFour,
+            List<SubstVarParser.GlobalVariable> globalVars,
             String owner) throws IOException {
 
         String date = new SimpleDateFormat(DATE_FORMAT, Locale.ROOT).format(new Date());
@@ -237,6 +238,23 @@ public class TibcoXmlGenerator {
         sb.append("        <configurl:repoConfigUrl>").append(escape(repoConfigUrl)).append("</configurl:repoConfigUrl>\n");
         sb.append("        <configurl:instanceID>").append(escape(instanceID)).append("</configurl:instanceID>\n");
         sb.append("    </configurl:RepoConfigUrl>\n");
+
+        // TRA_PROPERTIES_VARIABLES: deployment-settable GVs for the BW Admin UI
+        List<SubstVarParser.GlobalVariable> configVars = new ArrayList<>();
+        if (globalVars != null) {
+            for (SubstVarParser.GlobalVariable v : globalVars) {
+                if (v.requiresConfiguration) configVars.add(v);
+            }
+        }
+        if (!configVars.isEmpty()) {
+            sb.append("    <NameValuePairs>\n");
+            sb.append("        <name>TRA_PROPERTIES_VARIABLES</name>\n");
+            for (SubstVarParser.GlobalVariable v : configVars) {
+                appendGlobalVar(sb, v);
+            }
+            sb.append("    </NameValuePairs>\n");
+        }
+
         sb.append("</DeploymentDescriptors>\n");
 
         write(outputFile, sb.toString());
@@ -298,6 +316,9 @@ public class TibcoXmlGenerator {
      * @param sarPaths          paths of SAR resource files (with leading "/") for EXTERNAL_DEPENDENCIES
      * @param jdbcCheckpointPaths paths of JDBC shared resources (e.g. "/0SharedResource/JDBC/Foo")
      *                          listed as available checkpoint resources in BwCheckpoint
+     * @param globalVars        all global variables; those with {@code requiresConfiguration=true}
+     *                          are listed in the {@code TRA_PROPERTIES_VARIABLES} block so
+     *                          the BW Admin deployment UI can prompt the operator to fill them
      * @param owner             owner string
      */
     public void generateParDescriptor(
@@ -306,6 +327,7 @@ public class TibcoXmlGenerator {
             List<ProcessParser.ProcessMetadata> processes,
             List<String> sarPaths,
             List<String> jdbcCheckpointPaths,
+            List<SubstVarParser.GlobalVariable> globalVars,
             String owner) throws IOException {
 
         String date = new SimpleDateFormat(DATE_FORMAT, Locale.ROOT).format(new Date());
@@ -365,6 +387,22 @@ public class TibcoXmlGenerator {
                 sb.append("            <requiresConfiguration>false</requiresConfiguration>\n");
                 sb.append("            <disableConfigureAtDeployment>true</disableConfigureAtDeployment>\n");
                 sb.append("        </NameValuePair>\n");
+            }
+            sb.append("    </NameValuePairs>\n");
+        }
+
+        // TRA_PROPERTIES_VARIABLES: one entry per GV that must be configured at deployment time
+        List<SubstVarParser.GlobalVariable> configVars = new ArrayList<>();
+        if (globalVars != null) {
+            for (SubstVarParser.GlobalVariable v : globalVars) {
+                if (v.requiresConfiguration) configVars.add(v);
+            }
+        }
+        if (!configVars.isEmpty()) {
+            sb.append("    <NameValuePairs>\n");
+            sb.append("        <name>TRA_PROPERTIES_VARIABLES</name>\n");
+            for (SubstVarParser.GlobalVariable v : configVars) {
+                appendGlobalVar(sb, v);
             }
             sb.append("    </NameValuePairs>\n");
         }

@@ -75,7 +75,7 @@ public class ManifestBw5GeneratorTest {
 
         // healthcheck uses empty name (matching provisioner format)
         assertTrue(json.contains("\"port\": \"8090\""));
-        assertTrue(json.contains("\"type\": \"private\""));
+        assertTrue(json.contains("\"type\": \"httpHealthCheck\""));
         assertTrue(json.contains("\"pingable\": true"));
         assertTrue(json.contains("\"public\": false"));
     }
@@ -120,11 +120,24 @@ public class ManifestBw5GeneratorTest {
 
         assertTrue(json.contains("\"sharedResourceName\": \"HTTP Connection\""));
         assertTrue(json.contains("\"port\": \"9001\""));
-        assertTrue(json.contains("\"type\": \"\""));
+        assertTrue(json.contains("\"type\": \"public\""));
         assertTrue(json.contains("\"primary\": false"));
         assertTrue(json.contains("\"public\": false"));
         assertTrue(json.contains("\"path\": \"\""));
         assertTrue(json.contains("\"ping\": \"\""));
+    }
+
+    @Test
+    public void endpointTypesAreCorrect() throws Exception {
+        File sharedHttp = resource("HTTP Connection.sharedhttp");
+        File out = new ManifestBw5Generator().generate(
+            "MyApp", "1.0", vars(), Collections.singletonList(sharedHttp), Collections.emptyList(), tmp.getRoot());
+        String json = new String(Files.readAllBytes(out.toPath()), StandardCharsets.UTF_8);
+
+        // Regular HTTP endpoint must be "public"
+        assertTrue("Regular endpoint type must be 'public'", json.contains("\"type\": \"public\""));
+        // Healthcheck endpoint must be "httpHealthCheck"
+        assertTrue("Healthcheck endpoint type must be 'httpHealthCheck'", json.contains("\"type\": \"httpHealthCheck\""));
     }
 
     @Test

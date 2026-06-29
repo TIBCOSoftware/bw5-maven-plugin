@@ -294,7 +294,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
     private static final Set<String> EXCLUDED_EXTENSIONS = new HashSet<>(Arrays.asList(
         ".folder", ".dat", ".classpath",
         // TIBCO Designer archive descriptor — build metadata, not a BW shared resource
-        ".archive"
+        ".archive",
+        // Source Control metadata (SourceSafe) — never a BW resource
+        ".scc"
     ));
 
     /**
@@ -401,7 +403,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
                     List<String> sarPaths = toSarPaths(combinedSarFiles);
                     List<ProcessParser.ProcessMetadata> meta = parseProcesses(parFiles, srcDir);
-                    buildPar(parFile, parFiles, srcDir, meta, sarPaths);
+                    buildPar(parFile, parFiles, srcDir, meta, sarPaths, globalVars);
                     moduleFiles.add(parFile);
                     getLog().info("PAR assembled: " + parFile.getName()
                         + " (" + parFile.length() + " bytes, " + parFiles.size() + " process(es))");
@@ -414,7 +416,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     String aarFileName = (aa.name != null && !aa.name.isEmpty())
                         ? aa.name + ".aar" : "Adapter Archive.aar";
                     File aarFile = new File(workDir, aarFileName);
-                    buildAar(aarFile, srcDir, aa);
+                    buildAar(aarFile, srcDir, aa, globalVars);
                     moduleFiles.add(aarFile);
                     getLog().info("AAR assembled: " + aarFile.getName() + " (" + aarFile.length() + " bytes)");
 
@@ -520,7 +522,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 List<String> sarPaths = toSarPaths(combinedSarFiles);
                 List<ProcessParser.ProcessMetadata> meta = parseProcesses(parFiles, srcDir);
                 File parFile = new File(workDir, parFileName);
-                buildPar(parFile, parFiles, srcDir, meta, sarPaths);
+                buildPar(parFile, parFiles, srcDir, meta, sarPaths, globalVars);
                 moduleFiles.add(parFile);
                 getLog().info("PAR assembled: " + parFile.getName() + " (" + parFile.length() + " bytes)");
             }
@@ -1186,17 +1188,40 @@ public class BwEarMojo extends AbstractBw5Mojo {
     /**
      * Recursively follows {@code schemaLocation} imports in an XSD file, adding
      * every imported XSD path to {@code visited} (prevents cycles).
+     *
+     * <p>Two passes are performed: first the general-purpose scanner collects absolute
+     * references (leading {@code /}); then a dedicated XML scan resolves
+     * <em>relative</em> {@code schemaLocation} values such as {@code broker.xsd} by
+     * prepending the BW directory of the importing XSD.</p>
      */
     private void followXsdImports(String xsdPath, Map<String, BwFile> resourceIndex,
                                   Set<String> visited) {
         BwFile xsdFile = resourceIndex.get(xsdPath);
         if (xsdFile == null) return;
+        // Pass 1: absolute references (e.g. schemaLocation="/SharedResources/Types.xsd")
         for (String ref : extractBwResourceRefs(xsdFile.file)) {
             String norm = normalizeBwPath(ref);
             if (norm.endsWith(".xsd") && visited.add(norm)) {
                 followXsdImports(norm, resourceIndex, visited);
             }
         }
+        // Pass 2: relative schemaLocation values (e.g. schemaLocation="broker.xsd").
+        // extractBwResourceRefs() requires a leading "/" and skips these; resolve them
+        // manually against the parent BW directory of the importing XSD.
+        String parentBwDir = xsdPath.contains("/")
+            ? xsdPath.substring(0, xsdPath.lastIndexOf('/') + 1) : "/";
+        try {
+            Document doc = new SAXBuilder().build(xsdFile.file);
+            for (Element e : doc.getDescendants(Filters.element())) {
+                String schemaLoc = e.getAttributeValue("schemaLocation");
+                if (schemaLoc == null || schemaLoc.startsWith("/") || schemaLoc.startsWith("http")) continue;
+                if (!schemaLoc.endsWith(".xsd")) continue;
+                String resolved = normalizeBwPath(parentBwDir + schemaLoc);
+                if (visited.add(resolved)) {
+                    followXsdImports(resolved, resourceIndex, visited);
+                }
+            }
+        } catch (org.jdom2.JDOMException | IOException ignored) { }
     }
 
     /**
@@ -1349,7 +1374,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
     private void buildPar(File parFile, List<BwFile> parFiles, File srcDir,
                           List<ProcessParser.ProcessMetadata> processMetadata,
-                          List<String> sarPaths) throws Exception {
+                          List<String> sarPaths,
+                          List<SubstVarParser.GlobalVariable> globalVars) throws Exception {
         // Generate PAR-level TIBCO.xml into a temp file
         File parTibcoXml = File.createTempFile("par-TIBCO", ".xml");
         parTibcoXml.deleteOnExit();
@@ -1359,6 +1385,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
             processMetadata,
             sarPaths,
             scanJdbcResourcePaths(srcDir),
+            globalVars,
             null
         );
 
@@ -1413,7 +1440,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
      * </ol>
      */
     private void buildAar(File aarFile, File srcDir,
-                          ArchiveDescriptorParser.AdapterArchiveEntry aa) throws Exception {
+                          ArchiveDescriptorParser.AdapterArchiveEntry aa,
+                          List<SubstVarParser.GlobalVariable> globalVars) throws Exception {
         String aarFileName = aarFile.getName();
 
         // Locate the .adapter file on disk
@@ -1437,7 +1465,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
         File aarTibcoXml = File.createTempFile("aar-TIBCO-", ".xml");
         aarTibcoXml.deleteOnExit();
         new TibcoXmlGenerator().generateAarDescriptor(
-            aarTibcoXml, aarFileName, aa.adapterReference, aa.getSdkVersionFourPart(), null);
+            aarTibcoXml, aarFileName, aa.adapterReference, aa.getSdkVersionFourPart(), globalVars, null);
 
         try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(aarFile.toPath()))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);

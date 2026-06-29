@@ -239,7 +239,7 @@ public class ManifestBw5Generator {
             if (!ep.isHealthcheck()) {
                 sb.append("      \"sharedResourceName\": ").append(jstr(ep.sharedResourceName)).append(",\n");
             }
-            sb.append("      \"type\": ").append(ep.isHealthcheck() ? "\"private\"" : "\"\"").append(",\n");
+            sb.append("      \"type\": ").append(ep.isHealthcheck() ? "\"httpHealthCheck\"" : "\"public\"").append(",\n");
             sb.append("      \"path\": \"\",\n");
             sb.append("      \"ping\": \"\",\n");
             sb.append("      \"public\": false,\n");
