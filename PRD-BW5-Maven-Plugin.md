@@ -207,7 +207,7 @@ Additional explicit types: `.rvtransport`, `.httpProxy`, `.jobsharedvariable`, `
 
 **Requirements:**
 - `.projlib` is a ZIP archive preserving the full BW project directory structure
-- `/library.manifest` entry is included with Maven GAV metadata
+- `/library.manifest` entry is included with TIBCO BW projlib metadata: `<version>`, `<author>`, and `<date>` — matching the format written by TIBCO Designer's `buildlibrary`; no Maven-specific fields (groupId/artifactId) are added
 - When a `.libbuilder` descriptor is present, only Designer-managed files (as listed in the descriptor) are included — plus always includes `.substvar` files and `.folder` files for any directory (including the project root) that contains at least one listed resource
 - Without a `.libbuilder` descriptor: includes all BW files, excluding AESchemas, `.designtimelibs`, `vcrepo.dat`, `.DS_Store`, `Thumbs.db`, `.git`, `.svn`, `target/`
 - Compiled Java classes (Code activities and Custom Functions) included under `JavaCode/`
@@ -228,7 +228,7 @@ Custom Functions in BW5 are Java classes that implement TIBCO's XPath extension 
 **Build flow:**
 1. Java sources for Custom Functions reside under `src/main/java/` (standard Maven layout) and are compiled by `maven-compiler-plugin`
 2. `bw5:prepare-jcf-bytecode` (phase `process-classes`) scans for `.javaxpath` files, derives the fully-qualified class name from the `<ns0:loadedFromLocation>` element, locates the compiled `.class` file, and stores the Base64-encoded bytecode as Maven property `bw5.jcf.bytecode.<className>`
-3. `bw5:bwear` / `bw5:bw5module` injects this bytecode into the `.javaxpath` file's `<data>` element when assembling the archive
+3. `bw5:bwear` / `bw5:bw5module` injects this bytecode into the `.javaxpath` file's `<ns0:bytecode>` element when assembling the archive — matching the element name written by TIBCO Designer (confirmed from Designer-generated `.javaxpath` examples)
 
 **Legacy mode:** When `<oldJavaCustomFunctions>true</oldJavaCustomFunctions>` is set, the goal uses pre-existing bytecode already embedded in the `.javaxpath` file and emits a warning rather than overwriting it.
 
