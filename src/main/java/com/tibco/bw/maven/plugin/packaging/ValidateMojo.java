@@ -282,11 +282,12 @@ public class ValidateMojo extends AbstractBw5Mojo {
             Document doc;
             try { doc = builder.build(f); }
             catch (JDOMException | IOException e) { continue; }
-            scanForXPathExpressions(doc.getRootElement(), rel(f), engine, issues);
+            scanForXPathExpressions(doc.getRootElement(), rel(f), engine, catalog, issues);
         }
     }
 
-    private void scanForXPathExpressions(Element el, String file, XPath engine, List<Issue> issues) {
+    private void scanForXPathExpressions(Element el, String file, XPath engine,
+                                          Map<String, int[]> catalog, List<Issue> issues) {
         if (XSL.getURI().equals(el.getNamespaceURI())) {
             String expr = null;
             switch (el.getName()) {
@@ -301,31 +302,81 @@ public class ValidateMojo extends AbstractBw5Mojo {
                 default: break;
             }
             if (expr != null && !expr.isBlank()) {
-                compileAndReport(expr, activityContext(el), file, engine, issues);
+                XPathChecker.check(expr, activityContext(el), file, engine, catalog, issues);
             }
         }
 
         if (PD.getURI().equals(el.getNamespaceURI()) && "condition".equals(el.getName())) {
             String text = el.getTextTrim();
             if (!text.isBlank()) {
-                compileAndReport(text, "transition", file, engine, issues);
+                XPathChecker.check(text, "transition", file, engine, catalog, issues);
             }
         }
 
         for (Element child : el.getChildren()) {
-            scanForXPathExpressions(child, file, engine, issues);
+            scanForXPathExpressions(child, file, engine, catalog, issues);
         }
     }
 
-    private void compileAndReport(String expr, String ctx, String file,
-                                   XPath engine, List<Issue> issues) {
-        try {
-            engine.compile(expr);
-        } catch (XPathExpressionException e) {
-            String detail = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
-            issues.add(new Issue(Severity.ERROR, "XPATH",
-                file + " [" + ctx + "]: " + detail
-                + " — expression: " + truncate(expr, 80)));
+    /**
+     * Package-private for unit testing: XPath expression validation logic,
+     * extracted so it can be tested without a full Mojo lifecycle.
+     */
+    static final class XPathChecker {
+
+        private XPathChecker() {}
+
+        /**
+         * Matches namespace-qualified function calls of the form {@code prefix:localName(},
+         * e.g. {@code tib:format-money(} or {@code fn:concat(}.
+         *
+         * <p>Node-axis steps ({@code ancestor::}, {@code child::}) and element names
+         * ({@code ns0:element}) do not end with {@code (} so they are never matched.</p>
+         */
+        static final Pattern NS_FUNC_CALL = Pattern.compile(
+            "[a-zA-Z_][a-zA-Z0-9_]*:[a-zA-Z_][a-zA-Z0-9_-]*\\s*\\("
+        );
+
+        /**
+         * Validates one XPath expression and appends any issues to {@code issues}.
+         *
+         * <p>Two-phase check:</p>
+         * <ol>
+         *   <li>Syntax: {@code engine.compile()} — catches malformed XPath.</li>
+         *   <li>Unknown function: scans the expression text for {@code prefix:name(} patterns
+         *       and checks each local name against the BW5 function catalog. This is necessary
+         *       because {@code XPath.compile()} is lazy and does <em>not</em> invoke the
+         *       {@code XPathFunctionResolver} — resolution only happens at evaluation time.</li>
+         * </ol>
+         */
+        static void check(String expr, String ctx, String file,
+                           XPath engine, Map<String, int[]> catalog, List<Issue> issues) {
+            try {
+                engine.compile(expr);
+            } catch (XPathExpressionException e) {
+                String detail = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+                issues.add(new Issue(Severity.WARNING, "XPATH",
+                    file + " [" + ctx + "]: XPath syntax error: " + detail
+                    + " — expression: " + truncate(expr, 80)));
+                return; // malformed — skip function scan
+            }
+
+            Matcher m = NS_FUNC_CALL.matcher(expr);
+            while (m.find()) {
+                String call     = m.group();                              // e.g. "tib:format-money("
+                int    colon    = call.indexOf(':');
+                String localName = call.substring(colon + 1, call.lastIndexOf('(')).trim();
+                if (!catalog.containsKey(localName)) {
+                    issues.add(new Issue(Severity.WARNING, "XPATH",
+                        file + " [" + ctx + "]: Unknown BW5 function '"
+                        + call.substring(0, call.lastIndexOf('(')).trim()
+                        + "' — expression: " + truncate(expr, 80)));
+                }
+            }
+        }
+
+        private static String truncate(String s, int max) {
+            return s.length() <= max ? s : s.substring(0, max) + "...";
         }
     }
 
@@ -368,7 +419,7 @@ public class ValidateMojo extends AbstractBw5Mojo {
     }
 
     @SuppressWarnings("rawtypes")
-    private XPath buildXPathEngine(Map<String, int[]> catalog) {
+    XPath buildXPathEngine(Map<String, int[]> catalog) {
         XPath engine = XPathFactory.newInstance().newXPath();
 
         // Accept any variable: $activityOutput, $_globalVariables, etc.
@@ -407,10 +458,6 @@ public class ValidateMojo extends AbstractBw5Mojo {
 
     private String rel(File f) {
         return bwProjectPath.toURI().relativize(f.toURI()).getPath();
-    }
-
-    private String truncate(String s, int max) {
-        return s.length() <= max ? s : s.substring(0, max) + "...";
     }
 
     private String rootMessage(Exception e) {
