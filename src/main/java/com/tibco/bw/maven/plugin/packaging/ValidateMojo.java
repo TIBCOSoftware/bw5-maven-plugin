@@ -223,7 +223,7 @@ public class ValidateMojo extends AbstractBw5Mojo {
         for (File f : substVarFiles) {
             try { parser.parse(f).forEach(gv -> defined.add(gv.name)); }
             catch (Exception e) {
-                getLog().warn("Skipping substvar file due to parse error: " + rel(f) + ": " + e.getMessage(), e);
+                getLog().debug("Skipping substvar file due to parse error: " + rel(f) + ": " + e.getMessage());
             }
         }
 

@@ -21,6 +21,41 @@ public class ValidateMojoGvarTest {
     public TemporaryFolder tmp = new TemporaryFolder();
 
     // -----------------------------------------------------------------------
+    //  DEF-021 regression: malformed substvar must not dump stack trace
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void malformedSubstvarProducesNoGvarIssuesAndDoesNotThrow() throws Exception {
+        // The XML well-formedness check (separate phase) already reports this as [ERROR][XML].
+        // validateGlobalVariables() must silently skip the file without adding issues or
+        // leaking a stack trace. Previously it called getLog().warn(msg, exception) which
+        // printed 50+ lines of JDOMParseException to the console.
+        File malformed = tmp.newFile("broken.substvar");
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(malformed), StandardCharsets.UTF_8)) {
+            w.write("<?xml version=\"1.0\"?><repository> NOT CLOSED");  // intentionally malformed
+        }
+        File proc = writeProcess(processWithGvar("SOME_VAR"));
+
+        ValidateMojo mojo = new ValidateMojo();
+        mojo.bwProjectPath = tmp.getRoot();  // needed by rel() in the catch block
+        List<ValidateMojo.Issue> issues = new ArrayList<>();
+        // Must not throw, must not add any GVAR issues (parse failure → file skipped)
+        mojo.validateGlobalVariables(
+            Collections.singletonList(proc),
+            Collections.singletonList(malformed),
+            issues
+        );
+
+        // SOME_VAR was referenced but the substvar couldn't be parsed → referencing-without-decl
+        // yields a GVAR Warning, but NO stack trace in console.
+        // Every issue must be GVAR (Warning), never an unexpected Error from the exception itself.
+        for (ValidateMojo.Issue issue : issues) {
+            assertEquals("GVAR", issue.code);
+            assertEquals(ValidateMojo.Severity.WARNING, issue.severity);
+        }
+    }
+
+    // -----------------------------------------------------------------------
     //  Helpers
     // -----------------------------------------------------------------------
 
