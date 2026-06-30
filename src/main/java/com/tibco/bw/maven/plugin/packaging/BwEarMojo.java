@@ -1353,28 +1353,43 @@ public class BwEarMojo extends AbstractBw5Mojo {
     }
 
     /**
-     * Collects identifier tokens from a process document body (excluding {@code xsd:import}
-     * preamble elements). Used to detect whether a schema's element names are actually
-     * referenced in the process activities, variable declarations, or fault handlers.
+     * Collects schema element name tokens from a process document body (excluding
+     * {@code xsd:import} preamble elements).
+     *
+     * <p>Only precise schema references are collected to avoid false positives from
+     * generic words like "Data" or "Type" that appear in activity names or XPath
+     * expressions but are unrelated to the imported schema's element types:</p>
+     * <ul>
+     *   <li><b>{@code ref} / {@code type} attributes</b> — BW uses {@code ref="ns:element"}
+     *       and {@code type="ns:TypeName"} in process variable declarations, error schemas, and
+     *       activity I/O schemas. The local part of the QName value is extracted.</li>
+     *   <li><b>BW fault declarations</b> — {@code <fault>localname=X namespace=Y</fault>}
+     *       text that identifies error schema types.</li>
+     * </ul>
      */
     private Set<String> collectProcessBodyTokens(Document doc) {
         Set<String> tokens = new LinkedHashSet<>();
         String xsdNs = "http://www.w3.org/2001/XMLSchema";
         for (Element e : doc.getDescendants(Filters.element())) {
             if ("import".equals(e.getName()) && xsdNs.equals(e.getNamespaceURI())) continue;
+            // QName local parts from ref/type attributes (e.g. ref="ns5:bwException" → "bwException")
+            for (String attrName : new String[]{"ref", "type"}) {
+                Attribute attr = e.getAttribute(attrName);
+                if (attr != null) {
+                    String val = attr.getValue().trim();
+                    int colon = val.indexOf(':');
+                    tokens.add(colon >= 0 ? val.substring(colon + 1) : val);
+                }
+            }
+            // BW fault declarations: "localname=bwException namespace=pmu"
             String text = e.getTextTrim();
-            if (!text.isEmpty()) addIdentifierTokens(text, tokens);
-            for (Attribute attr : e.getAttributes()) {
-                addIdentifierTokens(attr.getValue(), tokens);
+            if (text.startsWith("localname=")) {
+                for (String part : text.split("\\s+")) {
+                    if (part.startsWith("localname=")) tokens.add(part.substring(10));
+                }
             }
         }
         return tokens;
-    }
-
-    private void addIdentifierTokens(String s, Set<String> tokens) {
-        for (String tok : s.split("[^A-Za-z0-9_]+")) {
-            if (tok.length() > 1) tokens.add(tok);
-        }
     }
 
     /**
