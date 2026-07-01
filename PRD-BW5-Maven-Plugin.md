@@ -458,9 +458,18 @@ The colons in projlib alias keys are escaped as `\:` so Java `Properties.load()`
 
 #### Background mode
 
-When `bw5.run.background=true`, Maven starts the engine as a background OS process and returns immediately after the startup marker is detected in the engine's stdout (markers: `"Engine Initialized"`, `"Application started"`, `"BusinessWorks started"`), or after `bw5.run.startupWaitSeconds` seconds, whichever comes first. A JVM shutdown hook ensures the engine process is killed when Maven exits.
+When `bw5.run.background=true`, Maven starts the engine as a background OS process and returns immediately after the startup marker is detected in the engine's stdout, or after `bw5.run.startupWaitSeconds` seconds, whichever comes first. Startup markers (checked in order):
 
-When `bw5.run.background=false` (default), Maven blocks until the engine process exits, piping all output to the Maven log.
+- `BWENGINE-300002` — BW 5.16+: `BWENGINE-300002 Engine <hostname> started`
+- `Engine Initialized` — BW 5.x (older builds)
+- `Application started`
+- `bwengine started`
+- `BusinessWorks started`
+- `Deployed application`
+
+**The engine process intentionally outlives Maven** — no shutdown hook is registered in background mode, so the engine remains running after `mvn bw5:run` returns (PRD §4 Non-Goals: "bw5:run is a local development aid").
+
+When `bw5.run.background=false` (default), Maven blocks until the engine process exits, piping all output to the Maven log. A JVM shutdown hook is registered so Ctrl+C (or Maven exit) terminates the engine.
 
 #### Key parameters
 

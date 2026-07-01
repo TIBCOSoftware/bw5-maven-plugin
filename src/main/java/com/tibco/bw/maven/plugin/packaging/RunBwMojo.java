@@ -162,12 +162,14 @@ public class RunBwMojo extends AbstractBw5Mojo {
             Process proc = pb.start();
 
             if (background) {
-                startBackgroundLogging(proc);
                 if (startupWaitSeconds > 0) {
-                    waitForStartup(proc, startupWaitSeconds);
+                    waitForStartupThenLog(proc, startupWaitSeconds);
+                } else {
+                    streamToLogInBackground(new BufferedReader(
+                        new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8)));
                 }
-                getLog().info("BW engine started in background (PID-based process handle).");
-                registerShutdownHook(proc);
+                getLog().info("BW engine running in background.");
+                // No shutdown hook in background mode: engine must outlive Maven (PRD §4 Non-Goals)
             } else {
                 // Foreground: pipe stdout to Maven log, block until exit
                 registerShutdownHook(proc);
@@ -318,58 +320,88 @@ public class RunBwMojo extends AbstractBw5Mojo {
     // -----------------------------------------------------------------------
 
     /**
-     * Waits up to {@code seconds} for the engine to emit a startup marker on stdout.
-     * BW5 engine typically logs "-- Engine Initialized --" or "Application ... started".
+     * Startup markers scanned in bwengine stdout to detect a successful start.
+     * Package-private for testing.
      */
-    private void waitForStartup(Process proc, int seconds) throws MojoExecutionException {
-        final String[] START_MARKERS = {
-            "Engine Initialized",
-            "Application started",
-            "bwengine started",
-            "BusinessWorks started",
-            "Deployed application"
-        };
+    static final String[] START_MARKERS = {
+        "BWENGINE-300002",        // BW 5.16+: "BWENGINE-300002 Engine <hostname> started"
+        "Engine Initialized",     // older BW 5.x variants
+        "Application started",
+        "bwengine started",
+        "BusinessWorks started",
+        "Deployed application"
+    };
 
+    /** Returns {@code true} when {@code line} contains any known startup marker. Package-private for testing. */
+    static boolean detectStartupMarker(String line) {
+        for (String marker : START_MARKERS) {
+            if (line.contains(marker)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns {@code true} when a JVM shutdown hook should be registered to kill the engine.
+     * The hook is needed only in foreground mode; in background mode the engine must outlive Maven.
+     * Package-private for testing.
+     */
+    static boolean isShutdownHookNeeded(boolean background) {
+        return !background;
+    }
+
+    /**
+     * Reads from the engine's stdout until a startup marker is found or the deadline passes,
+     * logging every line to the Maven log. Then transfers stream ownership to a daemon thread
+     * that continues logging until EOF.
+     *
+     * A single reader is used for the entire lifetime of the stream, eliminating the race that
+     * would occur if startBackgroundLogging and waitForStartup each opened their own reader
+     * on the same underlying InputStream.
+     */
+    void waitForStartupThenLog(Process proc, int seconds) {
         long deadline = System.currentTimeMillis() + (long) seconds * 1000;
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
+        // Reader ownership is transferred to streamToLogInBackground via finally — do NOT use
+        // try-with-resources here or the stream would be closed before the thread can read it.
+        BufferedReader reader = new BufferedReader(
+            new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8));
+        try {
             while (System.currentTimeMillis() < deadline && proc.isAlive()) {
                 if (reader.ready()) {
-                    line = reader.readLine();
+                    String line = reader.readLine();
                     if (line != null) {
                         getLog().info("[bwengine] " + line);
-                        for (String marker : START_MARKERS) {
-                            if (line.contains(marker)) {
-                                getLog().info("BW engine startup detected.");
-                                return;
-                            }
+                        if (detectStartupMarker(line)) {
+                            getLog().info("BW engine startup detected.");
+                            return;
                         }
                     }
                 } else {
                     Thread.sleep(200);
                 }
             }
+            getLog().warn("BW engine startup marker not detected within " + seconds
+                + "s. The process may still be starting.");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (IOException e) {
             getLog().warn("Error reading engine output: " + e.getMessage());
+        } finally {
+            streamToLogInBackground(reader);
         }
-        // No marker found within timeout — warn but do not fail
-        getLog().warn("BW engine startup marker not detected within " + seconds
-            + "s. The process may still be starting.");
     }
 
-    /** Starts a daemon thread that pipes engine stdout to the Maven log. */
-    private void startBackgroundLogging(Process proc) {
+    /** Transfers reader ownership to a daemon thread that logs remaining output to Maven log. */
+    private void streamToLogInBackground(BufferedReader reader) {
         Thread t = new Thread(() -> {
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
+            try {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     getLog().info("[bwengine] " + line);
                 }
-            } catch (IOException ignored) { }
+            } catch (IOException ignored) {
+            } finally {
+                try { reader.close(); } catch (IOException ignored) {}
+            }
         }, "bwengine-log");
         t.setDaemon(true);
         t.start();
