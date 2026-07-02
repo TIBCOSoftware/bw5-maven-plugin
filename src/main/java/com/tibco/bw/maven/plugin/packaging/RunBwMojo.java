@@ -358,6 +358,7 @@ public class RunBwMojo extends AbstractBw5Mojo {
      * would occur if startBackgroundLogging and waitForStartup each opened their own reader
      * on the same underlying InputStream.
      */
+    @SuppressWarnings("PMD.CloseResource") // reader ownership transferred to streamToLogInBackground
     void waitForStartupThenLog(Process proc, int seconds) {
         long deadline = System.currentTimeMillis() + (long) seconds * 1000;
         // Reader ownership is transferred to streamToLogInBackground via finally — do NOT use
@@ -393,14 +394,12 @@ public class RunBwMojo extends AbstractBw5Mojo {
     /** Transfers reader ownership to a daemon thread that logs remaining output to Maven log. */
     private void streamToLogInBackground(BufferedReader reader) {
         Thread t = new Thread(() -> {
-            try {
+            try (BufferedReader br = reader) {
                 String line;
-                while ((line = reader.readLine()) != null) {
+                while ((line = br.readLine()) != null) {
                     getLog().info("[bwengine] " + line);
                 }
             } catch (IOException ignored) {
-            } finally {
-                try { reader.close(); } catch (IOException ignored) {}
             }
         }, "bwengine-log");
         t.setDaemon(true);

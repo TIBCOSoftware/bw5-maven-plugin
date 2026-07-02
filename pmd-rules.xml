@@ -10,8 +10,6 @@
 
     <!-- ===== Best Practices ===== -->
     <rule ref="category/java/bestpractices.xml">
-        <!-- Often necessary in parser loops (new entry per iteration is correct) -->
-        <exclude name="AvoidInstantiatingObjectsInLoops"/>
         <!-- Maven Log handles lazy evaluation internally -->
         <exclude name="GuardLogStatement"/>
     </rule>
@@ -30,6 +28,8 @@
 
     <!-- ===== Performance ===== -->
     <rule ref="category/java/performance.xml">
+        <!-- Often necessary in parser/collector loops; new entry per iteration is correct -->
+        <exclude name="AvoidInstantiatingObjectsInLoops"/>
         <!-- Minor micro-opt; chained .append() calls reduce readability -->
         <exclude name="ConsecutiveAppendsShouldReuse"/>
         <!-- Combining string literals saves no meaningful allocation -->
