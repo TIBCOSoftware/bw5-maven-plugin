@@ -5,7 +5,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 /**
- * Regression tests for DEF-022 and DEF-023.
+ * Regression tests for DEF-022, DEF-023, and the projlib alias key bug.
  *
  * DEF-022: Background mode startup markers did not include the BW 5.16 format
  *   "BWENGINE-300002 Engine &lt;hostname&gt; started", causing the plugin to always
@@ -89,5 +89,29 @@ public class RunBwMojoStartupTest {
         assertTrue(
             "Shutdown hook must be registered in foreground mode so Ctrl+C kills the engine",
             RunBwMojo.isShutdownHookNeeded(false));
+    }
+
+    // -----------------------------------------------------------------------
+    //  Projlib alias key format
+    //  Root cause: key was "tibco.alias.groupId:artifactId:version:projlib" (Maven GAV)
+    //  but the BW5 engine looks up libraries as "tibco.alias.artifactId.projlib" (filename).
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void projlibAliasKeyUsesFilenameFormat() {
+        assertEquals("tibco.alias.ProjectLibrary2.projlib",
+            RunBwMojo.projlibAliasKey("ProjectLibrary2"));
+    }
+
+    @Test
+    public void projlibAliasKeyDoesNotContainMavenCoordinates() {
+        String key = RunBwMojo.projlibAliasKey("MyLib");
+        assertFalse("Alias key must not contain ':' (Maven GAV separator)", key.contains(":"));
+    }
+
+    @Test
+    public void projlibAliasKeyEndsWithDotProjlib() {
+        String key = RunBwMojo.projlibAliasKey("FooBar");
+        assertTrue("Alias key must end with .projlib", key.endsWith(".projlib"));
     }
 }

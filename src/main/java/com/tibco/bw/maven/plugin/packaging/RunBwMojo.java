@@ -193,6 +193,15 @@ public class RunBwMojo extends AbstractBw5Mojo {
     //  Resolution helpers
     // -----------------------------------------------------------------------
 
+    /**
+     * Returns the bwengine.properties alias key for a projlib dependency.
+     * The BW5 engine looks up libraries by filename ({@code artifactId + ".projlib"}),
+     * not by Maven GAV coordinates. Package-private for testing.
+     */
+    static String projlibAliasKey(String artifactId) {
+        return "tibco.alias." + artifactId + ".projlib";
+    }
+
     private File resolveEngineExecutable() throws MojoExecutionException {
         File home = resolvedTibcoHome();
         if (home == null || !home.isDirectory()) {
@@ -223,13 +232,12 @@ public class RunBwMojo extends AbstractBw5Mojo {
         // LinkedHashMap preserves insertion order: aliases first, then user overrides
         Map<String, String> entries = new LinkedHashMap<>();
 
-        // 1. Auto-generate tibco.alias entries from Maven dependencies
-        //    Projlibs: engine resolves by full Maven coordinate (groupId:artifactId:version:type)
-        //    JARs: engine resolves by filename, matching what .aliaslib files store
+        // 1. Auto-generate tibco.alias entries from Maven dependencies.
+        //    Both projlibs and JARs are resolved by filename, matching what the BW5 engine
+        //    and .aliaslib files use as lookup keys (e.g. "MyLib.projlib", "util-1.0.0.jar").
         for (Artifact projlib : getProjectlibDependencies()) {
-            String key = "tibco.alias." + projlib.getGroupId() + ":"
-                + projlib.getArtifactId() + ":" + projlib.getVersion() + ":projlib";
-            entries.put(key, projlib.getFile().getAbsolutePath());
+            entries.put(projlibAliasKey(projlib.getArtifactId()),
+                projlib.getFile().getAbsolutePath());
         }
         for (Artifact jar : getJarDependencies()) {
             String key = "tibco.alias." + jar.getArtifactId() + "-" + jar.getVersion() + ".jar";
@@ -256,8 +264,8 @@ public class RunBwMojo extends AbstractBw5Mojo {
             getLog().info("Merged " + userProps.size() + " user properties from " + propertiesFile);
         }
 
-        // 3. Write manually — Properties.store() would escape ':' as '\:' which breaks
-        //    TIBCO's engine when it looks up projlib aliases by Maven coordinate
+        // 3. Write manually — Properties.store() would escape ':' as '\:' which can break
+        //    user-provided keys that contain colon separators
         File outFile = new File(project.getBuild().getDirectory(), "bwengine.properties");
         try (BufferedWriter writer = new BufferedWriter(
                 new OutputStreamWriter(java.nio.file.Files.newOutputStream(outFile.toPath()), StandardCharsets.UTF_8))) {
