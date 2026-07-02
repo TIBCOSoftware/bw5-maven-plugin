@@ -145,6 +145,27 @@ public class DesignTimeLibsParserTest {
     }
 
     @Test
+    public void extractLibNameFromBareProjlibWithTrailingEscapedEquals() {
+        // DEF-003 / TC-INIT-010: Designer writes "N=ProjectLibrary2.projlib\=" — the \= is a
+        // trailing escaped-equals suffix (not a Maven coordinate).  extractLibName must return
+        // "ProjectLibrary2", not "=" (which happened because the file-path branch used the
+        // original libPath after replace('\\','/') turned \= into /=, and lastIndexOf picked /).
+        assertEquals("ProjectLibrary2",
+            DesignTimeLibsParser.extractLibName("ProjectLibrary2.projlib\\="));
+    }
+
+    @Test
+    public void parseAndExtractFromDesignerBareProjlibEntry() throws Exception {
+        // DEF-003 / TC-INIT-010: full round-trip. The real .designtimelibs from TIBCO Designer
+        // contains bytes: 0=ProjectLibrary2.projlib\=\r\n  (backslash 0x5C then equals 0x3D).
+        // bw5:init must produce <artifactId>ProjectLibrary2</artifactId>, not <artifactId>=</artifactId>.
+        File f = writeTemp("0=ProjectLibrary2.projlib\\=\r\n");
+        List<String> paths = new DesignTimeLibsParser().parse(f);
+        assertEquals(1, paths.size());
+        assertEquals("ProjectLibrary2", DesignTimeLibsParser.extractLibName(paths.get(0)));
+    }
+
+    @Test
     public void parseDoesNotProduceEqualsAsArtifactId() throws Exception {
         // Regression for DEF-003: a Designer entry with empty path after N= must not yield "="
         File f = writeTemp("1==Some Description\n");

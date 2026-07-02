@@ -105,7 +105,7 @@ public class DesignTimeLibsParser {
         }
 
         // File path format (e.g. /opt/tibco/libs/FrameworkCommon.projlib)
-        String name = libPath.replace('\\', '/');
+        String name = stripped.replace('\\', '/');
         int slash = name.lastIndexOf('/');
         if (slash >= 0) {
             name = name.substring(slash + 1);
