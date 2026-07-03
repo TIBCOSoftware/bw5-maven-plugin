@@ -147,28 +147,30 @@ public class BwEarMojo extends AbstractBw5Mojo {
     private boolean oldJavaCustomFunctions;
 
     /**
-     * Optional path to a TIBCO Designer {@code .archive} descriptor file.
+     * Path to a TIBCO Designer {@code .archive} descriptor file.
      *
-     * <p>When provided, the plugin reads the descriptor to determine:</p>
+     * <p>When provided (or auto-discovered in {@code bwProjectPath}), the plugin reads
+     * the descriptor to determine:</p>
      * <ul>
      *   <li>The PAR name (from {@code processArchive/@name}), overriding
      *       {@code "Process Archive.par"} if the descriptor specifies a different name.</li>
      *   <li>The SAR name (from {@code sharedArchive/@name}), overriding
      *       {@code bw5.sharedArchiveName} if the descriptor specifies a name.</li>
-     *   <li>Optionally which processes to include in the PAR (when
-     *       {@code bw5.archiveDescriptorFilterProcesses=true}).</li>
+     *   <li>Which processes to include in the PAR — only processes reachable by BFS from
+     *       the declared {@code processProperty} entry points are packaged, matching
+     *       TIBCO Designer {@code buildear} behaviour. Orphan processes (not reachable
+     *       from any entry point) are excluded.</li>
      * </ul>
      *
-     * <p>By default (when {@code bw5.archiveDescriptorFilterProcesses} is {@code false}),
-     * all collected {@code .process} files are included — the descriptor is used only
-     * for archive naming. This matches {@code buildEAR} behaviour where all processes
-     * from projlib dependencies are packaged.</p>
+     * <p>If this parameter is not set, the plugin scans the top level of
+     * {@code bwProjectPath} for a {@code *.archive} file and uses it automatically.
+     * If no {@code .archive} file is found, all {@code .process} files are included.</p>
      *
-     * <p>Commit the {@code .archive} file alongside your BW project sources to use this
-     * feature, for example:</p>
+     * <p>Configure this explicitly only when the {@code .archive} file is not at the
+     * project root, for example:</p>
      * <pre>{@code
      * <configuration>
-     *   <archiveDescriptorFile>${basedir}/src/main/bw/MyApp.archive</archiveDescriptorFile>
+     *   <archiveDescriptorFile>${basedir}/archives/MyApp.archive</archiveDescriptorFile>
      * </configuration>
      * }</pre>
      */
@@ -904,24 +906,55 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
     private ArchiveDescriptorParser.ArchiveDescriptor loadArchiveDescriptor()
             throws MojoExecutionException {
-        if (archiveDescriptorFile == null) {
-            return null;
+        File descriptorFile = archiveDescriptorFile;
+        if (descriptorFile == null) {
+            // Auto-discover: scan the project source root for a .archive file.
+            // The .archive descriptor is excluded from packaging (EXCLUDED_EXTENSIONS) so it
+            // remains in bwProjectPath even after sources are copied to bwSourcesDirectory.
+            List<File> found = findArchiveFiles(bwProjectPath);
+            if (found.isEmpty()) {
+                return null;
+            }
+            if (found.size() > 1) {
+                getLog().warn("Multiple .archive files found in " + bwProjectPath.getName()
+                    + "; using first: " + found.get(0).getName()
+                    + ". Configure <archiveDescriptorFile> explicitly to suppress this warning.");
+            }
+            descriptorFile = found.get(0);
+            getLog().info("Auto-discovered .archive descriptor: " + descriptorFile.getAbsolutePath());
         }
-        if (!archiveDescriptorFile.exists()) {
+        if (!descriptorFile.exists()) {
             throw new MojoExecutionException(
-                "Archive descriptor not found: " + archiveDescriptorFile.getAbsolutePath());
+                "Archive descriptor not found: " + descriptorFile.getAbsolutePath());
         }
         try {
             ArchiveDescriptorParser parser = new ArchiveDescriptorParser();
-            ArchiveDescriptorParser.ArchiveDescriptor descriptor = parser.parse(archiveDescriptorFile);
-            getLog().info("Using .archive descriptor: " + archiveDescriptorFile.getName()
+            ArchiveDescriptorParser.ArchiveDescriptor descriptor = parser.parse(descriptorFile);
+            getLog().info("Using .archive descriptor: " + descriptorFile.getName()
                 + " (" + descriptor + ")");
             return descriptor;
         } catch (Exception e) {
             throw new MojoExecutionException(
                 "Failed to parse .archive descriptor '"
-                + archiveDescriptorFile.getName() + "': " + e.getMessage(), e);
+                + descriptorFile.getName() + "': " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Scans the top level of {@code dir} for files with a {@code .archive} extension.
+     * Non-recursive — {@code .archive} files in BW5 projects always live at the project root.
+     */
+    static List<File> findArchiveFiles(File dir) {
+        List<File> result = new ArrayList<>();
+        if (dir == null || !dir.isDirectory()) return result;
+        File[] files = dir.listFiles();
+        if (files == null) return result;
+        for (File f : files) {
+            if (f.isFile() && f.getName().endsWith(".archive")) {
+                result.add(f);
+            }
+        }
+        return result;
     }
 
     /**
