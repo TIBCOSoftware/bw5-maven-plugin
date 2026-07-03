@@ -48,7 +48,7 @@ public class PrepareJcfBytecodeMojo extends AbstractBw5Mojo {
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (skip) {
-            getLog().debug("bw5:prepare-jcf-bytecode skipped.");
+            getLog().info("bw5:prepare-jcf-bytecode skipped.");
             return;
         }
 
