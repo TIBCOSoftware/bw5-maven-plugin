@@ -55,8 +55,21 @@ public class ArchiveDescriptorParser {
     private static final Namespace REPO_NS_DEFAULT =
         Namespace.getNamespace("http://www.tibco.com/xmlns/repo/types/2002");
 
+    /** Namespace used by the TIBCO Designer archivedefn format. */
+    private static final Namespace ARCHIVEDEFN_NS =
+        Namespace.getNamespace("http://xmlns.tibco.com/bw/archivedefn");
+
     /**
      * Parses the {@code .archive} descriptor and returns its metadata.
+     *
+     * <p>Two XML formats are supported:</p>
+     * <ul>
+     *   <li><b>Repository format</b> — root is {@code Repository:repository} or bare
+     *       {@code repository}; entry points listed in {@code <processProperty>} CSV text.</li>
+     *   <li><b>Archivedefn format</b> — root is {@code aa:archive}
+     *       (namespace {@code http://xmlns.tibco.com/bw/archivedefn}); entry points are
+     *       {@code <aa:processStart name="..."/>} attributes.</li>
+     * </ul>
      *
      * @param archiveFile the {@code .archive} file to parse
      * @return parsed archive descriptor metadata
@@ -67,6 +80,56 @@ public class ArchiveDescriptorParser {
         Document doc = builder.build(archiveFile);
         Element root = doc.getRootElement();
 
+        // Dispatch to format-specific parser
+        Namespace rootNs = root.getNamespace();
+        if (ARCHIVEDEFN_NS.getURI().equals(rootNs.getURI())
+                || "archive".equals(root.getName())) {
+            return parseArchivedefnFormat(root);
+        }
+        return parseRepositoryFormat(root);
+    }
+
+    /**
+     * Parses the archivedefn format:
+     * <pre>
+     * &lt;aa:archive name="MyApp" xmlns:aa="http://xmlns.tibco.com/bw/archivedefn"&gt;
+     *   &lt;aa:processStart name="/Services/Main.process" enabled="true"/&gt;
+     * &lt;/aa:archive&gt;
+     * </pre>
+     */
+    private ArchiveDescriptor parseArchivedefnFormat(Element root) {
+        ArchiveDescriptor descriptor = new ArchiveDescriptor();
+        descriptor.earName = root.getAttributeValue("name");
+
+        ProcessArchiveEntry entry = new ProcessArchiveEntry();
+        entry.name = descriptor.earName;
+
+        for (Element child : root.getChildren()) {
+            String localName = child.getName();
+            if ("processStart".equals(localName)) {
+                String path = child.getAttributeValue("name");
+                if (path != null && !path.isEmpty()) {
+                    entry.processPaths.add(path);
+                }
+            }
+        }
+        descriptor.processArchives.add(entry);
+        return descriptor;
+    }
+
+    /**
+     * Parses the legacy Repository format:
+     * <pre>
+     * &lt;Repository:repository xmlns:Repository="http://www.tibco.com/xmlns/repo/types/2002"&gt;
+     *   &lt;enterpriseArchive&gt;
+     *     &lt;processArchive name="Process Archive"&gt;
+     *       &lt;processProperty&gt;/MyApp/Start.process&lt;/processProperty&gt;
+     *     &lt;/processArchive&gt;
+     *   &lt;/enterpriseArchive&gt;
+     * &lt;/Repository:repository&gt;
+     * </pre>
+     */
+    private ArchiveDescriptor parseRepositoryFormat(Element root) {
         ArchiveDescriptor descriptor = new ArchiveDescriptor();
 
         Element enterpriseArchive = getChildNoNs(root, "enterpriseArchive");

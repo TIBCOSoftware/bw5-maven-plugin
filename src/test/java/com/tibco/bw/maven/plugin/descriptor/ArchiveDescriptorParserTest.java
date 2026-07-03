@@ -136,8 +136,66 @@ public class ArchiveDescriptorParserTest {
     }
 
     // -----------------------------------------------------------------------
+    //  Archivedefn format (http://xmlns.tibco.com/bw/archivedefn)
+    //  Used by TIBCO Designer when the archive is created via the Archive Builder
+    //  GUI and saved in the newer namespace format.
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void parsesArchivedefnFormatSingleEntryPoint() throws Exception {
+        File tmp = writeArchivedefn("BFSTest",
+            "  <aa:processStart name=\"/Services/MainProcess.process\" enabled=\"true\"/>\n");
+        ArchiveDescriptorParser.ArchiveDescriptor d = new ArchiveDescriptorParser().parse(tmp);
+        assertEquals("BFSTest", d.earName);
+        assertTrue("archivedefn with processStart must have explicit process list",
+            d.hasExplicitProcessList());
+        assertEquals(1, d.getProcessPaths().size());
+        assertEquals("/Services/MainProcess.process", d.getProcessPaths().get(0));
+    }
+
+    @Test
+    public void parsesArchivedefnFormatMultipleEntryPoints() throws Exception {
+        File tmp = writeArchivedefn("MultiApp",
+            "  <aa:processStart name=\"/Services/A.process\" enabled=\"true\"/>\n"
+            + "  <aa:processStart name=\"/Services/B.process\" enabled=\"true\"/>\n");
+        ArchiveDescriptorParser.ArchiveDescriptor d = new ArchiveDescriptorParser().parse(tmp);
+        assertEquals(2, d.getProcessPaths().size());
+        assertTrue(d.getProcessPaths().contains("/Services/A.process"));
+        assertTrue(d.getProcessPaths().contains("/Services/B.process"));
+    }
+
+    @Test
+    public void parsesArchivedefnFormatArchiveName() throws Exception {
+        File tmp = writeArchivedefn("MyEarName",
+            "  <aa:processStart name=\"/P.process\" enabled=\"true\"/>\n");
+        ArchiveDescriptorParser.ArchiveDescriptor d = new ArchiveDescriptorParser().parse(tmp);
+        assertEquals("MyEarName", d.earName);
+        // Archive name flows to the first processArchive entry for naming
+        assertEquals("MyEarName", d.getProcessArchiveName());
+    }
+
+    @Test
+    public void parsesArchivedefnFormatNoProcessStart() throws Exception {
+        File tmp = writeArchivedefn("EmptyApp", "");
+        ArchiveDescriptorParser.ArchiveDescriptor d = new ArchiveDescriptorParser().parse(tmp);
+        assertFalse("No processStart → no explicit process list", d.hasExplicitProcessList());
+    }
+
+    // -----------------------------------------------------------------------
     //  Helper
     // -----------------------------------------------------------------------
+
+    private File writeArchivedefn(String name, String body) throws Exception {
+        File tmp = File.createTempFile("test", ".archive");
+        tmp.deleteOnExit();
+        try (java.io.PrintWriter pw = new java.io.PrintWriter(tmp)) {
+            pw.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+            pw.println("<aa:archive name=\"" + name + "\" xmlns:aa=\"http://xmlns.tibco.com/bw/archivedefn\">");
+            pw.print(body);
+            pw.println("</aa:archive>");
+        }
+        return tmp;
+    }
 
     private File writeArchive(String body) throws Exception {
         File tmp = File.createTempFile("test", ".archive");

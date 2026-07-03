@@ -156,4 +156,75 @@ public class ValidateMojoGvarTest {
                 ValidateMojo.Severity.WARNING, issue.severity);
         }
     }
+
+    // -----------------------------------------------------------------------
+    //  PROCESS_NAME validation: <pd:name> with leading slash and no .process
+    //  extension must match the file path (DEF-026 / bfs-test validation fix)
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void processNameWithLeadingSlashAndNoExtensionIsAccepted() throws Exception {
+        // Standard BW5 Designer format: <pd:name>/Services/MainProcess</pd:name>
+        // with file at Services/MainProcess.process — must NOT produce an error.
+        File dir = tmp.newFolder("Services");
+        File proc = new File(dir, "MainProcess.process");
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(proc), StandardCharsets.UTF_8)) {
+            w.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+                + "  <pd:name>/Services/MainProcess</pd:name>\n"
+                + "</pd:ProcessDefinition>\n");
+        }
+
+        ValidateMojo mojo = new ValidateMojo();
+        mojo.bwProjectPath = tmp.getRoot();
+        List<ValidateMojo.Issue> issues = new ArrayList<>();
+        mojo.validateProcessNames(Collections.singletonList(proc), issues);
+
+        long nameErrors = issues.stream()
+            .filter(i -> "PROCESS_NAME".equals(i.code)).count();
+        assertEquals("Leading-slash <pd:name> with no .process suffix must not produce PROCESS_NAME error",
+            0, nameErrors);
+    }
+
+    @Test
+    public void processNameMismatchIsStillDetected() throws Exception {
+        File dir = tmp.newFolder("WrongServices");
+        File proc = new File(dir, "MainProcess.process");
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(proc), StandardCharsets.UTF_8)) {
+            w.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+                + "  <pd:name>/Services/CompletelyDifferentName</pd:name>\n"
+                + "</pd:ProcessDefinition>\n");
+        }
+
+        ValidateMojo mojo = new ValidateMojo();
+        mojo.bwProjectPath = tmp.getRoot();
+        List<ValidateMojo.Issue> issues = new ArrayList<>();
+        mojo.validateProcessNames(Collections.singletonList(proc), issues);
+
+        long nameErrors = issues.stream()
+            .filter(i -> "PROCESS_NAME".equals(i.code)).count();
+        assertEquals("Genuinely wrong <pd:name> must still produce PROCESS_NAME error", 1, nameErrors);
+    }
+
+    @Test
+    public void processNameWithoutLeadingSlashIsAlsoAccepted() throws Exception {
+        File dir = tmp.newFolder("NoSlashServices");
+        File proc = new File(dir, "MyProc.process");
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(proc), StandardCharsets.UTF_8)) {
+            w.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+                + "  <pd:name>NoSlashServices/MyProc</pd:name>\n"
+                + "</pd:ProcessDefinition>\n");
+        }
+
+        ValidateMojo mojo = new ValidateMojo();
+        mojo.bwProjectPath = tmp.getRoot();
+        List<ValidateMojo.Issue> issues = new ArrayList<>();
+        mojo.validateProcessNames(Collections.singletonList(proc), issues);
+
+        long nameErrors = issues.stream()
+            .filter(i -> "PROCESS_NAME".equals(i.code)).count();
+        assertEquals("<pd:name> without leading slash must also be accepted", 0, nameErrors);
+    }
 }

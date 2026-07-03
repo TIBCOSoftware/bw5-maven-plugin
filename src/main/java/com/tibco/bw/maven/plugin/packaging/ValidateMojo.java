@@ -181,7 +181,7 @@ public class ValidateMojo extends AbstractBw5Mojo {
 
     // ── 3. Process names and duplicates ─────────────────────────────────────
 
-    private void validateProcessNames(List<File> processFiles, List<Issue> issues) {
+    void validateProcessNames(List<File> processFiles, List<Issue> issues) {
         SAXBuilder builder = new SAXBuilder();
         Map<String, File> seen = new LinkedHashMap<>();
 
@@ -197,9 +197,16 @@ public class ValidateMojo extends AbstractBw5Mojo {
             if (declaredName == null || declaredName.isEmpty()) continue;
 
             String relPath  = rel(f).replace(File.separatorChar, '/');
+            // BW5 Designer stores <pd:name> without .process extension and with a leading "/",
+            // e.g. "/Services/MainProcess". Normalize both sides before comparing.
             String normName = declaredName.replace('\\', '/');
+            if (normName.startsWith("/")) {
+                normName = normName.substring(1);
+            }
+            String relPathNoExt = relPath.endsWith(".process")
+                ? relPath.substring(0, relPath.length() - ".process".length()) : relPath;
 
-            if (!relPath.endsWith(normName)) {
+            if (!relPathNoExt.endsWith(normName)) {
                 issues.add(new Issue(Severity.ERROR, "PROCESS_NAME",
                     rel(f) + ": <pd:name> '" + declaredName + "' does not match file path"));
             }
