@@ -194,6 +194,26 @@ public class ManifestBw5GeneratorTest {
     }
 
     @Test
+    public void appNameFromArchiveDescriptorIsUsedNotArtifactId() throws Exception {
+        // Regression: BwEarMojo must pass effectiveEarName (from .archive descriptor when present)
+        // to ManifestBw5Generator, not archiveName (Maven artifactId). Both TIBCO.xml and
+        // manifest-bw5.json must agree on the application name.
+        // Simulates: archiveDescriptor.earName="BFSTest", archiveName="project-using-projlib"
+        File out = new ManifestBw5Generator().generate(
+            "BFSTest", "1.0.0-SNAPSHOT",
+            Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
+            tmp.getRoot());
+        String json = new String(Files.readAllBytes(out.toPath()), StandardCharsets.UTF_8);
+
+        assertTrue("name must reflect effectiveEarName (descriptor), not Maven artifactId",
+            json.contains("\"name\": \"BFSTest\""));
+        assertTrue("applicationName must also reflect effectiveEarName",
+            json.contains("\"applicationName\": \"BFSTest\""));
+        assertFalse("Maven artifactId must not appear as application name",
+            json.contains("\"name\": \"project-using-projlib\""));
+    }
+
+    @Test
     public void resolvesProcessNameFromSharedChannel() throws Exception {
         File sharedHttp = resource("HTTP Connection.sharedhttp");
         File process = resource("HTTP Receiver.process");

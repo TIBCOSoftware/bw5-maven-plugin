@@ -584,7 +584,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     }
                 }
                 manifestFile = new ManifestBw5Generator().generate(
-                    archiveName, project.getVersion(), globalVars, sharedHttpFiles, allProcessFiles, workDir);
+                    effectiveEarName, project.getVersion(), globalVars, sharedHttpFiles, allProcessFiles, workDir);
                 getLog().info("manifest-bw5.json generated.");
             }
 
