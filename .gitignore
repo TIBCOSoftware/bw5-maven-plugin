@@ -7,6 +7,9 @@ src/test/resources/bw-projects/test-bw5-framework/
 # Claude Code local config (not tracked)
 .claude/
 
+# Internal docs (PRD, slides) — not part of the public repo
+PRD-*.md
+
 # macOS resource fork metadata files
 ._*
 .DS_Store
