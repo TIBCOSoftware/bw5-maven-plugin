@@ -83,8 +83,8 @@ The EAR contains:
 | Parameter | Maven property | Default | Description |
 |---|---|---|---|
 | `bwProjectPath` | `bw5.bwProjectPath` | `${basedir}` | Root directory of the BW5 sources |
-| `archiveName` | `bw5.archiveName` | `${project.artifactId}` | Name of the PAR inside the EAR |
-| `archiveDescriptorFile` | `bw5.archiveDescriptorFile` | _(auto-detected)_ | Path to the Designer `.archive` file. Controls which processes are included |
+| `archiveName` | `bw5.archiveName` | `${project.artifactId}` | Application name used in `TIBCO.xml`, `manifest-bw5.json`, and as PAR name. Overridden by the descriptor's own name when a `.archive` file is present |
+| `archiveDescriptorFile` | `bw5.archiveDescriptorFile` | _(auto-detected)_ | Path to the Designer `.archive` file. When not set, the plugin scans the project root for a `*.archive` file automatically |
 | `includeSharedArchive` | `bw5.includeSharedArchive` | `true` | If `false`, the SAR is not included in the EAR |
 | `sharedArchiveName` | `bw5.sharedArchiveName` | `Shared Archive` | Name of the SAR inside the EAR |
 | `generateDeployXml` | `bw5.generateDeployXml` | `true` | Generates an AppManage-compatible deployment XML file |
@@ -95,6 +95,8 @@ The EAR contains:
 | `skipResolveDependencies` | `bw5.bwear.skipResolveDependencies` | `false` | If `true`, skips copying dependencies to the build directory |
 | `earOnly` | `bw5.earOnly` | `false` | If `true`, only assembles the EAR without generating any deployment configuration files |
 | `oldJavaCustomFunctions` | `bw5.oldJavaCustomFunctions` | `false` | If `true`, uses the `.javaxpath` bytecode already embedded in the source files instead of freshly compiled classes |
+| `skipManifest` | `bw5.skipManifest` | `false` | If `true`, skips generating `manifest-bw5.json` |
+| `includeFolderMetadata` | `bw5.includeFolderMetadata` | `false` | If `true`, includes `.folder` Designer metadata files in the PAR |
 | `skip` | `bw5.skip` | `false` | If `true`, skips the goal entirely |
 
 ### Examples
@@ -302,7 +304,7 @@ Runs the BW5 application locally using the BW engine installed on the machine. A
 
 | Parameter | Maven property | Default | Required | Description |
 |---|---|---|---|---|
-| `tibcoHome` | `tibco.Home` | — | Yes | TIBCO installation root directory (e.g. `/opt/tibco`) |
+| `tibcoHome` | `bw5.tibcoHome` | — | Yes | TIBCO installation root directory (e.g. `/opt/tibco`) |
 | `bwVersion` | `bw5.bwVersion` | `5.13.0` | — | Installed BusinessWorks 5.x version string |
 | `background` | `bw5.run.background` | `false` | — | If `true`, starts the engine as a background process and Maven returns immediately |
 | `startupWaitSeconds` | `bw5.run.startupWaitSeconds` | `30` | — | Seconds to wait for the engine to start before reporting an error (background mode only) |
@@ -317,18 +319,18 @@ Runs the BW5 application locally using the BW engine installed on the machine. A
 ```bash
 # Run in the foreground (Maven blocks until the engine stops)
 mvn com.tibco.bw:bw5-maven-plugin:run \
-  -Dtibco.Home=/opt/tibco \
+  -Dbw5.tibcoHome=/opt/tibco \
   -Dbw5.bwVersion=5.13.0
 
 # Run in the background (Windows path)
 mvn com.tibco.bw:bw5-maven-plugin:run \
-  -Dtibco.Home="C:/tibco" \
+  -Dbw5.tibcoHome="C:/tibco" \
   -Dbw5.run.background=true \
   -Dbw5.run.startupWaitSeconds=60
 
 # Run with additional local property overrides
 mvn com.tibco.bw:bw5-maven-plugin:run \
-  -Dtibco.Home=/opt/tibco \
+  -Dbw5.tibcoHome=/opt/tibco \
   -Dbw5.run.propertiesFile=local-overrides.properties
 ```
 
@@ -433,7 +435,7 @@ These parameters are inherited by every goal in the plugin.
 | Parameter | Maven property | Default | Description |
 |---|---|---|---|
 | `bwProjectPath` | `bw5.bwProjectPath` | `${basedir}` | Root directory of the BW5 sources |
-| `archiveName` | `bw5.archiveName` | `${project.artifactId}` | Name of the PAR inside the EAR |
+| `archiveName` | `bw5.archiveName` | `${project.artifactId}` | Application name used in `TIBCO.xml`, `manifest-bw5.json`, and as PAR name when no `.archive` descriptor is present |
 | `skip` | `bw5.skip` | `false` | Disables all plugin goals when set to `true` |
 
 ---

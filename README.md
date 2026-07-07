@@ -283,7 +283,9 @@ my-app-1.0.0-SNAPSHOT.ear
 | `generateDeployXml` | `bw5.generateDeployXml` | `true` | Generate `-deploy.xml` |
 | `generateProperties` | `bw5.generateProperties` | `true` | Generate `-deploy.properties` |
 | `generateValuesYaml` | `bw5.generateValuesYaml` | `true` | Generate `values.yaml` |
-| `archiveDescriptorFile` | `bw5.archiveDescriptorFile` | — | TIBCO `.archive` descriptor |
+| `archiveDescriptorFile` | `bw5.archiveDescriptorFile` | _(auto-detected)_ | TIBCO `.archive` descriptor. When not set, the plugin scans the project root for a `*.archive` file |
+| `skipManifest` | `bw5.skipManifest` | `false` | If `true`, skips generating `manifest-bw5.json` |
+| `includeFolderMetadata` | `bw5.includeFolderMetadata` | `false` | If `true`, includes `.folder` Designer metadata files in the PAR |
 | `globalPropertiesFile` | `bw5.deployConfig.globalPropertiesFile` | — | Global property overrides |
 | `projectPropertiesFile` | `bw5.deployConfig.projectPropertiesFile` | — | Project-specific overrides |
 | `skip` | `bw5.skip` | `false` | Skip goal |
@@ -400,7 +402,7 @@ Configure `tibco.Home` in `~/.m2/settings.xml` to avoid polluting the project PO
         <id>tibco-local</id>
         <activation><activeByDefault>true</activeByDefault></activation>
         <properties>
-            <tibco.Home>/opt/tibco</tibco.Home>
+            <bw5.tibcoHome>/opt/tibco</bw5.tibcoHome>
             <bw5.bwVersion>5.13.0</bw5.bwVersion>
         </properties>
     </profile>
@@ -409,24 +411,26 @@ Configure `tibco.Home` in `~/.m2/settings.xml` to avoid polluting the project PO
 
 ```bash
 # Build and run (foreground — blocks until engine exits)
-mvn package bw5:run
+mvn package bw5:run -Dbw5.tibcoHome=/opt/tibco
 
 # Run in background (Maven returns after startup marker detected)
-mvn package bw5:run -Dbw5.run.background=true
+mvn package bw5:run -Dbw5.tibcoHome=/opt/tibco -Dbw5.run.background=true
 
-# Run pre-built EAR
-mvn bw5:run -Dbw5.run.earFile=target/my-app-1.0.0-SNAPSHOT.ear
+# Run with additional local property overrides
+mvn bw5:run -Dbw5.tibcoHome=/opt/tibco -Dbw5.run.propertiesFile=local.properties
 ```
 
 **Key parameters:**
 
 | Parameter | Property | Default | Description |
 |-----------|----------|---------|-------------|
-| `tibcoHome` | `tibco.Home` | *(required)* | TIBCO installation root |
+| `tibcoHome` | `bw5.tibcoHome` | *(required)* | TIBCO installation root |
 | `bwVersion` | `bw5.bwVersion` | `5.13.0` | BW5 version string |
-| `earFile` | `bw5.run.earFile` | `target/<finalName>.ear` | EAR to run |
 | `background` | `bw5.run.background` | `false` | Run as background process |
 | `startupWaitSeconds` | `bw5.run.startupWaitSeconds` | `30` | Wait time for background start |
+| `domainHome` | `bw5.run.domainHome` | — | BW domain home directory; passed via `-d` flag |
+| `workingDir` | `bw5.run.workingDir` | `${project.build.directory}` | Working directory for the engine process |
+| `propertiesFile` | `bw5.run.propertiesFile` | — | Additional `.properties` file that overrides auto-generated `bwengine.properties` |
 
 ---
 
@@ -543,7 +547,7 @@ mvn bw5:deploy-config \
 
 ## Archive Descriptor Support
 
-If your project uses a TIBCO Designer `.archive` file, the plugin can use it to determine which processes to include in the PAR and to read PAR/SAR names:
+The plugin automatically scans the BW project root for a `*.archive` file at the start of each build. You can also specify it explicitly:
 
 ```xml
 <configuration>
@@ -551,12 +555,15 @@ If your project uses a TIBCO Designer `.archive` file, the plugin can use it to 
 </configuration>
 ```
 
-When provided:
-- Only processes listed in `processArchive/processProperty` are included
+When a descriptor is found (auto-detected or explicit):
+- Only processes reachable from `processStart` entry points (BFS) are included in the PAR
+- Application name is read from the descriptor and used in `TIBCO.xml` and `manifest-bw5.json`
 - PAR name is read from `processArchive/@name`
 - SAR name is read from `sharedArchive/@name`
 
-Without it, all `.process` files in the project are included.
+Both TIBCO Designer archive formats are supported: the Repository namespace format (`<enterpriseArchive>`) and the Archive Builder format (`xmlns:aa="http://xmlns.tibco.com/bw/archivedefn"`).
+
+Without a descriptor, all `.process` files in the project are included and names default to `bw5.archiveName` (which defaults to `${project.artifactId}`).
 
 ---
 
