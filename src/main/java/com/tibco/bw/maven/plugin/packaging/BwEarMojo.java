@@ -1063,7 +1063,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     missingEntryPoints.add(ep);
                 }
             }
-            // .serviceagent entries already handled by promoteServiceAgentsFromDescriptor
+            // .serviceagent entries are promoted to PAR by promoteServiceAgentsFromDescriptor
+            // and their opImpl processes are seeded into the BFS queue below
         }
         if (!missingEntryPoints.isEmpty()) {
             StringBuilder msg = new StringBuilder(
@@ -1087,6 +1088,37 @@ public class BwEarMojo extends AbstractBw5Mojo {
         } else {
             for (BwFile pf : processFiles) {
                 queue.add(normalizeBwPath(pf.relativePath));
+            }
+        }
+
+        // Traverse promoted service agents: opImpl attrs → process seeds, text/location
+        // refs (sharedChannel, contextResource, WSDL) → SAR resources. This step runs
+        // before the BFS loop so that implementation processes discovered here are visited
+        // by the BFS and can pull in their own transitive SAR dependencies.
+        for (BwFile sa : promotedParEntries) {
+            if (!sa.file.getName().endsWith(".serviceagent")) continue;
+            getLog().debug("Traversing service agent: " + sa.relativePath);
+            for (String ref : extractBwResourceRefs(sa.file)) {
+                String norm = normalizeBwPath(ref);
+                if (norm.endsWith(".process")) {
+                    if (!visitedProcessPaths.contains(norm)) {
+                        getLog().debug("  serviceagent opImpl → process: " + norm);
+                        queue.add(norm);
+                    }
+                } else if (referencedResourcePaths.add(norm)) {
+                    if (norm.endsWith(".sharedvariable") || norm.endsWith(".jobsharedvariable")) {
+                        referencedResourcePaths.add(norm.replaceAll("\\.[^.]+$", ".xml"));
+                    }
+                    if (isSarExtension(getExtension(norm))) {
+                        followSharedResourceRefs(norm, resourceIndex, referencedResourcePaths);
+                    }
+                    if (norm.endsWith(".xsd")) {
+                        followXsdImports(norm, resourceIndex, referencedResourcePaths);
+                    }
+                    if (norm.endsWith(".aeschema")) {
+                        followAeschemaImports(norm, resourceIndex, referencedResourcePaths);
+                    }
+                }
             }
         }
 
@@ -1363,6 +1395,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 }
                 String locationAttr = e.getAttributeValue("location");
                 if (locationAttr != null && isBwResourcePath(locationAttr)) refs.add(locationAttr);
+                // .serviceagent files declare their implementation process via opImpl attribute
+                // (e.g. <row opImpl="/pkg/Op.process"/>). Text-content scanning misses attributes.
+                String opImplAttr = e.getAttributeValue("opImpl");
+                if (opImplAttr != null && isBwResourcePath(opImplAttr)) refs.add(opImplAttr);
             }
 
             // Validate xsd:import candidates: include only if schema types are used in this process.
