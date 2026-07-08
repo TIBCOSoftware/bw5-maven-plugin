@@ -206,6 +206,82 @@ public class BwEarMojoServiceAgentBfsTest {
             sarNames.contains("Service.wsdl"));
     }
 
+    /**
+     * Regression: relative {@code schemaLocation} and {@code location} attributes inside a WSDL
+     * file must be resolved against the WSDL's BW directory and the referenced XSDs must be
+     * included in the SAR.
+     *
+     * <p>Before the fix, {@code followSharedResourceRefs} only called {@code extractBwResourceRefs}
+     * which requires a leading {@code /}. Relative refs like {@code ../../Ext/Types.xsd} were
+     * silently skipped, causing the XSD files to be missing from the SAR.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void relativeXsdRefsInsideWsdlAreFollowed() throws Exception {
+        File dir = tmp.newFolder("wsdl-relative-xsd");
+
+        // WSDL at bw path "Svc/Resources/WSDL/Service.wsdl" references
+        // ../../SchemaDefinitions/Types.xsd  →  "Svc/SchemaDefinitions/Types.xsd"
+        File wsdlFile = writeFile(dir, "Service.wsdl",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<definitions xmlns=\"http://schemas.xmlsoap.org/wsdl/\"\n"
+            + "    xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n"
+            + "  <import location=\"../../SchemaDefinitions/Types.xsd\""
+            + "    namespace=\"http://example.com/types\"/>\n"
+            + "  <types>\n"
+            + "    <xs:schema>\n"
+            + "      <xs:import schemaLocation=\"../../SchemaDefinitions/Inline.xsd\""
+            + "        namespace=\"http://example.com/inline\"/>\n"
+            + "    </xs:schema>\n"
+            + "  </types>\n"
+            + "</definitions>");
+
+        File typesXsd  = writeFile(dir, "Types.xsd",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"/>");
+        File inlineXsd = writeFile(dir, "Inline.xsd",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"/>");
+        // An extra XSD not referenced — must NOT be pulled in
+        File unreachableXsd = writeFile(dir, "Unreachable.xsd",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"/>");
+
+        // WSDL is at "Svc/Resources/WSDL/Service.wsdl"
+        // Relative refs resolve to "Svc/SchemaDefinitions/Types.xsd" and "Svc/SchemaDefinitions/Inline.xsd"
+        List parFiles = new ArrayList();
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(wsdlFile,      "Svc/Resources/WSDL/Service.wsdl"));
+        sarFiles.add(bwFile(typesXsd,      "Svc/SchemaDefinitions/Types.xsd"));
+        sarFiles.add(bwFile(inlineXsd,     "Svc/SchemaDefinitions/Inline.xsd"));
+        sarFiles.add(bwFile(unreachableXsd, "Svc/SchemaDefinitions/Unreachable.xsd"));
+
+        // Single-PAR mode: no process entry points, but the WSDL is reachable via the SAR
+        // We use a minimal process that references the WSDL directly to trigger its traversal
+        File procFile = writeFile(dir, "Op.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\"\n"
+            + "    xmlns:wsdl=\"http://schemas.xmlsoap.org/wsdl/\">\n"
+            + "  <pd:name>/Svc/Op</pd:name>\n"
+            + "  <wsdl:import location=\"/Svc/Resources/WSDL/Service.wsdl\"/>\n"
+            + "</pd:ProcessDefinition>");
+        parFiles.add(bwFile(procFile, "Svc/Op.process"));
+
+        List<String> entryPoints = Collections.singletonList("/Svc/Op.process");
+        List<String> sharedRes   = Collections.emptyList();
+
+        applyTransitive(parFiles, sarFiles, entryPoints, sharedRes, true);
+
+        Set<String> sarNames = fileNames(sarFiles);
+
+        assertTrue("Types.xsd reached via relative WSDL location must be in SAR",
+            sarNames.contains("Types.xsd"));
+        assertTrue("Inline.xsd reached via relative WSDL schemaLocation must be in SAR",
+            sarNames.contains("Inline.xsd"));
+        assertTrue("Unreachable.xsd not referenced by WSDL must NOT be in SAR",
+            !sarNames.contains("Unreachable.xsd"));
+    }
+
     @SuppressWarnings("rawtypes")
     private Set<String> fileNames(List bwFiles) throws Exception {
         Set<String> names = new LinkedHashSet<>();

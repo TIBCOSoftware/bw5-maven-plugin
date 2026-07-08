@@ -1238,11 +1238,16 @@ public class BwEarMojo extends AbstractBw5Mojo {
      * <p>These files embed an {@code <import schemaLocation="/..."/>} pointing to the
      * XSD that defines their value type. buildear includes those XSDs in the SAR even
      * if they are not directly referenced by any reachable process.</p>
+     *
+     * <p>For {@code .wsdl} files a second pass resolves relative {@code schemaLocation}
+     * and {@code location} attributes (e.g. {@code ../../SchemaDefinitions/Ext/Types.xsd})
+     * that {@code extractBwResourceRefs} skips because they lack a leading {@code /}.</p>
      */
     private void followSharedResourceRefs(String resourcePath, Map<String, BwFile> resourceIndex,
                                           Set<String> visited) {
         BwFile resourceFile = resourceIndex.get(resourcePath);
         if (resourceFile == null) return;
+        // Pass 1: absolute references
         for (String ref : extractBwResourceRefs(resourceFile.file)) {
             String norm = normalizeBwPath(ref);
             if (!norm.endsWith(".process") && visited.add(norm)) {
@@ -1254,6 +1259,31 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 }
             }
         }
+        // Pass 2: relative location/schemaLocation pointing to XSD files inside WSDL files.
+        // WSDL files commonly embed inline XSD types or import external XSDs via relative
+        // paths (e.g. ../../SchemaDefinitions/External/Types.xsd). These are invisible to
+        // extractBwResourceRefs which requires a leading "/" on every path it returns.
+        if (!resourcePath.endsWith(".wsdl")) return;
+        String parentBwDir = resourcePath.contains("/")
+            ? resourcePath.substring(0, resourcePath.lastIndexOf('/') + 1) : "";
+        try {
+            Document wsdlDoc = new SAXBuilder().build(resourceFile.file);
+            for (Element e : wsdlDoc.getDescendants(Filters.element())) {
+                for (String attrName : new String[]{"schemaLocation", "location"}) {
+                    String attrVal = e.getAttributeValue(attrName);
+                    if (attrVal == null || attrVal.startsWith("/") || attrVal.startsWith("http")) {
+                        continue;
+                    }
+                    if (!attrVal.endsWith(".xsd")) continue;
+                    String raw = parentBwDir + attrVal;
+                    String resolved = java.nio.file.Paths.get(raw).normalize().toString()
+                        .replace(java.io.File.separatorChar, '/');
+                    if (visited.add(resolved)) {
+                        followXsdImports(resolved, resourceIndex, visited);
+                    }
+                }
+            }
+        } catch (org.jdom2.JDOMException | IOException ignored) { }
     }
 
     private Map<String, BwFile> buildBwIndex(List<BwFile> files) {
