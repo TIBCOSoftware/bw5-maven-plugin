@@ -17,7 +17,6 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProjectHelper;
-import org.jdom2.Attribute;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
@@ -1132,7 +1131,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 continue;
             }
 
-            for (String ref : extractBwResourceRefs(bwf.file, resourceIndex)) {
+            for (String ref : extractBwResourceRefs(bwf.file)) {
                 String norm = normalizeBwPath(ref);
                 if (norm.endsWith(".process")) {
                     if (!visitedProcessPaths.contains(norm)) queue.add(norm);
@@ -1371,28 +1370,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
      * requiring code changes. {@code schemaLocation} attributes are also scanned.</p>
      */
     private Set<String> extractBwResourceRefs(File file) {
-        return extractBwResourceRefs(file, null);
-    }
-
-    /**
-     * Variant used when scanning {@code .process} files during BFS. Passes the {@code
-     * resourceIndex} so that {@code xsd:import} preamble declarations can be validated
-     * against actual element usage in the process body before being included as references.
-     *
-     * <p>BW process files declare XML namespace bindings via {@code <xsd:import
-     * schemaLocation="/..."/>} at the top of the file. Not all declared schemas are actually
-     * instantiated (used as variable or activity types). TIBCO Designer only packages schemas
-     * whose element types appear in process variable declarations, activity schemas, or fault
-     * handlers. This method replicates that behaviour: a schema discovered via {@code
-     * xsd:import} is included only if at least one of its top-level element or complex-type
-     * names appears anywhere in the process body (outside the preamble imports).</p>
-     */
-    private Set<String> extractBwResourceRefs(File file, Map<String, BwFile> resourceIndex) {
         Set<String> refs = new LinkedHashSet<>();
-        // xsd:import schemaLocations collected separately for usage validation (process files only)
-        List<String> xsdImportCandidates = new ArrayList<>();
-        boolean filterXsdImports = resourceIndex != null && file.getName().endsWith(".process");
-
         try {
             SAXBuilder builder = new SAXBuilder();
             Document doc = builder.build(file);
@@ -1409,20 +1387,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     if (isBwResourcePath(stripped)) refs.add(stripped);
                 }
                 String schemaLoc = e.getAttributeValue("schemaLocation");
-                if (schemaLoc != null && schemaLoc.startsWith("/")) {
-                    // In .process files, schemaLocation attrs appear only in xsd:import namespace
-                    // binding declarations. Collect XSD ones as candidates; validate usage below.
-                    // Non-XSD refs (e.g. .sharedparse) are always structural — include directly.
-                    boolean isXsdImportDecl = filterXsdImports
-                        && "import".equals(e.getName())
-                        && "http://www.w3.org/2001/XMLSchema".equals(e.getNamespaceURI())
-                        && schemaLoc.endsWith(".xsd");
-                    if (isXsdImportDecl) {
-                        xsdImportCandidates.add(schemaLoc);
-                    } else {
-                        refs.add(schemaLoc);
-                    }
-                }
+                if (schemaLoc != null && schemaLoc.startsWith("/")) refs.add(schemaLoc);
                 String locationAttr = e.getAttributeValue("location");
                 if (locationAttr != null && isBwResourcePath(locationAttr)) refs.add(locationAttr);
                 // .serviceagent files declare their implementation process via opImpl attribute
@@ -1430,83 +1395,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 String opImplAttr = e.getAttributeValue("opImpl");
                 if (opImplAttr != null && isBwResourcePath(opImplAttr)) refs.add(opImplAttr);
             }
-
-            // Validate xsd:import candidates: include only if schema types are used in this process.
-            if (filterXsdImports && !xsdImportCandidates.isEmpty()) {
-                Set<String> bodyTokens = collectProcessBodyTokens(doc);
-                for (String candidate : xsdImportCandidates) {
-                    BwFile xsdBwFile = resourceIndex.get(normalizeBwPath(candidate));
-                    if (xsdBwFile == null || isXsdUsedInProcess(xsdBwFile.file, bodyTokens)) {
-                        // Schema absent from SAR index (external) or confirmed used → include.
-                        refs.add(candidate);
-                    } else {
-                        getLog().debug("Skipping unused xsd:import: " + candidate
-                            + " (declared in " + file.getName() + " preamble but types not referenced)");
-                    }
-                }
-            }
         } catch (org.jdom2.JDOMException | IOException e) {
             getLog().debug("Could not parse refs from " + file.getName() + ": " + e.getMessage());
         }
         return refs;
-    }
-
-    /**
-     * Collects schema element name tokens from a process document body (excluding
-     * {@code xsd:import} preamble elements).
-     *
-     * <p>Only precise schema references are collected to avoid false positives from
-     * generic words like "Data" or "Type" that appear in activity names or XPath
-     * expressions but are unrelated to the imported schema's element types:</p>
-     * <ul>
-     *   <li><b>{@code ref} / {@code type} attributes</b> — BW uses {@code ref="ns:element"}
-     *       and {@code type="ns:TypeName"} in process variable declarations, error schemas, and
-     *       activity I/O schemas. The local part of the QName value is extracted.</li>
-     *   <li><b>BW fault declarations</b> — {@code <fault>localname=X namespace=Y</fault>}
-     *       text that identifies error schema types.</li>
-     * </ul>
-     */
-    private Set<String> collectProcessBodyTokens(Document doc) {
-        Set<String> tokens = new LinkedHashSet<>();
-        String xsdNs = "http://www.w3.org/2001/XMLSchema";
-        for (Element e : doc.getDescendants(Filters.element())) {
-            if ("import".equals(e.getName()) && xsdNs.equals(e.getNamespaceURI())) continue;
-            // QName local parts from ref/type attributes (e.g. ref="ns5:bwException" → "bwException")
-            for (String attrName : new String[]{"ref", "type"}) {
-                Attribute attr = e.getAttribute(attrName);
-                if (attr != null) {
-                    String val = attr.getValue().trim();
-                    int colon = val.indexOf(':');
-                    tokens.add(colon >= 0 ? val.substring(colon + 1) : val);
-                }
-            }
-            // BW fault declarations: "localname=bwException namespace=pmu"
-            String text = e.getTextTrim();
-            if (text.startsWith("localname=")) {
-                for (String part : text.split("\\s+")) {
-                    if (part.startsWith("localname=")) tokens.add(part.substring(10));
-                }
-            }
-        }
-        return tokens;
-    }
-
-    /**
-     * Returns {@code true} if at least one top-level element or complex-type name declared
-     * in {@code xsdFile} appears as an identifier token in {@code bodyTokens}.
-     * Returns {@code true} conservatively on parse error so the schema is not dropped.
-     */
-    private boolean isXsdUsedInProcess(File xsdFile, Set<String> bodyTokens) {
-        try {
-            Document xsdDoc = new SAXBuilder().build(xsdFile);
-            for (Element child : xsdDoc.getRootElement().getChildren()) {
-                String name = child.getAttributeValue("name");
-                if (name != null && bodyTokens.contains(name)) return true;
-            }
-        } catch (JDOMException | IOException ignored) {
-            return true;
-        }
-        return false;
     }
 
     /**

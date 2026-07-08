@@ -282,6 +282,80 @@ public class BwEarMojoServiceAgentBfsTest {
             !sarNames.contains("Unreachable.xsd"));
     }
 
+    // -----------------------------------------------------------------------
+    //  xsd:import always included (no usage-based filter)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression: {@code xsd:import schemaLocation="/path/to/Schema.xsd"} in a process
+     * file must always cause the XSD to be included in the SAR, regardless of whether
+     * the schema's types are explicitly referenced via {@code type=} attributes.
+     *
+     * <p>Before this fix, a filter ({@code isXsdUsedInProcess}) discarded XSD imports
+     * whose types were only used via {@code xsi:type} (a namespace attribute that
+     * {@code e.getAttribute("type")} does not return) or that were structural imports
+     * (e.g. SOAP envelope schemas) with no direct type references in the process body.
+     * TIBCO Designer/buildear always packages declared {@code xsd:import} schemas.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void xsdImportAlwaysIncludedRegardlessOfTypeUsage() throws Exception {
+        File dir = tmp.newFolder("xsd-import-always");
+
+        // Schema whose types are only used via xsi:type — previously filtered out
+        File schema = writeFile(dir, "Schema.xsd",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"\n"
+            + "    targetNamespace=\"urn:Test\" elementFormDefault=\"qualified\">\n"
+            + "  <xs:complexType name=\"MyType\">\n"
+            + "    <xs:sequence><xs:element name=\"value\" type=\"xs:string\"/></xs:sequence>\n"
+            + "  </xs:complexType>\n"
+            + "</xs:schema>");
+
+        // Structural-only import (no type refs at all, like SOAP schemas)
+        File soapSchema = writeFile(dir, "SOAP11.xsd",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"\n"
+            + "    targetNamespace=\"http://schemas.xmlsoap.org/soap/envelope/\">\n"
+            + "</xs:schema>");
+
+        // Process that imports both XSDs — uses MyType only via xsi:type, no type= ref
+        File proc = writeFile(dir, "Op.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition\n"
+            + "    xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\"\n"
+            + "    xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"\n"
+            + "    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
+            + "    xmlns:ns1=\"urn:Test\"\n"
+            + "    xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n"
+            + "  <xsd:import namespace=\"urn:Test\" schemaLocation=\"/Svc/Schema.xsd\"/>\n"
+            + "  <xsd:import namespace=\"http://schemas.xmlsoap.org/soap/envelope/\""
+            + " schemaLocation=\"/Svc/SOAP11.xsd\"/>\n"
+            + "  <pd:name>/Svc/Op</pd:name>\n"
+            + "  <!-- type used only via xsi:type, not as type= attribute -->\n"
+            + "  <data xsi:type=\"ns1:MyType\"><value>hello</value></data>\n"
+            + "</pd:ProcessDefinition>");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(proc, "Svc/Op.process"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(schema,     "Svc/Schema.xsd"));
+        sarFiles.add(bwFile(soapSchema, "Svc/SOAP11.xsd"));
+
+        List<String> entryPoints = Collections.singletonList("/Svc/Op.process");
+        List<String> sharedRes   = Collections.emptyList();
+
+        applyTransitive(parFiles, sarFiles, entryPoints, sharedRes, true);
+
+        Set<String> sarNames = fileNames(sarFiles);
+
+        assertTrue("Schema.xsd used only via xsi:type must be in SAR",
+            sarNames.contains("Schema.xsd"));
+        assertTrue("SOAP11.xsd (structural import, no type refs) must be in SAR",
+            sarNames.contains("SOAP11.xsd"));
+    }
+
     @SuppressWarnings("rawtypes")
     private Set<String> fileNames(List bwFiles) throws Exception {
         Set<String> names = new LinkedHashSet<>();
