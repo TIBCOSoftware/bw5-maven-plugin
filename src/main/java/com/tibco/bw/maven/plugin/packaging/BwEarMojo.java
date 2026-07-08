@@ -1193,6 +1193,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
             if (f.file.getName().endsWith(".serviceagent")) {
                 getLog().info("Promoting serviceagent to PAR (JavaGlobalInstance): " + f.relativePath);
                 promotedParEntries.add(f);
+                // buildear also places Java Globals in the SAR
+                if (sarPathsSeen.add(normalizeBwPath(f.relativePath))) {
+                    reachableResources.add(f);
+                }
             } else if (sarPathsSeen.add(normalizeBwPath(f.relativePath))) {
                 reachableResources.add(f);
             }

@@ -419,8 +419,8 @@ public class BwEarMojoServiceAgentBfsTest {
 
         assertTrue("Java Global serviceagent must be promoted to PAR",
             parNames.contains("Java Stats Transactions.serviceagent"));
-        assertTrue("Java Global serviceagent must NOT remain in SAR",
-            !sarNames.contains("Java Stats Transactions.serviceagent"));
+        assertTrue("Java Global serviceagent must also remain in SAR (buildear places it in both)",
+            sarNames.contains("Java Stats Transactions.serviceagent"));
     }
 
     @SuppressWarnings("rawtypes")
