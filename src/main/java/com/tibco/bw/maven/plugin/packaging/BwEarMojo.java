@@ -1180,13 +1180,20 @@ public class BwEarMojo extends AbstractBw5Mojo {
         // Expand directory references (e.g. /Certificates → all .cert files inside)
         expandDirectoryRefs(referencedResourcePaths, resourceIndex);
 
-        // SAR: alwaysInclude + transitively reachable resources (deduped)
+        // SAR: alwaysInclude + transitively reachable resources (deduped).
+        // Exception: .serviceagent files discovered via process references (e.g.
+        // <JavaGlobalInstance>) belong in PAR — buildear packages Java Globals
+        // alongside the processes that use them, not in the shared archive.
         Set<String> sarPathsSeen = new LinkedHashSet<>();
         for (BwFile f : alwaysInclude) sarPathsSeen.add(normalizeBwPath(f.relativePath));
         List<BwFile> reachableResources = new ArrayList<>(alwaysInclude);
         for (String path : referencedResourcePaths) {
             BwFile f = resourceIndex.get(path);
-            if (f != null && sarPathsSeen.add(normalizeBwPath(f.relativePath))) {
+            if (f == null) continue;
+            if (f.file.getName().endsWith(".serviceagent")) {
+                getLog().info("Promoting serviceagent to PAR (JavaGlobalInstance): " + f.relativePath);
+                promotedParEntries.add(f);
+            } else if (sarPathsSeen.add(normalizeBwPath(f.relativePath))) {
                 reachableResources.add(f);
             }
         }

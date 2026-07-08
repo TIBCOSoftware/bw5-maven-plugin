@@ -356,6 +356,73 @@ public class BwEarMojoServiceAgentBfsTest {
             sarNames.contains("SOAP11.xsd"));
     }
 
+    // -----------------------------------------------------------------------
+    //  Java Global Service Agent promoted to PAR via <JavaGlobalInstance>
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression: a {@code .serviceagent} file of type {@code ae.shared.JavaGlobalServiceAgent}
+     * that is referenced by a process via a {@code <JavaGlobalInstance>} element must be placed
+     * in the PAR, not the SAR.
+     *
+     * <p>Before this fix, the serviceagent was left in the SAR (because {@code .serviceagent}
+     * is in {@code SAR_EXTENSIONS}). TIBCO buildear packages Java Global Service Agents
+     * alongside the processes that use them — they are process-archive resources, not
+     * shared-archive resources.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void javaGlobalServiceAgentPromotedToParViaJavaGlobalInstance() throws Exception {
+        File dir = tmp.newFolder("java-global-sa");
+
+        // Java Global Service Agent — referenced from a process via <JavaGlobalInstance>
+        File saFile = writeFile(dir, "Java Stats Transactions.serviceagent",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<BWSharedResource>\n"
+            + "  <name>Java Stats Transactions</name>\n"
+            + "  <resourceType>ae.shared.JavaGlobalServiceAgent</resourceType>\n"
+            + "  <config>\n"
+            + "    <class>com.tibco.plugin.java.JavaGlobalServiceAgent</class>\n"
+            + "    <ConstructorInfo>\n"
+            + "      <className>com.example.Monitor</className>\n"
+            + "    </ConstructorInfo>\n"
+            + "  </config>\n"
+            + "</BWSharedResource>");
+
+        // Process that uses the Java Global via <JavaGlobalInstance>
+        File proc = writeFile(dir, "ManageStats.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/Monitor/Processes/Common/ManageStats</pd:name>\n"
+            + "  <pd:activity name=\"GetStats\">\n"
+            + "    <JavaGlobalInstance>/Monitor/Resources/JAVA/Java Stats Transactions.serviceagent"
+            + "</JavaGlobalInstance>\n"
+            + "  </pd:activity>\n"
+            + "</pd:ProcessDefinition>");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(proc, "Monitor/Processes/Common/ManageStats.process"));
+
+        // Serviceagent starts in SAR (.serviceagent is SAR_EXTENSIONS by default)
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(saFile,
+            "Monitor/Resources/JAVA/Java Stats Transactions.serviceagent"));
+
+        List<String> entryPoints =
+            Collections.singletonList("/Monitor/Processes/Common/ManageStats.process");
+        List<String> sharedRes = Collections.emptyList();
+
+        applyTransitive(parFiles, sarFiles, entryPoints, sharedRes, true);
+
+        Set<String> parNames = fileNames(parFiles);
+        Set<String> sarNames = fileNames(sarFiles);
+
+        assertTrue("Java Global serviceagent must be promoted to PAR",
+            parNames.contains("Java Stats Transactions.serviceagent"));
+        assertTrue("Java Global serviceagent must NOT remain in SAR",
+            !sarNames.contains("Java Stats Transactions.serviceagent"));
+    }
+
     @SuppressWarnings("rawtypes")
     private Set<String> fileNames(List bwFiles) throws Exception {
         Set<String> names = new LinkedHashSet<>();
