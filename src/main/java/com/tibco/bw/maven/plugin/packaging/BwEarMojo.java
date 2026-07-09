@@ -470,13 +470,13 @@ public class BwEarMojo extends AbstractBw5Mojo {
                         boolean hasFragmentLoadUrls = adapterHasFragmentLoadUrls(defFile);
                         for (String ref : extractBwResourceRefs(defFile)) {
                             String norm = normalizeBwPath(ref);
-                            // Adapter definition files (.adb, .adldap) must only enter the SAR
-                            // when a process references them via adapterService.  Within a .adb
-                            // config, internal references like /Foo.adb#jmsSession.Bar are
-                            // stripped to /Foo.adb by extractBwResourceRefs — skip them here to
-                            // avoid inadvertent self-inclusion in the SAR.
+                            // Adapter definition files (.adb, .adldap, .adsap, …) must only
+                            // enter the SAR when a process references them via adapterService.
+                            // Within a .ad* config, internal references like /Foo.adb#svc.Bar
+                            // are stripped to /Foo.adb by extractBwResourceRefs — skip any
+                            // .ad* path here to avoid inadvertent self-inclusion in the SAR.
                             String normExt = getExtension(norm);
-                            if (".adb".equals(normExt) || ".adldap".equals(normExt)) continue;
+                            if (normExt.startsWith(".ad")) continue;
                             if (norm.endsWith(".aeschema") && hasFragmentLoadUrls) {
                                 // Fragment loadUrls: remember the directory so we can add all aeschemas in it.
                                 int slash = norm.lastIndexOf('/');
