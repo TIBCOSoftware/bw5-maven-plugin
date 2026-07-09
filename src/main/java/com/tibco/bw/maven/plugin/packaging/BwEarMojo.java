@@ -518,6 +518,14 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     applyTransitiveDependencyAnalysis(parFiles, sarFiles,
                         archiveDescriptor.getProcessPaths(), archiveDescriptor.sharedResourcePaths,
                         true);
+                } else if (archiveDescriptor != null && archiveDescriptor.processArchives.isEmpty()) {
+                    // Pure adapter archive (no processArchive): BFS with empty entry points
+                    // removes unreferenced SAR files (e.g. stray .adb files placed in sarFiles
+                    // by collectFiles after Category B added .adb to SAR_EXTENSIONS).
+                    // alwaysInclude entries (sharedResources, javaxpath) are preserved.
+                    // Aeschema refs are already in combinedSarFiles from the adapter scan above.
+                    applyTransitiveDependencyAnalysis(parFiles, sarFiles,
+                        Collections.emptyList(), archiveDescriptor.sharedResourcePaths, true);
                 }
 
                 String parFileName = "Process Archive.par";
