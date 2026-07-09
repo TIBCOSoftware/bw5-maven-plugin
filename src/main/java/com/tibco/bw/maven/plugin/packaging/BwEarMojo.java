@@ -278,6 +278,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
         ".xml",
         // Adapter configuration descriptors
         ".adapter",
+        // Adapter definition files: included in SAR when any process references them via
+        // ae.aepalette.sharedProperties.adapterService.  Pure adapter-only archives (no
+        // processArchive) leave these files only in the AAR via the adapterDefFiles path.
+        ".adb", ".adldap",
         // Java archive library references (referenced by javaArchive element)
         ".aliaslib"
     ));
@@ -437,8 +441,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
                                     Collections.singletonList(new BwFile(adapterFile, adapterFilePath)),
                                     combinedSarFiles, seenSarPaths);
                             } else {
-                                // Adapter definition files (.adb, .adsap, etc.) go only in the AAR.
-                                // Collect them so we can scan their aeschema references for the SAR.
+                                // Non-.adapter definition files (.adb, .adldap, etc.): placed in the
+                                // AAR here; they additionally reach the SAR via the transitive BFS
+                                // when a process references them through adapterService.
+                                // Collect them to scan their aeschema references for the SAR.
                                 adapterDefFiles.put(adapterFile, aa.sdkVersion);
                             }
                         } else {
@@ -699,10 +705,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     // is set so the SAR matches buildear output for sharedResources paths.
                     if (!includeFolderMetadata || !".folder".equals(ext)) continue;
                 }
-                // Adapter definition files (.adb, .adsap, .addr3, …) go ONLY inside their
-                // dedicated AAR — never in the SAR. The rule is: any extension starting with
-                // ".ad" that is NOT ".adapter" (which Designer duplicates into the SAR).
-                if (ext.startsWith(".ad") && !".adapter".equals(ext)) continue;
+                // Adapter-related extensions starting with ".ad": only those in SAR_EXTENSIONS
+                // (.adapter, .adb, .adldap, …) are eligible for the SAR.  Unknown ".ad*" types
+                // (e.g. .adsap, .addr3) belong exclusively in the AAR and are skipped here.
+                if (ext.startsWith(".ad") && !isSarExtension(ext)) continue;
 
                 String relativePath = rootDir.toURI().relativize(f.toURI()).getPath();
                 BwFile bwf = new BwFile(f, relativePath);
@@ -1392,11 +1398,13 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 String text = e.getTextTrim();
                 if (isBwResourcePath(text)) {
                     refs.add(text);
-                } else if (text.contains("#") && text.contains(".aeschema")
-                           && !"messageSchemaURI".equals(e.getName())) {
-                    // Adapter palette elements (aeMeta, customOutputMeta, …) reference schemas
-                    // as /path/to/schema.aeschema#class.X — strip the fragment to get the file.
-                    // messageSchemaURI is excluded: it is a runtime type hint, not a schema import.
+                } else if (text.contains("#") && !"messageSchemaURI".equals(e.getName())) {
+                    // BW resource references that include a fragment — strip it to get the file.
+                    // Examples:
+                    //   /path/schema.aeschema#class.X  (adapter palette aeMeta / customOutputMeta)
+                    //   /path/config.adb#adapterService.X  (process → adapter via adapterService)
+                    //   /path/config.adldap#adapterService.X  (LDAP adapter)
+                    // messageSchemaURI is excluded: it is a runtime type hint, not a resource import.
                     String stripped = text.substring(0, text.indexOf('#'));
                     if (isBwResourcePath(stripped)) refs.add(stripped);
                 }
