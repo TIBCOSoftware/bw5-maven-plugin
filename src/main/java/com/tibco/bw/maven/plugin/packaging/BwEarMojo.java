@@ -315,6 +315,15 @@ public class BwEarMojo extends AbstractBw5Mojo {
         java.util.regex.Pattern.compile("\\bAESchemas/[^\\s<>\"'#\\\\]+\\.aeschema");
 
     /**
+     * Per-analysis cache of {@code targetNamespace → bwPath} for all XSD files in the
+     * project.  Populated before each {@link #applyTransitiveDependencyAnalysis} call and
+     * cleared immediately after so it does not bleed between invocations.
+     * Used by {@link #followXsdImports} to resolve namespace-only {@code xsd:import}
+     * elements that carry no {@code schemaLocation} attribute.
+     */
+    private Map<String, String> xsdNsIndex = Collections.emptyMap();
+
+    /**
      * File/directory names to exclude from packaging.
      * vcrepo.dat is version-control metadata.
      *
@@ -1064,6 +1073,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
         Map<String, BwFile> processIndex = buildBwIndex(processFiles);
         Map<String, BwFile> resourceIndex = buildBwIndex(otherSarFiles);
+        // Build namespace index before BFS so followXsdImports can resolve namespace-only imports
+        // during the main traversal. Rebuilt post-BFS with extIndex (alwaysInclude XSDs added).
+        this.xsdNsIndex = buildXsdNsIndex(resourceIndex);
 
         Set<String> visitedProcessPaths = new LinkedHashSet<>();
         Set<String> referencedResourcePaths = new LinkedHashSet<>();
@@ -1176,17 +1188,26 @@ public class BwEarMojo extends AbstractBw5Mojo {
             }
         }
 
-        // Follow XSD import chains for sharedResources (alwaysInclude) XSDs.
+        // Follow XSD import chains for sharedResources (alwaysInclude) files.
         // These files bypass the BFS (they go to alwaysInclude, not resourceIndex), so their
         // transitive imports must be discovered separately. Build an extended index that includes
-        // alwaysInclude entries so followXsdImports can read the files.
+        // alwaysInclude entries so followXsdImports / followSharedResourceRefs can read them.
         Map<String, BwFile> extIndex = new HashMap<>(resourceIndex);
         for (BwFile f : alwaysInclude) extIndex.put(normalizeBwPath(f.relativePath), f);
+        // Build targetNamespace → bwPath index for resolving namespace-only xsd:imports.
+        this.xsdNsIndex = buildXsdNsIndex(extIndex);
         for (BwFile f : alwaysInclude) {
+            String fPath = normalizeBwPath(f.relativePath);
             if (f.file.getName().endsWith(".xsd")) {
-                followXsdImports(normalizeBwPath(f.relativePath), extIndex, referencedResourcePaths);
+                followXsdImports(fPath, extIndex, referencedResourcePaths);
+            } else if (isSarExtension(getExtension(fPath))) {
+                // Follow transitive refs (aeschema loadUrls, WSDL imports, etc.) from
+                // always-include shared resource files (e.g. .adb files whose AESDK:loadUrl
+                // points to palette AESchema files that must also be in the SAR).
+                followSharedResourceRefs(fPath, extIndex, referencedResourcePaths);
             }
         }
+        this.xsdNsIndex = Collections.emptyMap();
 
         // PAR: all promoted entries + either all processes or only reachable ones
         List<BwFile> parProcesses = filterParByReachability
@@ -1321,13 +1342,36 @@ public class BwEarMojo extends AbstractBw5Mojo {
     }
 
     /**
+     * Scans every XSD file in {@code resourceIndex} and builds a map of
+     * {@code targetNamespace → bwPath}.  Used by {@link #followXsdImports} to resolve
+     * {@code xsd:import} elements that carry only a {@code namespace} attribute with no
+     * {@code schemaLocation} (TIBCO BW5 resolves these via its internal type registry;
+     * we replicate that by looking up which project XSD declares the namespace).
+     */
+    private Map<String, String> buildXsdNsIndex(Map<String, BwFile> resourceIndex) {
+        Map<String, String> nsIndex = new HashMap<>();
+        for (Map.Entry<String, BwFile> entry : resourceIndex.entrySet()) {
+            if (!entry.getKey().endsWith(".xsd")) continue;
+            try {
+                Document doc = new SAXBuilder().build(entry.getValue().file);
+                String ns = doc.getRootElement().getAttributeValue("targetNamespace");
+                if (ns != null && !ns.isEmpty()) {
+                    nsIndex.putIfAbsent(ns, entry.getKey());
+                }
+            } catch (org.jdom2.JDOMException | IOException ignored) { }
+        }
+        return nsIndex;
+    }
+
+    /**
      * Recursively follows {@code schemaLocation} imports in an XSD file, adding
      * every imported XSD path to {@code visited} (prevents cycles).
      *
-     * <p>Two passes are performed: first the general-purpose scanner collects absolute
+     * <p>Three passes are performed: first the general-purpose scanner collects absolute
      * references (leading {@code /}); then a dedicated XML scan resolves
      * <em>relative</em> {@code schemaLocation} values such as {@code broker.xsd} by
-     * prepending the BW directory of the importing XSD.</p>
+     * prepending the BW directory of the importing XSD; finally, namespace-only imports
+     * (no {@code schemaLocation}) are resolved via {@link #xsdNsIndex}.</p>
      */
     private void followXsdImports(String xsdPath, Map<String, BwFile> resourceIndex,
                                   Set<String> visited) {
@@ -1340,22 +1384,38 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 followXsdImports(norm, resourceIndex, visited);
             }
         }
-        // Pass 2: relative schemaLocation values (e.g. schemaLocation="broker.xsd").
-        // extractBwResourceRefs() requires a leading "/" and skips these; resolve them
-        // manually against the parent BW directory of the importing XSD.
+        // Pass 2 + Pass 3: parse once; resolve relative schemaLocations and namespace-only imports.
         String parentBwDir = xsdPath.contains("/")
             ? xsdPath.substring(0, xsdPath.lastIndexOf('/') + 1) : "/";
         try {
             Document doc = new SAXBuilder().build(xsdFile.file);
             for (Element e : doc.getDescendants(Filters.element())) {
                 String schemaLoc = e.getAttributeValue("schemaLocation");
-                if (schemaLoc == null || schemaLoc.startsWith("/") || schemaLoc.startsWith("http")) continue;
-                if (!schemaLoc.endsWith(".xsd")) continue;
-                // Normalize ".." segments (e.g. "XSD/Status/../Common/HEADER.xsd" → "XSD/Common/HEADER.xsd")
-                String raw = normalizeBwPath(parentBwDir + schemaLoc);
-                String resolved = java.nio.file.Paths.get(raw).normalize().toString().replace(java.io.File.separatorChar, '/');
-                if (visited.add(resolved)) {
-                    followXsdImports(resolved, resourceIndex, visited);
+                // Pass 2: relative schemaLocation values (e.g. schemaLocation="broker.xsd").
+                // extractBwResourceRefs() requires a leading "/" and skips these; resolve them
+                // manually against the parent BW directory of the importing XSD.
+                if (schemaLoc != null && !schemaLoc.startsWith("/") && !schemaLoc.startsWith("http")
+                        && schemaLoc.endsWith(".xsd")) {
+                    // Normalize ".." segments (e.g. "XSD/Status/../Common/HEADER.xsd")
+                    String raw = normalizeBwPath(parentBwDir + schemaLoc);
+                    String resolved = java.nio.file.Paths.get(raw).normalize().toString()
+                        .replace(java.io.File.separatorChar, '/');
+                    if (visited.add(resolved)) {
+                        followXsdImports(resolved, resourceIndex, visited);
+                    }
+                }
+                // Pass 3: namespace-only imports without schemaLocation.
+                // e.g. <xsd:import namespace="http://arquitecturas/soap/2003/4_5/"/>
+                // TIBCO BW5 resolves these via its internal type registry; we replicate
+                // that lookup using the targetNamespace index built from all project XSDs.
+                if (schemaLoc == null && !xsdNsIndex.isEmpty()) {
+                    String ns = e.getAttributeValue("namespace");
+                    if (ns != null && !ns.isEmpty()) {
+                        String resolvedPath = xsdNsIndex.get(ns);
+                        if (resolvedPath != null && visited.add(resolvedPath)) {
+                            followXsdImports(resolvedPath, resourceIndex, visited);
+                        }
+                    }
                 }
             }
         } catch (org.jdom2.JDOMException | IOException ignored) { }

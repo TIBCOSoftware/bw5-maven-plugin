@@ -335,6 +335,145 @@ public class BwEarMojoAdapterSarTest {
         //  referencedResourcePaths, preventing self-inclusion in the SAR.)
     }
 
+    // -----------------------------------------------------------------------
+    //  Fix A: namespace-only xsd:import resolution (broker.xsd pattern)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression: an XSD that imports another XSD using only a namespace attribute
+     * (no schemaLocation) must still pull the target XSD into the SAR.
+     *
+     * <p>This mirrors the broker.xsd pattern seen in EAI_BW_TIBMC / COMPLEX / MVS / WS
+     * projects: {@code PGM5_0_Contextos.xsd} contains
+     * {@code <xsd:import namespace="http://arquitecturas/soap/2003/4_5/"/>} and
+     * {@code broker.xsd} declares that targetNamespace.  Without this fix the
+     * transitive import is invisible to the XSD follower and {@code broker.xsd} is
+     * missing from the SAR.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void namespaceOnlyXsdImportPullsTargetXsdIntoSar() throws Exception {
+        File dir = tmp.newFolder("ns-only-import");
+
+        // Leaf XSD — declares the namespace that is imported by reference-only
+        File leafXsd = writeFile(dir, "broker.xsd",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<xsd:schema xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"\n"
+            + "            targetNamespace=\"http://example.com/broker/types\">\n"
+            + "  <xsd:complexType name=\"BrokerMsg\"><xsd:sequence/></xsd:complexType>\n"
+            + "</xsd:schema>");
+
+        // Middle XSD — imports leaf by namespace only (no schemaLocation)
+        File midXsd = writeFile(dir, "Contextos.xsd",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<xsd:schema xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"\n"
+            + "            xmlns:b=\"http://example.com/broker/types\"\n"
+            + "            targetNamespace=\"http://example.com/contextos\">\n"
+            + "  <xsd:import namespace=\"http://example.com/broker/types\"/>\n"
+            + "</xsd:schema>");
+
+        // Process imports the middle XSD by absolute schemaLocation
+        File proc = writeFile(dir, "Process.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/Process</pd:name>\n"
+            + "  <xsd:import xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"\n"
+            + "              namespace=\"http://example.com/contextos\"\n"
+            + "              schemaLocation=\"/Contextos.xsd\"/>\n"
+            + "</pd:ProcessDefinition>");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(proc, "Process.process"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(midXsd,  "Contextos.xsd"));
+        sarFiles.add(bwFile(leafXsd, "broker.xsd"));
+
+        List<String> entryPoints = Collections.singletonList("/Process.process");
+        List<String> sharedRes   = Collections.emptyList();
+
+        applyTransitive(parFiles, sarFiles, entryPoints, sharedRes, false);
+
+        Set<String> names = fileNames(sarFiles);
+        assertTrue("Contextos.xsd must be in SAR (directly referenced)", names.contains("Contextos.xsd"));
+        assertTrue("broker.xsd must be in SAR (resolved via namespace-only import)",
+            names.contains("broker.xsd"));
+    }
+
+    // -----------------------------------------------------------------------
+    //  Fix B: always-include .adb file must pull in its aeschema refs
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression: a {@code .adb} file listed in the {@code sharedResources} of the
+     * {@code .archive} descriptor is moved to {@code alwaysInclude} and bypasses the BFS.
+     * Its {@code AESDK:loadUrl} aeschema references (e.g. {@code /AESchemas/ae/ADB/adbmetadata.aeschema})
+     * must still be followed transitively so the palette AESchema files end up in the SAR.
+     *
+     * <p>This mirrors the {@code TestT111Hugo} project where the {@code .adb} in sharedResources
+     * caused {@code AESchemas/ae/ADB/adbmetadata.aeschema}, {@code AESchemas/ae/ADB/scalar.aeschema},
+     * and {@code AESchemas/ae.aeschema} to be missing from the Maven-built SAR.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void alwaysIncludeAdbPullsAeschemaChainIntoSar() throws Exception {
+        File dir = tmp.newFolder("adb-aeschema-chain");
+
+        // Leaf aeschema — the transitively-reachable base types schema
+        File aeRoot = writeFile(dir, "ae.aeschema",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<Repository:repository xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">\n"
+            + "  <class name=\"string\"/>\n"
+            + "</Repository:repository>");
+
+        // Middle aeschema — references the root by relative path (AESchemas/ae.aeschema)
+        File adbMeta = writeFile(dir, "adbmetadata.aeschema",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<Repository:repository xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">\n"
+            + "  <class name=\"SQL_REQUEST\">\n"
+            + "    <attributeType isRef=\"true\">AESchemas/ae.aeschema#scalar.string</attributeType>\n"
+            + "  </class>\n"
+            + "</Repository:repository>");
+
+        // .adb file — has an AESDK:loadUrl pointing to the middle aeschema
+        File adbFile = writeFile(dir, "AdapterConfig.adb",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<Repository:repository"
+            + " xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\""
+            + " xmlns:AESDK=\"http://www.tibco.com/xmlns/aemeta/adapter/2002\">\n"
+            + "  <AESDK:loadUrl isRef=\"true\">/AESchemas/ae/ADB/adbmetadata.aeschema</AESDK:loadUrl>\n"
+            + "</Repository:repository>");
+
+        // Process — no direct reference to the .adb (it's in sharedResources, not process refs)
+        File proc = writeFile(dir, "Process.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/Process</pd:name>\n"
+            + "</pd:ProcessDefinition>");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(proc, "Process.process"));
+
+        // SAR files use the relative paths that match sharedResourcePaths
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(adbFile, "AdapterConfig.adb"));
+        sarFiles.add(bwFile(adbMeta, "AESchemas/ae/ADB/adbmetadata.aeschema"));
+        sarFiles.add(bwFile(aeRoot,  "AESchemas/ae.aeschema"));
+
+        List<String> entryPoints = Collections.singletonList("/Process.process");
+        // The .archive sharedResources lists the .adb file
+        List<String> sharedRes = Collections.singletonList("/AdapterConfig.adb");
+
+        applyTransitive(parFiles, sarFiles, entryPoints, sharedRes, false);
+
+        Set<String> names = fileNames(sarFiles);
+        assertTrue(".adb in sharedResources must be in SAR", names.contains("AdapterConfig.adb"));
+        assertTrue("adbmetadata.aeschema must be pulled in via .adb loadUrl ref",
+            names.contains("adbmetadata.aeschema"));
+        assertTrue("ae.aeschema must be pulled in transitively via adbmetadata.aeschema",
+            names.contains("ae.aeschema"));
+    }
+
     @SuppressWarnings("rawtypes")
     private Set<String> fileNames(List bwFiles) throws Exception {
         Set<String> names = new LinkedHashSet<>();
