@@ -470,6 +470,13 @@ public class BwEarMojo extends AbstractBw5Mojo {
                         boolean hasFragmentLoadUrls = adapterHasFragmentLoadUrls(defFile);
                         for (String ref : extractBwResourceRefs(defFile)) {
                             String norm = normalizeBwPath(ref);
+                            // Adapter definition files (.adb, .adldap) must only enter the SAR
+                            // when a process references them via adapterService.  Within a .adb
+                            // config, internal references like /Foo.adb#jmsSession.Bar are
+                            // stripped to /Foo.adb by extractBwResourceRefs — skip them here to
+                            // avoid inadvertent self-inclusion in the SAR.
+                            String normExt = getExtension(norm);
+                            if (".adb".equals(normExt) || ".adldap".equals(normExt)) continue;
                             if (norm.endsWith(".aeschema") && hasFragmentLoadUrls) {
                                 // Fragment loadUrls: remember the directory so we can add all aeschemas in it.
                                 int slash = norm.lastIndexOf('/');
@@ -518,14 +525,6 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     applyTransitiveDependencyAnalysis(parFiles, sarFiles,
                         archiveDescriptor.getProcessPaths(), archiveDescriptor.sharedResourcePaths,
                         true);
-                } else if (archiveDescriptor != null && archiveDescriptor.processArchives.isEmpty()) {
-                    // Pure adapter archive (no processArchive): BFS with empty entry points
-                    // removes unreferenced SAR files (e.g. stray .adb files placed in sarFiles
-                    // by collectFiles after Category B added .adb to SAR_EXTENSIONS).
-                    // alwaysInclude entries (sharedResources, javaxpath) are preserved.
-                    // Aeschema refs are already in combinedSarFiles from the adapter scan above.
-                    applyTransitiveDependencyAnalysis(parFiles, sarFiles,
-                        Collections.emptyList(), archiveDescriptor.sharedResourcePaths, true);
                 }
 
                 String parFileName = "Process Archive.par";

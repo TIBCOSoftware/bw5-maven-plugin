@@ -289,6 +289,41 @@ public class BwEarMojoAdapterSarTest {
             fileNames(sarFiles).contains("AdapterConfig.adb"));
     }
 
+    // -----------------------------------------------------------------------
+    //  Unit test: extractBwResourceRefs strips self-reference fragment in .adb files
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression: a {@code .adb} file can contain internal references of the form
+     * {@code /Path/To/Adapter.adb#jmsSession.SomeName} that point to a service defined
+     * within the same file.  After Category B fragment stripping these resolve to
+     * {@code /Path/To/Adapter.adb} — the adapter file itself.
+     *
+     * <p>The adapter scanning block in {@code BwEarMojo} must skip paths whose extension
+     * is {@code .adb} or {@code .adldap} so that the adapter definition file does not
+     * get self-included in the SAR.  Only a process referencing the file via
+     * {@code ae.aepalette.sharedProperties.adapterService} may bring it into the SAR.</p>
+     */
+    @Test
+    public void extractRefsStripsAdapterSelfReferenceFragment() throws Exception {
+        File dir = tmp.newFolder("adb-self-ref");
+        File adbFile = writeFile(dir, "ADB_PUBS.adb",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<adapter>\n"
+            + "  <service>"
+            + "/BusinessDomains/EAI/DomainResources/Adapters/ADB/ADB_PUBS.adb#jmsSession.JMSQueue"
+            + "</service>\n"
+            + "</adapter>");
+
+        Set<String> refs = extractRefs(adbFile);
+
+        // Category B: fragment is stripped, so the self-path is emitted
+        assertTrue(".adb self-ref must be returned with #fragment stripped",
+            refs.contains("/BusinessDomains/EAI/DomainResources/Adapters/ADB/ADB_PUBS.adb"));
+        // (The adapter scanning block now skips .adb/.adldap extensions before
+        //  adding to referencedResourcePaths, preventing self-inclusion in the SAR.)
+    }
+
     @SuppressWarnings("rawtypes")
     private Set<String> fileNames(List bwFiles) throws Exception {
         Set<String> names = new LinkedHashSet<>();
