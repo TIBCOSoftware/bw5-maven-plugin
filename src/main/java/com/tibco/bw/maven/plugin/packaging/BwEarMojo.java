@@ -1192,7 +1192,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
         // These files bypass the BFS (they go to alwaysInclude, not resourceIndex), so their
         // transitive imports must be discovered separately. Build an extended index that includes
         // alwaysInclude entries so followXsdImports / followSharedResourceRefs can read them.
-        Map<String, BwFile> extIndex = new HashMap<>(resourceIndex);
+        Map<String, BwFile> extIndex = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        extIndex.putAll(resourceIndex);
         for (BwFile f : alwaysInclude) extIndex.put(normalizeBwPath(f.relativePath), f);
         // Build targetNamespace → bwPath index for resolving namespace-only xsd:imports.
         this.xsdNsIndex = buildXsdNsIndex(extIndex);
@@ -1321,12 +1322,18 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     if (attrVal == null || attrVal.startsWith("/") || attrVal.startsWith("http")) {
                         continue;
                     }
-                    if (!attrVal.endsWith(".xsd")) continue;
+                    boolean isXsd  = attrVal.endsWith(".xsd");
+                    boolean isWsdl = attrVal.endsWith(".wsdl");
+                    if (!isXsd && !isWsdl) continue;
                     String raw = parentBwDir + attrVal;
                     String resolved = java.nio.file.Paths.get(raw).normalize().toString()
                         .replace(java.io.File.separatorChar, '/');
                     if (visited.add(resolved)) {
-                        followXsdImports(resolved, resourceIndex, visited);
+                        if (isWsdl) {
+                            followSharedResourceRefs(resolved, resourceIndex, visited);
+                        } else {
+                            followXsdImports(resolved, resourceIndex, visited);
+                        }
                     }
                 }
             }
@@ -1334,7 +1341,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
     }
 
     private Map<String, BwFile> buildBwIndex(List<BwFile> files) {
-        Map<String, BwFile> index = new HashMap<>();
+        // Case-insensitive: BW5 runs on Windows where paths are case-insensitive, but
+        // references in .process/.serviceagent files may use different case than on-disk paths.
+        Map<String, BwFile> index = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (BwFile f : files) {
             index.put(normalizeBwPath(f.relativePath), f);
         }

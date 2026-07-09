@@ -474,6 +474,117 @@ public class BwEarMojoAdapterSarTest {
             names.contains("ae.aeschema"));
     }
 
+    // -----------------------------------------------------------------------
+    //  Relative WSDL import following
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression: when a process references a WSDL by absolute path and that WSDL
+     * imports another WSDL and an XSD by relative path, all three must appear in the SAR.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void relativeWsdlImportPullsTransitiveWsdlAndXsdIntoSar() throws Exception {
+        File dir = tmp.newFolder("wsdl-relative-import");
+
+        // types.wsdl — imported by the service WSDL via a relative wsdl:import
+        File typesWsdl = writeFile(dir, "types.wsdl",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<wsdl:definitions xmlns:wsdl=\"http://schemas.xmlsoap.org/wsdl/\""
+            + " targetNamespace=\"http://example.com/types\"/>\n");
+
+        // schema.xsd — imported by the service WSDL via a relative xsd:import in wsdl:types
+        File schemaXsd = writeFile(dir, "schema.xsd",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<xsd:schema xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\""
+            + " targetNamespace=\"http://example.com/schema\"/>\n");
+
+        // ServiceWSDL.wsdl — directly referenced by process; imports types.wsdl + schema.xsd relatively
+        File serviceWsdl = writeFile(dir, "ServiceWSDL.wsdl",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<wsdl:definitions xmlns:wsdl=\"http://schemas.xmlsoap.org/wsdl/\""
+            + " xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\""
+            + " targetNamespace=\"http://example.com/service\">\n"
+            + "  <wsdl:import namespace=\"http://example.com/types\" location=\"types.wsdl\"/>\n"
+            + "  <wsdl:types><xsd:schema>\n"
+            + "    <xsd:import schemaLocation=\"schema.xsd\" namespace=\"http://example.com/schema\"/>\n"
+            + "  </xsd:schema></wsdl:types>\n"
+            + "</wsdl:definitions>\n");
+
+        // Process references ServiceWSDL.wsdl by absolute BW path
+        File proc = writeFile(dir, "Process.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\""
+            + " xmlns:wsdl=\"http://schemas.xmlsoap.org/wsdl/\">\n"
+            + "  <pd:name>/Process</pd:name>\n"
+            + "  <wsdl:import namespace=\"http://example.com/service\""
+            + "               location=\"/WSDL/ServiceWSDL.wsdl\"/>\n"
+            + "</pd:ProcessDefinition>\n");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(proc, "Process.process"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(serviceWsdl, "WSDL/ServiceWSDL.wsdl"));
+        sarFiles.add(bwFile(typesWsdl,   "WSDL/types.wsdl"));
+        sarFiles.add(bwFile(schemaXsd,   "WSDL/schema.xsd"));
+
+        applyTransitive(parFiles, sarFiles, Collections.singletonList("/Process.process"),
+                        Collections.emptyList(), false);
+
+        Set<String> names = fileNames(sarFiles);
+        assertTrue("ServiceWSDL.wsdl must be in SAR (directly referenced)", names.contains("ServiceWSDL.wsdl"));
+        assertTrue("types.wsdl must be in SAR (relative wsdl:import)", names.contains("types.wsdl"));
+        assertTrue("schema.xsd must be in SAR (relative xsd:import in wsdl:types)", names.contains("schema.xsd"));
+    }
+
+    // -----------------------------------------------------------------------
+    //  Case-insensitive path lookup
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression: BW5 is a Windows application — path references in process files may use
+     * a different case than the actual on-disk filenames (e.g. WSDL vs Wsdl directory).
+     * The plugin must find the file despite the case mismatch.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void wsdlIsFoundEvenWhenReferencePathCaseDiffersFromDisk() throws Exception {
+        File dir = tmp.newFolder("case-insensitive-path");
+
+        // WSDL file lives in a "Wsdl" directory (mixed case, as on disk/git)
+        File wsdlDir = new File(dir, "Wsdl");
+        wsdlDir.mkdirs();
+        File wsdlFile = writeFile(wsdlDir, "MyService.wsdl",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<wsdl:definitions xmlns:wsdl=\"http://schemas.xmlsoap.org/wsdl/\""
+            + " targetNamespace=\"http://example.com/myservice\"/>\n");
+
+        // Process references it via uppercase "WSDL" directory (typical Windows Developer artefact)
+        File proc = writeFile(dir, "Process.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\""
+            + " xmlns:wsdl=\"http://schemas.xmlsoap.org/wsdl/\">\n"
+            + "  <pd:name>/Process</pd:name>\n"
+            + "  <wsdl:import namespace=\"http://example.com/myservice\""
+            + "               location=\"/ServiceResources/WSDL/MyService.wsdl\"/>\n"
+            + "</pd:ProcessDefinition>\n");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(proc, "Process.process"));
+
+        List sarFiles = new ArrayList();
+        // BwFile uses the on-disk BW path (lowercase "Wsdl")
+        sarFiles.add(bwFile(wsdlFile, "ServiceResources/Wsdl/MyService.wsdl"));
+
+        applyTransitive(parFiles, sarFiles, Collections.singletonList("/Process.process"),
+                        Collections.emptyList(), false);
+
+        Set<String> names = fileNames(sarFiles);
+        assertTrue("MyService.wsdl must be in SAR despite case mismatch in reference path",
+                   names.contains("MyService.wsdl"));
+    }
+
     @SuppressWarnings("rawtypes")
     private Set<String> fileNames(List bwFiles) throws Exception {
         Set<String> names = new LinkedHashSet<>();
