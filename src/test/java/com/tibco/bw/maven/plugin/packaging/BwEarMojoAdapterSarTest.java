@@ -585,6 +585,67 @@ public class BwEarMojoAdapterSarTest {
                    names.contains("MyService.wsdl"));
     }
 
+    // -----------------------------------------------------------------------
+    //  REST Binding/process attribute discovery
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression: REST starter processes reference their implementation process via a
+     * {@code process} XML attribute ({@code <Binding process="/path/RestImpl.process"/>}).
+     * This attribute was not scanned by extractBwResourceRefs, so REST implementation
+     * processes and their transitive SAR resources were silently omitted from the EAR.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void restBindingProcessAttributePullsImplProcessAndSarIntoEar() throws Exception {
+        File dir = tmp.newFolder("rest-binding-process");
+
+        // SAR XSD — referenced by the REST impl process
+        File restSchema = writeFile(dir, "RestSchema.xsd",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<xsd:schema xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\""
+            + " targetNamespace=\"http://example.com/rest\"/>\n");
+
+        // REST implementation process — referenced by starter via Binding/process attribute
+        File implProc = writeFile(dir, "RestImpl.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\""
+            + " xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">\n"
+            + "  <pd:name>/RestImpl</pd:name>\n"
+            + "  <xsd:import namespace=\"http://example.com/rest\""
+            + "              schemaLocation=\"/RestSchema.xsd\"/>\n"
+            + "</pd:ProcessDefinition>\n");
+
+        // REST starter process — references impl via <Binding process="...">
+        File starterProc = writeFile(dir, "REST_Starter.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/REST_Starter</pd:name>\n"
+            + "  <Binding path=\"/api/execute\""
+            + "           process=\"/RestImpl.process\"/>\n"
+            + "</pd:ProcessDefinition>\n");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(starterProc, "REST_Starter.process"));
+        parFiles.add(bwFile(implProc,    "RestImpl.process"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(restSchema, "RestSchema.xsd"));
+
+        // filterParByReachability=true: only entry-point + reachable processes are kept
+        applyTransitive(parFiles, sarFiles,
+                        Collections.singletonList("/REST_Starter.process"),
+                        Collections.emptyList(), true);
+
+        Set<String> parNames = fileNames(parFiles);
+        assertTrue("REST_Starter.process must be in PAR (entry point)", parNames.contains("REST_Starter.process"));
+        assertTrue("RestImpl.process must be in PAR (found via Binding process= attribute)",
+                   parNames.contains("RestImpl.process"));
+        Set<String> sarNames = fileNames(sarFiles);
+        assertTrue("RestSchema.xsd must be in SAR (transitively referenced from RestImpl.process)",
+                   sarNames.contains("RestSchema.xsd"));
+    }
+
     @SuppressWarnings("rawtypes")
     private Set<String> fileNames(List bwFiles) throws Exception {
         Set<String> names = new LinkedHashSet<>();

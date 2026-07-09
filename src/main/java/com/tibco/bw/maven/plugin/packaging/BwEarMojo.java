@@ -1492,6 +1492,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 // (e.g. <row opImpl="/pkg/Op.process"/>). Text-content scanning misses attributes.
                 String opImplAttr = e.getAttributeValue("opImpl");
                 if (opImplAttr != null && isBwResourcePath(opImplAttr)) refs.add(opImplAttr);
+                // REST plugin starter processes declare their implementation via Binding/process
+                // attribute (e.g. <Binding process="/pkg/RestImpl.process"/>).
+                String processAttr = e.getAttributeValue("process");
+                if (processAttr != null && isBwResourcePath(processAttr)) refs.add(processAttr);
             }
         } catch (org.jdom2.JDOMException | IOException e) {
             getLog().debug("Could not parse refs from " + file.getName() + ": " + e.getMessage());
