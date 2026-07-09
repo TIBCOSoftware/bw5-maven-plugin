@@ -1426,20 +1426,30 @@ public class BwEarMojo extends AbstractBw5Mojo {
     /**
      * Returns {@code true} when {@code value} looks like an absolute BW resource path.
      *
-     * <p>Two cases are accepted:</p>
+     * <p>Three cases are accepted:</p>
      * <ol>
-     *   <li><b>File reference</b> — path has a known extension registered in
-     *       {@link #PAR_EXTENSIONS} or via {@link #isSarExtension}.</li>
-     *   <li><b>Directory reference</b> — path has no extension at all (no {@code .} anywhere).
+     *   <li><b>Known file reference</b> — path has an extension registered in
+     *       {@link #PAR_EXTENSIONS} or via {@link #isSarExtension}. Accepted immediately.</li>
+     *   <li><b>Unknown-extension file reference</b> — path has an extension not in any
+     *       known set (e.g. {@code .cpy} for CopyBook, {@code .smartmapperermodel} for
+     *       SmartMapper, {@code .javaschema} for Java Schema, and any future third-party
+     *       palette type). These paths are emitted so the BFS can look them up in the
+     *       resource index; if no file matches they are silently discarded. This avoids
+     *       the need to hard-code every palette's resource extension in advance.</li>
+     *   <li><b>Directory reference</b> — path has no extension at all (no {@code .}).
      *       TIBCO BW5 processes can reference a directory path (e.g. {@code /Certificates})
-     *       meaning "include all SAR files under that directory". These are resolved by
-     *       {@link #expandDirectoryRefs} after the BFS completes.
-     *       XPath-like patterns ({@code ::}, {@code [}, {@code (}) are rejected to avoid
-     *       false positives from mapper expressions.</li>
+     *       meaning "include all SAR files under that directory". Resolved by
+     *       {@link #expandDirectoryRefs} after the BFS completes.</li>
      * </ol>
+     * <p>XPath-like patterns ({@code ::}, {@code [}, {@code (}) are rejected in cases 2
+     * and 3 to avoid false positives from mapper and XSLT expressions.</p>
      */
     private boolean isBwResourcePath(String value) {
         if (value == null || value.length() < 2 || value.charAt(0) != '/') return false;
+        // Fragment references (path#something) are handled by the caller's else-if branch
+        // which strips the fragment first.  Returning false here ensures we don't emit
+        // the full string (with the fragment) as a file path.
+        if (value.contains("#")) return false;
         int dot = value.lastIndexOf('.');
         if (dot <= 0) {
             // No extension — could be a directory reference (e.g. /Certificates).
@@ -1447,7 +1457,18 @@ public class BwEarMojo extends AbstractBw5Mojo {
             return !value.contains("::") && !value.contains("[") && !value.contains("(");
         }
         String ext = value.substring(dot).toLowerCase(Locale.ROOT);
-        return PAR_EXTENSIONS.contains(ext) || isSarExtension(ext);
+        // If the "extension" contains a slash, the dot is in a middle path segment and
+        // the trailing part is a sub-path within a resource (e.g.
+        // /Model.smartmapperermodel/Relationships/TYPE/TYPE_INPUT).
+        // This is not a file reference; reject it so only /Model.smartmapperermodel
+        // (the erModelRef) is emitted.
+        if (ext.contains("/")) return false;
+        if (PAR_EXTENSIONS.contains(ext) || isSarExtension(ext)) return true;
+        // Unknown extension: emit and let the BFS resolve against the resource index.
+        // If no file with this path exists on disk the ref is silently dropped.
+        // This handles any third-party palette resource type (.cpy, .smartmapperermodel,
+        // .javaschema, …) without requiring explicit registration in SAR_EXTENSIONS.
+        return !value.contains("::") && !value.contains("[") && !value.contains("(");
     }
 
     /**
