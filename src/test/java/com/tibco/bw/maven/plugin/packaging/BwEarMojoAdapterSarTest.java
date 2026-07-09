@@ -10,9 +10,11 @@ import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.Locale;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 /**
  * Regression tests for adapter definition files (.adb, .adldap) inclusion in the SAR.
@@ -34,6 +36,7 @@ public class BwEarMojoAdapterSarTest {
 
     private static final Method EXTRACT_REFS;
     private static final Method APPLY_TRANSITIVE;
+    private static final Method COLLECT_FILES;
     private static final Constructor<?> BW_FILE_CTOR;
 
     static {
@@ -46,6 +49,10 @@ public class BwEarMojoAdapterSarTest {
                 "applyTransitiveDependencyAnalysis",
                 List.class, List.class, List.class, List.class, boolean.class);
             APPLY_TRANSITIVE.setAccessible(true);
+
+            COLLECT_FILES = BwEarMojo.class.getDeclaredMethod(
+                "collectFiles", File.class, File.class, List.class, List.class, List.class);
+            COLLECT_FILES.setAccessible(true);
 
             Class<?> bwFileClass = null;
             for (Class<?> c : BwEarMojo.class.getDeclaredClasses()) {
@@ -583,6 +590,52 @@ public class BwEarMojoAdapterSarTest {
         Set<String> names = fileNames(sarFiles);
         assertTrue("MyService.wsdl must be in SAR despite case mismatch in reference path",
                    names.contains("MyService.wsdl"));
+    }
+
+    // -----------------------------------------------------------------------
+    //  Windows checkout artifact filtering
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression: on Linux, a file checked out from Windows VCS may land in the project root
+     * with its full Windows path (backslashes) as the literal filename, e.g.
+     * {@code BusinessDomains\Svc\Sub\Foo.process}. collectFiles() must skip such files so they
+     * never appear in the PAR or SAR.
+     *
+     * <p>This test is skipped on Windows because the OS does not allow '\' in filenames.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void windowsCheckoutArtifactWithBackslashInNameIsSkipped() throws Exception {
+        assumeTrue("Backslash-in-filename test only runs on non-Windows",
+                   !System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win"));
+
+        File rootDir = tmp.newFolder("backslash-artifact");
+
+        // Normal process at a proper path
+        File subDir = new File(rootDir, "Svc");
+        subDir.mkdir();
+        writeFile(subDir, "Normal.process",
+            "<?xml version=\"1.0\"?><pd:ProcessDefinition"
+            + " xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\"/>\n");
+
+        // Checkout artifact: file whose name literally contains backslashes
+        File artifact = new File(rootDir, "BusinessDomains\\Svc\\Sub\\Artifact.process");
+        Files.write(artifact.toPath(),
+            "<?xml version=\"1.0\"?><pd:ProcessDefinition"
+                .getBytes(StandardCharsets.UTF_8));
+
+        List parFiles  = new ArrayList();
+        List sarFiles  = new ArrayList();
+        List metadata  = new ArrayList();
+        COLLECT_FILES.invoke(new BwEarMojo(), rootDir, rootDir, parFiles, sarFiles, metadata);
+
+        Set<String> parNames = fileNames(parFiles);
+        assertTrue("Normal.process must be collected", parNames.contains("Normal.process"));
+        for (String n : parNames) {
+            assertFalse("Backslash-artifact must not appear in PAR, but found: " + n,
+                        n.contains("\\"));
+        }
     }
 
     // -----------------------------------------------------------------------

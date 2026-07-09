@@ -715,6 +715,12 @@ public class BwEarMojo extends AbstractBw5Mojo {
             if (f.isDirectory()) {
                 collectFiles(rootDir, f, parFiles, sarFiles, metadataFiles);
             } else {
+                // Files whose name contains '\' are Windows-path checkout artifacts on Linux
+                // (the full Windows path was stored as a single filename). Skip them.
+                if (name.contains("\\")) {
+                    getLog().warn("Skipping Windows-path checkout artifact: " + f.getAbsolutePath());
+                    continue;
+                }
                 String ext = getExtension(name);
                 if (EXCLUDED_EXTENSIONS.contains(ext)) {
                     // .folder files are TIBCO Designer display metadata; include when the flag
