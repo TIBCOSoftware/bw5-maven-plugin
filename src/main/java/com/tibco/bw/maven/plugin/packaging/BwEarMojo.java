@@ -449,8 +449,11 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
                 // Collect all aeschemas (and other SAR resources) referenced by adapter definition
                 // files (.adb, .adsap, etc.) and add them to the SAR.
-                // Old ADB SDK versions (< 7.3.0) cause TIBCO Designer to include the entire
-                // /AESchemas/ae/<type>/ directory rather than only the transitively referenced files.
+                // When a .adb file's <loadUrl> entries use fragment references (e.g.
+                // ADB_LOGS.aeschema#class), TIBCO Designer cannot resolve them to individual
+                // files and instead includes the entire /AESchemas/ae/<type>/ directory.
+                // Adapters whose loadUrls have no fragment (ADB_PUBS, ADB_SM, ADB_EVENTS, etc.)
+                // use transitive-only resolution regardless of sdkVersion.
                 if (!adapterDefFiles.isEmpty()) {
                     Map<String, BwFile> resourceIndex = buildBwIndex(allSarFiles);
                     Set<String> referencedResourcePaths = new LinkedHashSet<>();
@@ -458,11 +461,11 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
                     for (Map.Entry<File, String> defEntry : adapterDefFiles.entrySet()) {
                         File defFile = defEntry.getKey();
-                        boolean oldSdk = isOldAdbSdkVersion(defEntry.getValue());
+                        boolean hasFragmentLoadUrls = adapterHasFragmentLoadUrls(defFile);
                         for (String ref : extractBwResourceRefs(defFile)) {
                             String norm = normalizeBwPath(ref);
-                            if (norm.endsWith(".aeschema") && oldSdk) {
-                                // Old SDK: remember the directory so we can add all aeschemas in it.
+                            if (norm.endsWith(".aeschema") && hasFragmentLoadUrls) {
+                                // Fragment loadUrls: remember the directory so we can add all aeschemas in it.
                                 int slash = norm.lastIndexOf('/');
                                 if (slash > 0) wholeDirectoryPrefixes.add(norm.substring(0, slash + 1));
                             }
@@ -477,9 +480,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
                         }
                     }
 
-                    // Old-SDK directory expansion: add every aeschema in the collected directories.
+                    // Directory expansion for adapters with fragment-based loadUrls.
                     for (String dirPrefix : wholeDirectoryPrefixes) {
-                        getLog().info("Old ADB SDK: expanding all aeschemas under " + dirPrefix);
+                        getLog().info("Fragment loadUrls: expanding all aeschemas under " + dirPrefix);
                         for (Map.Entry<String, BwFile> e : resourceIndex.entrySet()) {
                             if (e.getKey().startsWith(dirPrefix) && e.getKey().endsWith(".aeschema")) {
                                 referencedResourcePaths.add(e.getKey());
@@ -1475,20 +1478,21 @@ public class BwEarMojo extends AbstractBw5Mojo {
     }
 
     /**
-     * Returns true when the ADB adapter SDK version is older than 7.3.0.
-     * <p>Old ADB SDK versions (5.x, 7.0, 7.1, 7.2) cause TIBCO Designer to load the entire
-     * {@code /AESchemas/ae/ADB/} directory rather than only the schemas transitively referenced
-     * by the adapter's {@code loadUrl} entries. Version 7.3.0 and later switched to transitive-only
-     * resolution, which is what the plugin normally does.
+     * Returns true when the adapter definition file contains {@code <loadUrl>} entries
+     * that use fragment references (e.g. {@code ADB_LOGS.aeschema#class}).
+     * <p>When fragment-based loadUrls are present TIBCO Designer cannot resolve them to
+     * individual files and falls back to loading the entire {@code AESchemas/ae/&lt;type&gt;/}
+     * directory. Adapters without fragment loadUrls use transitive-only resolution.
      */
-    private static boolean isOldAdbSdkVersion(String sdkVersion) {
-        if (sdkVersion == null || sdkVersion.isEmpty()) return false;
-        String[] parts = sdkVersion.split("\\.", -1);
+    private static boolean adapterHasFragmentLoadUrls(File adapterFile) {
         try {
-            int major = Integer.parseInt(parts[0].trim());
-            int minor = parts.length > 1 ? Integer.parseInt(parts[1].trim()) : 0;
-            return major < 7 || (major == 7 && minor < 3);
-        } catch (NumberFormatException e) {
+            String content = new String(java.nio.file.Files.readAllBytes(adapterFile.toPath()),
+                java.nio.charset.StandardCharsets.UTF_8);
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("loadUrl[^>]*>[^<]*\\.aeschema#")
+                .matcher(content);
+            return m.find();
+        } catch (java.io.IOException e) {
             return false;
         }
     }
