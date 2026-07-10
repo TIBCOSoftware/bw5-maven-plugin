@@ -307,6 +307,19 @@ public class BwEarMojo extends AbstractBw5Mojo {
     ));
 
     /**
+     * Platform-level AESchema files shipped with every TIBCO BW5/TRA installation.
+     * These files are always present in project AESchemas directories but are part of
+     * the runtime environment — buildEAR never packages them because the BW5 engine
+     * already provides them on the target server.
+     */
+    private static final Set<String> PLATFORM_AESCHEMA_RELATIVE_PATHS = new HashSet<>(Arrays.asList(
+        "AESchemas/corba.aeschema",
+        "AESchemas/java.aeschema",
+        "AESchemas/sql.aeschema",
+        "AESchemas/ae/baseDocument.aeschema"
+    ));
+
+    /**
      * Matches relative aeschema cross-references inside .aeschema files, e.g.
      * {@code AESchemas/ae.aeschema} or {@code AESchemas/ae/ADB/adbmetadata.aeschema}.
      * These have no leading slash and are resolved relative to the project root.
@@ -736,6 +749,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     if (!includeFolderMetadata || !".folder".equals(ext)) continue;
                 }
                 String relativePath = rootDir.toURI().relativize(f.toURI()).getPath();
+                if (PLATFORM_AESCHEMA_RELATIVE_PATHS.contains(relativePath)) continue;
                 BwFile bwf = new BwFile(f, relativePath);
 
                 if (PAR_EXTENSIONS.contains(ext)) {
