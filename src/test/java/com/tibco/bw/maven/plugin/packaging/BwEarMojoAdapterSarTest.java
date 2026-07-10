@@ -750,6 +750,48 @@ public class BwEarMojoAdapterSarTest {
                    sarNames.contains("RestSchema.xsd"));
     }
 
+    /**
+     * A COBOL CopyBook activity can emit a relative path without a leading '/' and with
+     * a double slash, e.g.:
+     *   {@code BusinessDomains/WS/Services/WSTBL5/SubProcess/CopyBooks//WSTBL5_REQ_Strings.cpy}
+     * The plugin must normalise this to an absolute BW path and pull the file into the SAR.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void relativeCopyBookPathWithDoubleSlashIsNormalisedAndIncludedInSar() throws Exception {
+        File dir = tmp.newFolder("copybook-relative");
+
+        // Process referencing the .cpy via a relative path (no leading '/') with double slash
+        File proc = writeFile(dir, "MyProcess.process",
+              "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/MyProcess</pd:name>\n"
+            + "  <ae.palette.cobolpalette.sharedProperties.copybook>"
+            +       "CopyBooks//MySchema.cpy"
+            + "</ae.palette.cobolpalette.sharedProperties.copybook>\n"
+            + "</pd:ProcessDefinition>\n");
+
+        // .cpy file in a CopyBooks/ subdirectory
+        File copyBooksDir = new File(dir, "CopyBooks");
+        copyBooksDir.mkdirs();
+        File cpyFile = new File(copyBooksDir, "MySchema.cpy");
+        cpyFile.createNewFile();
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(proc, "MyProcess.process"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(cpyFile, "CopyBooks/MySchema.cpy"));
+
+        applyTransitive(parFiles, sarFiles,
+                        Collections.singletonList("/MyProcess.process"),
+                        Collections.emptyList(), true);
+
+        Set<String> sarNames = fileNames(sarFiles);
+        assertTrue("MySchema.cpy must be in SAR (referenced via relative path with double slash)",
+                   sarNames.contains("MySchema.cpy"));
+    }
+
     @SuppressWarnings("rawtypes")
     private Set<String> fileNames(List bwFiles) throws Exception {
         Set<String> names = new LinkedHashSet<>();

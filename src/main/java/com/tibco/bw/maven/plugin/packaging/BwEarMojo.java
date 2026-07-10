@@ -1520,7 +1520,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
             SAXBuilder builder = new SAXBuilder();
             Document doc = builder.build(file);
             for (Element e : doc.getDescendants(Filters.element())) {
-                String text = e.getTextTrim();
+                String text = toAbsoluteBwRef(e.getTextTrim());
                 if (isBwResourcePath(text)) {
                     refs.add(text);
                 } else if (text.contains("#") && !"messageSchemaURI".equals(e.getName())) {
@@ -1564,6 +1564,33 @@ public class BwEarMojo extends AbstractBw5Mojo {
             getLog().debug("Could not parse refs from " + file.getName() + ": " + e.getMessage());
         }
         return refs;
+    }
+
+    /**
+     * Converts a raw string from a BW5 process element into a canonical absolute BW ref.
+     *
+     * <p>BW Designer occasionally emits relative paths (no leading {@code /}) for palette
+     * resource references, most notably COBOL CopyBook activities which can produce paths like
+     * {@code BusinessDomains/.../CopyBooks//Foo.cpy} — relative and with a double-slash.
+     * This method converts such values to an absolute BW path so that {@link #isBwResourcePath}
+     * and the resource index lookup can handle them uniformly.</p>
+     *
+     * <p>A leading {@code /} is prepended only when the value looks like a file path: it must
+     * contain a {@code /} separator AND have a file-extension dot in its last segment. This
+     * avoids false positives from arbitrary text content that happens to contain dots.</p>
+     */
+    private static String toAbsoluteBwRef(String raw) {
+        if (raw == null || raw.isEmpty()) return raw;
+        // Collapse double slashes first (works for both absolute and relative)
+        String s = raw.contains("//") ? raw.replace("//", "/") : raw;
+        if (s.startsWith("/")) return s;
+        // For relative paths, prepend '/' only when the value looks like a file path:
+        // must contain at least one '/' AND have an extension dot after the last '/'.
+        int lastSlash = s.lastIndexOf('/');
+        if (lastSlash < 0) return s;                        // single segment, not a path
+        int dot = s.lastIndexOf('.');
+        if (dot <= lastSlash) return s;                     // no extension in last segment
+        return "/" + s;
     }
 
     /**
