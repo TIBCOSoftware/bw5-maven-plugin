@@ -56,4 +56,15 @@
         <Class name="com.tibco.bw.bw5_maven_plugin.HelpMojo"/>
     </Match>
 
+    <!--
+        buildXsdNsIndex / buildXsdElementIndex intentionally swallow JDOMException and
+        IOException when a project XSD cannot be parsed — a best-effort index is preferable
+        to a build failure for a malformed schema file.
+    -->
+    <Match>
+        <Bug pattern="DE_MIGHT_IGNORE"/>
+        <Class name="com.tibco.bw.maven.plugin.packaging.BwEarMojo"/>
+        <Method name="~build.*Index"/>
+    </Match>
+
 </FindBugsFilter>

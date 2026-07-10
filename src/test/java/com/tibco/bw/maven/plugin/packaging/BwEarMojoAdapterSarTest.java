@@ -593,6 +593,57 @@ public class BwEarMojoAdapterSarTest {
     }
 
     // -----------------------------------------------------------------------
+    //  Unqualified term ref (XMLParseActivity coercion schema)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression: XMLParseActivity and coercion activities reference their output schema via
+     * {@code <term ref="ElementName"/>} (no namespace prefix = unqualified element, defined
+     * in an XSD with no targetNamespace). This reference was not scanned by
+     * extractBwResourceRefs, so the XSD was silently omitted from the SAR.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void unqualifiedTermRefPullsNoNamespaceXsdIntoSar() throws Exception {
+        File dir = tmp.newFolder("term-ref-unqualified");
+
+        // XSD with no targetNamespace defining element "MyData"
+        File myDataXsd = writeFile(dir, "MyData.xsd",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\""
+            + " elementFormDefault=\"unqualified\">\n"
+            + "  <xs:element name=\"MyData\" type=\"xs:string\"/>\n"
+            + "</xs:schema>\n");
+
+        // Process using XMLParseActivity with <term ref="MyData"/> (unqualified)
+        File proc = writeFile(dir, "ParseProcess.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/ParseProcess</pd:name>\n"
+            + "  <pd:activity name=\"Parse\">\n"
+            + "    <pd:type>com.tibco.plugin.xml.XMLParseActivity</pd:type>\n"
+            + "    <config>\n"
+            + "      <term ref=\"MyData\"/>\n"
+            + "    </config>\n"
+            + "  </pd:activity>\n"
+            + "</pd:ProcessDefinition>\n");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(proc, "ParseProcess.process"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(myDataXsd, "MyData.xsd"));
+
+        applyTransitive(parFiles, sarFiles,
+                        Collections.singletonList("/ParseProcess.process"),
+                        Collections.emptyList(), true);
+
+        Set<String> sarNames = fileNames(sarFiles);
+        assertTrue("MyData.xsd must be in SAR (referenced via unqualified <term ref=\"MyData\"/>)",
+                   sarNames.contains("MyData.xsd"));
+    }
+
+    // -----------------------------------------------------------------------
     //  Windows checkout artifact filtering
     // -----------------------------------------------------------------------
 

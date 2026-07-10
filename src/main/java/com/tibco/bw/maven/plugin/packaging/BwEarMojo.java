@@ -324,6 +324,14 @@ public class BwEarMojo extends AbstractBw5Mojo {
     private Map<String, String> xsdNsIndex = Collections.emptyMap();
 
     /**
+     * Maps unqualified XSD element name → bwPath for XSD files with no targetNamespace.
+     * Used by {@link #extractBwResourceRefs} to resolve {@code <term ref="localName"/>}
+     * references in XMLParseActivity/coercion activities (no namespace prefix = unqualified).
+     * Built alongside {@link #xsdNsIndex} and cleared after each analysis invocation.
+     */
+    private Map<String, String> xsdElementIndex = Collections.emptyMap();
+
+    /**
      * File/directory names to exclude from packaging.
      * vcrepo.dat is version-control metadata.
      *
@@ -1082,6 +1090,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
         // Build namespace index before BFS so followXsdImports can resolve namespace-only imports
         // during the main traversal. Rebuilt post-BFS with extIndex (alwaysInclude XSDs added).
         this.xsdNsIndex = buildXsdNsIndex(resourceIndex);
+        // Build element-name index for unqualified term refs (no-namespace XSD schemas).
+        this.xsdElementIndex = buildXsdElementIndex(resourceIndex);
 
         Set<String> visitedProcessPaths = new LinkedHashSet<>();
         Set<String> referencedResourcePaths = new LinkedHashSet<>();
@@ -1203,6 +1213,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
         for (BwFile f : alwaysInclude) extIndex.put(normalizeBwPath(f.relativePath), f);
         // Build targetNamespace → bwPath index for resolving namespace-only xsd:imports.
         this.xsdNsIndex = buildXsdNsIndex(extIndex);
+        this.xsdElementIndex = buildXsdElementIndex(extIndex);
         for (BwFile f : alwaysInclude) {
             String fPath = normalizeBwPath(f.relativePath);
             if (f.file.getName().endsWith(".xsd")) {
@@ -1215,6 +1226,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
             }
         }
         this.xsdNsIndex = Collections.emptyMap();
+        this.xsdElementIndex = Collections.emptyMap();
 
         // PAR: all promoted entries + either all processes or only reachable ones
         List<BwFile> parProcesses = filterParByReachability
@@ -1379,6 +1391,37 @@ public class BwEarMojo extends AbstractBw5Mojo {
     }
 
     /**
+     * Builds a map of top-level XSD element names to BW paths, restricted to XSD files
+     * that have no {@code targetNamespace} (i.e. unqualified schemas).
+     *
+     * <p>Used to resolve {@code <term ref="localName"/>} references (no namespace prefix)
+     * in BW5 XMLParseActivity and coercion activities. An unqualified term ref means the
+     * element lives in a schema with no targetNamespace; BW Designer locates it by scanning
+     * all no-namespace XSDs for a matching top-level element name.</p>
+     */
+    private Map<String, String> buildXsdElementIndex(Map<String, BwFile> resourceIndex) {
+        Map<String, String> elemIndex = new HashMap<>();
+        org.jdom2.Namespace XSD_NS = org.jdom2.Namespace.getNamespace(
+            "http://www.w3.org/2001/XMLSchema");
+        for (Map.Entry<String, BwFile> entry : resourceIndex.entrySet()) {
+            if (!entry.getKey().endsWith(".xsd")) continue;
+            try {
+                Document doc = new SAXBuilder().build(entry.getValue().file);
+                org.jdom2.Element root = doc.getRootElement();
+                // Only index XSDs with no targetNamespace (unqualified schemas)
+                if (root.getAttributeValue("targetNamespace") != null) continue;
+                for (org.jdom2.Element child : root.getChildren("element", XSD_NS)) {
+                    String name = child.getAttributeValue("name");
+                    if (name != null && !name.isEmpty()) {
+                        elemIndex.putIfAbsent(name, entry.getKey());
+                    }
+                }
+            } catch (org.jdom2.JDOMException | IOException ignored) { }
+        }
+        return elemIndex;
+    }
+
+    /**
      * Recursively follows {@code schemaLocation} imports in an XSD file, adding
      * every imported XSD path to {@code visited} (prevents cycles).
      *
@@ -1502,6 +1545,20 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 // attribute (e.g. <Binding process="/pkg/RestImpl.process"/>).
                 String processAttr = e.getAttributeValue("process");
                 if (processAttr != null && isBwResourcePath(processAttr)) refs.add(processAttr);
+                // XMLParseActivity / coercion activities declare their output schema via
+                // <term ref="ElementName"/> (unqualified, no prefix) or
+                // <term ref="pfx:ElementName"/> (qualified, namespace already covered by
+                // xs:import schemaLocation in the same process file).
+                // For the unqualified case we look up the element name in xsdElementIndex
+                // (built from XSD files with no targetNamespace) to get the bwPath.
+                if ("term".equals(e.getName())) {
+                    String termRef = e.getAttributeValue("ref");
+                    if (termRef != null && !termRef.contains(":") && !xsdElementIndex.isEmpty()) {
+                        String xsdPath = xsdElementIndex.get(termRef);
+                        getLog().debug("term ref=" + termRef + " → xsdPath=" + xsdPath);
+                        if (xsdPath != null) refs.add("/" + xsdPath);
+                    }
+                }
             }
         } catch (org.jdom2.JDOMException | IOException e) {
             getLog().debug("Could not parse refs from " + file.getName() + ": " + e.getMessage());
