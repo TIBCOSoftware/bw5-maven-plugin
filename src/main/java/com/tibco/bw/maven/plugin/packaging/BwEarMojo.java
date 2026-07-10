@@ -555,6 +555,14 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     applyTransitiveDependencyAnalysis(parFiles, sarFiles,
                         archiveDescriptor.getProcessPaths(), archiveDescriptor.sharedResourcePaths,
                         true);
+                } else {
+                    // No explicit process list: run transitive analysis from ALL processes so
+                    // that shared resources not referenced by any process are excluded — matching
+                    // buildear which never includes unreferenced adapter schemas or connections.
+                    List<String> sharedResPaths = (archiveDescriptor != null)
+                        ? archiveDescriptor.sharedResourcePaths : Collections.emptyList();
+                    applyTransitiveDependencyAnalysis(parFiles, sarFiles,
+                        Collections.emptyList(), sharedResPaths, false);
                 }
 
                 String parFileName = "Process Archive.par";

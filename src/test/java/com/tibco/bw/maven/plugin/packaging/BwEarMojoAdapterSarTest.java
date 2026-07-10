@@ -792,6 +792,93 @@ public class BwEarMojoAdapterSarTest {
                    sarNames.contains("MySchema.cpy"));
     }
 
+    // -----------------------------------------------------------------------
+    //  Fix: unreferenced SAR resources excluded in no-archive-descriptor mode
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression: in no-archive-descriptor mode (filterParByReachability=false, empty
+     * entry points), aeschema files not referenced by any process must be excluded from
+     * the SAR — matching buildear's behaviour for SAP IDocFormatPublishingMode projects
+     * where IDOCS.aeschema and structures.aeschema are present on disk but unreferenced.
+     *
+     * <p>Referenced aeschemas and connections must still be included.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void unreferencedSarResourcesExcludedWhenNoArchiveDescriptor() throws Exception {
+        File dir = tmp.newFolder("sap-unreferenced-aeschema");
+
+        // aeschema referenced by the process (must be included)
+        File aeRoot = writeFile(dir, "ae.aeschema",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<Repository:repository"
+            + " xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">\n"
+            + "  <class name=\"string\"/>\n"
+            + "</Repository:repository>");
+
+        // Unreferenced IDoc aeschemas present in project but unused by processes
+        File idocsAeschema = writeFile(dir, "IDOCS.aeschema",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<Repository:repository"
+            + " xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">\n"
+            + "  <sequence name=\"DEBMAS01-E1KNKKM-4x\"/>\n"
+            + "</Repository:repository>");
+        File structuresAeschema = writeFile(dir, "structures.aeschema",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<Repository:repository"
+            + " xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">\n"
+            + "  <class name=\"E1KNKKM-4x\"/>\n"
+            + "</Repository:repository>");
+
+        // Unreferenced JMS connection present in project but not used by any process
+        File unusedConn = writeFile(dir, "JMS Application Properties.sharedjmsapp",
+            "<sharedapp><name>JMS Application Properties</name></sharedapp>");
+
+        // Referenced SAP connection (must be included)
+        File sapConn = writeFile(dir, "SAPConnection.adsap",
+            "<adapter><name>SAPConnection</name></adapter>");
+
+        // Process references ae.aeschema and SAPConnection but not the IDoc aeschemas
+        File proc = writeFile(dir, "PublishProcess.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/PublishProcess</pd:name>\n"
+            + "  <pd:activity name=\"SAP Publish\">\n"
+            + "    <ae.aepalette.sharedProperties.adapterService>"
+            + "/SAPConnection.adsap#adapterService.SAPPublisher"
+            + "</ae.aepalette.sharedProperties.adapterService>\n"
+            + "    <xsd:import xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"\n"
+            + "                schemaLocation=\"/AESchemas/ae.aeschema\"/>\n"
+            + "  </pd:activity>\n"
+            + "</pd:ProcessDefinition>");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(proc, "PublishProcess.process"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(aeRoot,             "AESchemas/ae.aeschema"));
+        sarFiles.add(bwFile(idocsAeschema,      "AESchemas/ae/700/basic/IDOCS.aeschema"));
+        sarFiles.add(bwFile(structuresAeschema, "AESchemas/ae/700/basic/structures.aeschema"));
+        sarFiles.add(bwFile(unusedConn,         "SharedResources/JMS Application Properties.sharedjmsapp"));
+        sarFiles.add(bwFile(sapConn,            "SAPConnection.adsap"));
+
+        // No archive descriptor: empty entry points, filterParByReachability=false
+        applyTransitive(parFiles, sarFiles, Collections.emptyList(), Collections.emptyList(), false);
+
+        Set<String> names = fileNames(sarFiles);
+        assertTrue("ae.aeschema must be in SAR (referenced by process)",
+            names.contains("ae.aeschema"));
+        assertTrue("SAPConnection.adsap must be in SAR (referenced by process)",
+            names.contains("SAPConnection.adsap"));
+        assertFalse("IDOCS.aeschema must NOT be in SAR (unreferenced by any process)",
+            names.contains("IDOCS.aeschema"));
+        assertFalse("structures.aeschema must NOT be in SAR (unreferenced by any process)",
+            names.contains("structures.aeschema"));
+        assertFalse("JMS Application Properties.sharedjmsapp must NOT be in SAR (unreferenced)",
+            names.contains("JMS Application Properties.sharedjmsapp"));
+    }
+
     @SuppressWarnings("rawtypes")
     private Set<String> fileNames(List bwFiles) throws Exception {
         Set<String> names = new LinkedHashSet<>();
