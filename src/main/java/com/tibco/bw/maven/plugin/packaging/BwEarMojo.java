@@ -735,11 +735,6 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     // is set so the SAR matches buildear output for sharedResources paths.
                     if (!includeFolderMetadata || !".folder".equals(ext)) continue;
                 }
-                // Adapter-related extensions starting with ".ad": only those in SAR_EXTENSIONS
-                // (.adapter, .adb, .adldap, …) are eligible for the SAR.  Unknown ".ad*" types
-                // (e.g. .adsap, .addr3) belong exclusively in the AAR and are skipped here.
-                if (ext.startsWith(".ad") && !isSarExtension(ext)) continue;
-
                 String relativePath = rootDir.toURI().relativize(f.toURI()).getPath();
                 BwFile bwf = new BwFile(f, relativePath);
 
