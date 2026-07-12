@@ -1758,11 +1758,36 @@ public class BwEarMojo extends AbstractBw5Mojo {
      * requiring code changes. {@code schemaLocation} attributes are also scanned.</p>
      */
     private Set<String> extractBwResourceRefs(File file) {
+        String fileNameLower = file.getName().toLowerCase(Locale.ROOT);
+        // AESDK:loadUrl elements in .adr3/.adr3TID/.adr3Connections files reference runtime
+        // type definitions that the adapter loads from its plugin JAR, not from the project.
+        // Skipping them prevents spurious aeschema inclusions (e.g. IDOCS.aeschema for
+        // IDocFormatPublishingMode). For .adb/.adsap/.adldap files, loadUrls DO reference
+        // project SAR aeschemas (e.g. adbmetadata.aeschema) and must continue to be followed.
+        boolean skipLoadUrl = fileNameLower.endsWith(".adr3")
+                || fileNameLower.endsWith(".adr3tid")
+                || fileNameLower.endsWith(".adr3connections");
         Set<String> refs = new LinkedHashSet<>();
         try {
             SAXBuilder builder = new SAXBuilder();
             Document doc = builder.build(file);
+            Namespace pdNs = Namespace.getNamespace("pd", "http://xmlns.tibco.com/bw/process/2003");
             for (Element e : doc.getDescendants(Filters.element())) {
+                // Skip AESDK:loadUrl in .adr3 adapter config files — runtime schema loading only.
+                if (skipLoadUrl && "loadUrl".equals(e.getName())) continue;
+                // <ApplicationProperties> inside an AE adapter activity (com.tibco.plugin.ae.*)
+                // configures the adapter's internal JMS transport, not a project shared resource.
+                // Standard JMS palette activities (com.tibco.plugin.jms.*) DO reference project
+                // .sharedjmsapp resources via the same element — those must still be followed.
+                if ("ApplicationProperties".equals(e.getName())) {
+                    Element configEl = e.getParentElement();
+                    Element activityEl = (configEl != null) ? configEl.getParentElement() : null;
+                    if (activityEl != null) {
+                        Element typeEl = activityEl.getChild("type", pdNs);
+                        String actType = (typeEl != null) ? typeEl.getTextTrim() : "";
+                        if (actType.startsWith("com.tibco.plugin.ae.")) continue;
+                    }
+                }
                 String text = toAbsoluteBwRef(e.getTextTrim());
                 if (isBwResourcePath(text)) {
                     refs.add(text);

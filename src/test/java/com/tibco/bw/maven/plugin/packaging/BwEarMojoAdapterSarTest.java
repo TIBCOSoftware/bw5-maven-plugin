@@ -961,72 +961,175 @@ public class BwEarMojoAdapterSarTest {
     }
 
     // -----------------------------------------------------------------------
-    //  SAP R/3: /#class fragment refs resolve to .aeschema via fallback
+    //  SAP R/3: AESDK:loadUrl in .adr3 files is NOT followed for SAR inclusion
     // -----------------------------------------------------------------------
 
     /**
-     * Regression: AESDK loadUrl elements of the form {@code /path/basename/#class} (after
-     * #fragment strip: {@code /path/basename} — no extension) must resolve to
-     * {@code /path/basename.aeschema} when no files exist under a {@code /path/basename/}
-     * directory.
+     * Regression: {@code AESDK:loadUrl} elements in {@code .adr3} adapter configuration files
+     * reference runtime type definitions that the SAP adapter loads from its own plugin JAR, NOT
+     * from the project. They must NOT cause aeschema files to be added to the SAR.
      *
-     * <p>Mirrors DynamicLogonExternalCommit where {@code R3AdapterConfiguration.adr3} contains
-     * {@code <AESDK:loadUrl>/AESchemas/ae/700/basic/structures/#class</AESDK:loadUrl>} and
-     * the real file on disk is {@code AESchemas/ae/700/basic/structures.aeschema}.</p>
+     * <p>Mirrors IDocFormatPublishingMode where {@code R3AdapterConfiguration.adr3} has loadUrls
+     * for {@code IDOCS/#class}, {@code structures/#class}, and {@code SAPAdapter40/classes/#class},
+     * but buildear's reference EAR does NOT include these aeschemas from the loadUrls. Aeschemas
+     * reach the SAR only when a process directly imports them or they are transitively reachable
+     * from a process-imported aeschema via {@code isRef} references.</p>
+     *
+     * <p>For .adb/.adsap/.adldap files, {@code AESDK:loadUrl} entries DO reference project
+     * aeschemas that must be included — those files are not affected by this rule.</p>
      */
     @Test
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public void classFragmentRefResolvesViaAeschemaFallback() throws Exception {
-        File dir = tmp.newFolder("class-fragment-fallback");
+    public void adr3LoadUrlRefsNotFollowedForAeschemaInclusion() throws Exception {
+        File dir = tmp.newFolder("adr3-loadurl-not-followed");
 
-        // .adr3 with a /#class loadUrl pointing to structures.aeschema (via base-name ref)
+        // .adr3 with AESDK:loadUrl entries for runtime schema loading
         File adr3 = writeFile(dir, "R3AdapterConfiguration.adr3",
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
             + "<Repository:repository xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\"\n"
             + "  xmlns:AESDK=\"http://www.tibco.com/xmlns/aemeta/adapter/2002\">\n"
             + "  <AESDK:loadUrl>/AESchemas/ae/700/basic/structures/#class</AESDK:loadUrl>\n"
-            + "  <AESDK:loadUrl>/AESchemas/ae/SAPAdapter40/classes.aeschema#rpcClass.RFCClient</AESDK:loadUrl>\n"
+            + "  <AESDK:loadUrl>/AESchemas/ae/700/basic/IDOCS/#class</AESDK:loadUrl>\n"
+            + "  <AESDK:loadUrl>/AESchemas/ae/SAPAdapter40/classes/#class</AESDK:loadUrl>\n"
             + "</Repository:repository>");
 
-        // structures.aeschema: present in project; referenced only via /#class notation
+        // These aeschemas are on disk but must NOT be pulled in via .adr3 loadUrls
         File structures = writeFile(dir, "structures.aeschema",
             "<Repository:repository xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">"
             + "<class name=\"E1KNKKM-4x\"/></Repository:repository>");
-
-        // classes.aeschema: referenced via direct path with #fragment (standard case)
+        File idocs = writeFile(dir, "IDOCS.aeschema",
+            "<Repository:repository xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">"
+            + "<sequence name=\"DEBMAS01-E1KNKKM-4x\"/></Repository:repository>");
         File classes = writeFile(dir, "classes.aeschema",
             "<Repository:repository xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">"
             + "<class name=\"RFCClient\"/></Repository:repository>");
 
-        // Process references the .adr3 adapter
-        File proc = writeFile(dir, "DynamicLogon.process",
+        // Process references .adr3 via adapterService — does NOT directly import the aeschemas
+        File proc = writeFile(dir, "ReceiveIDoc.process",
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
             + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
-            + "  <pd:name>/DynamicLogon</pd:name>\n"
-            + "  <pd:activity name=\"RFC\">\n"
+            + "  <pd:name>/ReceiveIDoc</pd:name>\n"
+            + "  <pd:activity name=\"Receive\">\n"
             + "    <ae.aepalette.sharedProperties.adapterService>"
-            + "/R3AdapterConfiguration.adr3#adapterService.RFCClient"
+            + "/R3AdapterConfiguration.adr3#adapterService.IDOCSubscriber"
             + "</ae.aepalette.sharedProperties.adapterService>\n"
             + "  </pd:activity>\n"
             + "</pd:ProcessDefinition>");
 
         List parFiles = new ArrayList();
-        parFiles.add(bwFile(proc, "DynamicLogon.process"));
+        parFiles.add(bwFile(proc, "ReceiveIDoc.process"));
 
         List sarFiles = new ArrayList();
         sarFiles.add(bwFile(adr3,       "R3AdapterConfiguration.adr3"));
         sarFiles.add(bwFile(structures, "AESchemas/ae/700/basic/structures.aeschema"));
+        sarFiles.add(bwFile(idocs,      "AESchemas/ae/700/basic/IDOCS.aeschema"));
         sarFiles.add(bwFile(classes,    "AESchemas/ae/SAPAdapter40/classes.aeschema"));
 
         applyTransitive(parFiles, sarFiles, Collections.emptyList(), Collections.emptyList(), false);
 
-        Set<String> names = fileNames(sarFiles);
+        Set<String> paths = fileRelPaths(sarFiles);
         assertTrue("R3AdapterConfiguration.adr3 must be in SAR (referenced by process)",
-            names.contains("R3AdapterConfiguration.adr3"));
-        assertTrue("classes.aeschema must be in SAR (direct ref from .adr3)",
-            names.contains("classes.aeschema"));
-        assertTrue("structures.aeschema must be in SAR (via /#class fallback resolution)",
-            names.contains("structures.aeschema"));
+            paths.contains("R3AdapterConfiguration.adr3"));
+        assertFalse("structures.aeschema must NOT be in SAR (.adr3 loadUrl refs are skipped)",
+            paths.contains("AESchemas/ae/700/basic/structures.aeschema"));
+        assertFalse("IDOCS.aeschema must NOT be in SAR (.adr3 loadUrl refs are skipped)",
+            paths.contains("AESchemas/ae/700/basic/IDOCS.aeschema"));
+        assertFalse("classes.aeschema must NOT be in SAR (.adr3 loadUrl refs are skipped)",
+            paths.contains("AESchemas/ae/SAPAdapter40/classes.aeschema"));
+    }
+
+    /**
+     * Regression: {@code <ApplicationProperties>} inside an AE adapter activity
+     * ({@code com.tibco.plugin.ae.*}) configures the adapter's internal JMS transport. The
+     * referenced {@code .sharedjmsapp} file must NOT be added to the SAR.
+     *
+     * <p>Contrasts with standard JMS palette activities ({@code com.tibco.plugin.jms.*}) where
+     * {@code <ApplicationProperties>} DOES reference a project shared JMS resource and the file
+     * IS correctly included in the SAR.</p>
+     *
+     * <p>Mirrors IDocFormatPublishingMode where {@code ReceiveIDocFromSAP.process} uses
+     * {@code AESubscriberActivity} with {@code <ApplicationProperties>/JMS Application
+     * Properties.sharedjmsapp</ApplicationProperties>} — buildear excludes this file from SAR.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void applicationPropertiesInAeActivityNotAddedToSar() throws Exception {
+        File dir = tmp.newFolder("ae-app-props");
+
+        // The JMS Application Properties file
+        File jmsApp = writeFile(dir, "JMS Application Properties.sharedjmsapp",
+            "<sharedapp><name>JMS Application Properties</name></sharedapp>");
+
+        // Process with an AE adapter activity containing <ApplicationProperties>
+        File proc = writeFile(dir, "ReceiveIDoc.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/ReceiveIDoc</pd:name>\n"
+            + "  <pd:activity name=\"Receive\">\n"
+            + "    <pd:type>com.tibco.plugin.ae.AESubscriberActivity</pd:type>\n"
+            + "    <config>\n"
+            + "      <ae.aepalette.sharedProperties.adapterService>"
+            + "/R3AdapterConfiguration.adr3#adapterService.IDOCSubscriber"
+            + "</ae.aepalette.sharedProperties.adapterService>\n"
+            + "      <ApplicationProperties>/JMS Application Properties.sharedjmsapp</ApplicationProperties>\n"
+            + "    </config>\n"
+            + "  </pd:activity>\n"
+            + "</pd:ProcessDefinition>");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(proc, "ReceiveIDoc.process"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(jmsApp, "JMS Application Properties.sharedjmsapp"));
+
+        applyTransitive(parFiles, sarFiles, Collections.emptyList(), Collections.emptyList(), false);
+
+        assertFalse("JMS Application Properties must NOT be in SAR when referenced from AE adapter activity",
+            fileRelPaths(sarFiles).contains("JMS Application Properties.sharedjmsapp"));
+    }
+
+    /**
+     * Positive case: {@code <ApplicationProperties>} inside a standard JMS palette activity
+     * ({@code com.tibco.plugin.jms.*}) references a project shared JMS resource. The file
+     * MUST be included in the SAR.
+     *
+     * <p>Mirrors BookingDetails / EAI_BW_TIBMC projects where JMSQueueSendActivity or
+     * JMSTopicPublishActivity use {@code <ApplicationProperties>} to reference
+     * {@code SharedResources/Transport/*.sharedjmsapp} files that buildear includes in SAR.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void applicationPropertiesInJmsActivityAddedToSar() throws Exception {
+        File dir = tmp.newFolder("jms-app-props");
+
+        File jmsApp = writeFile(dir, "JMSBookingIDProperties.sharedjmsapp",
+            "<sharedapp><name>JMSBookingIDProperties</name></sharedapp>");
+
+        File proc = writeFile(dir, "Send.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/Send</pd:name>\n"
+            + "  <pd:activity name=\"SendMsg\">\n"
+            + "    <pd:type>com.tibco.plugin.jms.JMSQueueSendActivity</pd:type>\n"
+            + "    <config>\n"
+            + "      <ApplicationProperties>"
+            + "/SharedResources/Connections/JMS/JMSBookingIDProperties.sharedjmsapp"
+            + "</ApplicationProperties>\n"
+            + "    </config>\n"
+            + "  </pd:activity>\n"
+            + "</pd:ProcessDefinition>");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(proc, "Send.process"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(jmsApp, "SharedResources/Connections/JMS/JMSBookingIDProperties.sharedjmsapp"));
+
+        applyTransitive(parFiles, sarFiles, Collections.emptyList(), Collections.emptyList(), false);
+
+        assertTrue("JMS Application Properties must be in SAR when referenced from JMS palette activity",
+            fileRelPaths(sarFiles).contains(
+                "SharedResources/Connections/JMS/JMSBookingIDProperties.sharedjmsapp"));
     }
 
     // -----------------------------------------------------------------------
