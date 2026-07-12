@@ -879,6 +879,153 @@ public class BwEarMojoAdapterSarTest {
             names.contains("JMS Application Properties.sharedjmsapp"));
     }
 
+    // -----------------------------------------------------------------------
+    //  SAP R/3 adapter: .adr3 → .adr3Connections transitive discovery
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression: when a process references an SAP R/3 adapter configuration (.adr3), the
+     * plugin must also include the connection-pool file (.adr3Connections) referenced from
+     * within the .adr3 file.  Unreferenced .adr3 / .adr3TID files must be excluded.
+     *
+     * <p>Mirrors OutboundIDocWithRemoteTIDManager where Publisher2.adr3 and TIDManager.adr3TID
+     * are present on disk but unreferenced by any process, while Publisher1.adr3 and
+     * R3Connections.adr3Connections are reachable via the process → Publisher1 → R3Connections
+     * reference chain.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void adr3ConnectionsDiscoveredAndUnreferencedAdr3Excluded() throws Exception {
+        File dir = tmp.newFolder("adr3-transitive");
+
+        // Publisher1.adr3: referenced by process, contains an objectGroup ref to R3Connections
+        File pub1 = writeFile(dir, "Publisher1.adr3",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<Repository:repository xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\"\n"
+            + "  xmlns:AESDK=\"http://www.tibco.com/xmlns/aemeta/adapter/2002\">\n"
+            + "  <AESDK:instanceId>Publisher1</AESDK:instanceId>\n"
+            + "  <AESDK:objectGroup isRef=\"true\">/R3Connections.adr3Connections#connPool.Main</AESDK:objectGroup>\n"
+            + "</Repository:repository>");
+
+        // R3Connections.adr3Connections: discovered transitively via Publisher1
+        File r3conn = writeFile(dir, "R3Connections.adr3Connections",
+            "<Repository:repository xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">"
+            + "<pool name=\"Main\"/></Repository:repository>");
+
+        // Publisher2.adr3: on disk but NOT referenced by any process → must be excluded
+        File pub2 = writeFile(dir, "Publisher2.adr3",
+            "<Repository:repository xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">"
+            + "<AESDK:instanceId xmlns:AESDK=\"http://www.tibco.com/xmlns/aemeta/adapter/2002\">"
+            + "Publisher2</AESDK:instanceId></Repository:repository>");
+
+        // TIDManager.adr3TID: on disk but NOT referenced → must be excluded
+        File tidMgr = writeFile(dir, "TIDManager.adr3TID",
+            "<Repository:repository xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">"
+            + "<tidmgr/></Repository:repository>");
+
+        // Process references only Publisher1.adr3
+        File proc = writeFile(dir, "CREMAS Process.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/CREMAS Process</pd:name>\n"
+            + "  <pd:activity name=\"SAPPub\">\n"
+            + "    <ae.aepalette.sharedProperties.adapterService>"
+            + "/Publisher1.adr3#adapterService.CREMAS01Publisher"
+            + "</ae.aepalette.sharedProperties.adapterService>\n"
+            + "  </pd:activity>\n"
+            + "</pd:ProcessDefinition>");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(proc, "CREMAS Process.process"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(pub1,   "Publisher1.adr3"));
+        sarFiles.add(bwFile(r3conn, "R3Connections.adr3Connections"));
+        sarFiles.add(bwFile(pub2,   "Publisher2.adr3"));
+        sarFiles.add(bwFile(tidMgr, "TIDManager.adr3TID"));
+
+        applyTransitive(parFiles, sarFiles, Collections.emptyList(), Collections.emptyList(), false);
+
+        Set<String> names = fileNames(sarFiles);
+        assertTrue("Publisher1.adr3 must be in SAR (referenced by process)",
+            names.contains("Publisher1.adr3"));
+        assertTrue("R3Connections.adr3Connections must be in SAR (referenced from Publisher1.adr3)",
+            names.contains("R3Connections.adr3Connections"));
+        assertFalse("Publisher2.adr3 must NOT be in SAR (unreferenced)",
+            names.contains("Publisher2.adr3"));
+        assertFalse("TIDManager.adr3TID must NOT be in SAR (unreferenced)",
+            names.contains("TIDManager.adr3TID"));
+    }
+
+    // -----------------------------------------------------------------------
+    //  SAP R/3: /#class fragment refs resolve to .aeschema via fallback
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression: AESDK loadUrl elements of the form {@code /path/basename/#class} (after
+     * #fragment strip: {@code /path/basename} — no extension) must resolve to
+     * {@code /path/basename.aeschema} when no files exist under a {@code /path/basename/}
+     * directory.
+     *
+     * <p>Mirrors DynamicLogonExternalCommit where {@code R3AdapterConfiguration.adr3} contains
+     * {@code <AESDK:loadUrl>/AESchemas/ae/700/basic/structures/#class</AESDK:loadUrl>} and
+     * the real file on disk is {@code AESchemas/ae/700/basic/structures.aeschema}.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void classFragmentRefResolvesViaAeschemaFallback() throws Exception {
+        File dir = tmp.newFolder("class-fragment-fallback");
+
+        // .adr3 with a /#class loadUrl pointing to structures.aeschema (via base-name ref)
+        File adr3 = writeFile(dir, "R3AdapterConfiguration.adr3",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<Repository:repository xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\"\n"
+            + "  xmlns:AESDK=\"http://www.tibco.com/xmlns/aemeta/adapter/2002\">\n"
+            + "  <AESDK:loadUrl>/AESchemas/ae/700/basic/structures/#class</AESDK:loadUrl>\n"
+            + "  <AESDK:loadUrl>/AESchemas/ae/SAPAdapter40/classes.aeschema#rpcClass.RFCClient</AESDK:loadUrl>\n"
+            + "</Repository:repository>");
+
+        // structures.aeschema: present in project; referenced only via /#class notation
+        File structures = writeFile(dir, "structures.aeschema",
+            "<Repository:repository xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">"
+            + "<class name=\"E1KNKKM-4x\"/></Repository:repository>");
+
+        // classes.aeschema: referenced via direct path with #fragment (standard case)
+        File classes = writeFile(dir, "classes.aeschema",
+            "<Repository:repository xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">"
+            + "<class name=\"RFCClient\"/></Repository:repository>");
+
+        // Process references the .adr3 adapter
+        File proc = writeFile(dir, "DynamicLogon.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/DynamicLogon</pd:name>\n"
+            + "  <pd:activity name=\"RFC\">\n"
+            + "    <ae.aepalette.sharedProperties.adapterService>"
+            + "/R3AdapterConfiguration.adr3#adapterService.RFCClient"
+            + "</ae.aepalette.sharedProperties.adapterService>\n"
+            + "  </pd:activity>\n"
+            + "</pd:ProcessDefinition>");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(proc, "DynamicLogon.process"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(adr3,       "R3AdapterConfiguration.adr3"));
+        sarFiles.add(bwFile(structures, "AESchemas/ae/700/basic/structures.aeschema"));
+        sarFiles.add(bwFile(classes,    "AESchemas/ae/SAPAdapter40/classes.aeschema"));
+
+        applyTransitive(parFiles, sarFiles, Collections.emptyList(), Collections.emptyList(), false);
+
+        Set<String> names = fileNames(sarFiles);
+        assertTrue("R3AdapterConfiguration.adr3 must be in SAR (referenced by process)",
+            names.contains("R3AdapterConfiguration.adr3"));
+        assertTrue("classes.aeschema must be in SAR (direct ref from .adr3)",
+            names.contains("classes.aeschema"));
+        assertTrue("structures.aeschema must be in SAR (via /#class fallback resolution)",
+            names.contains("structures.aeschema"));
+    }
+
     @SuppressWarnings("rawtypes")
     private Set<String> fileNames(List bwFiles) throws Exception {
         Set<String> names = new LinkedHashSet<>();

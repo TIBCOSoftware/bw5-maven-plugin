@@ -282,6 +282,12 @@ public class BwEarMojo extends AbstractBw5Mojo {
         // ae.aepalette.sharedProperties.adapterService.  Pure adapter-only archives (no
         // processArchive) leave these files only in the AAR via the adapterDefFiles path.
         ".adb", ".adldap",
+        // SAP R/3 adapter configuration files.  An .adr3 file references its connection pool
+        // (.adr3Connections) via AESDK:objectGroup elements; adding these to SAR_EXTENSIONS
+        // causes followSharedResourceRefs to be called on them, enabling BFS to discover the
+        // full .adr3 → .adr3Connections reference chain (otherwise .adr3Connections is
+        // silently dropped when transitive analysis is active in no-archive-descriptor mode).
+        ".adr3", ".adr3Connections", ".adr3TID",
         // Java archive library references (referenced by javaArchive element)
         ".aliaslib"
     ));
@@ -555,6 +561,16 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     applyTransitiveDependencyAnalysis(parFiles, sarFiles,
                         archiveDescriptor.getProcessPaths(), archiveDescriptor.sharedResourcePaths,
                         true);
+                } else {
+                    // No archive descriptor (or descriptor without an explicit process list):
+                    // apply transitive analysis seeding ALL processes (filterParByReachability=false).
+                    // This excludes SAR resources that are present on disk but not referenced by
+                    // any process — matching buildEAR which omits unreferenced adapter configs
+                    // (e.g. Publisher2.adr3, TIDManager.adr3TID, unused JMS connections).
+                    List<String> sharedResPaths = archiveDescriptor != null
+                        ? archiveDescriptor.sharedResourcePaths : Collections.emptyList();
+                    applyTransitiveDependencyAnalysis(parFiles, sarFiles,
+                        Collections.emptyList(), sharedResPaths, false);
                 }
 
                 String parFileName = "Process Archive.par";
@@ -1661,19 +1677,35 @@ public class BwEarMojo extends AbstractBw5Mojo {
     private void expandDirectoryRefs(Set<String> refs, Map<String, BwFile> resourceIndex) {
         List<String> dirRefs = new ArrayList<>();
         for (String path : refs) {
-            int lastSlash = path.lastIndexOf('/');
-            String lastName = path.substring(lastSlash + 1);
+            // Strip trailing slash: AESDK "/#class" refs like "/AESchemas/ae/SAPAdapter40/classes/#class"
+            // become "/AESchemas/ae/SAPAdapter40/classes/" after fragment stripping, yielding an empty
+            // lastName below without this normalization.
+            String p = path.endsWith("/") ? path.substring(0, path.length() - 1) : path;
+            int lastSlash = p.lastIndexOf('/');
+            String lastName = p.substring(lastSlash + 1);
             if (!lastName.isEmpty() && !lastName.contains(".")) {
-                dirRefs.add(path);
+                dirRefs.add(p);
             }
         }
         for (String dir : dirRefs) {
             String prefix = dir + "/";
+            boolean anyFound = false;
             for (String resourcePath : resourceIndex.keySet()) {
                 if (resourcePath.startsWith(prefix)) {
                     if (refs.add(resourcePath)) {
                         getLog().debug("Directory ref expanded: " + dir + " → " + resourcePath);
                     }
+                    anyFound = true;
+                }
+            }
+            if (!anyFound) {
+                // Fallback: the "directory" path may actually be the base name of an .aeschema
+                // file (AESDK /#class fragment refs like /AESchemas/ae/SAPAdapter40/classes/#class
+                // strip to /AESchemas/ae/SAPAdapter40/classes — no extension, looks like a dir,
+                // but the real file is classes.aeschema in the parent directory).
+                String candidate = dir + ".aeschema";
+                if (resourceIndex.containsKey(candidate) && refs.add(candidate)) {
+                    getLog().debug("No-extension ref resolved as .aeschema: " + dir + " → " + candidate);
                 }
             }
         }
