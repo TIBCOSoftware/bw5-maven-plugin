@@ -1284,4 +1284,115 @@ public class BwEarMojoAdapterSarTest {
         assertTrue("Publisher2.aar must be created", aarNames.contains("Publisher2.aar"));
         assertTrue("TIDManager.aar must be created", aarNames.contains("TIDManager.aar"));
     }
+
+    // -----------------------------------------------------------------------
+    //  GV-referenced resources: files stored only as GV values must be in SAR
+    // -----------------------------------------------------------------------
+
+    private static final Method ADD_GV_RESOURCES;
+
+    static {
+        try {
+            ADD_GV_RESOURCES = BwEarMojo.class.getDeclaredMethod(
+                "addGvReferencedResources", List.class, List.class, List.class);
+            ADD_GV_RESOURCES.setAccessible(true);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void addGvResources(List<SubstVarParser.GlobalVariable> gvars,
+                                List sarFiles, List allSarFiles) throws Exception {
+        try {
+            ADD_GV_RESOURCES.invoke(new BwEarMojo(), gvars, sarFiles, allSarFiles);
+        } catch (java.lang.reflect.InvocationTargetException ite) {
+            Throwable cause = ite.getCause();
+            if (cause instanceof RuntimeException) throw (RuntimeException) cause;
+            throw new RuntimeException(cause);
+        }
+    }
+
+    /**
+     * Regression: a WSDL whose BW path is stored only as a GV value (e.g.
+     * {@code salesforce.wsdl = /SalesforceResources/partner_27_0.wsdl}) must be added
+     * to the SAR even though no process directly imports it.
+     *
+     * <p>Mirrors SalesforceOpportunityToSAPOrder where partner_27_0.wsdl is referenced
+     * via the {@code salesforce.wsdl} GV and otherwise invisible to transitive analysis.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void gvReferencedWsdlAddedToSar() throws Exception {
+        File dir = tmp.newFolder("gv-wsdl");
+        File wsdlFile = writeFile(dir, "partner_27_0.wsdl",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<wsdl:definitions xmlns:wsdl=\"http://schemas.xmlsoap.org/wsdl/\""
+            + " targetNamespace=\"urn:partner.soap.sforce.com\"/>\n");
+        File xsdFile = writeFile(dir, "Salesforce_Metadata.xsd",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<xsd:schema xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"/>\n");
+
+        // GV: salesforce.wsdl = /SalesforceResources/partner_27_0.wsdl
+        SubstVarParser.GlobalVariable gv = new SubstVarParser.GlobalVariable();
+        gv.name = "salesforce.wsdl";
+        gv.value = "/SalesforceResources/partner_27_0.wsdl";
+        gv.type = "String";
+        List<SubstVarParser.GlobalVariable> gvars = Collections.singletonList(gv);
+
+        // allSarFiles contains both files
+        List allSarFiles = new ArrayList();
+        allSarFiles.add(bwFile(wsdlFile, "SalesforceResources/partner_27_0.wsdl"));
+        allSarFiles.add(bwFile(xsdFile,  "SalesforceResources/Salesforce_Metadata.xsd"));
+
+        // sarFiles already includes the XSD (referenced directly by process) but NOT the WSDL
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(xsdFile, "SalesforceResources/Salesforce_Metadata.xsd"));
+
+        addGvResources(gvars, sarFiles, allSarFiles);
+
+        Set<String> names = fileNames(sarFiles);
+        assertTrue("partner_27_0.wsdl must be added (GV value points to it)",
+            names.contains("partner_27_0.wsdl"));
+        assertTrue("Salesforce_Metadata.xsd must still be in SAR",
+            names.contains("Salesforce_Metadata.xsd"));
+    }
+
+    /**
+     * GV values that do NOT look like BW resource paths (no leading slash, or no
+     * file extension, or no matching file in the project) must not cause errors or
+     * spurious SAR additions.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void gvWithNonPathValueDoesNotAddAnything() throws Exception {
+        File dir = tmp.newFolder("gv-non-path");
+        File xsdFile = writeFile(dir, "Schema.xsd",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?><xsd:schema"
+            + " xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"/>\n");
+
+        List<SubstVarParser.GlobalVariable> gvars = new ArrayList<>();
+        // hostname GV: no leading slash
+        SubstVarParser.GlobalVariable host = new SubstVarParser.GlobalVariable();
+        host.name = "server.host"; host.value = "myserver.example.com"; host.type = "String";
+        gvars.add(host);
+        // path without extension
+        SubstVarParser.GlobalVariable noExt = new SubstVarParser.GlobalVariable();
+        noExt.name = "log.dir"; noExt.value = "/var/log/bw"; noExt.type = "String";
+        gvars.add(noExt);
+        // path that doesn't exist in project
+        SubstVarParser.GlobalVariable ghost = new SubstVarParser.GlobalVariable();
+        ghost.name = "missing.wsdl"; ghost.value = "/Schemas/DoesNotExist.wsdl"; ghost.type = "String";
+        gvars.add(ghost);
+
+        List allSarFiles = new ArrayList();
+        allSarFiles.add(bwFile(xsdFile, "Schema.xsd"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(xsdFile, "Schema.xsd"));
+
+        addGvResources(gvars, sarFiles, allSarFiles);
+
+        assertEquals("Only the originally included XSD must be in SAR", 1, sarFiles.size());
+    }
 }

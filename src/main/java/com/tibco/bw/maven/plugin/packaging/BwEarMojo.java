@@ -448,6 +448,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                         applyTransitiveDependencyAnalysis(parFiles, sarFiles,
                             pa.processPaths, archiveDescriptor.sharedResourcePaths, true);
                     }
+                    addGvReferencedResources(globalVars, sarFiles, allSarFiles);
                     accumulateSarFiles(sarFiles, combinedSarFiles, seenSarPaths);
 
                     List<String> sarPaths = toSarPaths(combinedSarFiles);
@@ -586,6 +587,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     parFileName = descriptorParName + ".par";
                 }
 
+                addGvReferencedResources(globalVars, sarFiles, allSarFiles);
                 getLog().info("Process files (PAR): " + parFiles.size());
                 getLog().info("Shared resource files (SAR): " + sarFiles.size());
 
@@ -967,6 +969,40 @@ public class BwEarMojo extends AbstractBw5Mojo {
             getLog().debug("MessageEncoding read from vcrepo.dat: " + encoding);
         } catch (IOException e) {
             getLog().debug("Could not read vcrepo.dat for MessageEncoding: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Adds to {@code sarFiles} any file from {@code allSarFiles} whose BW path is stored
+     * verbatim as a global-variable value (e.g. {@code salesforce.wsdl =
+     * /SalesforceResources/partner_27_0.wsdl}).
+     *
+     * <p>buildear discovers such dependencies by following GV-path references at build time.
+     * Without this step, files referenced only via a GV value (not via any XSD/process import)
+     * are silently omitted from the SAR.</p>
+     */
+    private void addGvReferencedResources(
+            List<SubstVarParser.GlobalVariable> globalVars,
+            List<BwFile> sarFiles,
+            List<BwFile> allSarFiles) {
+        Map<String, BwFile> allIdx = buildBwIndex(allSarFiles);
+        Set<String> included = new HashSet<>();
+        for (BwFile f : sarFiles) included.add(normalizeBwPath(f.relativePath));
+
+        for (SubstVarParser.GlobalVariable gv : globalVars) {
+            String val = gv.value;
+            if (val == null || val.isEmpty() || !val.startsWith("/")) continue;
+            // Skip values without a file extension (not a resource path)
+            String norm = normalizeBwPath(val);
+            if (!norm.contains(".")) continue;
+            if (included.contains(norm)) continue;
+            BwFile f = allIdx.get(norm);
+            if (f != null) {
+                getLog().debug("GV-path resource added to SAR: " + norm
+                        + " (from GV %%" + gv.name + "%%)");
+                sarFiles.add(f);
+                included.add(norm);
+            }
         }
     }
 
