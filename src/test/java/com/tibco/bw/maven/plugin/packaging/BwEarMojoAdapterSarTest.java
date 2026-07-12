@@ -12,8 +12,11 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.Locale;
 
+import com.tibco.bw.maven.plugin.descriptor.SubstVarParser;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 /**
@@ -1026,6 +1029,104 @@ public class BwEarMojoAdapterSarTest {
             names.contains("structures.aeschema"));
     }
 
+    // -----------------------------------------------------------------------
+    //  SAP R/3 adapter: SNC GV injection (loadGlobalVariablesForR3 equivalent)
+    // -----------------------------------------------------------------------
+
+    private static final Method INJECT_SAP_SNC_GVARS;
+
+    static {
+        try {
+            INJECT_SAP_SNC_GVARS = BwEarMojo.class.getDeclaredMethod(
+                "injectSapSncGvarsIfNeeded", List.class, List.class);
+            INJECT_SAP_SNC_GVARS.setAccessible(true);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void injectSapSncGvars(List sarFiles, List<SubstVarParser.GlobalVariable> gvars) throws Exception {
+        try {
+            INJECT_SAP_SNC_GVARS.invoke(new BwEarMojo(), sarFiles, gvars);
+        } catch (java.lang.reflect.InvocationTargetException ite) {
+            Throwable cause = ite.getCause();
+            if (cause instanceof RuntimeException) throw (RuntimeException) cause;
+            throw new RuntimeException(cause);
+        }
+    }
+
+    /**
+     * Regression: buildear calls R3DependencyLoader.loadGlobalVariablesForR3() which unconditionally
+     * registers SncLib, SncMode, SncPartnername, SncQop as empty GVs whenever a SAP adapter instance
+     * (.adr3) is present — even when SNC is disabled (useSNC=0 in the connection file).
+     * The plugin must inject these 4 GVs when an .adr3 file is in the SAR.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void sapSncGvarsInjectedWhenAdr3FilePresentInSar() throws Exception {
+        File dir = tmp.newFolder("sap-snc-gvars");
+        File adr3 = writeFile(dir, "R3AdapterConfiguration.adr3", "<adr3/>");
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(adr3, "R3AdapterConfiguration.adr3"));
+
+        List<SubstVarParser.GlobalVariable> gvars = new ArrayList<>();
+        injectSapSncGvars(sarFiles, gvars);
+
+        Set<String> names = new LinkedHashSet<>();
+        for (SubstVarParser.GlobalVariable v : gvars) names.add(v.name);
+
+        assertTrue("SncLib must be injected when .adr3 is in SAR", names.contains("SncLib"));
+        assertTrue("SncMode must be injected when .adr3 is in SAR", names.contains("SncMode"));
+        assertTrue("SncPartnername must be injected when .adr3 is in SAR", names.contains("SncPartnername"));
+        assertTrue("SncQop must be injected when .adr3 is in SAR", names.contains("SncQop"));
+
+        for (SubstVarParser.GlobalVariable v : gvars) {
+            assertEquals("Injected SNC GV must have empty value", "", v.value);
+            assertTrue("Injected SNC GV must have requiresConfiguration=true", v.requiresConfiguration);
+        }
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void sapSncGvarsNotInjectedWhenNoAdr3InSar() throws Exception {
+        File dir = tmp.newFolder("sap-snc-gvars-no-adr3");
+        File xsd = writeFile(dir, "Schema.xsd", "<xsd:schema/>");
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(xsd, "Schema.xsd"));
+
+        List<SubstVarParser.GlobalVariable> gvars = new ArrayList<>();
+        injectSapSncGvars(sarFiles, gvars);
+
+        assertTrue("No SNC GVs should be injected when no .adr3 in SAR", gvars.isEmpty());
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void sapSncGvarsNotDuplicatedWhenAlreadyInSubstvar() throws Exception {
+        File dir = tmp.newFolder("sap-snc-gvars-no-dup");
+        File adr3 = writeFile(dir, "R3AdapterConfiguration.adr3", "<adr3/>");
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(adr3, "R3AdapterConfiguration.adr3"));
+
+        List<SubstVarParser.GlobalVariable> gvars = new ArrayList<>();
+        // Pre-populate with SncMode already defined (e.g. user put it in substvar)
+        SubstVarParser.GlobalVariable existing = new SubstVarParser.GlobalVariable();
+        existing.name = "SncMode";
+        existing.value = "1";
+        gvars.add(existing);
+
+        injectSapSncGvars(sarFiles, gvars);
+
+        long sncModeCount = gvars.stream().filter(v -> "SncMode".equals(v.name)).count();
+        assertEquals("SncMode must not be duplicated", 1, sncModeCount);
+        assertEquals("Pre-existing SncMode value must be preserved", "1",
+            gvars.stream().filter(v -> "SncMode".equals(v.name)).findFirst().get().value);
+    }
+
     @SuppressWarnings("rawtypes")
     private Set<String> fileNames(List bwFiles) throws Exception {
         Set<String> names = new LinkedHashSet<>();
@@ -1034,5 +1135,153 @@ public class BwEarMojoAdapterSarTest {
             names.add(f.getName());
         }
         return names;
+    }
+
+    // -----------------------------------------------------------------------
+    //  SAP R/3 adapter: auto-AAR creation for .adr3 / .adr3TID files
+    // -----------------------------------------------------------------------
+
+    private static final Method BUILD_SAP_AARS;
+
+    static {
+        try {
+            BUILD_SAP_AARS = BwEarMojo.class.getDeclaredMethod(
+                "buildSapAdapterAarsIfNeeded",
+                List.class, List.class, File.class, List.class,
+                com.tibco.bw.maven.plugin.descriptor.ArchiveDescriptorParser.ArchiveDescriptor.class);
+            BUILD_SAP_AARS.setAccessible(true);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void buildSapAars(List allSarFiles, List<File> moduleFiles, File workDir,
+                               List<SubstVarParser.GlobalVariable> gvars) throws Exception {
+        try {
+            BUILD_SAP_AARS.invoke(new BwEarMojo(), allSarFiles, moduleFiles, workDir, gvars, null);
+        } catch (java.lang.reflect.InvocationTargetException ite) {
+            Throwable cause = ite.getCause();
+            if (cause instanceof RuntimeException) throw (RuntimeException) cause;
+            throw new RuntimeException(cause);
+        }
+    }
+
+    /**
+     * Regression: buildear creates one AAR per SAP R/3 adapter instance file (.adr3).
+     * The AAR must be named after the instance (e.g. Publisher1.aar) and must contain
+     * exactly two ZIP entries: TIBCO.xml and /Publisher1.adr3 (leading slash = BW repo path).
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void sapAarCreatedForAdr3File() throws Exception {
+        File dir    = tmp.newFolder("sap-aar-adr3");
+        File work   = tmp.newFolder("sap-aar-adr3-work");
+        File adr3   = writeFile(dir, "Publisher1.adr3", "<adr3/>");
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(adr3, "Publisher1.adr3"));
+
+        List<File> moduleFiles = new ArrayList<>();
+        buildSapAars(sarFiles, moduleFiles, work, new ArrayList<>());
+
+        assertEquals("Exactly one AAR must be created for one .adr3 file", 1, moduleFiles.size());
+        File aar = moduleFiles.get(0);
+        assertEquals("AAR name must match the instance name", "Publisher1.aar", aar.getName());
+        assertTrue("AAR file must exist on disk", aar.isFile());
+
+        // Verify AAR contents
+        try (java.util.zip.ZipFile zf = new java.util.zip.ZipFile(aar)) {
+            java.util.Enumeration<? extends java.util.zip.ZipEntry> entries = zf.entries();
+            Set<String> entryNames = new LinkedHashSet<>();
+            while (entries.hasMoreElements()) entryNames.add(entries.nextElement().getName());
+            assertTrue("AAR must contain TIBCO.xml", entryNames.contains("TIBCO.xml"));
+            assertTrue("AAR must contain the adapter file with leading slash BW path",
+                       entryNames.contains("/Publisher1.adr3"));
+            assertEquals("AAR must contain exactly 2 entries", 2, entryNames.size());
+        }
+    }
+
+    /**
+     * Regression: buildear creates one AAR per SAP R/3 TID manager file (.adr3TID).
+     * The AAR must be named after the instance (e.g. TIDManager.aar).
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void sapAarCreatedForAdr3TidFile() throws Exception {
+        File dir   = tmp.newFolder("sap-aar-adr3tid");
+        File work  = tmp.newFolder("sap-aar-adr3tid-work");
+        File tid   = writeFile(dir, "TIDManager.adr3TID", "<adr3tid/>");
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(tid, "TIDManager.adr3TID"));
+
+        List<File> moduleFiles = new ArrayList<>();
+        buildSapAars(sarFiles, moduleFiles, work, new ArrayList<>());
+
+        assertEquals("Exactly one AAR must be created for one .adr3TID file", 1, moduleFiles.size());
+        File aar = moduleFiles.get(0);
+        assertEquals("AAR name must match the TIDManager instance name", "TIDManager.aar", aar.getName());
+        assertTrue("TIDManager AAR file must exist on disk", aar.isFile());
+
+        try (java.util.zip.ZipFile zf = new java.util.zip.ZipFile(aar)) {
+            java.util.Enumeration<? extends java.util.zip.ZipEntry> entries = zf.entries();
+            Set<String> entryNames = new LinkedHashSet<>();
+            while (entries.hasMoreElements()) entryNames.add(entries.nextElement().getName());
+            assertTrue("AAR must contain TIBCO.xml", entryNames.contains("TIBCO.xml"));
+            assertTrue("AAR must contain the .adr3TID file with leading slash",
+                       entryNames.contains("/TIDManager.adr3TID"));
+        }
+    }
+
+    /**
+     * Regression: no AARs should be created when the project has no .adr3 or .adr3TID files.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void noSapAarsCreatedWhenNoAdr3FilesInProject() throws Exception {
+        File dir  = tmp.newFolder("sap-aar-none");
+        File work = tmp.newFolder("sap-aar-none-work");
+        File xsd  = writeFile(dir, "Schema.xsd", "<xsd:schema/>");
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(xsd, "Schema.xsd"));
+
+        List<File> moduleFiles = new ArrayList<>();
+        buildSapAars(sarFiles, moduleFiles, work, new ArrayList<>());
+
+        assertTrue("No AARs must be created when no .adr3/.adr3TID files are present",
+                   moduleFiles.isEmpty());
+    }
+
+    /**
+     * Regression: multiple .adr3 files each get their own AAR (one per instance).
+     * Mirrors OutboundIDocWithRemoteTIDManager with Publisher1.adr3, Publisher2.adr3,
+     * and TIDManager.adr3TID → 3 AARs.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void multipleSapAdapterFilesEachGetOwnAar() throws Exception {
+        File dir  = tmp.newFolder("sap-aar-multi");
+        File work = tmp.newFolder("sap-aar-multi-work");
+
+        File pub1 = writeFile(dir, "Publisher1.adr3",  "<adr3/>");
+        File pub2 = writeFile(dir, "Publisher2.adr3",  "<adr3/>");
+        File tid  = writeFile(dir, "TIDManager.adr3TID", "<adr3tid/>");
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(pub1, "Publisher1.adr3"));
+        sarFiles.add(bwFile(pub2, "Publisher2.adr3"));
+        sarFiles.add(bwFile(tid,  "TIDManager.adr3TID"));
+
+        List<File> moduleFiles = new ArrayList<>();
+        buildSapAars(sarFiles, moduleFiles, work, new ArrayList<>());
+
+        assertEquals("Three AARs must be created for two .adr3 + one .adr3TID", 3, moduleFiles.size());
+        Set<String> aarNames = new LinkedHashSet<>();
+        for (File f : moduleFiles) aarNames.add(f.getName());
+        assertTrue("Publisher1.aar must be created", aarNames.contains("Publisher1.aar"));
+        assertTrue("Publisher2.aar must be created", aarNames.contains("Publisher2.aar"));
+        assertTrue("TIDManager.aar must be created", aarNames.contains("TIDManager.aar"));
     }
 }

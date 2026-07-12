@@ -143,7 +143,97 @@ public class TibcoXmlGenerator {
     }
 
     // -----------------------------------------------------------------------
-    //  AAR-level TIBCO.xml
+    //  AAR-level TIBCO.xml — SAP R/3 adapter (auto-discovered .adr3 / .adr3TID)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Generates the AAR-level TIBCO.xml for a SAP R/3 adapter instance file
+     * ({@code .adr3} or {@code .adr3TID}) that has no explicit archive descriptor entry.
+     *
+     * <p>buildear creates one AAR per adapter instance file and uses the installed adapter
+     * version for {@code componentSoftwareName} and {@code minimumComponentSoftwareVersion}.
+     * Unlike the generic adapter AAR, the SAP R/3 adapter uses {@code adr3} / {@code adr3TID}
+     * as the component software name rather than {@code adapter}.</p>
+     *
+     * @param outputFile            target file to write
+     * @param aarFileName           AAR filename (e.g. {@code R3AdapterConfiguration.aar})
+     * @param instanceName          adapter instance ID (filename without extension)
+     * @param componentSoftwareName {@code adr3} for .adr3 files, {@code adr3TID} for .adr3TID
+     * @param adapterVersion        four-part adapter version (e.g. {@code 7.3.2.0})
+     * @param adapterBwPath         absolute BW repository path of the adapter file
+     *                              (e.g. {@code /R3AdapterConfiguration.adr3})
+     */
+    public void generateSapR3AarDescriptor(
+            File outputFile,
+            String aarFileName,
+            String instanceName,
+            String componentSoftwareName,
+            String adapterVersion,
+            String adapterBwPath) throws IOException {
+
+        String date = new SimpleDateFormat(DATE_FORMAT, Locale.ROOT).format(new Date());
+        String owner = System.getProperty("user.name", "unknown");
+
+        // Fragment identifies the adapter type: #adapter.SAPAdapter or #adapter.TIDManager
+        String adapterTypeFrag = adapterBwPath + "#adapter."
+                + (componentSoftwareName.equals("adr3TID") ? "TIDManager" : "SAPAdapter");
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        sb.append("<DeploymentDescriptors xmlns=\"http://www.tibco.com/xmlns/dd\">\n");
+        sb.append("    <name>").append(escape(aarFileName)).append("</name>\n");
+        sb.append("    <version>1</version>\n");
+        sb.append("    <owner>").append(escape(owner)).append("</owner>\n");
+        sb.append("    <creationDate>").append(date).append("</creationDate>\n");
+
+        sb.append("    <DeploymentDescriptorFactory>\n");
+        sb.append("        <name>{http://www.tibco.com/xmlns/dd}StartAsOneOf</name>\n");
+        sb.append("        <deploymentDescriptorFactoryClassName>com.tibco.archive.helpers.StartAsOneOf</deploymentDescriptorFactoryClassName>\n");
+        sb.append("    </DeploymentDescriptorFactory>\n");
+        sb.append("    <StartAsOneOf>\n");
+        sb.append("        <name>StartAsOneOf</name>\n");
+        sb.append("        <ComponentSoftwareReference>\n");
+        sb.append("            <componentSoftwareName>").append(escape(componentSoftwareName)).append("</componentSoftwareName>\n");
+        sb.append("            <minimumComponentSoftwareVersion>").append(escape(adapterVersion)).append("</minimumComponentSoftwareVersion>\n");
+        sb.append("            <minimumTRAVersion>5.0.1.0</minimumTRAVersion>\n");
+        sb.append("            <configVersion>").append(escape(adapterVersion)).append("</configVersion>\n");
+        sb.append("            <keyword>Adapter</keyword>\n");
+        sb.append("        </ComponentSoftwareReference>\n");
+        sb.append("    </StartAsOneOf>\n");
+
+        sb.append("    <DeploymentDescriptorFactory>\n");
+        sb.append("        <name>{http://www.tibco.com/xmlns/dd}NameValuePairs</name>\n");
+        sb.append("        <deploymentDescriptorFactoryClassName>com.tibco.archive.helpers.NameValuePairs</deploymentDescriptorFactoryClassName>\n");
+        sb.append("    </DeploymentDescriptorFactory>\n");
+        sb.append("    <NameValuePairs>\n");
+        sb.append("        <name>EXTERNAL_DEPENDENCIES</name>\n");
+        sb.append("        <NameValuePair>\n");
+        sb.append("            <name>EXTERNAL_RESOURCE_DEPENDENCY</name>\n");
+        sb.append("            <value>").append(escape("/AESchemas/ae.aeschema," + adapterTypeFrag)).append("</value>\n");
+        sb.append("            <description>External resource configuration required by the archive.</description>\n");
+        sb.append("            <requiresConfiguration>false</requiresConfiguration>\n");
+        sb.append("            <disableConfigureAtDeployment>true</disableConfigureAtDeployment>\n");
+        sb.append("        </NameValuePair>\n");
+        sb.append("    </NameValuePairs>\n");
+
+        sb.append("    <DeploymentDescriptorFactory>\n");
+        sb.append("        <name>{http://www.tibco.com/xmlns/configurl}RepoConfigUrl</name>\n");
+        sb.append("        <deploymentDescriptorFactoryClassName>com.tibco.dd.repo.RepoConfigUrl</deploymentDescriptorFactoryClassName>\n");
+        sb.append("        <deploymentDescriptorXsdFileName>com/tibco/dd/repo/RepoConfigUrl.xsd</deploymentDescriptorXsdFileName>\n");
+        sb.append("    </DeploymentDescriptorFactory>\n");
+        sb.append("    <configurl:RepoConfigUrl xmlns:configurl=\"http://www.tibco.com/xmlns/configurl\">\n");
+        sb.append("        <name>TIBCO Repository Server Configuration URL</name>\n");
+        sb.append("        <configurl:repoConfigUrl>").append(escape(instanceName)).append("</configurl:repoConfigUrl>\n");
+        sb.append("        <configurl:instanceID>").append(escape(instanceName)).append("</configurl:instanceID>\n");
+        sb.append("    </configurl:RepoConfigUrl>\n");
+
+        sb.append("</DeploymentDescriptors>\n");
+
+        write(outputFile, sb.toString());
+    }
+
+    // -----------------------------------------------------------------------
+    //  AAR-level TIBCO.xml — generic adapter (archive descriptor entry)
     // -----------------------------------------------------------------------
 
     /**

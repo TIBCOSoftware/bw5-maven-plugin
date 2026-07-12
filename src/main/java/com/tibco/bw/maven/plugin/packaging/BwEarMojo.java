@@ -402,6 +402,12 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
             // 2. Parse global variables from .substvar metadata files
             List<SubstVarParser.GlobalVariable> globalVars = parseGlobalVars(metadataFiles);
+            // SAP R/3 adapter: loadGlobalVariablesForR3() unconditionally registers SNC GVs
+            // when the .adr3 resource is added to the designer document, even when SNC is disabled.
+            injectSapSncGvarsIfNeeded(allSarFiles, globalVars);
+            // buildear reads the project encoding from vcrepo.dat and uses it as the
+            // MessageEncoding GV value (default ISO8859-1 if not found).
+            injectMessageEncodingFromVcrepoDat(bwProjectPath, globalVars);
             getLog().info("Global variables: " + globalVars.size());
 
             // 3. Work directory
@@ -591,6 +597,13 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 moduleFiles.add(parFile);
                 getLog().info("PAR assembled: " + parFile.getName() + " (" + parFile.length() + " bytes)");
             }
+
+            // 5b. Auto-create AARs for SAP R/3 adapter instance files (.adr3/.adr3TID)
+            // that have no explicit <adapterArchive> descriptor entry. buildear always
+            // emits one AAR per adapter instance, so we scan allSarFiles (the full
+            // unfiltered pool) to match that behaviour.
+            buildSapAdapterAarsIfNeeded(allSarFiles, moduleFiles, workDir, globalVars,
+                    archiveDescriptor);
 
             // 6. Build the SAR (shared across all PARs/AARs)
             File sarFile = null;
@@ -882,6 +895,79 @@ public class BwEarMojo extends AbstractBw5Mojo {
         }
         result.sort((a, b) -> a.name.compareToIgnoreCase(b.name));
         return result;
+    }
+
+    private static final List<String> SAP_SNC_GVAR_NAMES = Arrays.asList(
+            "SncLib", "SncMode", "SncPartnername", "SncQop");
+
+    private void injectSapSncGvarsIfNeeded(List<BwFile> sarFiles,
+                                            List<SubstVarParser.GlobalVariable> globalVars) {
+        boolean hasSapAdapter = sarFiles.stream()
+                .anyMatch(f -> f.relativePath.toLowerCase(Locale.ROOT).endsWith(".adr3"));
+        if (!hasSapAdapter) return;
+
+        Set<String> existingNames = new HashSet<>();
+        for (SubstVarParser.GlobalVariable v : globalVars) existingNames.add(v.name);
+
+        for (String gvName : SAP_SNC_GVAR_NAMES) {
+            if (existingNames.contains(gvName)) continue;
+            SubstVarParser.GlobalVariable gv = new SubstVarParser.GlobalVariable();
+            gv.name = gvName;
+            gv.value = "";
+            gv.type = "String";
+            gv.requiresConfiguration = true;
+            globalVars.add(gv);
+            getLog().debug("SAP SNC GV injected: " + gvName);
+        }
+        globalVars.sort((a, b) -> a.name.compareToIgnoreCase(b.name));
+    }
+
+    /**
+     * Reads the project encoding from {@code vcrepo.dat} (TIBCO SourceSafe metadata) and
+     * injects it as the {@code MessageEncoding} GV when it is not already present.
+     *
+     * <p>buildear reads the project encoding from {@code vcrepo.dat} via
+     * {@code EnterpriseArchiveBuilderResource} and writes it to the EAR-level TIBCO.xml
+     * as the {@code MessageEncoding} global variable. When the vcrepo.dat is absent or has
+     * no encoding entry, buildear defaults to {@code ISO8859-1} — which our generator
+     * also uses as the fallback in {@code TibcoXmlGenerator.generateEarDescriptor()}.</p>
+     *
+     * <p>This method only reads {@code vcrepo.dat} and adds the GV; the {@code ISO8859-1}
+     * fallback is provided by the generator so there is no duplication.</p>
+     */
+    private void injectMessageEncodingFromVcrepoDat(File projectDir,
+                                                     List<SubstVarParser.GlobalVariable> globalVars) {
+        boolean alreadyPresent = globalVars.stream()
+                .anyMatch(v -> "MessageEncoding".equals(v.name));
+        if (alreadyPresent) return;
+
+        File vcrepodat = new File(projectDir, "vcrepo.dat");
+        if (!vcrepodat.isFile()) return;
+
+        try {
+            String content = new String(Files.readAllBytes(vcrepodat.toPath()),
+                    java.nio.charset.StandardCharsets.UTF_8);
+            // <instanceInfoProperty name="encoding" value="UTF-8"/>
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                    .compile("name=\"encoding\"\\s+value=\"([^\"]+)\"")
+                    .matcher(content);
+            if (!m.find()) return;
+
+            String encoding = m.group(1).trim();
+            if (encoding.isEmpty()) return;
+
+            SubstVarParser.GlobalVariable gv = new SubstVarParser.GlobalVariable();
+            gv.name = "MessageEncoding";
+            gv.value = encoding;
+            gv.type = "String";
+            gv.requiresConfiguration = false;
+            globalVars.add(gv);
+            // Keep the list sorted so MessageEncoding sorts correctly
+            globalVars.sort((a, b) -> a.name.compareToIgnoreCase(b.name));
+            getLog().debug("MessageEncoding read from vcrepo.dat: " + encoding);
+        } catch (IOException e) {
+            getLog().debug("Could not read vcrepo.dat for MessageEncoding: " + e.getMessage());
+        }
     }
 
     /**
@@ -1794,7 +1880,111 @@ public class BwEarMojo extends AbstractBw5Mojo {
     }
 
     // -----------------------------------------------------------------------
-    //  AAR assembly
+    //  AAR assembly — SAP R/3 auto-discovery
+    // -----------------------------------------------------------------------
+
+    /**
+     * Auto-creates one AAR per SAP R/3 adapter instance file ({@code .adr3} or
+     * {@code .adr3TID}) found in {@code allSarFiles} that is not already covered by
+     * an explicit {@code <adapterArchive>} entry in the archive descriptor.
+     *
+     * <p>buildear always creates one AAR per adapter instance, even for instances that
+     * are not referenced by any deployed process (i.e., not present in the SAR after
+     * transitive filtering). We scan {@code allSarFiles} (the unfiltered full set) so
+     * that we replicate that behaviour.</p>
+     */
+    private void buildSapAdapterAarsIfNeeded(
+            List<BwFile> allSarFiles,
+            List<File> moduleFiles,
+            File workDir,
+            List<SubstVarParser.GlobalVariable> globalVars,
+            ArchiveDescriptorParser.ArchiveDescriptor descriptor) throws Exception {
+
+        // Paths already covered by explicit <adapterArchive> elements (lower-cased)
+        Set<String> explicitPaths = new HashSet<>();
+        if (descriptor != null && descriptor.adapterArchives != null) {
+            for (ArchiveDescriptorParser.AdapterArchiveEntry aa : descriptor.adapterArchives) {
+                String path = aa.getAdapterFilePath();
+                if (path != null) explicitPaths.add(path.toLowerCase(Locale.ROOT));
+            }
+        }
+
+        String adapterVersion = detectSapR3AdapterVersion();
+
+        for (BwFile bwf : allSarFiles) {
+            String lowerPath = bwf.relativePath.toLowerCase(Locale.ROOT);
+            boolean isAdr3    = lowerPath.endsWith(".adr3");
+            boolean isAdr3Tid = lowerPath.endsWith(".adr3tid");
+            if (!isAdr3 && !isAdr3Tid) continue;
+
+            String bwPath = "/" + bwf.relativePath.replace(File.separatorChar, '/');
+            if (explicitPaths.contains(bwPath.toLowerCase(Locale.ROOT))) continue;
+
+            String adapterFileName = bwf.file.getName();
+            int dotPos = adapterFileName.lastIndexOf('.');
+            String instanceName = dotPos > 0 ? adapterFileName.substring(0, dotPos) : adapterFileName;
+            String aarFileName = instanceName + ".aar";
+
+            String componentSoftwareName = isAdr3Tid ? "adr3TID" : "adr3";
+
+            File aarFile = new File(workDir, aarFileName);
+            buildSapAdapterAar(aarFile, bwf, bwPath, instanceName, componentSoftwareName, adapterVersion);
+            moduleFiles.add(aarFile);
+            getLog().info("SAP R/3 AAR assembled: " + aarFileName + " (" + aarFile.length() + " bytes)");
+        }
+    }
+
+    /** Creates a single SAP R/3 AAR containing the adapter file and its TIBCO.xml. */
+    private void buildSapAdapterAar(
+            File aarFile,
+            BwFile adapterBwFile,
+            String adapterBwPath,
+            String instanceName,
+            String componentSoftwareName,
+            String adapterVersion) throws Exception {
+
+        String aarFileName = aarFile.getName();
+        File aarTibcoXml = File.createTempFile("aar-sap-TIBCO-", ".xml");
+        aarTibcoXml.deleteOnExit();
+        new TibcoXmlGenerator().generateSapR3AarDescriptor(
+                aarTibcoXml, aarFileName, instanceName, componentSoftwareName,
+                adapterVersion, adapterBwPath);
+
+        try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(aarFile.toPath()))) {
+            zos.setLevel(Deflater.DEFAULT_COMPRESSION);
+            addToZip(zos, "TIBCO.xml", aarTibcoXml);
+            addToZip(zos, adapterBwPath, adapterBwFile.file);
+        }
+    }
+
+    /**
+     * Detects the installed SAP R/3 adapter version by scanning the standard TIBCO
+     * adapter directory. Falls back to {@code "7.3.2.0"} if no installation is found.
+     *
+     * <p>The four-part version (e.g. {@code 7.3.2.0}) is written into the AAR TIBCO.xml
+     * as {@code minimumComponentSoftwareVersion}. While the comparison script does not
+     * validate this value, correct versions matter at deploy time.</p>
+     */
+    static String detectSapR3AdapterVersion() {
+        // Standard TIBCO installation path (Unix and Windows)
+        for (String base : new String[]{"/opt/tibco/adapter/adr3", "C:\\tibco\\adapter\\adr3"}) {
+            File root = new File(base);
+            if (!root.isDirectory()) continue;
+            String[] dirs = root.list();
+            if (dirs == null || dirs.length == 0) continue;
+            Arrays.sort(dirs);
+            String latest = dirs[dirs.length - 1]; // highest version directory, e.g. "7.3"
+            // Convert "X.Y" to "X.Y.0.0" — the patch level is unknown from the dir name alone
+            if (latest.matches("\\d+\\.\\d+")) {
+                return latest + ".0.0";
+            }
+            return latest; // already multi-part
+        }
+        return "7.3.2.0";
+    }
+
+    // -----------------------------------------------------------------------
+    //  AAR assembly — generic adapter (archive descriptor entry)
     // -----------------------------------------------------------------------
 
     /**
