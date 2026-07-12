@@ -606,11 +606,15 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 getLog().info("PAR assembled: " + parFile.getName() + " (" + parFile.length() + " bytes)");
             }
 
-            // 5b. Auto-create AARs for SAP R/3 adapter instance files (.adr3/.adr3TID)
-            // that have no explicit <adapterArchive> descriptor entry. buildear always
-            // emits one AAR per adapter instance regardless of whether a process references
-            // it, so we scan allSarFiles (the full unfiltered pool) to match that behaviour.
-            buildSapAdapterAarsIfNeeded(allSarFiles, moduleFiles, workDir, globalVars,
+            // 5b. Auto-create AARs for SAP R/3 adapter instance files (.adr3/.adr3TID).
+            // When there is no archive descriptor (bare project, no .archive file), buildear
+            // scans everything and creates one AAR per .adr3 regardless of whether a process
+            // references it — use allSarFiles to replicate that behaviour.
+            // When a descriptor exists, buildear respects its scope: unreferenced .adr3 files
+            // that are not listed as <adapterArchive> entries are silently ignored — use
+            // combinedSarFiles (post-BFS) so only reachable instances get an AAR.
+            List<BwFile> aarSourceFiles = (archiveDescriptor == null) ? allSarFiles : combinedSarFiles;
+            buildSapAdapterAarsIfNeeded(aarSourceFiles, moduleFiles, workDir, globalVars,
                     archiveDescriptor);
 
             // 6. Build the SAR (shared across all PARs/AARs)
@@ -2017,13 +2021,14 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
     /**
      * Auto-creates one AAR per SAP R/3 adapter instance file ({@code .adr3} or
-     * {@code .adr3TID}) found in {@code allSarFiles} that is not already covered by
+     * {@code .adr3TID}) found in {@code sarFiles} that is not already covered by
      * an explicit {@code <adapterArchive>} entry in the archive descriptor.
      *
-     * <p>buildear always creates one AAR per adapter instance, even for instances that
-     * are not referenced by any deployed process (i.e., not present in the SAR after
-     * transitive filtering). We scan {@code allSarFiles} (the unfiltered full set) so
-     * that we replicate that behaviour.</p>
+     * <p>When the caller passes {@code allSarFiles} (no archive descriptor present),
+     * buildear scans the entire project and creates one AAR per {@code .adr3} regardless
+     * of process reachability. When the caller passes {@code combinedSarFiles} (descriptor
+     * present), buildear respects the descriptor's scope: only adapter instances referenced
+     * by a deployed process receive an AAR; unreferenced instances are skipped.</p>
      */
     private void buildSapAdapterAarsIfNeeded(
             List<BwFile> allSarFiles,
