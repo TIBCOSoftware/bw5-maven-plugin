@@ -1395,4 +1395,303 @@ public class BwEarMojoAdapterSarTest {
 
         assertEquals("Only the originally included XSD must be in SAR", 1, sarFiles.size());
     }
+
+    // -----------------------------------------------------------------------
+    //  Adapter .folder metadata: addAdapterFolderMetadata
+    // -----------------------------------------------------------------------
+
+    private static final Method ADD_ADAPTER_FOLDER_METADATA;
+
+    static {
+        try {
+            ADD_ADAPTER_FOLDER_METADATA = BwEarMojo.class.getDeclaredMethod(
+                "addAdapterFolderMetadata", List.class, List.class);
+            ADD_ADAPTER_FOLDER_METADATA.setAccessible(true);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void addAdapterFolderMetadata(List sarFiles, List allSarFiles) throws Exception {
+        try {
+            ADD_ADAPTER_FOLDER_METADATA.invoke(new BwEarMojo(), sarFiles, allSarFiles);
+        } catch (java.lang.reflect.InvocationTargetException ite) {
+            Throwable cause = ite.getCause();
+            if (cause instanceof RuntimeException) throw (RuntimeException) cause;
+            throw new RuntimeException(cause);
+        }
+    }
+
+    /**
+     * Regression: SAP R/3 adapter schema directory ({@code AESchemas/ae/SAPAdapter40}) must
+     * have its {@code .folder} file added to the SAR when the directory contains SAR resources.
+     *
+     * <p>Mirrors DynamicLogonExternalCommit / InboundIDocWithInboundBAPI etc. where buildear
+     * includes {@code AESchemas/ae/SAPAdapter40/.folder} via
+     * {@code R3AdapterInstance.getExportPartners()} → PartnerSleuth chain.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void sapAdapter40FolderAddedWhenDirectoryContainsSarResource() throws Exception {
+        File dir = tmp.newFolder("sap-folder-metadata");
+
+        // SAP palette schema present in the SAR
+        File classesAe = writeFile(dir, "classes.aeschema",
+            "<Repository:repository xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">"
+            + "<class name=\"RFCClient\"/></Repository:repository>");
+
+        // .folder file for the SAPAdapter40 directory
+        File folderFile = writeFile(dir, ".folder",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<repository:repository xmlns:repository=\"http://www.tibco.com/xmlns/repo/types/2002\""
+            + " xmlns:Designer=\"http://www.tibco.com/xmlns/ae/types/2002/designer\">\n"
+            + "  <Designer:folder><Designer:name>SAPAdapter40</Designer:name></Designer:folder>\n"
+            + "</repository:repository>");
+
+        // allSarFiles has both
+        List allSarFiles = new ArrayList();
+        allSarFiles.add(bwFile(classesAe, "AESchemas/ae/SAPAdapter40/classes.aeschema"));
+        allSarFiles.add(bwFile(folderFile, "AESchemas/ae/SAPAdapter40/.folder"));
+
+        // sarFiles already has the aeschema but NOT the .folder (the bug scenario)
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(classesAe, "AESchemas/ae/SAPAdapter40/classes.aeschema"));
+
+        addAdapterFolderMetadata(sarFiles, allSarFiles);
+
+        Set<String> names = fileRelPaths(sarFiles);
+        assertTrue("AESchemas/ae/SAPAdapter40/.folder must be added to SAR for SAP adapter",
+            names.contains("AESchemas/ae/SAPAdapter40/.folder"));
+    }
+
+    /**
+     * Regression: LDAP adapter schema directory ({@code AESchemas/ae/adapter/ldap/...}) must
+     * have its {@code .folder} file added to the SAR.
+     *
+     * <p>Mirrors adldapsample where buildear includes the {@code .folder} for each
+     * {@code AESchemas/ae/adapter/ldap/<cfg>/<session>} directory via
+     * {@code LDAPAdapterInstance.getExportPartners()} → PartnerSleuth chain.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void ldapAdapterFolderAddedForAeAdapterSubtree() throws Exception {
+        File dir = tmp.newFolder("ldap-folder-metadata");
+
+        // LDAP session schema file
+        File ldapSchema = writeFile(dir, "Classes.aeschema",
+            "<Repository:repository xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">"
+            + "<class name=\"LDAPRecord\"/></Repository:repository>");
+
+        // .folder for the LDAP session directory
+        File folderFile = writeFile(dir, ".folder",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<repository:repository xmlns:repository=\"http://www.tibco.com/xmlns/repo/types/2002\""
+            + " xmlns:Designer=\"http://www.tibco.com/xmlns/ae/types/2002/designer\">\n"
+            + "  <Designer:folder><Designer:name>Session1</Designer:name></Designer:folder>\n"
+            + "</repository:repository>");
+
+        String schemaRel = "AESchemas/ae/adapter/ldap/LDAPCfg/Session1/Classes.aeschema";
+        String folderRel = "AESchemas/ae/adapter/ldap/LDAPCfg/Session1/.folder";
+
+        List allSarFiles = new ArrayList();
+        allSarFiles.add(bwFile(ldapSchema, schemaRel));
+        allSarFiles.add(bwFile(folderFile,  folderRel));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(ldapSchema, schemaRel));
+
+        addAdapterFolderMetadata(sarFiles, allSarFiles);
+
+        Set<String> paths = fileRelPaths(sarFiles);
+        assertTrue("LDAP session .folder must be added to SAR",
+            paths.contains(folderRel));
+    }
+
+    /**
+     * Regression: ADB adapter schema directory ({@code AESchemas/ae/ADB}) must NOT have its
+     * {@code .folder} added, because {@code ADBAdapterConfiguration.getExportPartners()} never
+     * adds the {@code AESchemas/ae/ADB} folder to the export-partner list.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void adbAdapterFolderNotAddedBecauseAdbIsNotInKnownAdapterSet() throws Exception {
+        File dir = tmp.newFolder("adb-no-folder-metadata");
+
+        // ADB palette schema
+        File adbMeta = writeFile(dir, "adbmetadata.aeschema",
+            "<Repository:repository xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">"
+            + "<class name=\"SQL_REQUEST\"/></Repository:repository>");
+
+        // .folder for the ADB directory (present in allSarFiles but must NOT be added)
+        File folderFile = writeFile(dir, ".folder",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<repository:repository xmlns:repository=\"http://www.tibco.com/xmlns/repo/types/2002\""
+            + " xmlns:Designer=\"http://www.tibco.com/xmlns/ae/types/2002/designer\">\n"
+            + "  <Designer:folder><Designer:name>ADB</Designer:name></Designer:folder>\n"
+            + "</repository:repository>");
+
+        String schemaRel = "AESchemas/ae/ADB/adbmetadata.aeschema";
+        String folderRel = "AESchemas/ae/ADB/.folder";
+
+        List allSarFiles = new ArrayList();
+        allSarFiles.add(bwFile(adbMeta,   schemaRel));
+        allSarFiles.add(bwFile(folderFile, folderRel));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(adbMeta, schemaRel));
+
+        addAdapterFolderMetadata(sarFiles, allSarFiles);
+
+        Set<String> paths = fileRelPaths(sarFiles);
+        assertFalse("AESchemas/ae/ADB/.folder must NOT be added (ADB is not in known adapter set)",
+            paths.contains(folderRel));
+    }
+
+    /**
+     * Regression: {@code .folder} files already present in {@code sarFiles} before the call
+     * must not be duplicated.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void alreadyPresentFolderFileIsNotDuplicated() throws Exception {
+        File dir = tmp.newFolder("sap-folder-no-dup");
+
+        File classesAe = writeFile(dir, "classes.aeschema", "<ae/>");
+        File folderFile = writeFile(dir, ".folder", "<folder/>");
+
+        List allSarFiles = new ArrayList();
+        allSarFiles.add(bwFile(classesAe, "AESchemas/ae/SAPAdapter40/classes.aeschema"));
+        allSarFiles.add(bwFile(folderFile, "AESchemas/ae/SAPAdapter40/.folder"));
+
+        // .folder is ALREADY in sarFiles
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(classesAe, "AESchemas/ae/SAPAdapter40/classes.aeschema"));
+        sarFiles.add(bwFile(folderFile, "AESchemas/ae/SAPAdapter40/.folder"));
+
+        int sizeBefore = sarFiles.size();
+        addAdapterFolderMetadata(sarFiles, allSarFiles);
+
+        assertEquals("sarFiles size must not grow when .folder already present", sizeBefore, sarFiles.size());
+    }
+
+    @SuppressWarnings("rawtypes")
+    private Set<String> fileRelPaths(List bwFiles) throws Exception {
+        Set<String> paths = new LinkedHashSet<>();
+        for (Object bwf : bwFiles) {
+            String rel = (String) bwf.getClass().getDeclaredField("relativePath").get(bwf);
+            paths.add(rel);
+        }
+        return paths;
+    }
+
+    // -----------------------------------------------------------------------
+    //  Directory expansion must not pull in EXCLUDED_EXTENSIONS files (.folder)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression: {@code pd:targetNamespace} values like {@code /EventHandler/Procesos} look
+     * like directory references and cause {@code expandDirectoryRefs} to expand the entire
+     * folder. Metadata files with excluded extensions (e.g. {@code .folder}) must be skipped
+     * during that expansion — only valid SAR resources are allowed in.
+     *
+     * <p>Mirrors OPL_EventHandler where buildear omits
+     * {@code EventHandler/Procesos/.folder} but the plugin was incorrectly including it.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void folderFileNotIncludedViaDirectoryExpansionOfTargetNamespace() throws Exception {
+        File dir = tmp.newFolder("dir-expand-no-folder");
+
+        // Process with a pd:targetNamespace that looks like a directory ref
+        File proc = writeFile(dir, "Inicializacion EventHandler.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/EventHandler/Procesos/Inicializacion EventHandler</pd:name>\n"
+            + "  <pd:targetNamespace>/EventHandler/Procesos</pd:targetNamespace>\n"
+            + "  <pd:activity name=\"Call\">\n"
+            + "    <pd:call>/EventHandler/Procesos/CargaVariableBD.process</pd:call>\n"
+            + "  </pd:activity>\n"
+            + "</pd:ProcessDefinition>");
+
+        // Sub-process referenced by the main process
+        File subProc = writeFile(dir, "CargaVariableBD.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/EventHandler/Procesos/CargaVariableBD</pd:name>\n"
+            + "  <pd:targetNamespace>/EventHandler/Procesos</pd:targetNamespace>\n"
+            + "</pd:ProcessDefinition>");
+
+        // .folder file that must NOT end up in the SAR
+        File folderFile = writeFile(dir, ".folder",
+            "<?xml version=\"1.0\"?><Designer:root xmlns:Designer=\"http://www.tibco.com/xmlns/designer/1.0.0\">"
+            + "<Designer:folder><Designer:name>Procesos</Designer:name></Designer:folder></Designer:root>");
+
+        // A legitimate SAR resource under the same directory
+        File xsdFile = writeFile(dir, "Schema.xsd", "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"/>");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(proc,    "EventHandler/Procesos/Inicializacion EventHandler.process"));
+        parFiles.add(bwFile(subProc, "EventHandler/Procesos/CargaVariableBD.process"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(folderFile, "EventHandler/Procesos/.folder"));
+        sarFiles.add(bwFile(xsdFile,    "EventHandler/Procesos/Schema.xsd"));
+
+        List<String> entryPoints = Collections.singletonList(
+            "/EventHandler/Procesos/Inicializacion EventHandler.process");
+
+        applyTransitive(parFiles, sarFiles, entryPoints, Collections.emptyList(), true);
+
+        Set<String> paths = fileRelPaths(sarFiles);
+        assertFalse("EventHandler/Procesos/.folder must NOT be included via directory expansion",
+            paths.contains("EventHandler/Procesos/.folder"));
+        assertTrue("EventHandler/Procesos/Schema.xsd must be included (valid SAR resource under referenced dir)",
+            paths.contains("EventHandler/Procesos/Schema.xsd"));
+    }
+
+    /**
+     * Regression: {@code buildSapAdapterAarsIfNeeded} was using {@code allSarFiles} (the full
+     * unfiltered pool) which caused a spurious AAR to be created for any {@code .adr3} file
+     * present on disk even if no process references it.
+     *
+     * <p>Mirrors SonarSamples where {@code R3AdapterConfiguration.adr3} exists on disk but
+     * is not referenced by any process, so buildear produces no AAR for it. The fix passes
+     * {@code combinedSarFiles} (post-BFS) to {@code buildSapAdapterAarsIfNeeded} so that only
+     * adapter instances reachable from deployed processes receive an AAR.</p>
+     *
+     * <p>This test verifies that the BFS itself correctly excludes an unreferenced {@code .adr3}
+     * from {@code sarFiles}, which is the prerequisite for the fix (the caller passes those
+     * filtered sarFiles to {@code buildSapAdapterAarsIfNeeded}).</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void unreferencedAdr3ExcludedFromSarByBfs() throws Exception {
+        File dir = tmp.newFolder("unreferenced-adr3");
+
+        // A process that does NOT reference any SAP adapter
+        File proc = writeFile(dir, "SonarProcess.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/SonarSamples/SonarProcess</pd:name>\n"
+            + "  <pd:targetNamespace>/SonarSamples</pd:targetNamespace>\n"
+            + "</pd:ProcessDefinition>");
+
+        // .adr3 present on disk but unreferenced
+        File adr3 = writeFile(dir, "R3AdapterConfiguration.adr3", "<adr3/>");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(proc, "SonarSamples/SonarProcess.process"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(adr3, "R3AdapterConfiguration.adr3"));
+
+        List<String> entryPoints = Collections.singletonList("/SonarSamples/SonarProcess.process");
+
+        applyTransitive(parFiles, sarFiles, entryPoints, Collections.emptyList(), true);
+
+        Set<String> paths = fileRelPaths(sarFiles);
+        assertFalse("R3AdapterConfiguration.adr3 must NOT be in SAR when unreferenced by any process",
+            paths.contains("R3AdapterConfiguration.adr3"));
+    }
 }

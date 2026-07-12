@@ -447,8 +447,13 @@ public class BwEarMojo extends AbstractBw5Mojo {
                         // Multi-PAR: filter processes by reachability so each PAR owns its own set
                         applyTransitiveDependencyAnalysis(parFiles, sarFiles,
                             pa.processPaths, archiveDescriptor.sharedResourcePaths, true);
+                    } else {
+                        // No BFS: .folder files survive unreferenced. Strip them now;
+                        // addAdapterFolderMetadata will add back the adapter-specific ones.
+                        sarFiles.removeIf(f -> normalizeBwPath(f.relativePath).endsWith("/.folder"));
                     }
                     addGvReferencedResources(globalVars, sarFiles, allSarFiles);
+                    addAdapterFolderMetadata(sarFiles, allSarFiles);
                     accumulateSarFiles(sarFiles, combinedSarFiles, seenSarPaths);
 
                     List<String> sarPaths = toSarPaths(combinedSarFiles);
@@ -588,6 +593,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 }
 
                 addGvReferencedResources(globalVars, sarFiles, allSarFiles);
+                addAdapterFolderMetadata(sarFiles, allSarFiles);
                 getLog().info("Process files (PAR): " + parFiles.size());
                 getLog().info("Shared resource files (SAR): " + sarFiles.size());
 
@@ -602,8 +608,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
             // 5b. Auto-create AARs for SAP R/3 adapter instance files (.adr3/.adr3TID)
             // that have no explicit <adapterArchive> descriptor entry. buildear always
-            // emits one AAR per adapter instance, so we scan allSarFiles (the full
-            // unfiltered pool) to match that behaviour.
+            // emits one AAR per adapter instance regardless of whether a process references
+            // it, so we scan allSarFiles (the full unfiltered pool) to match that behaviour.
             buildSapAdapterAarsIfNeeded(allSarFiles, moduleFiles, workDir, globalVars,
                     archiveDescriptor);
 
@@ -775,9 +781,11 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 }
                 String ext = getExtension(name);
                 if (EXCLUDED_EXTENSIONS.contains(ext)) {
-                    // .folder files are TIBCO Designer display metadata; include when the flag
-                    // is set so the SAR matches buildear output for sharedResources paths.
-                    if (!includeFolderMetadata || !".folder".equals(ext)) continue;
+                    // .folder files are always collected into the full pool so that
+                    // addAdapterFolderMetadata() can selectively add adapter-specific
+                    // ones back after BFS.  Non-adapter .folder files are filtered out
+                    // by BFS because no resource references them.
+                    if (!".folder".equals(ext)) continue;
                 }
                 String relativePath = rootDir.toURI().relativize(f.toURI()).getPath();
                 if (PLATFORM_AESCHEMA_RELATIVE_PATHS.contains(relativePath)) continue;
@@ -1004,6 +1012,90 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 included.add(norm);
             }
         }
+    }
+
+    /**
+     * Adapter type-folder names (one level below {@code AESchemas/ae/}) whose {@code .folder}
+     * file must be included in the SAR unconditionally.
+     *
+     * <p>Each listed adapter's palette class overrides {@code getExportPartners()} and explicitly
+     * adds the {@code AESchemas/ae/<Name>} {@link com.tibco.ae.designerapi.DesignerFolder} to its
+     * export-partner list, which causes buildear to write the corresponding {@code .folder} file
+     * into the SAR.  Adapters <em>not</em> listed here (ADB, Files, JD Edwards) never return that
+     * folder resource and therefore do not get a {@code .folder} in the SAR.</p>
+     */
+    private static final Set<String> ADAPTER_TYPE_FOLDER_NAMES;
+    static {
+        Set<String> s = new HashSet<>();
+        s.add("SAPAdapter40");  // SAP R/3  — R3AdapterInstance.getExportPartners()
+        s.add("AS400");         // AS400     — AS400AdapterConfiguration.getExportPartners()
+        s.add("PeopleSoft8");   // PeopleSoft 8 — PeopleSoftAdapterConfiguration.getExportPartners()
+        s.add("siebel");        // Siebel    — SiebelAdapterInstance.getExportPartners()
+        s.add("SWIFTAdapter");  // SWIFT     — SwiftActivityResource.getExportPartners()
+        s.add("Tuxedo");        // Tuxedo    — TuxedoAdapterConfiguration.getExportPartners()
+        ADAPTER_TYPE_FOLDER_NAMES = Collections.unmodifiableSet(s);
+    }
+
+    /**
+     * Includes {@code .folder} files for adapter-specific schema directories that buildear
+     * unconditionally adds to the SAR via each adapter's {@code getExportPartners()} chain.
+     *
+     * <p>The rule mirrors buildear's behavior: a {@code .folder} file is added for directory D
+     * when D directly contains at least one non-{@code .folder} file already in {@code sarFiles}
+     * AND the path of D is adapter-specific:
+     * <ul>
+     *   <li>{@code AESchemas/ae/<KnownAdapterName>} — covers SAP R/3, AS400, PeopleSoft,
+     *       Siebel, SWIFT, Tuxedo</li>
+     *   <li>Starts with {@code AESchemas/ae/adapter/} — covers LDAP and similar adapters
+     *       whose schemas live under the generic adapter sub-tree</li>
+     * </ul>
+     */
+    private void addAdapterFolderMetadata(List<BwFile> sarFiles, List<BwFile> allSarFiles) {
+        // Index all .folder files from the full project pool, keyed by their parent directory
+        Map<String, BwFile> folderByDir = new HashMap<>();
+        for (BwFile f : allSarFiles) {
+            String norm = normalizeBwPath(f.relativePath);
+            if (norm.endsWith("/.folder")) {
+                String dir = norm.substring(0, norm.length() - "/.folder".length());
+                folderByDir.put(dir, f);
+            }
+        }
+
+        // Collect directories that directly contain SAR resources and match adapter paths
+        Set<String> included = new HashSet<>();
+        for (BwFile f : sarFiles) included.add(normalizeBwPath(f.relativePath));
+
+        Set<String> dirsToInclude = new LinkedHashSet<>();
+        for (BwFile f : sarFiles) {
+            String norm = normalizeBwPath(f.relativePath);
+            if (norm.endsWith("/.folder")) continue;
+            int slash = norm.lastIndexOf('/');
+            if (slash <= 0) continue;
+            String dir = norm.substring(0, slash);
+            if (isAdapterTypeFolder(dir)) {
+                dirsToInclude.add(dir);
+            }
+        }
+
+        for (String dir : dirsToInclude) {
+            BwFile folderFile = folderByDir.get(dir);
+            if (folderFile == null) continue;
+            String folderPath = normalizeBwPath(folderFile.relativePath);
+            if (!included.contains(folderPath)) {
+                getLog().debug("Adapter .folder added to SAR: " + folderPath);
+                sarFiles.add(folderFile);
+                included.add(folderPath);
+            }
+        }
+    }
+
+    private static boolean isAdapterTypeFolder(String dir) {
+        if (!dir.startsWith("AESchemas/ae/")) return false;
+        String sub = dir.substring("AESchemas/ae/".length());
+        // LDAP and adapters under the generic adapter sub-tree
+        if (sub.startsWith("adapter/")) return true;
+        // Named adapter type folders (one level below ae/)
+        return !sub.contains("/") && ADAPTER_TYPE_FOLDER_NAMES.contains(sub);
     }
 
     /**
@@ -1814,6 +1906,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
             boolean anyFound = false;
             for (String resourcePath : resourceIndex.keySet()) {
                 if (resourcePath.startsWith(prefix)) {
+                    // pd:targetNamespace values (e.g. "/EventHandler/Procesos") look like
+                    // directory refs and expand the whole folder — skip metadata files
+                    // (e.g. .folder, .bak) that must only be added via addAdapterFolderMetadata.
+                    if (EXCLUDED_EXTENSIONS.contains(getExtension(resourcePath))) continue;
                     if (refs.add(resourcePath)) {
                         getLog().debug("Directory ref expanded: " + dir + " → " + resourcePath);
                     }
