@@ -2134,4 +2134,43 @@ public class BwEarMojoAdapterSarTest {
         assertEquals("ae.aeschema must appear exactly once in combinedSarFiles (deduped)", 1, aeCount);
     }
 
+    // -----------------------------------------------------------------------
+    //  Bug #3b: ae/baseDocument.aeschema must not be excluded from collectFiles
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression: {@code AESchemas/ae/baseDocument.aeschema} was incorrectly listed in
+     * {@code PLATFORM_AESCHEMA_RELATIVE_PATHS} and therefore skipped by {@code collectFiles}.
+     * As a result it never reached {@code allSarFiles} and could not be collected into the SAR
+     * even though the adfiles adapter instance files reference it directly via
+     * {@code AESDK:loadUrl}, and buildear does package it for adfiles projects.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void baseDocumentAeschemaIsNotExcludedByCollectFiles() throws Exception {
+        File rootDir = tmp.newFolder("base-doc-collect");
+        File aeSchemaDir = new File(rootDir, "AESchemas/ae");
+        aeSchemaDir.mkdirs();
+
+        // corba.aeschema is a true platform file — must be excluded
+        writeFile(new File(rootDir, "AESchemas"), "corba.aeschema",
+            "<?xml version=\"1.0\"?><ns0:repository"
+            + " xmlns:ns0=\"http://www.tibco.com/xmlns/repo/types/2002\"/>");
+
+        // ae/baseDocument.aeschema must NOT be excluded (adapter-specific schema)
+        writeFile(aeSchemaDir, "baseDocument.aeschema",
+            "<?xml version=\"1.0\"?><ns0:repository"
+            + " xmlns:ns0=\"http://www.tibco.com/xmlns/repo/types/2002\"/>");
+
+        List parFiles = new ArrayList();
+        List sarFiles = new ArrayList();
+        List metadata = new ArrayList();
+        COLLECT_FILES.invoke(new BwEarMojo(), rootDir, rootDir, parFiles, sarFiles, metadata);
+
+        Set<String> sarNames = fileRelPaths(sarFiles);
+        assertTrue("ae/baseDocument.aeschema must be collected into allSarFiles",
+            sarNames.contains("AESchemas/ae/baseDocument.aeschema"));
+        assertFalse("corba.aeschema is a platform file and must be excluded from allSarFiles",
+            sarNames.contains("AESchemas/corba.aeschema"));
+    }
 }

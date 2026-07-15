@@ -317,12 +317,16 @@ public class BwEarMojo extends AbstractBw5Mojo {
      * These files are always present in project AESchemas directories but are part of
      * the runtime environment — buildEAR never packages them because the BW5 engine
      * already provides them on the target server.
+     *
+     * <p>Note: {@code AESchemas/ae/baseDocument.aeschema} is intentionally NOT listed here.
+     * Despite appearing in every adfiles project source tree, buildear DOES package it in
+     * the SAR for adapter projects because it defines the adapter-specific base document
+     * type.  Excluding it caused adapter-only SARs to miss this schema.</p>
      */
     private static final Set<String> PLATFORM_AESCHEMA_RELATIVE_PATHS = new HashSet<>(Arrays.asList(
         "AESchemas/corba.aeschema",
         "AESchemas/java.aeschema",
-        "AESchemas/sql.aeschema",
-        "AESchemas/ae/baseDocument.aeschema"
+        "AESchemas/sql.aeschema"
     ));
 
     /**
