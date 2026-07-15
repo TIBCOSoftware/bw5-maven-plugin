@@ -598,12 +598,26 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 getLog().info("Shared resource files (SAR): " + sarFiles.size());
 
                 accumulateSarFiles(sarFiles, combinedSarFiles, seenSarPaths);
-                List<String> sarPaths = toSarPaths(combinedSarFiles);
-                List<ProcessParser.ProcessMetadata> meta = parseProcesses(parFiles, srcDir);
-                File parFile = new File(workDir, parFileName);
-                buildPar(parFile, parFiles, srcDir, meta, sarPaths, globalVars);
-                moduleFiles.add(parFile);
-                getLog().info("PAR assembled: " + parFile.getName() + " (" + parFile.length() + " bytes)");
+
+                // Adapter-only projects (no .process files): BFS seeds from processes and
+                // finds nothing, leaving the SAR empty.  Scan every adapter instance file
+                // (.adfiles, .adldap, …) directly for AESchema references and add them to
+                // the SAR — replicating what the multi-archive path does for explicit
+                // <adapterArchive> entries.
+                if (parFiles.isEmpty()) {
+                    collectAdapterAeschemas(allSarFiles, combinedSarFiles, seenSarPaths);
+                }
+
+                if (!parFiles.isEmpty()) {
+                    List<String> sarPaths = toSarPaths(combinedSarFiles);
+                    List<ProcessParser.ProcessMetadata> meta = parseProcesses(parFiles, srcDir);
+                    File parFile = new File(workDir, parFileName);
+                    buildPar(parFile, parFiles, srcDir, meta, sarPaths, globalVars);
+                    moduleFiles.add(parFile);
+                    getLog().info("PAR assembled: " + parFile.getName() + " (" + parFile.length() + " bytes)");
+                } else {
+                    getLog().info("Adapter-only project: no process files, skipping PAR.");
+                }
             }
 
             // 5b. Auto-create AARs for SAP R/3 adapter instance files (.adr3/.adr3TID).
@@ -2055,6 +2069,67 @@ public class BwEarMojo extends AbstractBw5Mojo {
      * are read from bundled classpath resources under
      * {@code com/tibco/deployment/{componentSoftwareName}.xml}.</p>
      */
+    /**
+     * For adapter-only projects (no {@code .process} files), the BFS in
+     * {@link #applyTransitiveDependencyAnalysis} seeds from processes and finds nothing,
+     * leaving the SAR empty.  This method scans every adapter instance file
+     * ({@code .adfiles}, {@code .adldap}, …) in {@code allSarFiles} for BW resource
+     * references, follows AESchema import chains transitively, and adds the discovered
+     * files to {@code combinedSarFiles}.
+     *
+     * <p>This replicates the behaviour of the multi-archive path which does the same
+     * scan for each explicit {@code <adapterArchive>} entry in an {@code .archive}
+     * descriptor.</p>
+     */
+    private void collectAdapterAeschemas(List<BwFile> allSarFiles,
+            List<BwFile> combinedSarFiles, Set<String> seenSarPaths) {
+        Map<String, BwFile> resourceIndex = buildBwIndex(allSarFiles);
+        Set<String> referencedResourcePaths = new LinkedHashSet<>();
+        Set<String> wholeDirectoryPrefixes  = new LinkedHashSet<>();
+
+        for (BwFile bwf : allSarFiles) {
+            if (!isAdapterInstanceFile(bwf.file)) continue;
+            boolean hasFragmentLoadUrls = adapterHasFragmentLoadUrls(bwf.file);
+            for (String ref : extractBwResourceRefs(bwf.file)) {
+                String norm = normalizeBwPath(ref);
+                if (getExtension(norm).startsWith(".ad")) continue;
+                if (norm.endsWith(".aeschema") && hasFragmentLoadUrls) {
+                    int slash = norm.lastIndexOf('/');
+                    if (slash > 0) wholeDirectoryPrefixes.add(norm.substring(0, slash + 1));
+                }
+                if (referencedResourcePaths.add(norm)) {
+                    if (isSarExtension(getExtension(norm))) {
+                        followSharedResourceRefs(norm, resourceIndex, referencedResourcePaths);
+                    }
+                    if (norm.endsWith(".aeschema")) {
+                        followAeschemaImports(norm, resourceIndex, referencedResourcePaths);
+                    }
+                }
+            }
+        }
+
+        for (String dirPrefix : wholeDirectoryPrefixes) {
+            getLog().info("Fragment loadUrls: expanding all aeschemas under " + dirPrefix);
+            for (Map.Entry<String, BwFile> e : resourceIndex.entrySet()) {
+                if (e.getKey().startsWith(dirPrefix) && e.getKey().endsWith(".aeschema")) {
+                    referencedResourcePaths.add(e.getKey());
+                }
+            }
+        }
+
+        int before = combinedSarFiles.size();
+        for (String path : referencedResourcePaths) {
+            BwFile f = resourceIndex.get(path);
+            if (f != null) {
+                accumulateSarFiles(Collections.singletonList(f), combinedSarFiles, seenSarPaths);
+            }
+        }
+        int added = combinedSarFiles.size() - before;
+        if (added > 0) {
+            getLog().info("Adapter-only: added " + added + " AESchema/SAR resource(s) to SAR.");
+        }
+    }
+
     private void buildAdapterAarsIfNeeded(
             List<BwFile> allSarFiles,
             List<BwFile> sarFiles,

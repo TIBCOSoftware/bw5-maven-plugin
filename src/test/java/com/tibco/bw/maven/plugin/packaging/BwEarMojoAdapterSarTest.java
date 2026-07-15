@@ -1968,4 +1968,170 @@ public class BwEarMojoAdapterSarTest {
         assertFalse("R3AdapterConfiguration.adr3 must NOT be in SAR when unreferenced by any process",
             paths.contains("R3AdapterConfiguration.adr3"));
     }
+
+    // -----------------------------------------------------------------------
+    //  Bug #3: adapter-only projects (no .process files) — AESchemas into SAR
+    // -----------------------------------------------------------------------
+
+    private static final Method COLLECT_ADAPTER_AESCHEMAS;
+
+    static {
+        try {
+            COLLECT_ADAPTER_AESCHEMAS = BwEarMojo.class.getDeclaredMethod(
+                "collectAdapterAeschemas", List.class, List.class, Set.class);
+            COLLECT_ADAPTER_AESCHEMAS.setAccessible(true);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void collectAdapterAeschemas(List allSarFiles,
+            List combinedSarFiles, Set<String> seenSarPaths) throws Exception {
+        try {
+            COLLECT_ADAPTER_AESCHEMAS.invoke(new BwEarMojo(),
+                allSarFiles, combinedSarFiles, seenSarPaths);
+        } catch (java.lang.reflect.InvocationTargetException ite) {
+            Throwable cause = ite.getCause();
+            if (cause instanceof RuntimeException) throw (RuntimeException) cause;
+            throw new RuntimeException(cause);
+        }
+    }
+
+    /**
+     * Regression (Bug #3): adapter-only projects (no .process files) — AESchemas referenced
+     * by adapter instance files must be collected into the SAR.
+     *
+     * <p>Before the fix, {@code applyTransitiveDependencyAnalysis} seeded from processes
+     * (empty for adapter-only projects) and left the SAR empty.  The AESchema scanning
+     * block only existed in the multi-archive path, so single-PAR adapter-only projects
+     * (like adfiles/BaseRecord) always produced an empty SAR.</p>
+     *
+     * <p>This test verifies that {@code collectAdapterAeschemas} discovers the AESchema
+     * files referenced via {@code AESDK:loadUrl} in a {@code .adfiles} instance file and
+     * follows the import chain transitively.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void adapterOnlyProjectAeschemasCollectedIntoSar() throws Exception {
+        File dir = tmp.newFolder("adfiles-aeschema-sar");
+
+        // Root AESchema
+        File aeSchemaDir = new File(dir, "AESchemas");
+        aeSchemaDir.mkdirs();
+        File aeRoot = writeFile(aeSchemaDir, "ae.aeschema",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<Repository:repository"
+            + " xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">\n"
+            + "  <class name=\"string\"/>\n"
+            + "</Repository:repository>");
+
+        // Operation AESchema — lives in a sub-directory
+        File faDir = new File(dir, "AESchemas/ae/FileAdapter");
+        faDir.mkdirs();
+        File opAeschema = writeFile(faDir, "operation.aeschema",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<Repository:repository"
+            + " xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">\n"
+            + "  <class name=\"ContainerRecord\">\n"
+            + "    <attributeType isRef=\"true\">"
+            + "AESchemas/ae.aeschema#scalar.string"
+            + "</attributeType>\n"
+            + "  </class>\n"
+            + "</Repository:repository>");
+
+        // .adfiles adapter instance file — has AESDK:instanceId and AESDK:loadUrl refs
+        File adfiles = writeFile(dir, "ContainerReader.adfiles",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<Repository:repository"
+            + " xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\"\n"
+            + " xmlns:AESDK=\"http://www.tibco.com/xmlns/aemeta/adapter/2002\"\n"
+            + " xmlns:FileAdapter=\"http://www.tibco.com/xmlns/adapter/FileAdapter/2002\">\n"
+            + "  <FileAdapter:adapter name=\"FileAdapter\">\n"
+            + "    <AESDK:instanceId>ContainerReader</AESDK:instanceId>\n"
+            + "    <AESDK:loadUrl isRef=\"true\">/AESchemas/ae.aeschema</AESDK:loadUrl>\n"
+            + "    <AESDK:loadUrl isRef=\"true\">/AESchemas/ae/FileAdapter/operation.aeschema</AESDK:loadUrl>\n"
+            + "  </FileAdapter:adapter>\n"
+            + "</Repository:repository>");
+
+        List allSarFiles = new ArrayList();
+        allSarFiles.add(bwFile(adfiles,    "ContainerReader.adfiles"));
+        allSarFiles.add(bwFile(aeRoot,     "AESchemas/ae.aeschema"));
+        allSarFiles.add(bwFile(opAeschema, "AESchemas/ae/FileAdapter/operation.aeschema"));
+
+        List combinedSarFiles = new ArrayList();
+        Set<String> seenSarPaths = new LinkedHashSet<>();
+
+        collectAdapterAeschemas(allSarFiles, combinedSarFiles, seenSarPaths);
+
+        Set<String> sarPaths = fileRelPaths(combinedSarFiles);
+        assertTrue("ae.aeschema must be collected from .adfiles loadUrl reference",
+            sarPaths.contains("AESchemas/ae.aeschema"));
+        assertTrue("operation.aeschema must be collected from .adfiles loadUrl reference",
+            sarPaths.contains("AESchemas/ae/FileAdapter/operation.aeschema"));
+        assertFalse(".adfiles itself must NOT be added to the SAR (only its AESchema refs)",
+            sarPaths.contains("ContainerReader.adfiles"));
+    }
+
+    /**
+     * Regression (Bug #3): when multiple adapter instance files share some AESchemas,
+     * {@code collectAdapterAeschemas} must deduplicate entries in {@code combinedSarFiles}.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void adapterOnlyProjectDeduplicatesSharedAeschemas() throws Exception {
+        File dir = tmp.newFolder("adfiles-dedup");
+
+        // Shared root AESchema
+        new File(dir, "AESchemas").mkdirs();
+        File aeRoot = writeFile(new File(dir, "AESchemas"), "ae.aeschema",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<Repository:repository"
+            + " xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\">\n"
+            + "  <class name=\"string\"/>\n"
+            + "</Repository:repository>");
+
+        // Two .adfiles instance files that both reference the same ae.aeschema
+        String instanceTemplate =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<Repository:repository"
+            + " xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\"\n"
+            + " xmlns:AESDK=\"http://www.tibco.com/xmlns/aemeta/adapter/2002\"\n"
+            + " xmlns:FileAdapter=\"http://www.tibco.com/xmlns/adapter/FileAdapter/2002\">\n"
+            + "  <FileAdapter:adapter name=\"FileAdapter\">\n"
+            + "    <AESDK:instanceId>%s</AESDK:instanceId>\n"
+            + "    <AESDK:loadUrl isRef=\"true\">/AESchemas/ae.aeschema</AESDK:loadUrl>\n"
+            + "  </FileAdapter:adapter>\n"
+            + "</Repository:repository>";
+
+        File reader = writeFile(dir, "ContainerReader.adfiles",
+            String.format(instanceTemplate, "ContainerReader"));
+        File writer = writeFile(dir, "ContainerWriter.adfiles",
+            String.format(instanceTemplate, "ContainerWriter"));
+
+        List allSarFiles = new ArrayList();
+        allSarFiles.add(bwFile(reader,  "ContainerReader.adfiles"));
+        allSarFiles.add(bwFile(writer,  "ContainerWriter.adfiles"));
+        allSarFiles.add(bwFile(aeRoot,  "AESchemas/ae.aeschema"));
+
+        List combinedSarFiles = new ArrayList();
+        Set<String> seenSarPaths = new LinkedHashSet<>();
+
+        collectAdapterAeschemas(allSarFiles, combinedSarFiles, seenSarPaths);
+
+        Set<String> sarPaths = fileRelPaths(combinedSarFiles);
+        assertTrue("ae.aeschema must be in SAR (referenced by both adapter files)",
+            sarPaths.contains("AESchemas/ae.aeschema"));
+
+        long aeCount = combinedSarFiles.stream()
+            .filter(bwf -> {
+                try {
+                    java.lang.reflect.Field rel = bwf.getClass().getDeclaredField("relativePath");
+                    rel.setAccessible(true);
+                    return "AESchemas/ae.aeschema".equals(rel.get(bwf));
+                } catch (Exception e2) { return false; }
+            }).count();
+        assertEquals("ae.aeschema must appear exactly once in combinedSarFiles (deduped)", 1, aeCount);
+    }
+
 }
