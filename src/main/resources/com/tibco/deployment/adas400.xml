@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<properties>
+    <property>
+	   <name>Add custom methods to class micro-agent</name>
+	   <option>adas400.addCustomHawkMethodsToClassMAgent</option>
+	   <default>ON</default>
+	   <description>Turning on this option adds custom Hawk methods to class micro-agent</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Collecting performance statistics</name>
+	   <option>adas400.perfMon</option>
+	   <default>OFF</default>
+	   <description>Turning on this option enables collection of various statistics at runtime for the adapter</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+    	<name>Java Heap Size - Minimum</name>
+    	<option>java.heap.size.min</option>
+    	<default>32M</default>
+    	<description>Java Heap Size - Minimum</description>
+    	<obfuscate>no</obfuscate>
+    	<validation>
+    		<type>STRING</type>
+    		<min></min>
+    		<max></max>
+   		</validation>
+ 	</property>
+    <property>
+    	<name>Java Heap Size - Maximum</name>
+    	<option>java.heap.size.max</option>
+    	<default>256M</default>
+    	<description>Java Heap Size - Maximum</description>
+    	<obfuscate>no</obfuscate>
+    	<validation>
+    		<type>STRING</type>
+    		<min></min>
+    		<max></max>
+    	</validation>
+    </property>
+</properties>

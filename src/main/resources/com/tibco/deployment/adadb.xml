@@ -1,0 +1,1525 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<properties>
+    <!--<property>
+	   <name>DSN Name</name>
+	   <option>adb.dsn</option>
+	   <default></default>
+	   <description>The ODBC Data Source Name configured for the adapter at runtime.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>-->
+    <property>
+	   <name>Url</name>
+	   <option>adb.url</option>
+	   <default></default>
+	   <description>The Url configured for the adapter at runtime.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>User</name>
+	   <option>adb.user</option>
+	   <default></default>
+	   <description>The Username configured for the adapter at runtime.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Password</name>
+	   <option>adb.password</option>
+	   <default></default>
+	   <description>The password configured for the adapter at runtime.</description>
+	   <obfuscate>true</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <!--<property>
+	   <name>Default Schema</name>
+	   <option>adb.defaultSchema</option>
+	   <default></default>
+	   <description>The login user's default schema in the database.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>  
+	-->
+    <property>
+	   <name>Runtime Schema</name>
+	   <option>adb.runtime.schema</option>
+	   <default></default>
+	   <description>The database objects' schema configured for the adapter at runtime.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property> 
+    <property>
+	   <name>Runtime Publisher Table Schema</name>
+	   <option>adb.runtime.publisherSchema</option>
+	   <default></default>
+	   <description>The publisher table's schema configured for the adapter at runtime.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>  
+    <property>
+	   <name>Database Schema Defined at design time</name>
+	   <option>adb.originalSchema</option>
+	   <default></default>
+	   <description>The database schema desinged for the adapter at design time.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>                                           
+    
+    <property>
+	   <name>Debug Level</name>
+	   <option>adb.debug</option>
+	   <default>2</default>
+	   <description>The level of debugging information. Specify a number from 0-3.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min>0</min>
+		   <max>4</max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Verbose Flag</name>
+	   <option>adb.verbose</option>
+	   <default>on</default>
+	   <description>To set verbose trace at runtime.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Payload on Error</name>
+	   <option>adb.payloadOnError</option>
+	   <default>off</default>
+	   <description>To set payload information sent to ErrorRole at runtime.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    
+    <property>
+	   <name>Publish Child Data</name>
+	   <option>adb.publishChildData</option>
+	   <default></default>
+	   <description>Enables publishing of child table rows related to the source table.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	 <!--<property>
+	   <name>Subscriber Bulk Insert Error Handling</name>
+	   <option>adb.<subscriber_service_name>.bulkInsertErrorHandling</option>
+	   <default></default>
+	   <description>Indicates whether the bulk insert error handling feature in Subscription Service is enabled or not.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>-->
+	<!-- <property>
+	   <name>Publisher Lookback</name>
+	   <option>adb.<publisher_service_name>.lookback</option>
+	   <default></default>
+	   <description>When setting the value to on, the adapter can poll remaining records continuously regardless of the Polling Interval value you set.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>-->
+	<property>
+	   <name>Enable Fault Tolerence</name>
+	   <option>adb.faultTolerance.enabled</option>
+	   <default></default>
+	   <description>Indicates if fault tolerence is enabled for ADB.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Batch Update Publishing Table Status</name>
+	   <option>adb.batchPubStatusUpdates</option>
+	   <default></default>
+	   <description>Optimizes publishing performance by batching message status updates to the publishing table.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Publisher Batch Confirm Size</name>
+	   <option>adb.pubBatchConfirmSize</option>
+	   <default></default>
+	   <description>Optimizes performance by batching message status advisories to the publishing table for publications that use certified message delivery.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Performance Monitor</name>
+	   <option>adb.perf</option>
+	   <default></default>
+	   <description>The performance report would be printed after process the number of message</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Publisher Batch Confirm Timeout</name>
+	   <option>adb.pubBatchConfirmTimeout</option>
+	   <default></default>
+	   <description>For publications that use certified message delivery, an update to the status column is performed when the timeout occurs even if the batch size value is not reached.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Fault Tolerence Port Number</name>
+	   <option>adb.faultTolerance.portNumber</option>
+	   <default></default>
+	   <description>Indiactes fault tolerence port number.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<!-- <property>
+	   <name>Session Subscriber Batch Commit Timeout</name>
+	   <option>adb.<default_session_name>.subBatchCommitTimeout</option>
+	   <default></default>
+	   <description>Enables batch commit without using separate sessions in TIBCO Designer.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Session Subscriber Batch Commit Size</name>
+	   <option>adb.<default_session_name>.subBatchCommitSize</option>
+	   <default></default>
+	   <description>Specifies the number of messages to be batched before invoking a commit operation.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>-->
+    <property>
+	   <name>Use Exception Table</name>
+	   <option>adb.useExceptTable</option>
+	   <default>on</default>
+	   <description>Enables the use of the exception table.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>RV Maximum Queue Size</name>
+	   <option>adb.rvMaxQueueSize</option>
+	   <default></default>
+	   <description>Maximum number of messages to allow in the TIBCO Rendezvous event queue.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Subscriber Batch Commit Size</name>
+	   <option>adb.subBatchCommitSize</option>
+	   <default></default>
+	   <description>The number of messages to batch before invoking a commit operation.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Subscriber Batch Commit Timeout</name>
+	   <option>adb.subBatchCommitTimeout</option>
+	   <default></default>
+	   <description>The amount of time that can expire after which a batch commit operation is invoked.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Subscriber Bulk Insert Size</name>
+	   <option>adb.subBulkInsertSize</option>
+	   <default></default>
+	   <description>All incoming messages to insert are stored until this size is reached. Then a bulk insert operation is performed on the destination table.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Performance Monitoring Hawk Methods</name>
+	   <option>adb.perfMon</option>
+	   <default>off</default>
+	   <description>Enables performance monitoring hawk methods.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>maxLongLen</name>
+	   <option>adb.maxLongLen</option>
+	   <default>-1</default>
+	   <description>maximum size of handle data. default value is -1, not check data length. </description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <!--<property>
+	   <name>Trace Old Messages</name>
+	   <option>adb.traceOldMessages</option>
+	   <default>off</default>
+	   <description>Displays all trace messages in ADB 4.x format.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    -->
+    <property>
+	   <name>Polling Interval</name>
+	   <option>adb.PollingInterval</option>
+	   <default></default>
+	   <description>Specifies polling period used by the publisher.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	 <property>
+	   <name>Fault Tolerence Heartbeat</name>
+	   <option>adb.faultTolerance.heartbeat</option>
+	   <default></default>
+	   <description>Indiactes fault tolerence heartbeat.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	 <property>
+	   <name>Fault Tolerence Retry Attempts</name>
+	   <option>adb.faultTolerance.retry</option>
+	   <default></default>
+	   <description>Indiactes fault tolerence retry attempts.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Fault Tolerence Members</name>
+	   <option>adb.faultTolerance.members</option>
+	   <default></default>
+	   <description>Indiactes fault tolerence members.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<!-- <property>
+	   <name>Queue Size</name>
+	   <option>adb.<sessionName/serviceName>.ADBQueueSize</option>
+	   <default></default>
+	   <description>Prevents the OutOfMemoryError error.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Queue Timeout</name>
+	   <option>adb.<sessionName/serviceName>.ADBQueueTimeout</option>
+	   <default></default>
+	   <description>Controls the timeout for processing messages.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>-->
+    <property>
+	   <name>Polling Batch Size</name>
+	   <option>adb.PollingBatchSize</option>
+	   <default></default>
+	   <description>Indicates the number of parent rows to fetch for a poll interval.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Interval Between Reconnect Attempts</name>
+	   <option>adb.SleepBetweenRetries</option>
+	   <default>10000</default>
+	   <description>Seconds of sleep between two reconnection attempts.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Maximum Number of Reconnect Attempts</name>
+	   <option>adb.RetryTotal</option>
+	   <default>3</default>
+	   <description>Total number of reconnection attempts.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <!--<property>
+	   <name>WCHAR</name>
+	   <option>adb.wchar</option>
+	   <default>SQL_C_CHAR</default>
+	   <description>Required when using UTF-8 encoding with an adapter that uses a DataDirect driver to retrieve UTF-8 data from the database.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    -->
+    <property>
+	   <name>Add Custom Adapter Methods to Class Microagent</name>
+	   <option>adb.addCustomHawkMethodsToClassMAgent</option>
+	   <default>on</default>
+	   <description>Indicates whether general and specific ADB methods should be added to the class microagent.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Publisher Group Size</name>
+	   <option>adb.groupSize</option>
+	   <description>Set the group size for batch publishing</description>
+	   <obfuscate>false</obfuscate>
+	   <default></default>
+	   <validation>
+		   <type>int</type>
+		   <min>0</min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Publisher change status automatically</name>
+	   <option>adb.pubAutoN</option>
+	   <description>ADB publisher change status from F to N, then republic the message</description>
+	   <obfuscate>false</obfuscate>
+	   <default></default>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>do commit after each polling on db2</name>
+	   <option>adb.pollingCommitForDB2</option>
+	   <default></default>
+	   <description>set the publisher to do a commit after each select on db2 database</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Request Response Thread Count</name>
+	   <option>adb.requestResponseThreads</option>
+	   <default></default>
+	   <description>Set the request response thread count</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+   <property>
+	   <name>Terminate on Publishing failure</name>
+	   <option>adb.terminateOnPubFail</option>
+	   <default>off</default>
+	   <description>Teriminate the agent if publishing fails</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	    <name>RV Advisory Messages No Log</name>
+	   <option>adb.rvAdvisoryNoLog</option>
+	   <default>off</default>
+	   <description>Do not log RV advisory messages to application log</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>    
+
+    <property>
+	   <name>Set Client Info</name>
+	   <option>adb.setClientInfo</option>
+	   <default>on</default>
+	   <description>invoking dbms_application_info.set_client_info for Oracle database only</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+
+	<!--
+    <property>
+	   <name>preRegisteredListeners</name>
+	   <option>adb.publication_service_name.preRegisteredListeners</option>
+	   <default></default>
+	   <description>pre-register cm name for specified message destination</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+	</property>
+	
+	<property>
+	   <name>jmsProperties</name>
+	   <option>adb.publisher_service_name.jmsProperties</option>
+	   <default></default>
+	   <description>set publisher_service_name jms properties</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+	</property>
+	-->
+	<property>
+	   <name>jmsBytesMsg</name>
+	   <option>adb.jmsBytesMsg</option>
+	   <default>off</default>
+	   <description>set whether use jms Bytes send message</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+	</property>
+	<property>
+		   <name>CustomScaleForNumberType</name>
+		   <option>adb.customScaleForNumberType</option>
+		   <default></default>
+		   <description>Set default scale for Oracle Number datatype</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>int</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+	   <name>as400DefaultLibrary</name>
+	   <option>adb.as400.defaultLibrary</option>
+	   <default></default>
+	   <description>The default DB2 iSeries library to be accessed</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+	</property>
+
+	<property>
+		   <name>as400RuntimeLibrary</name>
+		   <option>adb.as400.library</option>
+		   <default></default>
+		   <description>The default DB2 iSeries runtime library to be accessed</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<!-- <property>
+		   <name>Table Poll Hint</name>
+		   <option>adb.<tableName>.poll.hint</option>
+		   <default></default>
+		   <description>This feature helps improve the performance of your queries.</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Publisher Pre Registered Listeners</name>
+		   <option>adb.<publisher_service_name>.preRegisteredListeners <subjectName1:listenerName1, subjectName2:listenerName2></option>
+		   <default></default>
+		   <description>Preregisters RVCM names for the specified subjects.</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Publisher JMS Properties</name>
+		   <option>adb.<publisher_service_name>.jmsProperties <property1>=<value1>,<property2>=<value2>,<property3>=<value3></option>
+		   <default></default>
+		   <description>When JMS message compression is enabled by using any of the preceding methods, published messages will be compressed.</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>-->
+	<property>
+		   <name>Properties File for Log4j</name>
+		   <option>adb.log4jPropFile</option>
+		   <default></default>
+		   <description>The path of the log4j properties file.</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+     <!--<property>
+	    <name>Encoding setting</name>
+	   <option>adb.encoding</option>
+	   <default></default>
+	   <description></description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+		</property>
+     <property>
+	    <name>Unicode setting</name>
+	   <option>adb.unicode</option>
+	   <default></default>
+	   <description></description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+		</property>
+     <property>
+	    <name>FT mutex name</name>
+	   <option>adb.mutex</option>
+	   <default></default>
+	   <description>FT mutex name shared by instances runing in FT mode</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+
+     <property>
+	    <name>DB2 fault tolerance mutex table tablespace name</name>
+	   <option>adb.tablespace</option>
+	   <default></default>
+	   <description></description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+		</property>
+
+     <property>
+	    <name>DB2 fault tolerance mutex table database name</name>
+	   <option>adb.database</option>
+	   <default></default>
+	   <description></description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+		</property>
+		<property>
+	   <name>Disable mutex table creation</name>
+	   <option>adb.createMutexTable</option>
+	   <default></default>
+	   <description></description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+      </property>
+     <property>
+	    <name>FT heartbeat</name>
+	   <option>adb.heartbeat</option>
+	   <default></default>
+	   <description>FT heartbeat in miliseconds (for adb5.x)</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+		</property>		
+     <property>
+	   <name>Fault Tolerance Primary Heartbeat</name>
+	   <option>adb.primary.heartbeat</option>
+	   <default></default>
+	   <description>FT Primary heartbeat in miliseconds</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+      </property>
+     <property>
+	    <name>Fault Tolerance Secondary Heartbeat</name>
+	   <option>adb.secondary.heartbeat</option>
+	   <default></default>
+	   <description>FT Secondary heartbeat in miliseconds</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+     </property>    
+     <property>
+	    <name>Fault Tolerance Max Query</name>
+	   <option>adb.maxQuery</option>
+	   <default>3</default>
+	   <description>FT max queries sent by secondary instance to detect if primary instance is down</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+     </property>     		
+     -->
+     <!--<property>
+	    <name>AS400 default library at design time</name>
+	   <option>adb.as400.defaultLibrary</option>
+	   <default></default>
+	   <description></description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+		</property>
+     <property>
+	    <name>AS400 runtime library</name>
+	   <option>adb.as400.library</option>
+	   <default></default>
+	   <description></description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+		</property>
+     -->
+     <property>
+	    <name>Set empty string to NULL for RV Message</name>
+	   <option>adb.setEmptyStringNullForRvMsg</option>
+	   <default>off</default>
+	   <description>specifies whether the RVMSG fields of an empty string are treated as NULL or ""(empty string)</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+		</property>
+		<!--
+     <property>
+	    <name>Use SQLColumn to get column information</name>
+	   <option>adb.useSqlColumns</option>
+	   <default></default>
+	   <description></description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+		</property>
+     -->
+	
+     <property>
+	    <name>Number of cache statements for standard RPC service</name>
+	   <option>adb.stmtCache</option>
+	   <default>1</default>
+	   <description></description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+	</property>
+     <property>
+	    <name>Disable Termination Subject</name>
+	   <option>adb.disableTerminationSubject</option>
+	   <default></default>
+	   <description></description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+		</property>
+     
+     <property>
+	    <name>Maximum number of rows to fetch for RPC Service</name>
+	   <option>adb.requestResponseMaxRows</option>
+	   <default></default>
+	   <description></description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+		 </property>     
+    <property>
+	   <name>Disable duplicate agent detection</name>
+	   <option>adb.noDupDetection</option>
+	   <default>off</default>
+	   <description></description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+		</property>
+     <!--<property>
+	   <name>Scale for number type</name>
+	   <option>adb.customScaleForNumberType</option>
+	   <default></default>
+	   <description>Override default scale for number type</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+      </property>         
+     -->
+     <property>
+	   <name>setEmptyStringToDefault</name>
+	   <option>adb.setEmptyStringToDefault</option>
+	   <default>on</default>
+	   <description></description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	    </validation>
+      </property>
+		<property>
+	   <name>Enable using between clause </name>
+	   <option>adb.useBetweenClause</option>
+	   <default>on</default>
+	   <description>use 'between' clause to fetch data from publish table when batch polling is enabled</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+      </property>
+     <property>
+	   <name>Enable Jms compress for publication service</name>
+	   <option>adb.jmscompress</option>
+	   <default>off</default>
+	   <description>Publication service compress JMS Message before publishing it out</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	    <name>RVCMQ session backlog limit size in bytes</name>
+	   <option>adb.taskBackLogLimitInBytes</option>
+	   <default>0</default>
+	 <description>set TaskBackLogLimitInBytes to RVCMQSession to limit the task byte size in scheduler task queue</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min>0</min>
+		   <max></max>
+	   </validation>
+		</property>
+	<property>
+	   <name>RVCMQ session backlog limit size in messages</name>
+	   <option>adb.taskBackLogLimitInMessages</option>
+	   <default>0</default>
+	   <description>set TaskBackLogLimitInMessages to RVCMQSession to limit the task message size in scheduler task queue</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min>0</min>
+		   <max></max>
+	   </validation>
+	</property>
+	
+	<property>
+	   <name>Publisher timestamp format as ISO 8601</name>
+	   <option>adb.pubTimestampFormatAsISO8601</option>
+	   <default>on</default>
+	   <description>The publisher send date time string format, default value is on, format string is ISO 8601.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+	</property>
+	
+	<property>
+	    <name>date pattern</name>
+	   <option>adb.datePattern</option>
+	   <default>yyyy-MM-dd</default>
+	 <description>date pattern for java.text.SimpleDateFormat, such as yyyy-MM-dd</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min>0</min>
+		   <max></max>
+	   </validation>
+	</property>
+	<property>
+	    <name>time pattern</name>
+	   <option>adb.timePattern</option>
+	   <default>HH:mm:s</default>
+	 <description>time pattern  for java.text.SimpleDateFormat, such as HH:mm:s</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min>0</min>
+		   <max></max>
+	   </validation>
+	</property>
+	<property>
+	    <name>timestamp pattern</name>
+	   <option>adb.timestampPattern</option>
+	   <default>yyyy-MM-dd HH:mm:ss.S</default>
+	 <description>timestamp pattern  for java.text.SimpleDateFormat, such as yyyy-MM-dd HH:mm:ss.S</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min>0</min>
+		   <max></max>
+	   </validation>
+	</property>
+    <property>
+	   <name>connDBRefresh</name>
+	   <option>adb.connDBRefresh</option>
+	   <default>off</default>
+	   <description>time to recycle connection</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	    </validation>
+    </property>
+    <property>
+	   <name>connDBRefreshInterval</name>
+	   <option>adb.connDBRefreshInterval</option>
+	   <default>300</default>
+	   <description>Interval Between recycle connection</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min>1</min>
+		   <max></max>
+	    </validation>
+    </property>
+   <property>
+	   <name>Specifies whether FT basing on EMS is enabled</name>
+	   <option>tibco.sdk.faultTolerance.ems.enabled</option>
+	   <default>OFF</default>
+	   <description>Specifies whether FT basing on EMS is enabled</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+	</property>
+	<property>
+		   <name>Specifies the queue name that stores the token</name>
+		   <option>tibco.sdk.faultTolerance.ems.queueName</option>
+		   <default></default>
+		   <description>Specifies the queue name that stores the token in the EMS Server</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the session name for fault tolerance</name>
+		   <option>tibco.sdk.faultTolerance.ems.sessionName</option>
+		   <default></default>
+		   <description>Specifies the session name that will be used by SDK for fault tolerance</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the EMS provider URL</name>
+		   <option>tibco.sdk.faultTolerance.ems.providerUrl</option>
+		   <default></default>
+		   <description>Specifies the EMS provider URL</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the factory name for fault tolerance</name>
+		   <option>tibco.sdk.faultTolerance.ems.session.factoryName</option>
+		   <default></default>
+		   <description>Specifies the factory name will be used when SDK create the JMS connection</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the user name for the EMS connection</name>
+		   <option>tibco.sdk.faultTolerance.ems.userName</option>
+		   <default></default>
+		   <description>Specifies the user name for the EMS connection</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the password for the EMS connection</name>
+		   <option>tibco.sdk.faultTolerance.ems.password</option>
+		   <default></default>
+		   <description>Specifies the password for the EMS connection</description>
+		   <obfuscate>true</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specified whether the primary instance acknowledges its token</name>
+		   <option>tibco.sdk.faultTolerance.ems.ackTokenOnStop</option>
+		   <default>OFF</default>
+		   <description>Specified whether the primary instance acknowledges its token when it is stopped normally</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>ONOFF</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies whether the JNDI is used</name>
+		   <option>tibco.sdk.faultTolerance.ems.isUsingJNDI</option>
+		   <default>OFF</default>
+		   <description>Specifies whether the JNDI is used</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>ONOFF</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the JNDI context factory</name>
+		   <option>tibco.sdk.faultTolerance.ems.jndi.providerContextFactory</option>
+		   <default></default>
+		   <description>Specifies the JNDI context factory</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the user name for the JNDI connection</name>
+		   <option>tibco.sdk.faultTolerance.ems.jndi.userName</option>
+		   <default></default>
+		   <description>Specifies the user name for the JNDI connection</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the password for the JNDI connection</name>
+		   <option>tibco.sdk.faultTolerance.ems.jndi.password</option>
+		   <default></default>
+		   <description>Specifies the password for the JNDI connection</description>
+		   <obfuscate>true</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies whether the JNDI connection is over SSL</name>
+		   <option>tibco.sdk.faultTolerance.ems.isUsingSSL</option>
+		   <default>OFF</default>
+		   <description>Specifies whether the JNDI connection is over SSL</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>ONOFF</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies whether the SSL enable the tracing of the loaded certificates</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.enableTrace</option>
+		   <default>OFF</default>
+		   <description>Specifies whether the SSL enable the tracing of the loaded certificates</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>ONOFF</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies whether the SSL enable the more detailed SSL tracing</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.enableDebugTrace</option>
+		   <default>OFF</default>
+		   <description>Specifies whether the SSL enable the more detailed SSL tracing</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>ONOFF</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies whether the SSL client should verify the name</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.enableVerifyHostName</option>
+		   <default>OFF</default>
+		   <description>Specifies whether the SSL client should verify the name in the Server's certificate</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>ONOFF</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies whether the SSL client should verify the Server's certificate</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.enableVerifyHost</option>
+		   <default>OFF</default>
+		   <description>Specifies whether the SSL client should verify the Server's certificate</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>ONOFF</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the name in the Server certificate</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.expectedHostName</option>
+		   <default></default>
+		   <description>Specifies the name in the Server certificate</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies whether only the strong cipher suites are allowed</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.isStrongCipherSuites</option>
+		   <default>OFF</default>
+		   <description>Specifies whether only the strong cipher suites are allowed</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>ONOFF</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the folder that stores the required certificates</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.trustedDir</option>
+		   <default></default>
+		   <description>Specifies the folder that stores the required certificates</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the path of the client identity</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.identity</option>
+		   <default></default>
+		   <description>Specifies the path of the client identity</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the password of the client identity</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.password</option>
+		   <default></default>
+		   <description>Specifies the password of the client identity</description>
+		   <obfuscate>true</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>    
+	<property>
+		   <name>jms_compressed sessions</name>
+		   <option>tibco.sdk.session.jmsCompressed</option>
+		   <default></default>
+		   <description>Specifies the list of JMS sessions' names. All the JMS endpoints using the JMS sessions specified in the "tibco.sdk.session.jmsCompressed" property will send out compressed JMS messages onto EMS Server. Multiple session names are separated by a vertical bar (|).</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>jms_compressed endpoints</name>
+		   <option>tibco.sdk.endpoint.jmsCompressed</option>
+		   <default></default>
+		   <description>Specifies the list of JMS endpoints' names. All the JMS endpoints (Publisher, Client and Server) specified in the "tibco.sdk.session.jmsCompressed" property will send out compressed JMS messages onto EMS Server. Multiple endpoint names separated by a vertical bar (|).</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	
+	<property>
+	   <name>Set to keep the zero milli second of datetime field value in the published messages</name>
+	   <option>adb.keepZeroMilliSecond</option>
+	   <default>OFF</default>
+	   <description>To keep the zero milli second of datetime field value in the published messages, add "adb.keepZeroMilliSecond" tra property with value of ON</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	
+	<property>
+	   <name>Set to have nano seconds data as part of datetime field value of published messages</name>
+	   <option>adb.pubTimestampWithNanoSeconds</option>
+	   <default>OFF</default>
+	   <description>To have nano seconds data as part of datetime field value of published messages, add "adb.pubTimestampWithNanoSeconds" tra property with value of ON</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	
+	<property>
+	   <name>Set to have float and double datatypes without scientific notation as part of published messages</name>
+	   <option>adb.noFloatDoubleScientificNotation</option>
+	   <default>OFF</default>
+	   <description>To have float and double datatypes without scientific notation as part of published messages, add "adb.noFloatDoubleScientificNotation" tra property with value of ON</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	
+	<property>
+	   <name>Set "adb.engineStopWithDBOperationFailed" to have control on how ADB agent works</name>
+	   <option>adb.engineStopWithDBOperationFailed</option>
+	   <default>0</default>
+	   <description>Use the new TRA property of "adb.engineStopWithDBOperationFailed". When its value is 0 as default,ADB agent works as before, i.e., it will shutdown if the stage table is not accessible for example; when its value is 1, the adb agent will keep running with db exception logged in adb log file.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>int</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	
+	<property>
+	   <name>Set "adb.pollingCommitForTD" to issue db commit after each polling select statement against Teradata db</name>
+	   <option>adb.pollingCommitForTD</option>
+	   <default>OFF</default>
+	   <description>Use the new TRA property of "adb.pollingCommitForTD" to issue db commit after each polling select statement against Teradata db</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	
+	<property>
+	   <name>Set the "adb.getDbURLbyHawk" to control whether you want to get DB URL in Hawk</name>
+	   <option>adb.getDbURLbyHawk</option>
+	   <default>OFF</default>
+	   <description>Use the new TRA property of "adb.getDbURLbyHawk" to control whether you want to get DB URL in Hawk</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Set the "adb.setExplicitNilForDB2" to explicitly set nil for attributes for DB2 published messages</name>
+	   <option>adb.setExplicitNilForDB2</option>
+	   <default>OFF</default>
+	   <description>Use this property to control output element of columns with nil value in published messages, it's default value is OFF. Add "adb.setExplicitNilForDB2" tra property with value ON to get  xsi:nil="true" in response.This property is applicable only for DB2</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    
+    <property>
+	   <name>Set Timezone</name>
+	   <option>adb.setTimezone</option>
+	   <default></default>
+	   <description>Sets the timezone explicitly.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	
+    <property>
+	   <name>Driver</name>
+	   <option>adb.driver</option>
+	   <default></default>
+	   <description>The driver configured for the adapter at runtime.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	
+    <property>
+	   <name>License Key</name>
+	   <option>adb.licenseKey</option>
+	   <default></default>
+	   <description>License key of the account used by the adapter to access database.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	
+    <property>
+	   <name>Driver for an Adapter Configuration</name>
+	   <option>adb.instanceName.driver</option>
+	   <default></default>
+	   <description>The driver configured for a specific adapter configuration at runtime.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	
+    <property>
+	   <name>URL for an Adapter Configuration</name>
+	   <option>adb.instanceName.url</option>
+	   <default></default>
+	   <description>The URL configured for a specific adapter configuration at runtime.</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	
+</properties>

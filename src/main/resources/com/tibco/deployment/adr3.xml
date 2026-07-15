@@ -1,0 +1,855 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<properties>
+    <property>
+           <name>Max Connections</name>
+    	   <option>adr3.maxconnections</option>
+    	   <default>1</default>
+    	   <description>Maximum number of connections for the adapter</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>integer</type>
+    		   <min>1</min>
+    		   <max>99</max>
+    	   </validation>
+   </property>
+   <property>
+           <name>Multiple AppServer Discovery</name>
+    	   <option>adr3.discovery</option>
+    	   <default>OFF</default>
+    	   <description>To discover multiple Application Servers</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>ONOFF</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>   
+   <property>
+           <name>Discovery Listener Subject</name>
+    	   <option>adr3.discovery.listenerSubject</option>
+    	   <default>R3.APPSERVERS.ACTIVE</default>
+    	   <description>Subject for Discovery listener</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>   
+   <property>
+           <name>Discovery Listener Session</name>
+    	   <option>adr3.discovery.listenerSession</option>
+    	   <default></default>
+    	   <description>Session for Discovery listener</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>   
+   <property>
+           <name>Discovery PID</name>
+    	   <option>adr3.discovery.pid</option>
+    	   <default></default>
+    	   <description>Discovery PID</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>Discovery Max Connections</name>
+    	   <option>adr3.discovery.maxconnections</option>
+    	   <default>1</default>
+    	   <description>Maximum number of connections for Discovery</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>integer</type>
+    		   <min>1</min>
+    		   <max>99</max>
+    	   </validation>
+   </property>
+   <property>
+           <name>Discovery Maximum Retry Interval</name>
+    	   <option>adr3.discovery.maxretryinterval</option>
+    	   <default>60</default>
+    	   <description>Maximum time between two startup attempts in case of failures (secs)</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>integer</type>
+    		   <min>1</min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>Discovery App Server Suffix</name>
+    	   <option>adr3.discovery.appserver.suffix</option>
+    	   <default></default>
+    	   <description>Discovery application server suffix</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>                     
+   <property>
+           <name>Machine Name</name>
+    	   <option>adr3.MACHINE_NAME</option>
+    	   <default></default>
+    	   <description>Name of the machine where Adapter is deployed</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>Extended logging</name>
+    	   <option>adr3.trace.extended</option>
+    	   <default>OFF</default>
+    	   <description>Enable extended logging for adapter</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>ONOFF</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>      
+   <property>
+           <name>Enable thread logging</name>
+    	   <option>adr3.trace.thread</option>
+    	   <default>OFF</default>
+    	   <description>Enable thread id information for adapter</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>ONOFF</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>Enable logging at service</name>
+    	   <option>adr3.trace.service</option>
+    	   <default>OFF</default>
+    	   <description>Enable logging at service level for adapter</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>ONOFF</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>    
+   <property>
+           <name>Log4J properties file</name>
+    	   <option>adr3.trace.log4j.properties</option>
+    	   <default></default>
+    	   <description>Log4J properties file for adapter</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>Stop adapter on Subscriber error</name>
+    	   <option>adr3.stoponsubscribersaperror</option>
+    	   <default>OFF</default>
+    	   <description>Stop adapter following Subscriber SAP error</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>ONOFF</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>IDoc log directory</name>
+    	   <option>adr3.idocLogDirectory</option>
+    	   <default></default>
+    	   <description>Directory used for logging IDoc for adapter</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>              
+   <property>
+           <name>JMS Stop Subscriber</name>
+    	   <option>adr3.stopJMSEndpoint</option>
+    	   <default></default>
+    	   <description>JMS Subscriber for stopping adapter</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>   
+   <property>
+           <name>Stop subject</name>
+    	   <option>adr3.stopSubject</option>
+    	   <default></default>
+    	   <description>Stop subject for adapter</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>Delay stop event for inbound</name>
+    	   <option>adr3.stop.wait.inbound</option>
+    	   <default>OFF</default>
+    	   <description>Wait for pending requests to SAP to complete during stop event</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>ONOFF</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>   
+   <property>
+           <name>Delay interval for stop event for inbound</name>
+    	   <option>adr3.stop.wait.delay.interval</option>
+    	   <default>100</default>
+    	   <description>Delay interval for stop event for inbound</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>long</type>
+    		   <min>100</min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>JMS Compression</name>
+    	   <option>adr3.jmscompress</option>
+    	   <default>ON</default>
+    	   <description>Enable JMS compression for adapter</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>ONOFF</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>      
+   <property>
+           <name>Replace null with space</name>
+    	   <option>adr3.rfcBapiReplaceNullFieldsWithSpace</option>
+    	   <default>OFF</default>
+    	   <description>Replace null with space for no data returned back from SAP to adapter</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>ONOFF</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>   
+   <property>
+           <name>Retrieve IDoc number and status during confirmation</name>
+    	   <option>adr3.idocNumAndStatusIncluded</option>
+    	   <default>ON</default>
+    	   <description>Retrieve IDoc number and status during the confirmation of IDoc following post to SAP </description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>ONOFF</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>   
+   <property>
+           <name>Specify the number of threads for confirmation</name>
+    	   <option>adr3.msgReportOutboundThreadCount</option>
+    	   <default>1</default>
+    	   <description>Specify the number of threads used in message confirmation</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>integer</type>
+    		   <min>1</min>
+    		   <max></max>
+    	   </validation>
+   </property> 
+   <property>
+           <name>Specify the prefix used for confirmation</name>
+    	   <option>adr3.msgReportQueueNamePrefix</option>
+    	   <default></default>
+    	   <description>Specify the prefix used for queue process in message confirmation</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>   
+   <property>
+           <name>Specify the suffix used for confirmation</name>
+    	   <option>adr3.msgReportQueueNameSuffix</option>
+    	   <default>Message.Confirmation</default>
+    	   <description>Specify the suffix used for queue process in message confirmation</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>Specify the EMS server where the message queue resides</name>
+    	   <option>adr3.msgReportQueue.serverUrl</option>
+    	   <default></default>
+    	   <description>Specify the EMS server where the message queue resides.</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>Specify the user name to login to message queue</name>
+    	   <option>adr3.msgReportQueue.userName</option>
+    	   <default></default>
+    	   <description>Specify the user name to login to message queue</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>Specify the password to login to message queue</name>
+    	   <option>adr3.msgReportQueue.password</option>
+    	   <default></default>
+    	   <description>Specify the password to login to message queue</description>
+    	   <obfuscate>true</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>Specify whether JNDI is used</name>
+    	   <option>adr3.msgReportQueue.useJNDI</option>
+    	   <default>OFF</default>
+    	   <description>Specify whether JNDI is used</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>ONOFF</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>Specify factory name when JNDI is used</name>
+    	   <option>adr3.msgReportQueue.jndi.factoryName</option>
+    	   <default></default>
+    	   <description>Specify factory name when JNDI is used</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+  </property>  
+  <property>
+           <name>Specify factory provider when JNDI is used</name>
+    	   <option>adr3.msgReportQueue.jndi.providerContextFactory</option>
+    	   <default></default>
+    	   <description>Specify factory provider when JNDI is used</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+  </property>  
+  <property>
+           <name>Specify JNDI name for queue when JNDI is used</name>
+    	   <option>adr3.msgReportQueue.jndi.name</option>
+    	   <default></default>
+    	   <description>Specify JNDI name for queue when JNDI is used</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+ </property>
+ <property>
+           <name>Specify username for JNDI connection</name>
+    	   <option>adr3.msgReportQueue.jndi.userName</option>
+    	   <default></default>
+    	   <description>Specify username for JNDI connection</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>  
+   <property>   
+           <name>Specify password for JNDI connection</name>
+    	   <option>adr3.msgReportQueue.jndi.password</option>
+    	   <default></default>
+    	   <description>Specify password for JNDI connection</description>
+    	   <obfuscate>true</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>    
+   <property>
+           <name>Allow actual SAP exception to be returned back to outbound SAP system</name>
+    	   <option>adr3.rfcBapiOutbound.enableSAPexception</option>
+    	   <default>OFF</default>
+    	   <description>Allow actual SAP exception to be returned back to outbound SAP system</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>Disable reconnect of client connections in the case of logon errors such as invalid password</name>
+    	   <option>adr3.clientLogonError.disableReconnect</option>
+    	   <default>OFF</default>
+    	   <description>Disable reconnect of client connections in the case of logon errors such as invalid password</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>SAP Repository for Outbound Adapter</name>
+    	   <option>adr3.saprepository</option>
+    	   <default>OFF</default>
+    	   <description>Indicate to use a dedicated inbound connection for SAP repository in case of outbound services</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>SAP Repository username</name>
+    	   <option>adr3.saprepository.username</option>
+    	   <default></default>
+    	   <description>Username associated to the dedicated inbound connection for SAP repository</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>SAP Repository password</name>
+    	   <option>adr3.saprepository.password</option>
+    	   <default></default>
+    	   <description>Password associated to the dedicated inbound connection for SAP repository</description>
+    	   <obfuscate>true</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>SAP Repository language</name>
+    	   <option>adr3.saprepository.language</option>
+    	   <default>E</default>
+    	   <description>Language associated to the dedicated inbound connection for SAP repository</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>SAP Repository client</name>
+    	   <option>adr3.saprepository.client</option>
+    	   <default></default>
+    	   <description>Client associated to the dedicated inbound connection for SAP repository</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>SAP Repository appserver</name>
+    	   <option>adr3.saprepository.appserver</option>
+    	   <default></default>
+    	   <description>SAP Application Server associated to the dedicated inbound connection for SAP repository</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+	   <name>SAP Repository sysnr</name>
+    	   <option>adr3.saprepository.sysnr</option>
+    	   <default></default>
+    	   <description>System number associated to the dedicated inbound connection for SAP repository</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>Enable load balancing for SNC</name>
+    	   <option>adr3.clientConnection.snc.lb</option>
+    	   <default>OFF</default>
+    	   <description>Enable Load balancing when client connection is configured using type SNC </description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>ONOFF</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>    
+   <property>   
+	       <name>Server name for SNC with Load balancing</name>
+    	   <option>adr3.clientConnection.snc.lb.serverName</option>
+    	   <default></default>
+    	   <description>Server name when client connection is configured for SNC with Load balancing</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>  
+   <property>   
+	       <name>Message Server name for SNC with Load balancing</name>
+    	   <option>adr3.clientConnection.snc.lb.msgServer</option>
+    	   <default></default>
+    	   <description>Message Server name when client connection is configured for SNC with Load balancing</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>    
+   <property>   
+	       <name>Group name for SNC with Load balancing</name>
+    	   <option>adr3.clientConnection.snc.lb.groupName</option>
+    	   <default></default>
+    	   <description>Group name when client connection is configured for SNC with Load balancing</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>    
+   <property>
+           <name>Disable SSO for SNC client connections</name>
+    	   <option>adr3.clientConnection.snc.disableSSO</option>
+    	   <default>OFF</default>
+    	   <description>Disabled SSO when client connection is configured using type SNC </description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>ONOFF</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>Specify MyName for SNC client connections</name>
+    	   <option>adr3.jco.client.snc_myname</option>
+    	   <default></default>
+    	   <description>Specify MyName property when client connection is configured using type SNC </description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+	   <name>Specifies whether FT basing on EMS is enabled</name>
+	   <option>tibco.sdk.faultTolerance.ems.enabled</option>
+	   <default>OFF</default>
+	   <description>Specifies whether FT basing on EMS is enabled</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the queue name that stores the token</name>
+	   <option>tibco.sdk.faultTolerance.ems.queueName</option>
+	   <default></default>
+	   <description>Specifies the queue name that stores the token in the EMS Server</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the session name for fault tolerance</name>
+	   <option>tibco.sdk.faultTolerance.ems.sessionName</option>
+	   <default></default>
+	   <description>Specifies the session name that will be used by SDK for fault tolerance</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the EMS provider URL</name>
+	   <option>tibco.sdk.faultTolerance.ems.providerUrl</option>
+	   <default></default>
+	   <description>Specifies the EMS provider URL</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the factory name for fault tolerance</name>
+	   <option>tibco.sdk.faultTolerance.ems.session.factoryName</option>
+	   <default></default>
+	   <description>Specifies the factory name will be used when SDK create the JMS connection</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the user name for the EMS connection</name>
+	   <option>tibco.sdk.faultTolerance.ems.userName</option>
+	   <default></default>
+	   <description>Specifies the user name for the EMS connection</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the password for the EMS connection</name>
+	   <option>tibco.sdk.faultTolerance.ems.password</option>
+	   <default></default>
+	   <description>Specifies the password for the EMS connection</description>
+	   <obfuscate>true</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specified whether the primary instance acknowledges its token</name>
+	   <option>tibco.sdk.faultTolerance.ems.ackTokenOnStop</option>
+	   <default>OFF</default>
+	   <description>Specified whether the primary instance acknowledges its token when it is stopped normally</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies whether the JNDI is used</name>
+	   <option>tibco.sdk.faultTolerance.ems.isUsingJNDI</option>
+	   <default>OFF</default>
+	   <description>Specifies whether the JNDI is used</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the JNDI context factory</name>
+	   <option>tibco.sdk.faultTolerance.ems.jndi.providerContextFactory</option>
+	   <default></default>
+	   <description>Specifies the JNDI context factory</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the user name for the JNDI connection</name>
+	   <option>tibco.sdk.faultTolerance.ems.jndi.userName</option>
+	   <default></default>
+	   <description>Specifies the user name for the JNDI connection</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+	<property>
+	   <name>Specifies the password for the JNDI connection</name>
+	   <option>tibco.sdk.faultTolerance.ems.jndi.password</option>
+	   <default></default>
+	   <description>Specifies the password for the JNDI connection</description>
+	   <obfuscate>true</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies whether the JNDI connection is over SSL</name>
+	   <option>tibco.sdk.faultTolerance.ems.isUsingSSL</option>
+	   <default>OFF</default>
+	   <description>Specifies whether the JNDI connection is over SSL</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies whether the SSL enable the tracing of the loaded certificates</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.enableTrace</option>
+	   <default>OFF</default>
+	   <description>Specifies whether the SSL enable the tracing of the loaded certificates</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies whether the SSL enable the more detailed SSL tracing</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.enableDebugTrace</option>
+	   <default>OFF</default>
+	   <description>Specifies whether the SSL enable the more detailed SSL tracing</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies whether the SSL client should verify the name</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.enableVerifyHostName</option>
+	   <default>OFF</default>
+	   <description>Specifies whether the SSL client should verify the name in the Server's certificate</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies whether the SSL client should verify the Server's certificate</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.enableVerifyHost</option>
+	   <default>OFF</default>
+	   <description>Specifies whether the SSL client should verify the Server's certificate</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the name in the Server certificate</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.expectedHostName</option>
+	   <default></default>
+	   <description>Specifies the name in the Server certificate</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies whether only the strong cipher suites are allowed</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.isStrongCipherSuites</option>
+	   <default>OFF</default>
+	   <description>Specifies whether only the strong cipher suites are allowed</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the folder that stores the required certificates</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.trustedDir</option>
+	   <default></default>
+	   <description>Specifies the folder that stores the required certificates</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the path of the client identity</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.identity</option>
+	   <default></default>
+	   <description>Specifies the path of the client identity</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+	   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the password of the client identity</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.password</option>
+	   <default></default>
+	   <description>Specifies the password of the client identity</description>
+	   <obfuscate>true</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+</properties>

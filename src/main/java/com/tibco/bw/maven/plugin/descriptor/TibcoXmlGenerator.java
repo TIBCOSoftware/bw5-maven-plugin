@@ -143,40 +143,68 @@ public class TibcoXmlGenerator {
     }
 
     // -----------------------------------------------------------------------
-    //  AAR-level TIBCO.xml — SAP R/3 adapter (auto-discovered .adr3 / .adr3TID)
+    //  AAR-level TIBCO.xml — AESDK adapter (auto-discovered .adXXX instance files)
     // -----------------------------------------------------------------------
 
     /**
-     * Generates the AAR-level TIBCO.xml for a SAP R/3 adapter instance file
-     * ({@code .adr3} or {@code .adr3TID}) that has no explicit archive descriptor entry.
+     * A single SDK property from a {@code com/tibco/deployment/{adapter}.xml} resource.
+     * Each property maps to one {@code <NameValuePair>} (or {@code <NameValuePairPassword>}
+     * for obfuscated properties) in the AAR TIBCO.xml Adapter SDK Properties block.
+     */
+    public static class SdkProperty {
+        public final String option;
+        public final String defaultValue;
+        public final String label;
+        public final String description;
+        public final boolean isPassword;
+
+        public SdkProperty(String option, String defaultValue,
+                           String label, String description, boolean isPassword) {
+            this.option = option;
+            this.defaultValue = defaultValue;
+            this.label = label;
+            this.description = description;
+            this.isPassword = isPassword;
+        }
+    }
+
+    /**
+     * Generates the AAR-level TIBCO.xml for any AESDK adapter instance file
+     * ({@code .adXXX}) that has no explicit archive descriptor entry.
      *
      * <p>buildear creates one AAR per adapter instance file and uses the installed adapter
      * version for {@code componentSoftwareName} and {@code minimumComponentSoftwareVersion}.
-     * Unlike the generic adapter AAR, the SAP R/3 adapter uses {@code adr3} / {@code adr3TID}
-     * as the component software name rather than {@code adapter}.</p>
+     * The {@code adapterFragName} is the {@code name} attribute of the {@code *:adapter}
+     * element inside the instance file (e.g. {@code SAPAdapter}, {@code ldap},
+     * {@code FileAdapter}).</p>
      *
      * @param outputFile            target file to write
      * @param aarFileName           AAR filename (e.g. {@code R3AdapterConfiguration.aar})
      * @param instanceName          adapter instance ID (filename without extension)
-     * @param componentSoftwareName {@code adr3} for .adr3 files, {@code adr3TID} for .adr3TID
+     * @param componentSoftwareName e.g. {@code adr3}, {@code adldap}, {@code adfiles}
      * @param adapterVersion        four-part adapter version (e.g. {@code 7.3.2.0})
      * @param adapterBwPath         absolute BW repository path of the adapter file
      *                              (e.g. {@code /R3AdapterConfiguration.adr3})
+     * @param adapterFragName       fragment name for the adapter type reference
+     *                              (e.g. {@code SAPAdapter}, {@code ldap})
+     * @param sdkProperties         SDK properties from the bundled deployment XML,
+     *                              emitted as the Adapter SDK Properties NVP block
      */
-    public void generateSapR3AarDescriptor(
+    public void generateAdapterAarDescriptor(
             File outputFile,
             String aarFileName,
             String instanceName,
             String componentSoftwareName,
             String adapterVersion,
-            String adapterBwPath) throws IOException {
+            String adapterBwPath,
+            String adapterFragName,
+            List<SdkProperty> sdkProperties,
+            List<String> externalDeps) throws IOException {
 
         String date = new SimpleDateFormat(DATE_FORMAT, Locale.ROOT).format(new Date());
         String owner = System.getProperty("user.name", "unknown");
 
-        // Fragment identifies the adapter type: #adapter.SAPAdapter or #adapter.TIDManager
-        String adapterTypeFrag = adapterBwPath + "#adapter."
-                + (componentSoftwareName.equals("adr3TID") ? "TIDManager" : "SAPAdapter");
+        String adapterTypeFrag = adapterBwPath + "#adapter." + adapterFragName;
 
         StringBuilder sb = new StringBuilder();
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
@@ -195,7 +223,7 @@ public class TibcoXmlGenerator {
         sb.append("        <ComponentSoftwareReference>\n");
         sb.append("            <componentSoftwareName>").append(escape(componentSoftwareName)).append("</componentSoftwareName>\n");
         sb.append("            <minimumComponentSoftwareVersion>").append(escape(adapterVersion)).append("</minimumComponentSoftwareVersion>\n");
-        sb.append("            <minimumTRAVersion>5.0.1.0</minimumTRAVersion>\n");
+        sb.append("            <minimumTRAVersion>5.1.0.0</minimumTRAVersion>\n");
         sb.append("            <configVersion>").append(escape(adapterVersion)).append("</configVersion>\n");
         sb.append("            <keyword>Adapter</keyword>\n");
         sb.append("        </ComponentSoftwareReference>\n");
@@ -209,7 +237,10 @@ public class TibcoXmlGenerator {
         sb.append("        <name>EXTERNAL_DEPENDENCIES</name>\n");
         sb.append("        <NameValuePair>\n");
         sb.append("            <name>EXTERNAL_RESOURCE_DEPENDENCY</name>\n");
-        sb.append("            <value>").append(escape("/AESchemas/ae.aeschema," + adapterTypeFrag)).append("</value>\n");
+        String depValue = (externalDeps != null && !externalDeps.isEmpty())
+                ? String.join(",", externalDeps)
+                : adapterTypeFrag;
+        sb.append("            <value>").append(escape(depValue)).append("</value>\n");
         sb.append("            <description>External resource configuration required by the archive.</description>\n");
         sb.append("            <requiresConfiguration>false</requiresConfiguration>\n");
         sb.append("            <disableConfigureAtDeployment>true</disableConfigureAtDeployment>\n");
@@ -226,6 +257,33 @@ public class TibcoXmlGenerator {
         sb.append("        <configurl:repoConfigUrl>").append(escape(instanceName)).append("</configurl:repoConfigUrl>\n");
         sb.append("        <configurl:instanceID>").append(escape(instanceName)).append("</configurl:instanceID>\n");
         sb.append("    </configurl:RepoConfigUrl>\n");
+
+        if (sdkProperties != null && !sdkProperties.isEmpty()) {
+            sb.append("    <NameValuePairs>\n");
+            sb.append("        <name>Adapter SDK Properties</name>\n");
+            for (SdkProperty p : sdkProperties) {
+                String tag = p.isPassword ? "NameValuePairPassword" : "NameValuePair";
+                sb.append("        <").append(tag).append(">\n");
+                sb.append("            <name>").append(escape(p.option)).append("</name>\n");
+                String val = (p.defaultValue == null || p.defaultValue.isEmpty())
+                        ? null : p.defaultValue;
+                if (val == null) {
+                    sb.append("            <value/>\n");
+                } else {
+                    sb.append("            <value>").append(escape(val)).append("</value>\n");
+                }
+                String desc = (p.label != null && !p.label.isEmpty()
+                        && p.description != null && !p.description.isEmpty())
+                        ? p.label + " " + p.description
+                        : (p.label != null ? p.label : p.description);
+                if (desc != null && !desc.isEmpty()) {
+                    sb.append("            <description>").append(escape(desc)).append("</description>\n");
+                }
+                sb.append("            <requiresConfiguration>false</requiresConfiguration>\n");
+                sb.append("        </").append(tag).append(">\n");
+            }
+            sb.append("    </NameValuePairs>\n");
+        }
 
         sb.append("</DeploymentDescriptors>\n");
 

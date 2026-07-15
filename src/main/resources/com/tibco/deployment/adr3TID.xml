@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<properties>
+    <property>
+           <name>TID File</name>
+    	   <option>adr3TIDManager.tidFile</option>
+    	   <default></default>
+    	   <description>TID file location</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>  
+   <property>
+           <name>JMS Stop Subscriber</name>
+    	   <option>adr3TIDManager.stopJMSEndpoint</option>
+    	   <default></default>
+    	   <description>JMS Subscriber for stopping TIDManager</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>    
+   <property>
+           <name>Stop subject</name>
+    	   <option>adr3TIDManager.stopSubject</option>
+    	   <default></default>
+    	   <description>Stop subject for TIDManager</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>   
+   <property>
+           <name>Machine Name</name>
+    	   <option>adr3TIDManager.MACHINE_NAME</option>
+    	   <default></default>
+    	   <description>Name of the machine where TIDManager is deployed</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>  
+   <property>
+           <name>Extended logging</name>
+    	   <option>adr3TIDManager.trace.extended</option>
+    	   <default>OFF</default>
+    	   <description>Enable extended logging for adapter</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>ONOFF</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>      
+   <property>
+           <name>Enable thread logging</name>
+    	   <option>adr3TIDManager.trace.thread</option>
+    	   <default>OFF</default>
+    	   <description>Enable thread id information for adapter</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>ONOFF</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>
+   <property>
+           <name>Log4J properties file</name>
+    	   <option>adr3TIDManager.trace.log4j.properties</option>
+    	   <default></default>
+    	   <description>Log4J properties file for adapter</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+   </property>    
+    <property>
+           <name>Thread Pool</name>
+    	   <option>adr3TIDManager.threadPool</option>
+    	   <default>1</default>
+    	   <description>Maximum number of threads for Remote TID Manager</description>
+    	   <obfuscate>false</obfuscate>
+    	   <validation>
+    		   <type>integer</type>
+    		   <min>1</min>
+    		   <max>99</max>
+    	   </validation>
+   </property>   
+   <property>
+	   <name>Specifies whether FT basing on EMS is enabled</name>
+	   <option>tibco.sdk.faultTolerance.ems.enabled</option>
+	   <default>OFF</default>
+	   <description>Specifies whether FT basing on EMS is enabled</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the queue name that stores the token</name>
+	   <option>tibco.sdk.faultTolerance.ems.queueName</option>
+	   <default></default>
+	   <description>Specifies the queue name that stores the token in the EMS Server</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the session name for fault tolerance</name>
+	   <option>tibco.sdk.faultTolerance.ems.sessionName</option>
+	   <default></default>
+	   <description>Specifies the session name that will be used by SDK for fault tolerance</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the EMS provider URL</name>
+	   <option>tibco.sdk.faultTolerance.ems.providerUrl</option>
+	   <default></default>
+	   <description>Specifies the EMS provider URL</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the factory name for fault tolerance</name>
+	   <option>tibco.sdk.faultTolerance.ems.session.factoryName</option>
+	   <default></default>
+	   <description>Specifies the factory name will be used when SDK create the JMS connection</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the user name for the EMS connection</name>
+	   <option>tibco.sdk.faultTolerance.ems.userName</option>
+	   <default></default>
+	   <description>Specifies the user name for the EMS connection</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the password for the EMS connection</name>
+	   <option>tibco.sdk.faultTolerance.ems.password</option>
+	   <default></default>
+	   <description>Specifies the password for the EMS connection</description>
+	   <obfuscate>true</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specified whether the primary instance acknowledges its token</name>
+	   <option>tibco.sdk.faultTolerance.ems.ackTokenOnStop</option>
+	   <default>OFF</default>
+	   <description>Specified whether the primary instance acknowledges its token when it is stopped normally</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies whether the JNDI is used</name>
+	   <option>tibco.sdk.faultTolerance.ems.isUsingJNDI</option>
+	   <default>OFF</default>
+	   <description>Specifies whether the JNDI is used</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the JNDI context factory</name>
+	   <option>tibco.sdk.faultTolerance.ems.jndi.providerContextFactory</option>
+	   <default></default>
+	   <description>Specifies the JNDI context factory</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the user name for the JNDI connection</name>
+	   <option>tibco.sdk.faultTolerance.ems.jndi.userName</option>
+	   <default></default>
+	   <description>Specifies the user name for the JNDI connection</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+	<property>
+	   <name>Specifies the password for the JNDI connection</name>
+	   <option>tibco.sdk.faultTolerance.ems.jndi.password</option>
+	   <default></default>
+	   <description>Specifies the password for the JNDI connection</description>
+	   <obfuscate>true</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies whether the JNDI connection is over SSL</name>
+	   <option>tibco.sdk.faultTolerance.ems.isUsingSSL</option>
+	   <default>OFF</default>
+	   <description>Specifies whether the JNDI connection is over SSL</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies whether the SSL enable the tracing of the loaded certificates</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.enableTrace</option>
+	   <default>OFF</default>
+	   <description>Specifies whether the SSL enable the tracing of the loaded certificates</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies whether the SSL enable the more detailed SSL tracing</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.enableDebugTrace</option>
+	   <default>OFF</default>
+	   <description>Specifies whether the SSL enable the more detailed SSL tracing</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies whether the SSL client should verify the name</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.enableVerifyHostName</option>
+	   <default>OFF</default>
+	   <description>Specifies whether the SSL client should verify the name in the Server's certificate</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies whether the SSL client should verify the Server's certificate</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.enableVerifyHost</option>
+	   <default>OFF</default>
+	   <description>Specifies whether the SSL client should verify the Server's certificate</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the name in the Server certificate</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.expectedHostName</option>
+	   <default></default>
+	   <description>Specifies the name in the Server certificate</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies whether only the strong cipher suites are allowed</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.isStrongCipherSuites</option>
+	   <default>OFF</default>
+	   <description>Specifies whether only the strong cipher suites are allowed</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the folder that stores the required certificates</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.trustedDir</option>
+	   <default></default>
+	   <description>Specifies the folder that stores the required certificates</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the path of the client identity</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.identity</option>
+	   <default></default>
+	   <description>Specifies the path of the client identity</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+	   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Specifies the password of the client identity</name>
+	   <option>tibco.sdk.faultTolerance.ems.ssl.password</option>
+	   <default></default>
+	   <description>Specifies the password of the client identity</description>
+	   <obfuscate>true</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+</properties>

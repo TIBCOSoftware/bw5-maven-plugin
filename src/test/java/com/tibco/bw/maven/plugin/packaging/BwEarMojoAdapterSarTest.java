@@ -13,8 +13,10 @@ import java.util.*;
 import java.util.Locale;
 
 import com.tibco.bw.maven.plugin.descriptor.SubstVarParser;
+import com.tibco.bw.maven.plugin.descriptor.TibcoXmlGenerator;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
@@ -101,6 +103,25 @@ public class BwEarMojoAdapterSarTest {
         File f = new File(dir, name);
         Files.write(f.toPath(), content.getBytes(StandardCharsets.UTF_8));
         return f;
+    }
+
+    /**
+     * Returns minimal valid AESDK adapter instance XML containing {@code <AESDK:instanceId>}.
+     * Used by AAR-creation tests that need isAdapterInstanceFile() to return true.
+     *
+     * @param nsPrefix  namespace prefix for the adapter element, e.g. {@code "SAPAdapter"}
+     * @param fragName  value of the {@code name} attribute, e.g. {@code "SAPAdapter"}
+     * @param instanceId the instanceId value
+     */
+    private static String aesdkXml(String nsPrefix, String fragName, String instanceId) {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+            + "<Repository:repository xmlns:Repository=\"http://www.tibco.com/xmlns/repo/types/2002\""
+            + " xmlns:AESDK=\"http://www.tibco.com/xmlns/aemeta/adapter/2002\">"
+            + "<" + nsPrefix + ":adapter xmlns:" + nsPrefix + "=\"http://www.tibco.com/xmlns/adapter/"
+            + nsPrefix + "/2002\" name=\"" + fragName + "\">"
+            + "<AESDK:instanceId>" + instanceId + "</AESDK:instanceId>"
+            + "</" + nsPrefix + ":adapter>"
+            + "</Repository:repository>";
     }
 
     // -----------------------------------------------------------------------
@@ -1249,8 +1270,8 @@ public class BwEarMojoAdapterSarTest {
     static {
         try {
             BUILD_SAP_AARS = BwEarMojo.class.getDeclaredMethod(
-                "buildSapAdapterAarsIfNeeded",
-                List.class, List.class, File.class, List.class,
+                "buildAdapterAarsIfNeeded",
+                List.class, List.class, List.class, File.class, List.class,
                 com.tibco.bw.maven.plugin.descriptor.ArchiveDescriptorParser.ArchiveDescriptor.class);
             BUILD_SAP_AARS.setAccessible(true);
         } catch (ReflectiveOperationException e) {
@@ -1262,7 +1283,7 @@ public class BwEarMojoAdapterSarTest {
     private void buildSapAars(List allSarFiles, List<File> moduleFiles, File workDir,
                                List<SubstVarParser.GlobalVariable> gvars) throws Exception {
         try {
-            BUILD_SAP_AARS.invoke(new BwEarMojo(), allSarFiles, moduleFiles, workDir, gvars, null);
+            BUILD_SAP_AARS.invoke(new BwEarMojo(), allSarFiles, allSarFiles, moduleFiles, workDir, gvars, null);
         } catch (java.lang.reflect.InvocationTargetException ite) {
             Throwable cause = ite.getCause();
             if (cause instanceof RuntimeException) throw (RuntimeException) cause;
@@ -1280,7 +1301,8 @@ public class BwEarMojoAdapterSarTest {
     public void sapAarCreatedForAdr3File() throws Exception {
         File dir    = tmp.newFolder("sap-aar-adr3");
         File work   = tmp.newFolder("sap-aar-adr3-work");
-        File adr3   = writeFile(dir, "Publisher1.adr3", "<adr3/>");
+        File adr3   = writeFile(dir, "Publisher1.adr3",
+            aesdkXml("SAPAdapter", "SAPAdapter", "Publisher1"));
 
         List sarFiles = new ArrayList();
         sarFiles.add(bwFile(adr3, "Publisher1.adr3"));
@@ -1314,7 +1336,8 @@ public class BwEarMojoAdapterSarTest {
     public void sapAarCreatedForAdr3TidFile() throws Exception {
         File dir   = tmp.newFolder("sap-aar-adr3tid");
         File work  = tmp.newFolder("sap-aar-adr3tid-work");
-        File tid   = writeFile(dir, "TIDManager.adr3TID", "<adr3tid/>");
+        File tid   = writeFile(dir, "TIDManager.adr3TID",
+            aesdkXml("TIDManager", "TIDManager", "TIDManager"));
 
         List sarFiles = new ArrayList();
         sarFiles.add(bwFile(tid, "TIDManager.adr3TID"));
@@ -1368,9 +1391,12 @@ public class BwEarMojoAdapterSarTest {
         File dir  = tmp.newFolder("sap-aar-multi");
         File work = tmp.newFolder("sap-aar-multi-work");
 
-        File pub1 = writeFile(dir, "Publisher1.adr3",  "<adr3/>");
-        File pub2 = writeFile(dir, "Publisher2.adr3",  "<adr3/>");
-        File tid  = writeFile(dir, "TIDManager.adr3TID", "<adr3tid/>");
+        File pub1 = writeFile(dir, "Publisher1.adr3",
+            aesdkXml("SAPAdapter", "SAPAdapter", "Publisher1"));
+        File pub2 = writeFile(dir, "Publisher2.adr3",
+            aesdkXml("SAPAdapter", "SAPAdapter", "Publisher2"));
+        File tid  = writeFile(dir, "TIDManager.adr3TID",
+            aesdkXml("TIDManager", "TIDManager", "TIDManager"));
 
         List sarFiles = new ArrayList();
         sarFiles.add(bwFile(pub1, "Publisher1.adr3"));
@@ -1386,6 +1412,151 @@ public class BwEarMojoAdapterSarTest {
         assertTrue("Publisher1.aar must be created", aarNames.contains("Publisher1.aar"));
         assertTrue("Publisher2.aar must be created", aarNames.contains("Publisher2.aar"));
         assertTrue("TIDManager.aar must be created", aarNames.contains("TIDManager.aar"));
+    }
+
+    // -----------------------------------------------------------------------
+    //  Generic AESDK adapter AAR creation (adldap, adfiles, adpsft8, …)
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void isAdapterInstanceFileTrueWhenContainsInstanceId() throws Exception {
+        File dir = tmp.newFolder("is-instance-true");
+        File f = writeFile(dir, "Foo.adldap",
+            aesdkXml("adldap", "ldap", "MyInstance"));
+        assertTrue("File with <AESDK:instanceId> must be an instance file",
+            BwEarMojo.isAdapterInstanceFile(f));
+    }
+
+    @Test
+    public void isAdapterInstanceFileFalseWhenNoInstanceId() throws Exception {
+        File dir = tmp.newFolder("is-instance-false");
+        File f = writeFile(dir, "Conn.adr3Connections",
+            "<Repository:repository xmlns:Repository=\"x\"><pool/></Repository:repository>");
+        assertFalse("File without <AESDK:instanceId> must not be an instance file",
+            BwEarMojo.isAdapterInstanceFile(f));
+    }
+
+    @Test
+    public void readAdapterFragNameExtractsNameAttribute() throws Exception {
+        File dir = tmp.newFolder("frag-name");
+        File ldap = writeFile(dir, "Foo.adldap", aesdkXml("adldap", "ldap", "Foo"));
+        File sap  = writeFile(dir, "Bar.adr3", aesdkXml("SAPAdapter", "SAPAdapter", "Bar"));
+        assertEquals("adldap fragment name must be 'ldap'",
+            "ldap", BwEarMojo.readAdapterFragName(ldap));
+        assertEquals("adr3 fragment name must be 'SAPAdapter'",
+            "SAPAdapter", BwEarMojo.readAdapterFragName(sap));
+    }
+
+    @Test
+    public void detectAdapterVersionReturnsNonNullFourPartString() {
+        // Returns an installed version or a hardcoded default — always four-part X.Y.Z.W
+        for (String name : new String[]{"adr3", "adr3TID", "adldap", "adfiles", "adpsft8", "adunknown"}) {
+            String v = BwEarMojo.detectAdapterVersion(name);
+            assertNotNull("detectAdapterVersion must not return null for " + name, v);
+            assertTrue("Version must contain at least one dot for " + name, v.contains("."));
+        }
+    }
+
+    @Test
+    public void readSdkPropertiesLoadsAdr3FromClasspath() {
+        List<TibcoXmlGenerator.SdkProperty> props = BwEarMojo.readSdkProperties("adr3");
+        assertFalse("adr3 SDK properties must not be empty", props.isEmpty());
+        boolean hasMaxConn = props.stream().anyMatch(p -> "adr3.maxconnections".equals(p.option));
+        assertTrue("adr3 SDK properties must include adr3.maxconnections", hasMaxConn);
+    }
+
+    @Test
+    public void readSdkPropertiesReturnsEmptyForUnknownAdapter() {
+        List<TibcoXmlGenerator.SdkProperty> props = BwEarMojo.readSdkProperties("adunknownxxx");
+        assertTrue("Unknown adapter must return empty SDK properties", props.isEmpty());
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void adldapInstanceFileCreatesAar() throws Exception {
+        File dir  = tmp.newFolder("aar-adldap");
+        File work = tmp.newFolder("aar-adldap-work");
+        File f = writeFile(dir, "MyLdap.adldap",
+            aesdkXml("adldap", "ldap", "MyLdap"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(f, "MyLdap.adldap"));
+
+        List<File> moduleFiles = new ArrayList<>();
+        buildSapAars(sarFiles, moduleFiles, work, new ArrayList<>());
+
+        assertEquals("One AAR must be created for the .adldap instance file", 1, moduleFiles.size());
+        assertEquals("AAR name must match instance name", "MyLdap.aar", moduleFiles.get(0).getName());
+
+        try (java.util.zip.ZipFile zf = new java.util.zip.ZipFile(moduleFiles.get(0))) {
+            Set<String> entries = new LinkedHashSet<>();
+            java.util.Enumeration<? extends java.util.zip.ZipEntry> e = zf.entries();
+            while (e.hasMoreElements()) entries.add(e.nextElement().getName());
+            assertTrue("AAR must contain TIBCO.xml", entries.contains("TIBCO.xml"));
+            assertTrue("AAR must contain /MyLdap.adldap", entries.contains("/MyLdap.adldap"));
+        }
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void adfilesInstanceFileCreatesAar() throws Exception {
+        File dir  = tmp.newFolder("aar-adfiles");
+        File work = tmp.newFolder("aar-adfiles-work");
+        File f = writeFile(dir, "delimitedReader.adfiles",
+            aesdkXml("fa", "FileAdapter", "delimitedReader"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(f, "delimitedReader.adfiles"));
+
+        List<File> moduleFiles = new ArrayList<>();
+        buildSapAars(sarFiles, moduleFiles, work, new ArrayList<>());
+
+        assertEquals("One AAR for .adfiles instance", 1, moduleFiles.size());
+        assertEquals("delimitedReader.aar", moduleFiles.get(0).getName());
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void adr3ConnectionsFileDoesNotCreateAar() throws Exception {
+        File dir  = tmp.newFolder("aar-adr3conn");
+        File work = tmp.newFolder("aar-adr3conn-work");
+        File f = writeFile(dir, "R3Connections.adr3Connections",
+            "<Repository:repository xmlns:Repository=\"x\"><pool/></Repository:repository>");
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(f, "R3Connections.adr3Connections"));
+
+        List<File> moduleFiles = new ArrayList<>();
+        buildSapAars(sarFiles, moduleFiles, work, new ArrayList<>());
+
+        assertTrue("adr3Connections must not create any AAR", moduleFiles.isEmpty());
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void adapterAarTibcoXmlContainsSdkProperties() throws Exception {
+        File dir  = tmp.newFolder("aar-nvp");
+        File work = tmp.newFolder("aar-nvp-work");
+        File f = writeFile(dir, "MyR3.adr3",
+            aesdkXml("SAPAdapter", "SAPAdapter", "MyR3"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(f, "MyR3.adr3"));
+
+        List<File> moduleFiles = new ArrayList<>();
+        buildSapAars(sarFiles, moduleFiles, work, new ArrayList<>());
+
+        assertEquals(1, moduleFiles.size());
+        try (java.util.zip.ZipFile zf = new java.util.zip.ZipFile(moduleFiles.get(0))) {
+            java.util.zip.ZipEntry tibco = zf.getEntry("TIBCO.xml");
+            assertNotNull("TIBCO.xml must be in AAR", tibco);
+            String xml = new String(
+                zf.getInputStream(tibco).readAllBytes(), StandardCharsets.UTF_8);
+            assertTrue("TIBCO.xml must contain Adapter SDK Properties block",
+                xml.contains("<name>Adapter SDK Properties</name>"));
+            assertTrue("TIBCO.xml must contain adr3.maxconnections",
+                xml.contains("adr3.maxconnections"));
+        }
     }
 
     // -----------------------------------------------------------------------

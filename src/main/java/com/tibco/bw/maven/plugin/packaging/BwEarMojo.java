@@ -278,10 +278,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
         ".xml",
         // Adapter configuration descriptors
         ".adapter",
-        // Adapter definition files: included in SAR when any process references them via
-        // ae.aepalette.sharedProperties.adapterService.  Pure adapter-only archives (no
-        // processArchive) leave these files only in the AAR via the adapterDefFiles path.
-        ".adb", ".adldap",
+        // Adapter definition files: included in SAR when any process references them,
+        // and also each becomes one AAR via buildAdapterAarsIfNeeded.
+        ".adb", ".adadb", ".adas400", ".adfiles", ".adjdexe", ".adldap",
+        ".adpsft8", ".adsbl", ".adtuxedo",
         // SAP R/3 adapter configuration files.  An .adr3 file references its connection pool
         // (.adr3Connections) via AESDK:objectGroup elements; adding these to SAR_EXTENSIONS
         // causes followSharedResourceRefs to be called on them, enabling BFS to discover the
@@ -614,8 +614,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
             // that are not listed as <adapterArchive> entries are silently ignored — use
             // combinedSarFiles (post-BFS) so only reachable instances get an AAR.
             List<BwFile> aarSourceFiles = (archiveDescriptor == null) ? allSarFiles : combinedSarFiles;
-            buildSapAdapterAarsIfNeeded(aarSourceFiles, moduleFiles, workDir, globalVars,
-                    archiveDescriptor);
+            buildAdapterAarsIfNeeded(aarSourceFiles, combinedSarFiles, moduleFiles, workDir,
+                    globalVars, archiveDescriptor);
 
             // 6. Build the SAR (shared across all PARs/AARs)
             File sarFile = null;
@@ -2041,28 +2041,28 @@ public class BwEarMojo extends AbstractBw5Mojo {
     }
 
     // -----------------------------------------------------------------------
-    //  AAR assembly — SAP R/3 auto-discovery
+    //  AAR assembly — AESDK adapter auto-discovery (all .adXXX instance files)
     // -----------------------------------------------------------------------
 
     /**
-     * Auto-creates one AAR per SAP R/3 adapter instance file ({@code .adr3} or
-     * {@code .adr3TID}) found in {@code sarFiles} that is not already covered by
-     * an explicit {@code <adapterArchive>} entry in the archive descriptor.
+     * Assembles one BW5 Adapter Archive ({@code .aar}) for every AESDK adapter instance
+     * file ({@code .adXXX} containing {@code <AESDK:instanceId>}) found among the SAR
+     * candidate files that is not already covered by an explicit {@code <adapterArchive>}
+     * entry in the archive descriptor.
      *
-     * <p>When the caller passes {@code allSarFiles} (no archive descriptor present),
-     * buildear scans the entire project and creates one AAR per {@code .adr3} regardless
-     * of process reachability. When the caller passes {@code combinedSarFiles} (descriptor
-     * present), buildear respects the descriptor's scope: only adapter instances referenced
-     * by a deployed process receive an AAR; unreferenced instances are skipped.</p>
+     * <p>Works without any TIBCO installation: the adapter version is detected from the
+     * local install directory if present, or a fallback default is used. SDK properties
+     * are read from bundled classpath resources under
+     * {@code com/tibco/deployment/{componentSoftwareName}.xml}.</p>
      */
-    private void buildSapAdapterAarsIfNeeded(
+    private void buildAdapterAarsIfNeeded(
             List<BwFile> allSarFiles,
+            List<BwFile> sarFiles,
             List<File> moduleFiles,
             File workDir,
             List<SubstVarParser.GlobalVariable> globalVars,
             ArchiveDescriptorParser.ArchiveDescriptor descriptor) throws Exception {
 
-        // Paths already covered by explicit <adapterArchive> elements (lower-cased)
         Set<String> explicitPaths = new HashSet<>();
         if (descriptor != null && descriptor.adapterArchives != null) {
             for (ArchiveDescriptorParser.AdapterArchiveEntry aa : descriptor.adapterArchives) {
@@ -2071,78 +2071,211 @@ public class BwEarMojo extends AbstractBw5Mojo {
             }
         }
 
-        String adapterVersion = detectSapR3AdapterVersion();
+        // Use the SAR-scoped index for AESchema traversal and .folder lookup so that only
+        // files actually included in the SAR appear in each AAR's EXTERNAL_RESOURCE_DEPENDENCY.
+        Map<String, BwFile> resourceIndex = buildBwIndex(sarFiles);
 
         for (BwFile bwf : allSarFiles) {
-            String lowerPath = bwf.relativePath.toLowerCase(Locale.ROOT);
-            boolean isAdr3    = lowerPath.endsWith(".adr3");
-            boolean isAdr3Tid = lowerPath.endsWith(".adr3tid");
-            if (!isAdr3 && !isAdr3Tid) continue;
+            String fileName = bwf.file.getName();
+            int dot = fileName.lastIndexOf('.');
+            if (dot < 0) continue;
+            String ext = fileName.substring(dot).toLowerCase(Locale.ROOT);
+            if (!ext.startsWith(".ad")) continue;
+
+            if (!isAdapterInstanceFile(bwf.file)) continue;
 
             String bwPath = "/" + bwf.relativePath.replace(File.separatorChar, '/');
             if (explicitPaths.contains(bwPath.toLowerCase(Locale.ROOT))) continue;
 
-            String adapterFileName = bwf.file.getName();
-            int dotPos = adapterFileName.lastIndexOf('.');
-            String instanceName = dotPos > 0 ? adapterFileName.substring(0, dotPos) : adapterFileName;
+            String instanceName = fileName.substring(0, dot);
+            // Preserve original case of extension for componentSoftwareName (e.g. adr3TID)
+            String componentSoftwareName = fileName.substring(dot + 1);
+            String adapterFragName = readAdapterFragName(bwf.file);
+            String adapterVersion  = detectAdapterVersion(componentSoftwareName);
+            List<TibcoXmlGenerator.SdkProperty> sdkProps = readSdkProperties(componentSoftwareName);
+            String adapterTypeFrag = bwPath + "#adapter." + adapterFragName;
+            List<String> externalDeps = computeAdapterExternalDeps(
+                    bwf.file, adapterTypeFrag, resourceIndex);
+
             String aarFileName = instanceName + ".aar";
-
-            String componentSoftwareName = isAdr3Tid ? "adr3TID" : "adr3";
-
             File aarFile = new File(workDir, aarFileName);
-            buildSapAdapterAar(aarFile, bwf, bwPath, instanceName, componentSoftwareName, adapterVersion);
+            buildAdapterAar(aarFile, bwf, bwPath, instanceName,
+                            componentSoftwareName, adapterVersion, adapterFragName,
+                            sdkProps, externalDeps);
             moduleFiles.add(aarFile);
-            getLog().info("SAP R/3 AAR assembled: " + aarFileName + " (" + aarFile.length() + " bytes)");
+            getLog().info("Adapter AAR assembled: " + aarFileName
+                          + " (" + aarFile.length() + " bytes) [" + componentSoftwareName + "]");
         }
     }
 
-    /** Creates a single SAP R/3 AAR containing the adapter file and its TIBCO.xml. */
-    private void buildSapAdapterAar(
+    /**
+     * Computes the EXTERNAL_RESOURCE_DEPENDENCY value for an adapter AAR by scanning
+     * the adapter instance file for AESchema references and following them transitively.
+     * Returns a list with the AESchema paths (sorted) followed by the adapter fragment.
+     * If the adapter has no AESchema references, returns a single-element list containing
+     * just the fragment (as buildear does for unconfigured adapter instances).
+     */
+    private List<String> computeAdapterExternalDeps(
+            File adapterFile, String adapterTypeFrag,
+            Map<String, BwFile> resourceIndex) {
+        Set<String> visited = new LinkedHashSet<>();
+        try {
+            String content = new String(
+                    Files.readAllBytes(adapterFile.toPath()), StandardCharsets.UTF_8);
+            java.util.regex.Matcher m = RELATIVE_AESCHEMA_REF.matcher(content);
+            while (m.find()) {
+                String norm = normalizeBwPath("/" + m.group());
+                if (visited.add(norm)) {
+                    followAeschemaImports(norm, resourceIndex, visited);
+                }
+            }
+        } catch (IOException ignored) { }
+        // Add .folder files for any directory that contains a referenced AESchema and
+        // whose .folder file exists in the SAR.
+        for (String path : new ArrayList<>(visited)) {
+            int lastSlash = path.lastIndexOf('/');
+            if (lastSlash > 0) {
+                String folderPath = path.substring(0, lastSlash) + "/.folder";
+                if (resourceIndex.containsKey(folderPath)) {
+                    visited.add(folderPath);
+                }
+            }
+        }
+        // Re-add the leading "/" stripped by normalizeBwPath before returning.
+        List<String> result = new ArrayList<>();
+        for (String path : visited) result.add("/" + path);
+        Collections.sort(result);
+        result.add(adapterTypeFrag);
+        return result;
+    }
+
+    /**
+     * Returns {@code true} if the file is an AESDK adapter instance file, detected by
+     * the presence of an {@code <AESDK:instanceId>} element in its XML content.
+     * Non-instance files (e.g. {@code .adr3Connections} pool) that lack this element
+     * return {@code false}.
+     */
+    static boolean isAdapterInstanceFile(File f) {
+        try {
+            String content = new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
+            return content.contains("<AESDK:instanceId>");
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Reads the {@code name} attribute of the adapter element ({@code *:adapter})
+     * inside an AESDK adapter instance file. Returns {@code "adapter"} as fallback.
+     *
+     * <p>Example: {@code <adldap:adapter name="ldap">} returns {@code "ldap"}</p>
+     */
+    static String readAdapterFragName(File f) {
+        try {
+            String content = new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                    .compile("<[A-Za-z_][A-Za-z0-9_]*:adapter[^>]+name=\"([^\"]+)\"")
+                    .matcher(content);
+            if (m.find()) return m.group(1);
+        } catch (IOException ignored) { }
+        return "adapter";
+    }
+
+    /**
+     * Detects the installed version of a TIBCO adapter by scanning its standard
+     * installation directory. Returns a sensible fallback version if not installed.
+     */
+    static String detectAdapterVersion(String componentSoftwareName) {
+        for (String base : new String[]{
+                "/opt/tibco/adapter/" + componentSoftwareName,
+                "C:\\tibco\\adapter\\" + componentSoftwareName}) {
+            File root = new File(base);
+            if (!root.isDirectory()) continue;
+            String[] dirs = root.list();
+            if (dirs == null || dirs.length == 0) continue;
+            Arrays.sort(dirs);
+            String latest = dirs[dirs.length - 1];
+            // Only use the directory name when it gives a 3- or 4-part version.
+            // A 2-part name (e.g. "6.1") does not encode the patch version, so fall
+            // through to the hardcoded defaults which carry the full precise version.
+            if (latest.matches("\\d+\\.\\d+\\.\\d+\\.\\d+")) return latest;
+            if (latest.matches("\\d+\\.\\d+\\.\\d+")) return latest + ".0";
+        }
+        switch (componentSoftwareName) {
+            case "adr3":    return "7.3.2.0";
+            case "adr3TID": return "7.3.2.0";
+            case "adldap":  return "6.1.2.0";
+            case "adfiles": return "7.1.1.0";
+            case "adadb":   return "7.1.0.0";
+            case "adas400": return "7.1.0.0";
+            default:        return "7.0.0.0";
+        }
+    }
+
+    /**
+     * Loads SDK properties for an adapter from the bundled classpath resource
+     * {@code com/tibco/deployment/{componentSoftwareName}.xml}.
+     * Returns an empty list if the resource is not found.
+     */
+    static List<TibcoXmlGenerator.SdkProperty> readSdkProperties(String componentSoftwareName) {
+        String resource = "com/tibco/deployment/" + componentSoftwareName + ".xml";
+        try (java.io.InputStream in =
+                BwEarMojo.class.getClassLoader().getResourceAsStream(resource)) {
+            if (in == null) return Collections.emptyList();
+            String xml = new String(org.apache.commons.io.IOUtils.toByteArray(in),
+                                    StandardCharsets.UTF_8);
+            List<TibcoXmlGenerator.SdkProperty> props = new ArrayList<>();
+            java.util.regex.Pattern propPat = java.util.regex.Pattern.compile(
+                    "<property>(.*?)</property>", java.util.regex.Pattern.DOTALL);
+            java.util.regex.Matcher m = propPat.matcher(xml);
+            while (m.find()) {
+                String block = m.group(1);
+                String option = firstGroup(block, "<option>(.*?)</option>");
+                String def    = firstGroup(block, "<default>(.*?)</default>");
+                String label  = firstGroup(block, "<name>(.*?)</name>");
+                String desc   = firstGroup(block, "<description>(.*?)</description>");
+                String obf    = firstGroup(block, "<obfuscate>(.*?)</obfuscate>");
+                if (option == null) continue;
+                boolean isPassword = "yes".equalsIgnoreCase(obf) || "true".equalsIgnoreCase(obf);
+                props.add(new TibcoXmlGenerator.SdkProperty(option,
+                        def == null ? "" : def, label, desc, isPassword));
+            }
+            return props;
+        } catch (IOException e) {
+            return Collections.emptyList();
+        }
+    }
+
+    private static String firstGroup(String text, String regex) {
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile(regex, java.util.regex.Pattern.DOTALL).matcher(text);
+        return m.find() ? m.group(1).trim() : null;
+    }
+
+    /** Creates a single AESDK adapter AAR containing the adapter file and its TIBCO.xml. */
+    private void buildAdapterAar(
             File aarFile,
             BwFile adapterBwFile,
             String adapterBwPath,
             String instanceName,
             String componentSoftwareName,
-            String adapterVersion) throws Exception {
+            String adapterVersion,
+            String adapterFragName,
+            List<TibcoXmlGenerator.SdkProperty> sdkProperties,
+            List<String> externalDeps) throws Exception {
 
         String aarFileName = aarFile.getName();
-        File aarTibcoXml = File.createTempFile("aar-sap-TIBCO-", ".xml");
+        File aarTibcoXml = File.createTempFile("aar-adapter-TIBCO-", ".xml");
         aarTibcoXml.deleteOnExit();
-        new TibcoXmlGenerator().generateSapR3AarDescriptor(
+        new TibcoXmlGenerator().generateAdapterAarDescriptor(
                 aarTibcoXml, aarFileName, instanceName, componentSoftwareName,
-                adapterVersion, adapterBwPath);
+                adapterVersion, adapterBwPath, adapterFragName, sdkProperties, externalDeps);
 
         try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(aarFile.toPath()))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);
             addToZip(zos, "TIBCO.xml", aarTibcoXml);
             addToZip(zos, adapterBwPath, adapterBwFile.file);
         }
-    }
-
-    /**
-     * Detects the installed SAP R/3 adapter version by scanning the standard TIBCO
-     * adapter directory. Falls back to {@code "7.3.2.0"} if no installation is found.
-     *
-     * <p>The four-part version (e.g. {@code 7.3.2.0}) is written into the AAR TIBCO.xml
-     * as {@code minimumComponentSoftwareVersion}. While the comparison script does not
-     * validate this value, correct versions matter at deploy time.</p>
-     */
-    static String detectSapR3AdapterVersion() {
-        // Standard TIBCO installation path (Unix and Windows)
-        for (String base : new String[]{"/opt/tibco/adapter/adr3", "C:\\tibco\\adapter\\adr3"}) {
-            File root = new File(base);
-            if (!root.isDirectory()) continue;
-            String[] dirs = root.list();
-            if (dirs == null || dirs.length == 0) continue;
-            Arrays.sort(dirs);
-            String latest = dirs[dirs.length - 1]; // highest version directory, e.g. "7.3"
-            // Convert "X.Y" to "X.Y.0.0" — the patch level is unknown from the dir name alone
-            if (latest.matches("\\d+\\.\\d+")) {
-                return latest + ".0.0";
-            }
-            return latest; // already multi-part
-        }
-        return "7.3.2.0";
     }
 
     // -----------------------------------------------------------------------

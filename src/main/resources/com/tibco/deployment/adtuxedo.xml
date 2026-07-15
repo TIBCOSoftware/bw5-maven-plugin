@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<properties> 
+    <property>
+	   <name>Flag for Performance Monitoring</name>
+	   <option>adtuxedo.perfMon</option>
+	   <default>OFF</default>
+	   <description>The flag for turning on/off Performance Monitoring</description>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>  
+    <property>
+	   <name>Flag for tracing out old messages</name>
+	   <option>adtuxedo.traceOldMessages</option>
+	   <default>OFF</default>
+	   <description>The flag to trace out old messages</description>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property> 
+    <property>
+	   <name>Polling Interval</name>
+	   <option>adtuxedo.PollingInterval</option>
+	   <default></default>
+	   <description>The polling interval in milliseconds, used by the event-based publisher</description>
+	   <validation>
+		   <type>integer</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>     
+    <property>
+	   <name>Stack Size</name>
+	   <option>adtuxedo.stackSize</option>
+	   <default></default>
+	   <description>The stack size allocated to the adapter</description>
+	   <validation>
+		   <type>integer</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>  
+    <property>
+    	   <name>Flag for display control of Custom Methods in Class Microagent</name>
+    	   <option>adtuxedo.addCustomHawkMethodsToClassMAgent</option>
+    	   <default>ON</default>
+    	   <description>Flag to disallow display of Adapter Custom Methods in Class Microagent</description>
+    	   <validation>
+    		   <type>STRING</type>
+    		   <min></min>
+    		   <max></max>
+    	   </validation>
+    </property>    
+    <property>
+	   <name>WSNADDR</name>
+	   <option>tibco.env.WSNADDR</option>
+	   <default></default>
+	   <description>The system environment to connect the TUXEDO server using Workstation</description>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>  
+</properties>

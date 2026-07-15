@@ -1,0 +1,663 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<properties>
+    <property>
+	   <name>Collecting performance statistics</name>
+	   <option>adfiles.perfMon</option>
+	   <default>OFF</default>
+	   <description>Turning on this option enables collection various statistics at runtime for the adapter</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>4.x style tracing log messages</name>
+	   <option>adfiles.traceOldMessages</option>
+	   <default>OFF</default>
+	   <description>Turning on this option enables 4.x style and disables 5.x style tracing of log messages</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Option to add custom microagent methods to standard microagent</name>
+	   <option>adfiles.addCustomHawkMethodsToStdMAgent</option>
+	   <default>OFF</default>
+	   <description>Turning on this option will add file adapter specfic microagent agent methods to standard microagent</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Option to enable debug log to display or not</name>
+	   <option>adfiles.trace.devdebug</option>
+	   <default>OFF</default>
+	   <description>Turning on this option will enable debug log to display for issue investigation at runtime for the adapter</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Option to enable log4J</name>
+	   <option>adfiles.trace.extended</option>
+	   <default>OFF</default>
+	   <description>Turning on this option will enable log4j to trace runtime then generate more detail log</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Specify log4j property file</name>
+	   <option>adfiles.trace.log4j.properties</option>
+	   <default></default>
+	   <description>Specify log4j property file for log4j</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+	<property>
+	   <name>Enable tracing thread id</name>
+	   <option>adfiles.trace.thread</option>
+	   <default>OFF</default>
+	   <description>If ON, the thread ID is traced in the Log4J log</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Enable sending BusinessEvents messages</name>
+	   <option>adfiles.EEMEnabled</option>
+	   <default>OFF</default>
+	   <description>Turning on this option will enable sending BusinessEvents messages</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>JMS Map Message support for SFT mode</name>
+	   <option>adfiles.SFTUseJMSMapMsg</option>
+	   <default>OFF</default>
+	   <description>Enable or disable JMS MapMessage support for SFT mode</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Log progress every X messages (Publication Services Only)</name>
+	   <option>adfiles.logSftProgressEveryNBlocks</option>
+	   <default>0</default>
+	   <description>If set to 10, the adapter will print a progress status every 10 messages</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>integer</type>
+		   <min>1</min>
+		   <max>99</max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Send LotEnd indicator with last data message (Publication Services Only)</name>
+	   <option>adfiles.sendLotEndWithDataMsg</option>
+	   <default>OFF</default>
+	   <description>Turning on this option will send the LotEnd indicator with the last data message when the data format is MBusinessDocument. Otherwise a separate message will be sent</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Write unmatched records to XML or Text file (Publication Service Only)</name>
+	   <option>adfiles.schemaDiagnosticsFileFormat</option>
+	   <default>XML</default>
+	   <description>When set to "XML" unmatched records will be written to an XML file. When set to "Text" unmatched records will be written to a plain text file</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+   </property>
+   <property>
+	   <name>Check field count and record length when validating a record. (Publication Services Only)</name>
+	   <option>adfiles.matchFieldCountAndRecordLength</option>
+	   <default>OFF</default>
+	   <description>Check field count and record length when validating a record</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Treat quoted fields as one field (Publication Services Only)</name>
+	   <option>adfiles.quotedField</option>
+	   <default>OFF</default>
+	   <description>Treat quoted fields as one field when set to "ON". Default: "OFF"</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Compress JMS messages (Publication Service Only)</name>
+	   <option>adfiles.JMSCompress</option>
+	   <default>OFF</default>
+	   <description>When set to "ON" publication services will set JMS property "JMS_TIBCO_COMPRESS" to "true" and messages will get compressed before sent to the EMS server</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Flush data if no new data appended to input file after N polls (Publication Services Only)</name>
+	   <option>adfiles.DeltaFlushInterval</option>
+	   <default>3</default>
+	   <description>Flush the data in memory if no new data appended to the input file after N polling. Default: 3</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>integer</type>
+		   <min>1</min>
+		   <max>99</max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Turn on/off load balancing. (Publication Services Only)</name>
+	   <option>adfiles.LBEnabled</option>
+	   <default>OFF</default>
+	   <description>Turn on/off load balancing. Default: OFF</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Treat null Number field as zero. (Publication Services Only)</name>
+	   <option>adfiles.NullNumberFieldAsZero</option>
+	   <default>OFF</default>
+	   <description>Treat null Number field as zero. Default: OFF</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Publish empty fields. (Publication Services Only)</name>
+	   <option>adfiles.PublishEmptyField</option>
+	   <default>OFF</default>
+	   <description>Publish empty fields. Default: OFF</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Set grouping factor for BusinessDocuments. (Publication Services Only)</name>
+	   <option>adfiles.BDGroupingFactor</option>
+	   <default>0</default>
+	   <description>Set grouping factor for BusinessDocuments. This overrides the adapter configuration in Advanced/Grouping Factor</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>integer</type>
+		   <min>1</min>
+		   <max>99</max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Enable Multi-thread to publish Big File. (Publication Services record mode Only)</name>
+	   <option>adfiles.pub.multithread4Bigfile</option>
+	   <default>OFF</default>
+	   <description>Turning on this option will enable Multi-thread to publish Big File</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Set the thread count for Multi-thread. (Publication Services record mode Only)</name>
+	   <option>adfiles.pub.multithreadCount</option>
+	   <default>1</default>
+	   <description>Set thread count for Multi-thread to publish the file. Default:1, Max:99, Min:1</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>integer</type>
+		   <min>1</min>
+		   <max>99</max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Start subscriber only on a new file upon restart (Subscription Service Only)</name>
+	   <option>adfiles.startSubscriberOnNewFileBoundary</option>
+	   <default>ON</default>
+	   <description>When set to "ON" Start subscriber only on a new file upon restart. Default: ON</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Reverse order of child records (Subscription Service Only)</name>
+	   <option>adfiles.toggleChildRecordsOrdering</option>
+	   <default>OFF</default>
+	   <description>When set to "ON" subscription services will reverse the order of child records</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Do not add EOF to the final record of a file (Subscription Service Only)</name>
+	   <option>adfiles.dontAddEOLToFinalRecord</option>
+	   <default>OFF</default>
+	   <description>When set to "ON" do not add EOF to the final record of a file. Default: OFF</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Prevent writing duplicate messages (Subscription Service Only)</name>
+	   <option>adfiles.sub.discardDuplicateMessages</option>
+	   <default>OFF</default>
+	   <description>If true, this property prevents a subscription service from writing duplicate messages, which are caused by a publication service restart, to the output file. This property only applies to Business Document data format</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Skip the empty record (Subscription Service Only)</name>
+	   <option>adfiles.subscriber.ignoreEmptyRecord</option>
+	   <default>OFF</default>
+	   <description>If true, subscription service will skip the empty record</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Use file name embedded in incoming BusinessDocument message (Subscription Service Only)</name>
+	   <option>adfiles.useBDEmbeddedFileName</option>
+	   <default>OFF</default>
+	   <description>If true, this property instructs the subscription service to use the filename embedded in the LotId attribute in the incoming message when creating the output file instead of using the filename specified in TIBCO Designer. This property only applies to the Business Document data format</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>prevents a subscription service from continuing working, but exit when running io issues(Subscription Service Only)</name>
+	   <option>adfiles.io.sub.exit4issue</option>
+	   <default>ON</default>
+	   <description>If true, this property prevents a subscription service from continuing working, but exit when running io issues</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>prevents a subscription service from flush msg everytime(Subscription Service Only)</name>
+	   <option>adfiles.io.sub.flusheverymsg</option>
+	   <default>OFF</default>
+	   <description>If true, subscription service will flush msg to disk everytime</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>timestamp appended to the file in the output directory will be 12hr format</name>
+	   <option>adfiles.timestamp.miltime</option>
+	   <default>OFF</default>
+	   <description>If true, subscription service will append 24hr format timestamp to the file in the output directory</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>file will be moved from WIP to output directory when the subscriber is stopped</name>
+	   <option>adfiles.io.sub.disableWipMoveOnShutdown</option>
+	   <default>OFF</default>
+	   <description>If true, file remains in the WIP directory when subscriber is stopped</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+	<property>
+	   <name>Specifies whether FT basing on EMS is enabled</name>
+	   <option>tibco.sdk.faultTolerance.ems.enabled</option>
+	   <default>OFF</default>
+	   <description>Specifies whether FT basing on EMS is enabled</description>
+	   <obfuscate>false</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+	</property>
+	<property>
+		   <name>Specifies the queue name that stores the token</name>
+		   <option>tibco.sdk.faultTolerance.ems.queueName</option>
+		   <default></default>
+		   <description>Specifies the queue name that stores the token in the EMS Server</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the session name for fault tolerance</name>
+		   <option>tibco.sdk.faultTolerance.ems.sessionName</option>
+		   <default></default>
+		   <description>Specifies the session name that will be used by SDK for fault tolerance</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the EMS provider URL</name>
+		   <option>tibco.sdk.faultTolerance.ems.providerUrl</option>
+		   <default></default>
+		   <description>Specifies the EMS provider URL</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the factory name for fault tolerance</name>
+		   <option>tibco.sdk.faultTolerance.ems.session.factoryName</option>
+		   <default></default>
+		   <description>Specifies the factory name will be used when SDK create the JMS connection</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the user name for the EMS connection</name>
+		   <option>tibco.sdk.faultTolerance.ems.userName</option>
+		   <default></default>
+		   <description>Specifies the user name for the EMS connection</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the password for the EMS connection</name>
+		   <option>tibco.sdk.faultTolerance.ems.password</option>
+		   <default></default>
+		   <description>Specifies the password for the EMS connection</description>
+		   <obfuscate>true</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specified whether the primary instance acknowledges its token</name>
+		   <option>tibco.sdk.faultTolerance.ems.ackTokenOnStop</option>
+		   <default>OFF</default>
+		   <description>Specified whether the primary instance acknowledges its token when it is stopped normally</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>ONOFF</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies whether the JNDI is used</name>
+		   <option>tibco.sdk.faultTolerance.ems.isUsingJNDI</option>
+		   <default>OFF</default>
+		   <description>Specifies whether the JNDI is used</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>ONOFF</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the JNDI context factory</name>
+		   <option>tibco.sdk.faultTolerance.ems.jndi.providerContextFactory</option>
+		   <default></default>
+		   <description>Specifies the JNDI context factory</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the user name for the JNDI connection</name>
+		   <option>tibco.sdk.faultTolerance.ems.jndi.userName</option>
+		   <default></default>
+		   <description>Specifies the user name for the JNDI connection</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the password for the JNDI connection</name>
+		   <option>tibco.sdk.faultTolerance.ems.jndi.password</option>
+		   <default></default>
+		   <description>Specifies the password for the JNDI connection</description>
+		   <obfuscate>true</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies whether the JNDI connection is over SSL</name>
+		   <option>tibco.sdk.faultTolerance.ems.isUsingSSL</option>
+		   <default>OFF</default>
+		   <description>Specifies whether the JNDI connection is over SSL</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>ONOFF</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies whether the SSL enable the tracing of the loaded certificates</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.enableTrace</option>
+		   <default>OFF</default>
+		   <description>Specifies whether the SSL enable the tracing of the loaded certificates</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>ONOFF</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies whether the SSL enable the more detailed SSL tracing</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.enableDebugTrace</option>
+		   <default>OFF</default>
+		   <description>Specifies whether the SSL enable the more detailed SSL tracing</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>ONOFF</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies whether the SSL client should verify the name</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.enableVerifyHostName</option>
+		   <default>OFF</default>
+		   <description>Specifies whether the SSL client should verify the name in the Server's certificate</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>ONOFF</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies whether the SSL client should verify the Server's certificate</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.enableVerifyHost</option>
+		   <default>OFF</default>
+		   <description>Specifies whether the SSL client should verify the Server's certificate</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>ONOFF</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the name in the Server certificate</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.expectedHostName</option>
+		   <default></default>
+		   <description>Specifies the name in the Server certificate</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies whether only the strong cipher suites are allowed</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.isStrongCipherSuites</option>
+		   <default>OFF</default>
+		   <description>Specifies whether only the strong cipher suites are allowed</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>ONOFF</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the folder that stores the required certificates</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.trustedDir</option>
+		   <default></default>
+		   <description>Specifies the folder that stores the required certificates</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the path of the client identity</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.identity</option>
+		   <default></default>
+		   <description>Specifies the path of the client identity</description>
+		   <obfuscate>false</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+		   <name>Specifies the password of the client identity</name>
+		   <option>tibco.sdk.faultTolerance.ems.ssl.password</option>
+		   <default></default>
+		   <description>Specifies the password of the client identity</description>
+		   <obfuscate>true</obfuscate>
+		   <validation>
+			   <type>STRING</type>
+			   <min></min>
+			   <max></max>
+		   </validation>
+	</property>
+	<property>
+			<name>address parsing differences between FA6 and FA7</name>
+			<option>adfiles.pub.parseFA6</option>
+			<default>OFF</default>
+			<description>If true, FA7 would parse records like FA6</description>
+			<obfuscate>no</obfuscate>
+			<validation>
+				<type>ONOFF</type>
+				<min></min>
+				<max></max>
+			</validation>
+	</property>
+</properties>

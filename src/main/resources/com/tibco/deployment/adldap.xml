@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<properties>
+    <property>
+	   <name>Collecting performance statistics</name>
+	   <option>adldap.perfMon</option>
+	   <default>OFF</default>
+	   <description>Turning on this option enables collection various statistics at runtime for the adapter</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>4.x style tracing log messages</name>
+	   <option>adldap.traceOldMessages</option>
+	   <default>OFF</default>
+	   <description>Turning on this option enables 4.x style and disables 5.x style tracing of log messages.</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+</properties>

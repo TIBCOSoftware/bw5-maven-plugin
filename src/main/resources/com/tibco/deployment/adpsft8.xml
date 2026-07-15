@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<properties>
+    <property>
+	   <name>Flag for tracing out old messages</name>
+	   <option>adpsft8.traceOldMessages</option>
+	   <default>off</default>
+	   <description>The flag to trace out old messages</description>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>    
+    <property>
+	   <name>Flag for Performance Monitoring</name>
+	   <option>adpsft8.perfMon</option>
+	   <default>off</default>
+	   <description>The flag for turning on/off Performance Monitoring</description>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>    
+    <property>
+	   <name>Flag for display control of Custom Methods in Class Microagent</name>
+	   <option>adpsft8.addCustomHawkMethodsToClassMAgent</option>
+	   <default>on</default>
+	   <description>Flag to disallow display of Adapter Custom Methods in Class Microagent</description>
+	   <validation>
+		   <type>STRING</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>    
+</properties>

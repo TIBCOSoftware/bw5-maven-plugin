@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<properties>
+    <property>
+	   <name>Add custom methods to class micro-agent</name>
+	   <option>adjdexe.addCustomHawkMethodsToClassMAgent</option>
+	   <default>ON</default>
+	   <description>Turning on this option adds custom Hawk methods to class micro-agent</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+    <property>
+	   <name>Collecting performance statistics</name>
+	   <option>adjdexe.perfMon</option>
+	   <default>OFF</default>
+	   <description>Turning on this option enables collection of various statistics at runtime for the adapter</description>
+	   <obfuscate>no</obfuscate>
+	   <validation>
+		   <type>ONOFF</type>
+		   <min></min>
+		   <max></max>
+	   </validation>
+    </property>
+</properties>
