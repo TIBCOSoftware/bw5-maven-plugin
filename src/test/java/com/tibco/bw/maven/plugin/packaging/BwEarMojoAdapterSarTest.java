@@ -2173,4 +2173,153 @@ public class BwEarMojoAdapterSarTest {
         assertFalse("corba.aeschema is a platform file and must be excluded from allSarFiles",
             sarNames.contains("AESchemas/corba.aeschema"));
     }
+
+    // -----------------------------------------------------------------------
+    //  Bug #4: adapter projects with mixed processes — only starters go in PAR
+    // -----------------------------------------------------------------------
+
+    private static final Method COLLECT_STARTER_PATHS;
+
+    static {
+        try {
+            COLLECT_STARTER_PATHS = BwEarMojo.class.getDeclaredMethod(
+                "collectStarterPaths", List.class);
+            COLLECT_STARTER_PATHS.setAccessible(true);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private List<String> collectStarterPaths(List parFiles) throws Exception {
+        try {
+            return (List<String>) COLLECT_STARTER_PATHS.invoke(new BwEarMojo(), parFiles);
+        } catch (java.lang.reflect.InvocationTargetException ite) {
+            Throwable cause = ite.getCause();
+            if (cause instanceof RuntimeException) throw (RuntimeException) cause;
+            throw new RuntimeException(cause);
+        }
+    }
+
+    private static final String PROCESS_XML_NS =
+        "xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\"";
+
+    private String starterProcessXml(String processName) {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+            + "<pd:ProcessDefinition " + PROCESS_XML_NS + ">"
+            + "<pd:name>" + processName + "</pd:name>"
+            + "<pd:startName>Adapter Subscriber</pd:startName>"
+            + "<pd:starter name=\"Adapter Subscriber\">"
+            + "<pd:type>com.tibco.plugin.ae.AESubscriberActivity</pd:type>"
+            + "</pd:starter>"
+            + "</pd:ProcessDefinition>";
+    }
+
+    private String nonStarterProcessXml(String processName) {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+            + "<pd:ProcessDefinition " + PROCESS_XML_NS + ">"
+            + "<pd:name>" + processName + "</pd:name>"
+            + "</pd:ProcessDefinition>";
+    }
+
+    /**
+     * Regression (Bug #4): {@code collectStarterPaths} must return only the paths of
+     * processes that contain a {@code <pd:starter>} element.
+     * Non-starter processes (e.g. RPC request-reply sub-services in adldap projects)
+     * must not appear in the returned list.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void collectStarterPathsReturnsOnlyStarterProcesses() throws Exception {
+        File dir = tmp.newFolder("starter-paths");
+        File procDir = new File(dir, "Processes");
+        procDir.mkdirs();
+
+        File starterFile = writeFile(procDir, "ReceivePub.process",
+            starterProcessXml("Processes/ReceivePub.process"));
+        File nonStarterFile = writeFile(procDir, "Operations.process",
+            nonStarterProcessXml("Processes/Operations.process"));
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(starterFile, "Processes/ReceivePub.process"));
+        parFiles.add(bwFile(nonStarterFile, "Processes/Operations.process"));
+
+        List<String> starterPaths = collectStarterPaths(parFiles);
+
+        assertEquals("Only one starter process expected", 1, starterPaths.size());
+        assertTrue("Starter path must contain ReceivePub.process",
+            starterPaths.get(0).contains("ReceivePub.process"));
+        for (String p : starterPaths) {
+            assertFalse("Operations.process must not be in starter paths",
+                p.contains("Operations.process"));
+        }
+    }
+
+    /**
+     * Regression (Bug #4): when no archive descriptor is present and adapter instance files
+     * exist, only starter processes end up in the PAR. Non-starter processes that are not
+     * transitively called from any starter are excluded — matching buildear behaviour for
+     * adldap/adfiles adapter projects.
+     *
+     * <p>This tests the path used by {@code collectStarterPaths} + {@code applyTransitive}
+     * with {@code filterParByReachability=true} and starter paths as entry points.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void adapterProjectNonStarterProcessesExcludedFromPar() throws Exception {
+        File dir = tmp.newFolder("adapter-starter-filter");
+        File procDir = new File(dir, "Processes");
+        procDir.mkdirs();
+
+        File starterFile = writeFile(procDir, "ReceivePub.process",
+            starterProcessXml("Processes/ReceivePub.process"));
+        File nonStarterFile1 = writeFile(procDir, "Operations.process",
+            nonStarterProcessXml("Processes/Operations.process"));
+        File nonStarterFile2 = writeFile(procDir, "Search.process",
+            nonStarterProcessXml("Processes/Search.process"));
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(starterFile, "Processes/ReceivePub.process"));
+        parFiles.add(bwFile(nonStarterFile1, "Processes/Operations.process"));
+        parFiles.add(bwFile(nonStarterFile2, "Processes/Search.process"));
+
+        List sarFiles = new ArrayList();
+
+        List<String> starterPaths = collectStarterPaths(parFiles);
+        applyTransitive(parFiles, sarFiles, starterPaths, Collections.emptyList(), true);
+
+        Set<String> parNames = fileRelPaths(parFiles);
+        assertTrue("ReceivePub.process (starter) must be in PAR",
+            parNames.contains("Processes/ReceivePub.process"));
+        assertFalse("Operations.process (non-starter) must be excluded from PAR",
+            parNames.contains("Processes/Operations.process"));
+        assertFalse("Search.process (non-starter) must be excluded from PAR",
+            parNames.contains("Processes/Search.process"));
+    }
+
+    /**
+     * Regression (Bug #4): when NO process has a starter element, {@code collectStarterPaths}
+     * returns an empty list. The caller then falls back to including all processes, avoiding
+     * an accidental empty PAR.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void collectStarterPathsReturnsEmptyWhenNoStarters() throws Exception {
+        File dir = tmp.newFolder("no-starters");
+        File procDir = new File(dir, "Processes");
+        procDir.mkdirs();
+
+        File f1 = writeFile(procDir, "LibA.process",
+            nonStarterProcessXml("Processes/LibA.process"));
+        File f2 = writeFile(procDir, "LibB.process",
+            nonStarterProcessXml("Processes/LibB.process"));
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(f1, "Processes/LibA.process"));
+        parFiles.add(bwFile(f2, "Processes/LibB.process"));
+
+        List<String> starterPaths = collectStarterPaths(parFiles);
+
+        assertTrue("No starters — result must be empty", starterPaths.isEmpty());
+    }
 }

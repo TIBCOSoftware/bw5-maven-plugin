@@ -578,15 +578,30 @@ public class BwEarMojo extends AbstractBw5Mojo {
                         archiveDescriptor.getProcessPaths(), archiveDescriptor.sharedResourcePaths,
                         true);
                 } else {
-                    // No archive descriptor (or descriptor without an explicit process list):
-                    // apply transitive analysis seeding ALL processes (filterParByReachability=false).
-                    // This excludes SAR resources that are present on disk but not referenced by
-                    // any process — matching buildEAR which omits unreferenced adapter configs
-                    // (e.g. Publisher2.adr3, TIDManager.adr3TID, unused JMS connections).
+                    // No archive descriptor (or descriptor without an explicit process list).
+                    // When adapter instance files are present, buildear seeds the PAR only from
+                    // processes that have a <pd:starter> element, then follows sub-process calls
+                    // transitively. Non-starter processes not reachable from any starter are
+                    // excluded (e.g. RPC request-reply sub-services in adldap/adfiles projects).
+                    // For plain BW5 projects (no adapter instances), seed from ALL processes —
+                    // buildear packages every process regardless of starter presence.
                     List<String> sharedResPaths = archiveDescriptor != null
                         ? archiveDescriptor.sharedResourcePaths : Collections.emptyList();
-                    applyTransitiveDependencyAnalysis(parFiles, sarFiles,
-                        Collections.emptyList(), sharedResPaths, false);
+                    boolean hasAdapterInstances = allSarFiles.stream()
+                        .anyMatch(f -> isAdapterInstanceFile(f.file));
+                    if (hasAdapterInstances && !parFiles.isEmpty()) {
+                        List<String> starterPaths = collectStarterPaths(parFiles);
+                        if (!starterPaths.isEmpty()) {
+                            applyTransitiveDependencyAnalysis(parFiles, sarFiles,
+                                starterPaths, sharedResPaths, true);
+                        } else {
+                            applyTransitiveDependencyAnalysis(parFiles, sarFiles,
+                                Collections.emptyList(), sharedResPaths, false);
+                        }
+                    } else {
+                        applyTransitiveDependencyAnalysis(parFiles, sarFiles,
+                            Collections.emptyList(), sharedResPaths, false);
+                    }
                 }
 
                 String parFileName = "Process Archive.par";
@@ -2085,6 +2100,28 @@ public class BwEarMojo extends AbstractBw5Mojo {
      * scan for each explicit {@code <adapterArchive>} entry in an {@code .archive}
      * descriptor.</p>
      */
+
+    /**
+     * Returns the normalized BW paths of all process files in {@code parFiles} that contain
+     * a {@code <pd:starter>} element. Used to seed BFS when no archive descriptor is present
+     * but adapter instance files exist — only independently-startable processes seed the PAR.
+     */
+    private List<String> collectStarterPaths(List<BwFile> parFiles) {
+        List<String> result = new ArrayList<>();
+        ProcessParser parser = new ProcessParser();
+        for (BwFile pf : parFiles) {
+            try {
+                if (parser.parse(pf.file).hasStarter) {
+                    result.add(normalizeBwPath(pf.relativePath));
+                }
+            } catch (Exception e) {
+                getLog().warn("Cannot check starter in " + pf.file.getName() + ": " + e.getMessage());
+                result.add(normalizeBwPath(pf.relativePath));
+            }
+        }
+        return result;
+    }
+
     private void collectAdapterAeschemas(List<BwFile> allSarFiles,
             List<BwFile> combinedSarFiles, Set<String> seenSarPaths) {
         Map<String, BwFile> resourceIndex = buildBwIndex(allSarFiles);
