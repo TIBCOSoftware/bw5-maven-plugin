@@ -2322,4 +2322,89 @@ public class BwEarMojoAdapterSarTest {
 
         assertTrue("No starters — result must be empty", starterPaths.isEmpty());
     }
+
+    // -----------------------------------------------------------------------
+    //  Fix A + B: adapterSupportsAar whitelist — all known AESDK adapters
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression (Fix A/B): {@code adapterSupportsAar} must return {@code true} for every known
+     * TIBCO AESDK adapter extension, including those newly added: adas400, adjdexe, adpsft8,
+     * adsbl, adtuxedo.  This ensures AARs are generated for all AESDK adapter types.
+     */
+    @Test
+    public void adapterSupportsAarReturnsTrueForAllKnownAesdkAdapters() {
+        String[] known = {
+            "adb",      // TIBCO Adapter for JDBC
+            "adas400",  // TIBCO Adapter for IBM i / AS400
+            "adfiles",  // TIBCO Adapter for Files
+            "adjdexe",  // TIBCO Adapter for JD Edwards EnterpriseOne
+            "adldap",   // TIBCO Adapter for LDAP
+            "adpsft8",  // TIBCO Adapter for PeopleSoft 8
+            "adr3",     // TIBCO Adapter for SAP R/3
+            "adr3tid",  // SAP R/3 TID extension
+            "adsbl",    // TIBCO Adapter for Siebel
+            "adtuxedo"  // TIBCO Adapter for Tuxedo
+        };
+        for (String ext : known) {
+            assertTrue("adapterSupportsAar must return true for ." + ext,
+                BwEarMojo.adapterSupportsAar(ext));
+            assertTrue("adapterSupportsAar must be case-insensitive for ." + ext,
+                BwEarMojo.adapterSupportsAar(ext.toUpperCase(Locale.ROOT)));
+        }
+    }
+
+    /**
+     * Regression (Fix A/B): non-AESDK adapter types (adswift uses .swf, not an AESDK adapter;
+     * adsmartmapper is a BW plugin) and unknown extensions must return {@code false}.
+     */
+    @Test
+    public void adapterSupportsAarReturnsFalseForNonAesdkAndUnknownExtensions() {
+        assertFalse("swf (adswift) is not an AESDK adapter — must return false",
+            BwEarMojo.adapterSupportsAar("swf"));
+        assertFalse("adadb was a wrong entry — correct extension is adb",
+            BwEarMojo.adapterSupportsAar("adadb"));
+        assertFalse("unknown extension must return false",
+            BwEarMojo.adapterSupportsAar("adunknown"));
+        assertFalse("empty string must return false",
+            BwEarMojo.adapterSupportsAar(""));
+    }
+
+    // -----------------------------------------------------------------------
+    //  Fix C: empty starter list → empty seeds → BFS produces empty PAR + SAR
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression (Fix C): when an adapter project has no starter processes,
+     * {@code applyTransitiveDependencyAnalysis} called with empty entry points and
+     * {@code filterParByReachability=true} must leave both {@code parFiles} and
+     * {@code sarFiles} empty.  This triggers {@code collectAdapterAeschemas} to correctly
+     * populate the SAR from the adapter instance files' {@code AESDK:loadUrl} references,
+     * without including non-process files in the PAR.
+     *
+     * <p>Before Fix C the no-starters fallback used {@code filterParByReachability=false},
+     * which caused all non-starter processes (e.g. ManualSchema test processes in adfiles
+     * projects) to be kept in the PAR.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void fixCEmptySeedsWithFilterTrueProducesEmptyParAndSar() throws Exception {
+        File dir = tmp.newFolder("fix-c-empty-seeds");
+        File procFile = writeFile(dir, "TestHelper.process",
+            nonStarterProcessXml("/TestHelper"));
+        File aeschema = writeFile(dir, "schema.aeschema", "<repository/>");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(procFile, "TestHelper.process"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(aeschema, "schema.aeschema"));
+
+        applyTransitive(parFiles, sarFiles, Collections.emptyList(), Collections.emptyList(), true);
+
+        assertTrue("PAR must be empty when seeds are empty and filterParByReachability=true",
+            parFiles.isEmpty());
+        assertTrue("SAR must be empty when seeds are empty and filterParByReachability=true",
+            sarFiles.isEmpty());
+    }
 }

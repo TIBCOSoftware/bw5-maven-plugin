@@ -445,6 +445,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
                     List<BwFile> parFiles = new ArrayList<>(allParFiles);
                     List<BwFile> sarFiles = new ArrayList<>(allSarFiles);
+                    sarFiles.removeIf(f -> isAdapterInstanceFile(f.file)
+                            && !adapterSupportsAar(getExtNoDot(f.file)));
 
                     if (pa.hasExplicitProcessList()) {
                         promoteServiceAgentsFromDescriptor(parFiles, sarFiles, pa.processPaths);
@@ -567,6 +569,11 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 // ---- Single-PAR mode (default or single processArchive) ----
                 List<BwFile> parFiles = new ArrayList<>(allParFiles);
                 List<BwFile> sarFiles = new ArrayList<>(allSarFiles);
+                // Remove adapter instance files whose extension is not in AAR_ADAPTER_EXTENSIONS
+                // (e.g. unknown future adapters or non-AESDK files with a .ad* extension) from
+                // sarFiles so they do not trigger BFS traversal or appear in the SAR.
+                sarFiles.removeIf(f -> isAdapterInstanceFile(f.file)
+                        && !adapterSupportsAar(getExtNoDot(f.file)));
 
                 if (archiveDescriptor != null && archiveDescriptor.hasExplicitProcessList()) {
                     promoteServiceAgentsFromDescriptor(parFiles, sarFiles,
@@ -595,8 +602,12 @@ public class BwEarMojo extends AbstractBw5Mojo {
                             applyTransitiveDependencyAnalysis(parFiles, sarFiles,
                                 starterPaths, sharedResPaths, true);
                         } else {
+                            // No starters: adapter project with no runnable processes (e.g. only
+                            // test/helper processes). Treat as adapter-only → empty PAR; BFS with
+                            // empty seeds + filterParByReachability=true leaves both parFiles and
+                            // sarFiles empty so collectAdapterAeschemas fills the SAR correctly.
                             applyTransitiveDependencyAnalysis(parFiles, sarFiles,
-                                Collections.emptyList(), sharedResPaths, false);
+                                Collections.emptyList(), sharedResPaths, true);
                         }
                     } else {
                         applyTransitiveDependencyAnalysis(parFiles, sarFiles,
@@ -2199,6 +2210,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
             if (!ext.startsWith(".ad")) continue;
 
             if (!isAdapterInstanceFile(bwf.file)) continue;
+            if (!adapterSupportsAar(ext.substring(1))) continue;
 
             String bwPath = "/" + bwf.relativePath.replace(File.separatorChar, '/');
             if (explicitPaths.contains(bwPath.toLowerCase(Locale.ROOT))) continue;
@@ -2278,6 +2290,32 @@ public class BwEarMojo extends AbstractBw5Mojo {
         } catch (IOException e) {
             return false;
         }
+    }
+
+    // Known TIBCO AESDK adapter instance-file extensions. All AESDK adapters support AAR
+    // generation. adswift and adsmartmapper(eps) are NOT AESDK adapters (no AESDK:instanceId)
+    // and are intentionally absent.
+    private static final Set<String> AAR_ADAPTER_EXTENSIONS = new HashSet<>(Arrays.asList(
+            "adb",       // TIBCO Adapter for JDBC (adadb)
+            "adas400",   // TIBCO Adapter for IBM i / AS400
+            "adfiles",   // TIBCO Adapter for Files
+            "adjdexe",   // TIBCO Adapter for JD Edwards EnterpriseOne
+            "adldap",    // TIBCO Adapter for LDAP
+            "adpsft8",   // TIBCO Adapter for PeopleSoft 8
+            "adr3",      // TIBCO Adapter for SAP R/3
+            "adr3tid",   // SAP R/3 TID extension
+            "adsbl",     // TIBCO Adapter for Siebel
+            "adtuxedo"   // TIBCO Adapter for Tuxedo
+    ));
+
+    static boolean adapterSupportsAar(String extNoDot) {
+        return AAR_ADAPTER_EXTENSIONS.contains(extNoDot.toLowerCase(Locale.ROOT));
+    }
+
+    private static String getExtNoDot(File f) {
+        String name = f.getName();
+        int dot = name.lastIndexOf('.');
+        return dot >= 0 ? name.substring(dot + 1).toLowerCase(Locale.ROOT) : "";
     }
 
     /**
