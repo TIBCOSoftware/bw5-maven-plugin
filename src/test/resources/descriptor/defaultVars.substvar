@@ -5,6 +5,7 @@
             <name>ServerHost</name>
             <value>localhost</value>
             <deploymentSettable>true</deploymentSettable>
+            <serviceSettable>true</serviceSettable>
             <description>Target server hostname</description>
             <type>String</type>
         </globalVariable>

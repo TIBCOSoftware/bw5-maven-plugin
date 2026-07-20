@@ -124,6 +124,102 @@ public class BwEarMojoAdapterSarTest {
             + "</Repository:repository>";
     }
 
+    /**
+     * Regression (BUG-M1): {@code toSarPaths} must reference an adapter instance file in the
+     * EXTERNAL_DEPENDENCIES list by its adapter-type URI {@code "<path>#adapter.<fragName>"}
+     * (matching buildear's AEResource.getURI()), while non-adapter resources keep the bare path.
+     */
+    @Test
+    public void toSarPathsAppendsAdapterFragmentToInstanceFile() throws Exception {
+        File dir = tmp.newFolder("m1");
+        File adr3 = writeFile(dir, "R3AdapterConfiguration.adr3",
+                aesdkXml("SAPAdapter", "SAPAdapter", "inst1"));
+        File jdbc = writeFile(dir, "JDBC Connection.sharedjdbc", "<x/>");
+
+        Method toSarPaths = BwEarMojo.class.getDeclaredMethod("toSarPaths", List.class);
+        toSarPaths.setAccessible(true);
+        List<Object> sarFiles = Arrays.asList(
+                bwFile(adr3, "R3AdapterConfiguration.adr3"),
+                bwFile(jdbc, "JDBC Connection.sharedjdbc"));
+        @SuppressWarnings("unchecked")
+        List<String> paths = (List<String>) toSarPaths.invoke(new BwEarMojo(), sarFiles);
+
+        assertTrue("adapter instance file must carry the #adapter.<frag> fragment",
+                paths.contains("/R3AdapterConfiguration.adr3#adapter.SAPAdapter"));
+        assertTrue("non-adapter resource keeps its bare path",
+                paths.contains("/JDBC Connection.sharedjdbc"));
+        assertFalse("bare adapter path must NOT appear in the BOM",
+                paths.contains("/R3AdapterConfiguration.adr3"));
+    }
+
+    /**
+     * Regression (BUG-M3): a process copied between folders keeps a stale internal
+     * {@code <pd:name>}. buildear keys BwBPConfiguration.processDefinitionName and the BOM off the
+     * resource LOCATION (ProcessDeploymentData.getPath()), so {@code parseProcesses} must set the
+     * metadata name from the file's repository path, NOT the internal {@code <pd:name>}.
+     */
+    @Test
+    public void parseProcessesUsesFileLocationNotStaleInternalName() throws Exception {
+        File dir = tmp.newFolder("m3");
+        File proc = writeFile(dir, "OnStartup.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">"
+            + "<pd:name>BusinessDomains/COMPLEX/DomainResources/Processes/On Startup.process</pd:name>"
+            + "<pd:starter name=\"OnStartup\"><pd:type>com.tibco.pe.core.OnStartupEventSource</pd:type></pd:starter>"
+            + "</pd:ProcessDefinition>");
+        Object bwf = bwFile(proc, "BusinessDomains/MVS/DomainResources/Processes/On Startup.process");
+
+        Method parseProcesses = BwEarMojo.class.getDeclaredMethod("parseProcesses", List.class, File.class);
+        parseProcesses.setAccessible(true);
+        List<?> metas = (List<?>) parseProcesses.invoke(new BwEarMojo(),
+                new java.util.ArrayList<>(Collections.singletonList(bwf)), dir);
+
+        assertEquals(1, metas.size());
+        Object meta = metas.get(0);
+        String name = (String) meta.getClass().getField("name").get(meta);
+        assertEquals("processDefinition name must be the file location, not the stale internal <pd:name>",
+                "BusinessDomains/MVS/DomainResources/Processes/On Startup.process", name);
+    }
+
+    /**
+     * BUG-E: opt-in extra engine properties are emitted into the Adapter SDK Properties block with
+     * their {@code java.property.} twin (matching buildear), so e.g. the REST/JSON
+     * {@code com.tibco.plugin.restjson.escape.unicodeInText} property can be included.
+     */
+    @Test
+    public void extraEnginePropertiesEmitPropertyAndJavaPropertyTwin() throws Exception {
+        List<TibcoXmlGenerator.SdkProperty> props = BwEarMojo.parseExtraEngineProperties(
+            Collections.singletonList("com.tibco.plugin.restjson.escape.unicodeInText=true"));
+
+        assertEquals("plain property + java.property twin", 2, props.size());
+        TibcoXmlGenerator.SdkProperty plain = props.get(0);
+        assertEquals("com.tibco.plugin.restjson.escape.unicodeInText", plain.option);
+        assertEquals("true", plain.defaultValue);
+        // label==description==name → appendSdkProperties renders "<name> <name>" (buildear format)
+        assertEquals(plain.option, plain.label);
+        assertEquals(plain.option, plain.description);
+
+        TibcoXmlGenerator.SdkProperty twin = props.get(1);
+        assertEquals("java.property.com.tibco.plugin.restjson.escape.unicodeInText", twin.option);
+        assertEquals("true", twin.defaultValue);
+    }
+
+    @Test
+    public void extraEnginePropertiesNoDoubleTwinWhenAlreadyJavaProperty() throws Exception {
+        List<TibcoXmlGenerator.SdkProperty> props = BwEarMojo.parseExtraEngineProperties(
+            Collections.singletonList("java.property.com.tibco.plugin.restjson.escape.unicodeInText=true"));
+        assertEquals("already a java.property → no extra twin", 1, props.size());
+        assertEquals("java.property.com.tibco.plugin.restjson.escape.unicodeInText",
+            props.get(0).option);
+    }
+
+    @Test
+    public void extraEnginePropertiesEmptyAndNullSafe() throws Exception {
+        assertTrue(BwEarMojo.parseExtraEngineProperties(null).isEmpty());
+        assertTrue(BwEarMojo.parseExtraEngineProperties(
+            Arrays.asList("", "   ", null)).isEmpty());
+    }
+
     // -----------------------------------------------------------------------
     //  Unit test: extractBwResourceRefs strips #fragment from .adb and .adldap
     // -----------------------------------------------------------------------
@@ -276,6 +372,45 @@ public class BwEarMojoAdapterSarTest {
 
         assertFalse(".adb file must NOT be in SAR when no process references it",
             fileNames(sarFiles).contains("ADB_PUBS.adb"));
+    }
+
+    /**
+     * Regression (BUG-M3, multi-PAR): each PAR's EXTERNAL_RESOURCE_DEPENDENCY must list only ITS
+     * OWN reachable SAR resources, not the union across all PARs. The per-PAR extdep is built from
+     * the PAR's own {@code sarFiles} (scoped by reachability), NOT the accumulated combinedSarFiles.
+     * This guards that scoping: BFS seeded from PAR-A's process reaches A's schema but not B's.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void multiParResourcesScopedToOwnReachableSet() throws Exception {
+        File dir = tmp.newFolder("multipar-scope");
+        writeFile(dir, "A.xsd", "<schema/>");
+        writeFile(dir, "B.xsd", "<schema/>");
+        File procA = writeFile(dir, "ProcA.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/ProcA</pd:name>\n"
+            + "  <pd:activity name=\"a\"><ref>/A.xsd</ref></pd:activity>\n"
+            + "</pd:ProcessDefinition>");
+        File procB = writeFile(dir, "ProcB.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/ProcB</pd:name>\n"
+            + "  <pd:activity name=\"b\"><ref>/B.xsd</ref></pd:activity>\n"
+            + "</pd:ProcessDefinition>");
+
+        List parFiles = new ArrayList(Arrays.asList(
+            bwFile(procA, "ProcA.process"), bwFile(procB, "ProcB.process")));
+        List sarFiles = new ArrayList(Arrays.asList(
+            bwFile(new File(dir, "A.xsd"), "A.xsd"), bwFile(new File(dir, "B.xsd"), "B.xsd")));
+
+        // Scope to PAR-A's entry point only (filterParByReachability=true, as the multi-PAR path does)
+        applyTransitive(parFiles, sarFiles,
+            Collections.singletonList("/ProcA.process"), Collections.emptyList(), true);
+
+        Set<String> names = fileNames(sarFiles);
+        assertTrue("PAR-A must reach its own A.xsd", names.contains("A.xsd"));
+        assertFalse("PAR-A extdep must NOT include PAR-B's exclusive B.xsd", names.contains("B.xsd"));
     }
 
     // -----------------------------------------------------------------------
@@ -2406,5 +2541,168 @@ public class BwEarMojoAdapterSarTest {
             parFiles.isEmpty());
         assertTrue("SAR must be empty when seeds are empty and filterParByReachability=true",
             sarFiles.isEmpty());
+    }
+
+    // -----------------------------------------------------------------------
+    //  Bug A: AAR Adapter SDK Properties resource resolution
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression (Bug A): the JDBC adapter's instance files use the {@code .adb} extension,
+     * so the component software name is {@code adb} — but its bundled deployment resource is
+     * named {@code adadb.xml}. {@code deploymentResourceBase} must translate {@code adb}
+     * to {@code adadb} while leaving every other adapter name unchanged.
+     */
+    @Test
+    public void deploymentResourceBaseMapsAdbToAdadb() {
+        assertEquals("adb must map to the adadb deployment resource",
+            "adadb", BwEarMojo.deploymentResourceBase("adb"));
+        assertEquals("adr3 must be used verbatim",
+            "adr3", BwEarMojo.deploymentResourceBase("adr3"));
+        assertEquals("adldap must be used verbatim",
+            "adldap", BwEarMojo.deploymentResourceBase("adldap"));
+    }
+
+    /**
+     * Regression (Bug A): {@code readSdkProperties("adb")} must resolve to {@code adadb.xml}
+     * and return the adb.* runtime tuning options. Before the fix it looked for a
+     * non-existent {@code adb.xml} and returned an empty list, stripping the AAR's
+     * Adapter SDK Properties block.
+     */
+    @Test
+    public void readSdkPropertiesResolvesAdbToAdadbResource() {
+        List<TibcoXmlGenerator.SdkProperty> adb = BwEarMojo.readSdkProperties("adb");
+        assertFalse("adb SDK properties must be loaded from adadb.xml", adb.isEmpty());
+        assertTrue("adb SDK properties must include adb.* options",
+            adb.stream().anyMatch(p -> p.option != null && p.option.startsWith("adb.")));
+
+        List<TibcoXmlGenerator.SdkProperty> adr3 = BwEarMojo.readSdkProperties("adr3");
+        assertFalse("adr3 SDK properties must be loaded", adr3.isEmpty());
+        assertTrue("adr3 SDK properties must include adr3.* options",
+            adr3.stream().anyMatch(p -> p.option != null && p.option.startsWith("adr3.")));
+    }
+
+    /**
+     * Regression (Bug A-bis): {@code readSdkProperties} must NOT trim label/description text —
+     * buildear preserves significant whitespace. ADB.xml's {@code adb.useBetweenClause} label
+     * ends with a trailing space; trimming it produced a single space where buildear emits two.
+     */
+    @Test
+    public void readSdkPropertiesPreservesSignificantWhitespace() {
+        TibcoXmlGenerator.SdkProperty p = BwEarMojo.readSdkProperties("adb").stream()
+            .filter(x -> "adb.useBetweenClause".equals(x.option))
+            .findFirst().orElse(null);
+        assertNotNull("adb.useBetweenClause must be present in ADB deployment resource", p);
+        assertTrue("trailing space in the label must be preserved (not trimmed): " + "[" + p.label + "]",
+            p.label.endsWith(" "));
+    }
+
+    // -----------------------------------------------------------------------
+    //  Bug D: JDBC checkpoint repositories derived from SAR (including projlibs)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression (Bug D): checkpoint {@code availableSharedResourceName} entries must be
+     * derived from the SAR resource list (extension stripped), so JDBC connections that
+     * live inside {@code .projlib} dependencies — already collected into the SAR under
+     * their BW repository path — are included. A filesystem scan of the project source
+     * missed them, dropping every projlib JDBC connection from the checkpoint list.
+     */
+    @Test
+    public void jdbcCheckpointPathsDerivedFromSarIncludingProjlibs() {
+        List<String> sarPaths = Arrays.asList(
+            "/Resources/JDBC_For_UnitTests/JDBC-AMS-write.sharedjdbc",
+            "/Common/_Lib/LibSV_Ramses/Resources/Connection/JDBC/JDBC-AMS-read.sharedjdbc",
+            "/IntegrationServices/SharedUtilities/Schemas/Foo.xsd",
+            "/IntegrationServices/SharedUtilities/Connections/JMS/Bar.sharedjmscon");
+
+        List<String> checkpoints = BwEarMojo.jdbcCheckpointPaths(sarPaths);
+
+        assertTrue("project JDBC connection must be a checkpoint repository",
+            checkpoints.contains("/Resources/JDBC_For_UnitTests/JDBC-AMS-write"));
+        assertTrue("projlib JDBC connection must be a checkpoint repository",
+            checkpoints.contains("/Common/_Lib/LibSV_Ramses/Resources/Connection/JDBC/JDBC-AMS-read"));
+        assertFalse("non-JDBC resources must not appear as checkpoint repositories",
+            checkpoints.stream().anyMatch(p -> p.contains("Foo") || p.contains("Bar")));
+        assertEquals("only the two .sharedjdbc resources become checkpoints",
+            2, checkpoints.size());
+    }
+
+    /**
+     * Regression (Bug #5): the BW engine SDK properties come from the bundled
+     * com/tibco/deployment/bwengine.xml (the same file buildear reads), not a hardcoded
+     * list. It must load the standard engine properties, must NOT include
+     * java.extended.properties (buildear never emits it), and must ignore the
+     * {@code <property>} template documented inside an XML comment.
+     */
+    @Test
+    public void readSdkPropertiesLoadsBwengineWithoutJavaExtended() {
+        List<TibcoXmlGenerator.SdkProperty> engine = BwEarMojo.readSdkProperties("bwengine");
+        assertFalse("bwengine.xml properties must load", engine.isEmpty());
+
+        java.util.Set<String> opts = new java.util.HashSet<>();
+        for (TibcoXmlGenerator.SdkProperty p : engine) opts.add(p.option);
+
+        assertTrue("must include Trace.Task.*", opts.contains("Trace.Task.*"));
+        assertTrue("must include bw.log4j.configuration", opts.contains("bw.log4j.configuration"));
+        assertFalse("must NOT include java.extended.properties (buildear never emits it)",
+            opts.contains("java.extended.properties"));
+        assertFalse("must ignore the commented-out <property> template",
+            opts.contains("property.name.written.into.the.tra.file"));
+    }
+
+    /**
+     * Regression (Bug #8): the adapter AAR EXTERNAL_RESOURCE_DEPENDENCY entries must be
+     * ordered like buildear (java.util.HashSet iteration order from addExternalResourceBom),
+     * NOT alphabetically sorted with the adapter fragment appended last. This asserts the
+     * exact order buildear produces for the adbsample ADB adapter.
+     */
+    @Test
+    public void externalDepsUseBuildearHashSetOrder() {
+        List<String> schemas = Arrays.asList(
+            "/AESchemas/ae/ADB/ActiveDatabaseAdapterConfiguration.aeschema",
+            "/AESchemas/ae/ADB/adbmetadata.aeschema",
+            "/AESchemas/ae/ADB/scalar.aeschema",
+            "/AESchemas/ae.aeschema");
+        String frag = "/ActiveDatabaseAdapterConfiguration.adb"
+            + "#adapter.ActiveDatabaseAdapterConfiguration";
+
+        List<String> out = BwEarMojo.externalDepsInBuildearOrder(schemas, frag);
+
+        assertEquals(Arrays.asList(
+            "/AESchemas/ae.aeschema",
+            "/AESchemas/ae/ADB/ActiveDatabaseAdapterConfiguration.aeschema",
+            "/AESchemas/ae/ADB/adbmetadata.aeschema",
+            "/ActiveDatabaseAdapterConfiguration.adb#adapter.ActiveDatabaseAdapterConfiguration",
+            "/AESchemas/ae/ADB/scalar.aeschema"), out);
+    }
+
+    /**
+     * Regression (MISSING SAR / duplicate AAR): an AESDK adapter instance (.adb, .adr3, …)
+     * declared as an {@code <adapterArchive>} must be recognized as AESDK from its
+     * adapterReference path, so the archive-descriptor loop skips buildAar and lets
+     * buildAdapterAarsIfNeeded own its AAR. Building it in both paths produced a duplicate
+     * module entry, failing EAR assembly and leaving the EAR without its SAR. A generic
+     * {@code .adapter} archive is NOT AESDK and is still built by buildAar.
+     */
+    @Test
+    public void aesdkAdapterInstanceDetectedFromArchiveReferencePath() {
+        assertTrue(".adb adapterReference must be detected as an AESDK instance",
+            BwEarMojo.adapterSupportsAar(BwEarMojo.getExtNoDot(
+                new File("/ActiveDatabaseAdapterConfiguration.adb"))));
+        assertTrue(".adr3 adapterReference must be detected as an AESDK instance",
+            BwEarMojo.adapterSupportsAar(BwEarMojo.getExtNoDot(
+                new File("/BusinessDomains/EAI/R3AdapterConfiguration.adr3"))));
+        assertFalse("generic .adapter must NOT be treated as an AESDK instance",
+            BwEarMojo.adapterSupportsAar(BwEarMojo.getExtNoDot(
+                new File("/GenericAdapterConfiguration.adapter"))));
+    }
+
+    @Test
+    public void jdbcCheckpointPathsEmptyWhenNoJdbcResources() {
+        assertTrue("no JDBC resources → no checkpoint repositories",
+            BwEarMojo.jdbcCheckpointPaths(Arrays.asList("/a/b/C.process", "/x/Y.xsd")).isEmpty());
+        assertTrue("null SAR paths → empty checkpoint list",
+            BwEarMojo.jdbcCheckpointPaths(null).isEmpty());
     }
 }

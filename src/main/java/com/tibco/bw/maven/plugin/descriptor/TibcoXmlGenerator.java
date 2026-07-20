@@ -11,8 +11,10 @@ import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * Generates TIBCO.xml deployment descriptors for BW5 EAR and PAR archives.
@@ -199,7 +201,8 @@ public class TibcoXmlGenerator {
             String adapterBwPath,
             String adapterFragName,
             List<SdkProperty> sdkProperties,
-            List<String> externalDeps) throws IOException {
+            List<String> externalDeps,
+            String archiveVersion) throws IOException {
 
         String date = new SimpleDateFormat(DATE_FORMAT, Locale.ROOT).format(new Date());
         String owner = System.getProperty("user.name", "unknown");
@@ -210,7 +213,7 @@ public class TibcoXmlGenerator {
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         sb.append("<DeploymentDescriptors xmlns=\"http://www.tibco.com/xmlns/dd\">\n");
         sb.append("    <name>").append(escape(aarFileName)).append("</name>\n");
-        sb.append("    <version>1</version>\n");
+        sb.append("    <version>").append(escape(effectiveVersion(archiveVersion))).append("</version>\n");
         sb.append("    <owner>").append(escape(owner)).append("</owner>\n");
         sb.append("    <creationDate>").append(date).append("</creationDate>\n");
 
@@ -258,36 +261,54 @@ public class TibcoXmlGenerator {
         sb.append("        <configurl:instanceID>").append(escape(instanceName)).append("</configurl:instanceID>\n");
         sb.append("    </configurl:RepoConfigUrl>\n");
 
-        if (sdkProperties != null && !sdkProperties.isEmpty()) {
-            sb.append("    <NameValuePairs>\n");
-            sb.append("        <name>Adapter SDK Properties</name>\n");
-            for (SdkProperty p : sdkProperties) {
-                String tag = p.isPassword ? "NameValuePairPassword" : "NameValuePair";
-                sb.append("        <").append(tag).append(">\n");
-                sb.append("            <name>").append(escape(p.option)).append("</name>\n");
-                String val = (p.defaultValue == null || p.defaultValue.isEmpty())
-                        ? null : p.defaultValue;
-                if (val == null) {
-                    sb.append("            <value/>\n");
-                } else {
-                    sb.append("            <value>").append(escape(val)).append("</value>\n");
-                }
-                String desc = (p.label != null && !p.label.isEmpty()
-                        && p.description != null && !p.description.isEmpty())
-                        ? p.label + " " + p.description
-                        : (p.label != null ? p.label : p.description);
-                if (desc != null && !desc.isEmpty()) {
-                    sb.append("            <description>").append(escape(desc)).append("</description>\n");
-                }
-                sb.append("            <requiresConfiguration>false</requiresConfiguration>\n");
-                sb.append("        </").append(tag).append(">\n");
-            }
-            sb.append("    </NameValuePairs>\n");
-        }
+        appendSdkProperties(sb, sdkProperties);
 
         sb.append("</DeploymentDescriptors>\n");
 
         write(outputFile, sb.toString());
+    }
+
+    /**
+     * Appends the {@code Adapter SDK Properties} NameValuePairs block, one entry per
+     * SDK property loaded from the bundled {@code com/tibco/deployment/{adapter}.xml}
+     * resource. Password properties use {@code NameValuePairPassword}. No-op when the
+     * list is null or empty.
+     */
+    private void appendSdkProperties(StringBuilder sb, List<SdkProperty> sdkProperties) {
+        if (sdkProperties == null || sdkProperties.isEmpty()) return;
+        sb.append("    <NameValuePairs>\n");
+        sb.append("        <name>Adapter SDK Properties</name>\n");
+        for (SdkProperty p : sdkProperties) {
+            String tag = p.isPassword ? "NameValuePairPassword" : "NameValuePair";
+            sb.append("        <").append(tag).append(">\n");
+            sb.append("            <name>").append(escape(p.option)).append("</name>\n");
+            String val = (p.defaultValue == null || p.defaultValue.isEmpty())
+                    ? null : p.defaultValue;
+            if (val == null) {
+                sb.append("            <value/>\n");
+            } else {
+                sb.append("            <value>").append(escape(val)).append("</value>\n");
+            }
+            // buildear's description rule: when the deployment <description> is empty it
+            // emits an empty <description/> (the label alone is NOT used); otherwise it emits
+            // "<label> <description>". The <description> element is always present.
+            String desc;
+            if (p.description == null || p.description.isEmpty()) {
+                desc = "";
+            } else if (p.label == null || p.label.isEmpty()) {
+                desc = p.description;
+            } else {
+                desc = p.label + " " + p.description;
+            }
+            if (desc.isEmpty()) {
+                sb.append("            <description/>\n");
+            } else {
+                sb.append("            <description>").append(escape(desc)).append("</description>\n");
+            }
+            sb.append("            <requiresConfiguration>false</requiresConfiguration>\n");
+            sb.append("        </").append(tag).append(">\n");
+        }
+        sb.append("    </NameValuePairs>\n");
     }
 
     // -----------------------------------------------------------------------
@@ -301,16 +322,27 @@ public class TibcoXmlGenerator {
      * @param aarFileName      AAR filename (e.g. "GAC_RPC_JMS_Topic.aar")
      * @param adapterReference raw {@code adapterReference} value from the {@code .archive}
      *                         descriptor (e.g. {@code /path/Foo.adapter#adapter.GenericAdapterConfiguration})
+     * @param componentSoftwareName adapter component software name from the descriptor's
+     *                         {@code softwareTypeProperty} (e.g. {@code adb}, {@code adr3}).
+     *                         Falls back to {@code adapter} when null/empty.
      * @param sdkVersionFour   four-part SDK version (e.g. {@code 5.3.0.0})
+     * @param sdkProperties    SDK properties from the bundled deployment XML, emitted as
+     *                         the Adapter SDK Properties NVP block (may be null/empty)
      * @param owner            owner string
      */
     public void generateAarDescriptor(
             File outputFile,
             String aarFileName,
             String adapterReference,
+            String componentSoftwareName,
             String sdkVersionFour,
+            List<SdkProperty> sdkProperties,
             List<SubstVarParser.GlobalVariable> globalVars,
+            String archiveVersion,
             String owner) throws IOException {
+
+        String effectiveCsn = (componentSoftwareName == null || componentSoftwareName.isEmpty())
+            ? "adapter" : componentSoftwareName;
 
         String date = new SimpleDateFormat(DATE_FORMAT, Locale.ROOT).format(new Date());
         String effectiveOwner = (owner == null || owner.isEmpty())
@@ -342,7 +374,7 @@ public class TibcoXmlGenerator {
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         sb.append("<DeploymentDescriptors xmlns=\"http://www.tibco.com/xmlns/dd\">\n");
         sb.append("    <name>").append(escape(aarFileName)).append("</name>\n");
-        sb.append("    <version>1</version>\n");
+        sb.append("    <version>").append(escape(effectiveVersion(archiveVersion))).append("</version>\n");
         sb.append("    <owner>").append(escape(effectiveOwner)).append("</owner>\n");
         sb.append("    <creationDate>").append(date).append("</creationDate>\n");
 
@@ -353,7 +385,7 @@ public class TibcoXmlGenerator {
         sb.append("    <StartAsOneOf>\n");
         sb.append("        <name>StartAsOneOf</name>\n");
         sb.append("        <ComponentSoftwareReference>\n");
-        sb.append("            <componentSoftwareName>adapter</componentSoftwareName>\n");
+        sb.append("            <componentSoftwareName>").append(escape(effectiveCsn)).append("</componentSoftwareName>\n");
         sb.append("            <minimumComponentSoftwareVersion>").append(escape(sdkVersionFour)).append("</minimumComponentSoftwareVersion>\n");
         sb.append("            <minimumTRAVersion>5.1.0.0</minimumTRAVersion>\n");
         sb.append("            <configVersion>").append(escape(sdkVersionFour)).append("</configVersion>\n");
@@ -387,25 +419,38 @@ public class TibcoXmlGenerator {
         sb.append("        <configurl:instanceID>").append(escape(instanceID)).append("</configurl:instanceID>\n");
         sb.append("    </configurl:RepoConfigUrl>\n");
 
-        // TRA_PROPERTIES_VARIABLES: deployment-settable GVs for the BW Admin UI
-        List<SubstVarParser.GlobalVariable> configVars = new ArrayList<>();
-        if (globalVars != null) {
-            for (SubstVarParser.GlobalVariable v : globalVars) {
-                if (v.requiresConfiguration) configVars.add(v);
-            }
-        }
-        if (!configVars.isEmpty()) {
-            sb.append("    <NameValuePairs>\n");
-            sb.append("        <name>TRA_PROPERTIES_VARIABLES</name>\n");
-            for (SubstVarParser.GlobalVariable v : configVars) {
-                appendGlobalVar(sb, v);
-            }
-            sb.append("    </NameValuePairs>\n");
-        }
+        // Runtime Variables: buildear's AdapterArchiveResource lists the service-settable
+        // global variables here (GVs with <serviceSettable>true</serviceSettable>), not the
+        // full set of deployment-settable GVs.
+        appendRuntimeVariables(sb, globalVars);
+
+        appendSdkProperties(sb, sdkProperties);
 
         sb.append("</DeploymentDescriptors>\n");
 
         write(outputFile, sb.toString());
+    }
+
+    /**
+     * Appends the {@code Runtime Variables} NameValuePairs block: the service-settable
+     * global variables ({@code serviceSettable=true}). buildear emits this identical block
+     * in both the PAR and the adapter AAR. {@code requiresConfiguration} on each entry still
+     * reflects its {@code deploymentSettable} flag. No-op when no variable is service-settable.
+     */
+    private void appendRuntimeVariables(StringBuilder sb, List<SubstVarParser.GlobalVariable> globalVars) {
+        List<SubstVarParser.GlobalVariable> serviceVars = new ArrayList<>();
+        if (globalVars != null) {
+            for (SubstVarParser.GlobalVariable v : globalVars) {
+                if (v.serviceSettable) serviceVars.add(v);
+            }
+        }
+        if (serviceVars.isEmpty()) return;
+        sb.append("    <NameValuePairs>\n");
+        sb.append("        <name>Runtime Variables</name>\n");
+        for (SubstVarParser.GlobalVariable v : serviceVars) {
+            appendGlobalVar(sb, v);
+        }
+        sb.append("    </NameValuePairs>\n");
     }
 
     private void appendFileAlias(StringBuilder sb, String fileName) {
@@ -436,6 +481,10 @@ public class TibcoXmlGenerator {
         appendValue(sb, "            ", value);
         if (var.description != null && !var.description.isEmpty()) {
             sb.append("            <description>").append(escape(var.description)).append("</description>\n");
+        } else if ("MessageEncoding".equals(var.name)) {
+            // buildear always stamps this fixed description on the MessageEncoding GV,
+            // regardless of whether it came from vcrepo.dat, a substvar, or the default.
+            sb.append("            <description>This is the encoding used the EAR.</description>\n");
         }
         sb.append("            <requiresConfiguration>").append(var.requiresConfiguration).append("</requiresConfiguration>\n");
         sb.append("        </").append(tag).append(">\n");
@@ -464,9 +513,12 @@ public class TibcoXmlGenerator {
      * @param sarPaths          paths of SAR resource files (with leading "/") for EXTERNAL_DEPENDENCIES
      * @param jdbcCheckpointPaths paths of JDBC shared resources (e.g. "/0SharedResource/JDBC/Foo")
      *                          listed as available checkpoint resources in BwCheckpoint
-     * @param globalVars        all global variables; those with {@code requiresConfiguration=true}
-     *                          are listed in the {@code TRA_PROPERTIES_VARIABLES} block so
-     *                          the BW Admin deployment UI can prompt the operator to fill them
+     * @param globalVars        all global variables; those with {@code serviceSettable=true}
+     *                          are listed in the {@code Runtime Variables} block
+     * @param engineProperties  BW engine SDK properties loaded from the bundled
+     *                          {@code com/tibco/deployment/bwengine.xml}, emitted verbatim as
+     *                          the {@code Adapter SDK Properties} block (matches buildear,
+     *                          which reads the same file)
      * @param owner             owner string
      */
     public void generateParDescriptor(
@@ -476,7 +528,10 @@ public class TibcoXmlGenerator {
             List<String> sarPaths,
             List<String> jdbcCheckpointPaths,
             List<SubstVarParser.GlobalVariable> globalVars,
-            String owner) throws IOException {
+            List<SdkProperty> engineProperties,
+            String archiveVersion,
+            String owner,
+            List<String> declaredProcessPaths) throws IOException {
 
         String date = new SimpleDateFormat(DATE_FORMAT, Locale.ROOT).format(new Date());
         String effectiveOwner = (owner == null || owner.isEmpty())
@@ -486,7 +541,7 @@ public class TibcoXmlGenerator {
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         sb.append("<DeploymentDescriptors xmlns=\"http://www.tibco.com/xmlns/dd\">\n");
         sb.append("    <name>").append(escape(parFileName)).append("</name>\n");
-        sb.append("    <version>1</version>\n");
+        sb.append("    <version>").append(escape(effectiveVersion(archiveVersion))).append("</version>\n");
         sb.append("    <owner>").append(escape(effectiveOwner)).append("</owner>\n");
         sb.append("    <creationDate>").append(date).append("</creationDate>\n");
 
@@ -512,13 +567,38 @@ public class TibcoXmlGenerator {
         sb.append("    </DeploymentDescriptorFactory>\n");
 
         // EXTERNAL_DEPENDENCIES: one NameValuePair with all resources comma-separated.
-        // Includes only processes WITH starters, plus all SAR resource files.
         // The block is always emitted (even when empty), matching buildEAR behaviour.
+        //
+        // Membership — matches buildear's BaseProcessArchive.calculatedDependencies =
+        //   getHiddenReferences()  → every .archive processProperty entry (the DECLARED
+        //                            processes/serviceagents, starter or not), plus
+        //   getArchiveDependencies() + getAssignedResources() → the non-process resources
+        //                            (schemas, copybooks, wsdl, connections, adapters…).
+        // So when the archive descriptor is available we list its DECLARED processProperty
+        // paths verbatim (reproduces getHiddenReferences exactly — verified byte-for-byte on
+        // MVS/COMPLEX/WS), and the SAR resource paths cover the non-process part. Without a
+        // descriptor (auto-discovery) there is no declared list, so we approximate the entry
+        // points with the starter processes.
+        //
+        // Order: buildear's ArchiveResource.addExternalResourceBom collects every BOM
+        // entry into a single java.util.HashSet<String> and joins its iteration order — NOT
+        // sorted, NOT insertion order. String.hashCode / HashMap bucketing are JVM-stable, so
+        // building the same kind of set here yields byte-identical ordering for collision-free
+        // sets (same fix family as the AAR EXTERNAL_RESOURCE_DEPENDENCY,
+        // BwEarMojo.externalDepsInBuildearOrder).
         {
-            List<String> allPaths = new ArrayList<>();
-            for (ProcessParser.ProcessMetadata proc : processes) {
-                if (proc.hasStarter) {
-                    allPaths.add(proc.getReferencePath());
+            Set<String> allPaths = new HashSet<>();
+            if (declaredProcessPaths != null && !declaredProcessPaths.isEmpty()) {
+                for (String p : declaredProcessPaths) {
+                    if (p != null && !p.isEmpty()) {
+                        allPaths.add(p.startsWith("/") ? p : "/" + p);
+                    }
+                }
+            } else {
+                for (ProcessParser.ProcessMetadata proc : processes) {
+                    if (proc.hasStarter) {
+                        allPaths.add(proc.getReferencePath());
+                    }
                 }
             }
             if (sarPaths != null) {
@@ -539,21 +619,12 @@ public class TibcoXmlGenerator {
             sb.append("    </NameValuePairs>\n");
         }
 
-        // TRA_PROPERTIES_VARIABLES: one entry per GV that must be configured at deployment time
-        List<SubstVarParser.GlobalVariable> configVars = new ArrayList<>();
-        if (globalVars != null) {
-            for (SubstVarParser.GlobalVariable v : globalVars) {
-                if (v.requiresConfiguration) configVars.add(v);
-            }
-        }
-        if (!configVars.isEmpty()) {
-            sb.append("    <NameValuePairs>\n");
-            sb.append("        <name>TRA_PROPERTIES_VARIABLES</name>\n");
-            for (SubstVarParser.GlobalVariable v : configVars) {
-                appendGlobalVar(sb, v);
-            }
-            sb.append("    </NameValuePairs>\n");
-        }
+        // Runtime Variables: the service-settable global variables (buildear lists these,
+        // not the deployment-settable set). Matches buildear's ProcessDefinition
+        // getReferencedServiceLevelVariables(), which — despite its name — returns every
+        // global variable with serviceSettable=true (connection deployment parameters,
+        // service-level GVs, …), not just those referenced by a single process.
+        appendRuntimeVariables(sb, globalVars);
 
         // BwCheckpoint
         sb.append("    <DeploymentDescriptorFactory>\n");
@@ -606,59 +677,15 @@ public class TibcoXmlGenerator {
         sb.append("        <name>SupportsFaultTolerance</name>\n");
         sb.append("    </SupportsFaultTolerance>\n");
 
-        // Adapter SDK Properties (standard BW engine properties)
-        sb.append("    <NameValuePairs>\n");
-        sb.append("        <name>Adapter SDK Properties</name>\n");
-        appendAdapterSdkProperty(sb, "Trace.Task.*", "false",
-            "Activity Trace Controls activity invocation trace");
-        appendAdapterSdkProperty(sb, "EnableMemorySavingMode", "false",
-            "Memory Saving Mode controls process variable memory saving mode");
-        appendAdapterSdkProperty(sb, "bw.engine.enableJobRecovery", "false",
-            "maintain checkpoints for failed processes enables the preservation of checkpoints for process instances that end with a fault");
-        appendAdapterSdkProperty(sb, "bw.engine.autoCheckpointRestart", "true",
-            "auto checkpoint restart controls automatic restarting of checkpoints when engine first starts up");
-        appendAdapterSdkProperty(sb, "bw.engine.jobstats.enable", "false",
-            "maintain job history file controls maintence of job history csv file");
-        appendAdapterSdkProperty(sb, "log.file.encoding", "",
-            "set log file encoding controls log file encoding");
-        appendAdapterSdkProperty(sb, "bw.engine.emaEnabled", "false",
-            "Enables Enterprise Management Advisor Interface Enables Enterprise Management Advisor driven process control based on resource state");
-        appendAdapterSdkProperty(sb, "bw.container.service", "",
-            "BW Service Container Enables BW engine to be hosted within a container");
-        appendAdapterSdkProperty(sb, "bw.container.service.rmi.port", "9995",
-            "BW Service Container RMI Port Enables Container Communication Port");
-        appendAdapterSdkProperty(sb, "bw.platform.services.retreiveresources.Enabled", "false",
-            "Built-in Resource Provider Activation Enables Built in Resource Provider");
-        appendAdapterSdkProperty(sb, "bw.platform.services.retreiveresources.Hostname", "localhost",
-            "Built-in Resource Provider Host Sets Built-in Resource Provider Host Name");
-        appendAdapterSdkProperty(sb, "bw.platform.services.retreiveresources.Httpport", "8010",
-            "Built-in Resource Provider Http Port Sets Built-in Resource Provider Http Port Number");
-        appendAdapterSdkProperty(sb, "bw.platform.services.retreiveresources.defaultEncoding", "ISO8859_1",
-            "Built-in Resource Provider Default Encoding Sets Built-in Resource Provider defaultEncoding");
-        appendAdapterSdkProperty(sb, "bw.platform.services.retreiveresources.enableLookups", "false",
-            "Built-in Resource Provider DNS Lookups Enables Built-in Resource Provider DNS Lookups");
-        appendAdapterSdkProperty(sb, "bw.platform.services.retreiveresources.isSecure", "false",
-            "Built-in Resource Provider Secure Socket Layer(SSL) support Enables Built-in Resource Provider Secure Socket Layer(SSL) support");
-        appendAdapterSdkProperty(sb, "bw.platform.services.retreiveresources.identity", "/Identity_HTTPConnection.id",
-            "Built-in Resource Provider Identity  Sets Built-in Resource Provider Identity if Secure Socket Layer(SSL) support is enabled");
-        appendAdapterSdkProperty(sb, "bw.log4j.configuration", "",
-            "Log4j Configuration File Log4j Configuration file path");
-        appendAdapterSdkProperty(sb, "java.extended.properties", "",
-            "Java Extended Properties Java Extended Properties");
-        sb.append("    </NameValuePairs>\n");
+        // Adapter SDK Properties: the standard BW engine properties, read from the bundled
+        // com/tibco/deployment/bwengine.xml — the same file buildear reads. This avoids
+        // hardcoding the list (and, notably, does NOT include java.extended.properties, which
+        // buildear never emits).
+        appendSdkProperties(sb, engineProperties);
 
         sb.append("</DeploymentDescriptors>\n");
 
         write(outputFile, sb.toString());
-    }
-
-    private void appendAdapterSdkProperty(StringBuilder sb, String name, String value, String description) {
-        sb.append("        <NameValuePair>\n");
-        sb.append("            <name>").append(escape(name)).append("</name>\n");
-        appendValue(sb, "            ", value);
-        sb.append("            <description>").append(escape(description)).append("</description>\n");
-        sb.append("            <requiresConfiguration>false</requiresConfiguration>\n");
-        sb.append("        </NameValuePair>\n");
     }
 
     /** Appends {@code <value>text</value>} or {@code <value/>} when the value is empty. */
@@ -680,6 +707,11 @@ public class TibcoXmlGenerator {
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;");
+    }
+
+    /** Archive {@code <version>} value, defaulting to {@code 1} when none is supplied. */
+    private static String effectiveVersion(String archiveVersion) {
+        return (archiveVersion == null || archiveVersion.isEmpty()) ? "1" : archiveVersion;
     }
 
     private static void write(File file, String content) throws IOException {

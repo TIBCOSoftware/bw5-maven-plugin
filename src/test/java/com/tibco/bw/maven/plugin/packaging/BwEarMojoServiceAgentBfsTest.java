@@ -11,7 +11,14 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
 
+import org.jdom2.Element;
+import org.jdom2.input.SAXBuilder;
+
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertNull;
 
 /**
  * Regression tests for BFS traversal of promoted {@code .serviceagent} files.
@@ -92,6 +99,137 @@ public class BwEarMojoServiceAgentBfsTest {
         File f = new File(dir, name);
         Files.write(f.toPath(), content.getBytes(StandardCharsets.UTF_8));
         return f;
+    }
+
+    // -----------------------------------------------------------------------
+    //  BUG-1: service agent <name>/<resourceType> injection (buildear parity)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression (BUG-1): buildear re-serializes each service agent from its object model,
+     * always emitting {@code <name>} (the resource base name) and
+     * {@code <resourceType>service.definition</resourceType>} in the top {@code <config>}.
+     * The on-disk source omits them, so a verbatim copy differs. ensureServiceAgentIdentity
+     * must inject them into the TOP config only.
+     */
+    @Test
+    public void serviceAgentIdentityInjectedWhenMissing() throws Exception {
+        File dir = tmp.newFolder("sa-inject");
+        File sa = writeFile(dir, "AIU0.serviceagent",
+            "<serviceResource xmlns:ns0=\"http://schemas.xmlsoap.org/wsdl/\">\n"
+            + "  <config>\n"
+            + "    <class>com.tibco.bw.service.serviceAgent.ServiceServiceAgent</class>\n"
+            + "    <implType>bw</implType>\n"
+            + "    <interfaceImpl>\n"
+            + "      <tab><config><name>nested-should-not-count</name></config></tab>\n"
+            + "    </interfaceImpl>\n"
+            + "  </config>\n"
+            + "</serviceResource>\n");
+
+        File out = new BwEarMojo().ensureServiceAgentIdentity(sa);
+        Element config = new SAXBuilder().build(out).getRootElement().getChild("config");
+        assertEquals("<name> = file basename", "AIU0", config.getChildText("name"));
+        assertEquals("<resourceType> = service.definition",
+            "service.definition", config.getChildText("resourceType"));
+        // the nested <config><name> must be untouched (still present, still nested)
+        assertNull("top config must not gain a stray value from the nested one",
+            config.getChild("interfaceImpl").getChild("name"));
+    }
+
+    /**
+     * Regression (BUG-1): idempotent — when the source already declares both, the original
+     * file is returned unchanged (no duplication, no rewrite).
+     */
+    @Test
+    public void serviceAgentIdentityIdempotentWhenPresent() throws Exception {
+        File dir = tmp.newFolder("sa-idem");
+        File sa = writeFile(dir, "Svc.serviceagent",
+            "<serviceResource>\n"
+            + "  <config>\n"
+            + "    <name>Svc</name>\n"
+            + "    <resourceType>service.definition</resourceType>\n"
+            + "    <class>x</class>\n"
+            + "  </config>\n"
+            + "</serviceResource>\n");
+
+        File out = new BwEarMojo().ensureServiceAgentIdentity(sa);
+        assertSame("already has both → original file returned unchanged", sa, out);
+    }
+
+    // -----------------------------------------------------------------------
+    //  BUG-2: copybook (.cpy) resource wrapping (buildear parity, encoding-safe)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Regression (BUG-2): a raw COBOL copybook must be wrapped into its
+     * {@code ae.shared.CCBSchemaResource} XML with the fixed metadata block and
+     * {@code <version>3.6.0</version>} (current copybook palette version), matching buildear.
+     */
+    @Test
+    public void rawCopybookWrappedIntoResourceXml() throws Exception {
+        File dir = tmp.newFolder("cpy-raw");
+        File cpy = new File(dir, "AIU0_REP.cpy");
+        Files.write(cpy.toPath(), "      01 REC.\r\n         05 F PIC X(10).\r\n"
+            .getBytes(StandardCharsets.ISO_8859_1));
+
+        File out = new BwEarMojo().ensureCopybookResource(cpy);
+        Element root = new SAXBuilder().build(out).getRootElement();
+        assertEquals("BWSharedResource", root.getName());
+        assertEquals("AIU0_REP.cpy", root.getChildText("name"));
+        assertEquals("ae.shared.CCBSchemaResource", root.getChildText("resourceType"));
+        Element config = root.getChild("config");
+        assertEquals("3.6.0", config.getChildText("version"));
+        assertEquals("COBOL", config.getChildText("copybookType"));
+        assertEquals("ieee", config.getChildText("float"));
+        assertEquals("true", config.getChildText("floatSet"));
+        assertEquals("true", config.getChildText("legacyAlign"));
+        assertEquals("1", config.getChildText("metadataVersion"));
+        assertEquals("ASCII", config.getChildText("encoding"));
+        assertTrue("copybook text preserved", config.getChildText("copybook").contains("01 REC."));
+    }
+
+    /**
+     * Regression (BUG-2): non-ASCII copybook bytes must be preserved (default ISO-8859-1),
+     * NOT replaced with U+FFFD like buildear's UTF-8 read does. This is the deliberate,
+     * data-preserving divergence from buildear.
+     */
+    @Test
+    public void rawCopybookNonAsciiPreservedNotCorrupted() throws Exception {
+        File dir = tmp.newFolder("cpy-nonascii");
+        File cpy = new File(dir, "X.cpy");
+        // 0xC1 = 'Á' in ISO-8859-1 (invalid as UTF-8 → buildear would corrupt to U+FFFD)
+        Files.write(cpy.toPath(), new byte[] {' ',' ','*',' ',(byte)0xC1,'r','e','a','\r','\n'});
+
+        File out = new BwEarMojo().ensureCopybookResource(cpy);
+        String copybook = new SAXBuilder().build(out).getRootElement()
+            .getChild("config").getChildText("copybook");
+        assertTrue("accented char must be preserved as Á, not U+FFFD",
+            copybook.contains("Área"));
+        assertFalse("must not contain the U+FFFD replacement char",
+            copybook.contains("�"));
+    }
+
+    /**
+     * Regression (BUG-2): an already-XML copybook resource gets the five metadata elements
+     * injected while its stored {@code <version>} is preserved (not overwritten with 3.6.0).
+     */
+    @Test
+    public void xmlCopybookMetadataInjectedVersionPreserved() throws Exception {
+        File dir = tmp.newFolder("cpy-xml");
+        File cpy = writeFile(dir, "BKAIX011.cpy",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<BWSharedResource>\n"
+            + "  <name>BKAIX011.cpy</name>\n"
+            + "  <resourceType>ae.shared.CCBSchemaResource</resourceType>\n"
+            + "  <config>\n    <version>2.1.0</version>\n    <fixedFormat>true</fixedFormat>\n"
+            + "    <encoding>ASCII</encoding>\n    <copybook>01 X.</copybook>\n  </config>\n"
+            + "</BWSharedResource>\n");
+
+        File out = new BwEarMojo().ensureCopybookResource(cpy);
+        Element config = new SAXBuilder().build(out).getRootElement().getChild("config");
+        assertEquals("stored version preserved (not forced to 3.6.0)",
+            "2.1.0", config.getChildText("version"));
+        assertEquals("COBOL", config.getChildText("copybookType"));
+        assertEquals("1", config.getChildText("metadataVersion"));
     }
 
     // -----------------------------------------------------------------------

@@ -56,6 +56,9 @@ public class SubstVarParser {
             String deployable = getText(varEl, "deploymentSettable");
             var.requiresConfiguration = "true".equalsIgnoreCase(deployable);
 
+            String serviceSettable = getText(varEl, "serviceSettable");
+            var.serviceSettable = "true".equalsIgnoreCase(serviceSettable);
+
             if (var.name != null && !var.name.isEmpty()) {
                 variables.add(var);
             }
@@ -82,6 +85,13 @@ public class SubstVarParser {
         public String type;
         /** If true, the variable should be set at deployment time (requiresConfiguration=true in TIBCO.xml) */
         public boolean requiresConfiguration = true;
+        /**
+         * If true, the variable is service-settable (per-service deployment override).
+         * buildear lists these in the adapter AAR's "Runtime Variables" block when the
+         * archive descriptor has {@code addServiceSettableGvars=true}. Distinct from
+         * {@link #requiresConfiguration} (deploymentSettable).
+         */
+        public boolean serviceSettable;
         /** Name of the .substvar file this variable was parsed from (e.g. "default.substvar"). */
         public String substVarFile;
 

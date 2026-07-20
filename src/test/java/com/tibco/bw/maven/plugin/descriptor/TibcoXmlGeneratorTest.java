@@ -127,6 +127,33 @@ public class TibcoXmlGeneratorTest {
         assertEquals("MessageEncoding must appear exactly once", 1, count);
     }
 
+    /**
+     * Regression: buildear always stamps the fixed description
+     * {@code "This is the encoding used the EAR."} on the MessageEncoding GV, even when the
+     * variable is supplied without a description (e.g. injected from vcrepo.dat). Previously
+     * the description was emitted only on the default-fallback path, so an injected
+     * MessageEncoding came out without it.
+     */
+    @Test
+    public void earDescriptorMessageEncodingCarriesFixedDescription() throws Exception {
+        SubstVarParser.GlobalVariable msgEnc = new SubstVarParser.GlobalVariable();
+        msgEnc.name = "MessageEncoding";
+        msgEnc.value = "ISO8859-1";
+        msgEnc.type = "String";
+        msgEnc.requiresConfiguration = false;
+        // no description set on the incoming GV
+
+        Document doc = generateEar("MyApp", "Process Archive.par",
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.singletonList(msgEnc));
+
+        Element globalVars = findNamedBlock(doc, "Global Variables");
+        Element nvp = firstNamedNvp(globalVars, "MessageEncoding");
+        assertNotNull("MessageEncoding entry missing", nvp);
+        assertEquals("This is the encoding used the EAR.",
+                child(nvp, "description").getTextTrim());
+    }
+
     @Test
     public void earDescriptorGlobalVarRequiresConfigurationTrue() throws Exception {
         SubstVarParser.GlobalVariable var = new SubstVarParser.GlobalVariable();
@@ -207,8 +234,44 @@ public class TibcoXmlGeneratorTest {
         assertNotNull(value);
         assertTrue("starter process path must be in EXTERNAL_DEPENDENCIES",
                 value.contains("/com/example/Start.process"));
-        assertFalse("non-starter process must NOT be in EXTERNAL_DEPENDENCIES",
+        // A sub-process (no starter) is scoped by Designer's resourceDependencyMap in buildear,
+        // which we cannot reproduce; we approximate the archive's entry points with starters, so
+        // a non-starter sub-process is not blanket-added here.
+        assertFalse("non-starter process must NOT be blanket-added to EXTERNAL_DEPENDENCIES",
                 value.contains("/com/example/Sub.process"));
+    }
+
+    /**
+     * Regression (BUG-M2/M3): when the archive descriptor is available, the PAR
+     * EXTERNAL_RESOURCE_DEPENDENCY process members are the DECLARED processProperty entries
+     * (buildear's getHiddenReferences) — every declared process, starter or not — NOT the
+     * starter-filtered set. Verified byte-for-byte against buildear on MVS/COMPLEX/WS.
+     */
+    @Test
+    public void parDescriptorExternalDepsUsesDeclaredProcessPathsWhenGiven() throws Exception {
+        // Only "Start" has a starter, but all three are declared in processProperty.
+        ProcessParser.ProcessMetadata starter = processWithStarter("Services/A/Start.process");
+        ProcessParser.ProcessMetadata sub1 = processNoStarter("Services/A/SubProcess/Rep.process");
+        ProcessParser.ProcessMetadata sub2 = processNoStarter("DomainResources/On Startup.process");
+        List<String> declared = Arrays.asList(
+                "/Services/A/Start.process",
+                "/Services/A/SubProcess/Rep.process",
+                "/DomainResources/On Startup.process");
+
+        String value = getExternalDepsValue(generateParWithDeclared("MVS_BW_01.par",
+                Arrays.asList(starter, sub1, sub2),
+                Collections.singletonList("/SharedResources/CopyBook/X.cpy"),
+                declared));
+
+        assertNotNull(value);
+        Set<String> members = new HashSet<>(Arrays.asList(value.split(",")));
+        assertTrue(members.contains("/Services/A/Start.process"));
+        assertTrue("non-starter declared process must be listed",
+                members.contains("/Services/A/SubProcess/Rep.process"));
+        assertTrue("non-starter declared process must be listed",
+                members.contains("/DomainResources/On Startup.process"));
+        assertTrue("SAR resource must still be listed",
+                members.contains("/SharedResources/CopyBook/X.cpy"));
     }
 
     @Test
@@ -235,6 +298,35 @@ public class TibcoXmlGeneratorTest {
                 .filter(e -> "EXTERNAL_DEPENDENCIES".equals(childText(e, "name")))
                 .count();
         assertEquals("Must have exactly one EXTERNAL_DEPENDENCIES block", 1, extDepsCount);
+    }
+
+    /**
+     * Regression: buildear's {@code ArchiveResource.addExternalResourceBom} collects every BOM
+     * entry (starter processes AND shared resources) into a single {@code java.util.HashSet<String>}
+     * and joins its iteration order — NOT sorted, NOT insertion order. The PAR
+     * EXTERNAL_RESOURCE_DEPENDENCY must reproduce that HashSet ordering (same fix family as the
+     * AAR EXTERNAL_RESOURCE_DEPENDENCY, Bug #8). The chosen strings have a HashSet iteration order
+     * that differs from insertion order, so this fails if the code emits insertion/sorted order.
+     */
+    @Test
+    public void parDescriptorExternalDepsUseBuildearHashSetOrder() throws Exception {
+        List<ProcessParser.ProcessMetadata> procs = Arrays.asList(
+                processWithStarter("Process Definition (1).process"),
+                processWithStarter("Process Definition.process"),
+                processWithStarter("Process Definition (2).process"));
+        List<String> sar = Arrays.asList(
+                "/HTTP Connection.sharedhttp", "/HTTP-Connection-1.sharedhttp");
+
+        String value = getExternalDepsValue(generatePar("Process Archive.par", procs, sar));
+        assertNotNull(value);
+
+        Set<String> expectedSet = new HashSet<>();
+        expectedSet.add("/Process Definition (1).process");
+        expectedSet.add("/Process Definition.process");
+        expectedSet.add("/Process Definition (2).process");
+        expectedSet.add("/HTTP Connection.sharedhttp");
+        expectedSet.add("/HTTP-Connection-1.sharedhttp");
+        assertEquals(String.join(",", expectedSet), value);
     }
 
     @Test
@@ -270,94 +362,266 @@ public class TibcoXmlGeneratorTest {
     }
 
     // -----------------------------------------------------------------------
-    //  TRA_PROPERTIES_VARIABLES tests (PAR and AAR)
+    //  Runtime Variables tests (PAR and AAR) — Bug #4 / Bug B
     // -----------------------------------------------------------------------
 
+    /**
+     * Regression (Bug #4): the PAR must emit a "Runtime Variables" block of service-settable
+     * GVs, never the old "TRA_PROPERTIES_VARIABLES" block. When nothing is service-settable
+     * the block is absent — even if variables are deployment-settable.
+     */
     @Test
-    public void parDescriptorTRAPropertiesVarsAbsentWhenNoRequiredVars() throws Exception {
-        SubstVarParser.GlobalVariable optional = new SubstVarParser.GlobalVariable();
-        optional.name = "ServerHost";
-        optional.value = "localhost";
-        optional.type = "String";
-        optional.requiresConfiguration = false;
+    public void parDescriptorRuntimeVarsAbsentWhenNoServiceSettableVars() throws Exception {
+        SubstVarParser.GlobalVariable deployOnly = new SubstVarParser.GlobalVariable();
+        deployOnly.name = "ServerHost";
+        deployOnly.value = "localhost";
+        deployOnly.type = "String";
+        deployOnly.requiresConfiguration = true;   // deploymentSettable, but NOT serviceSettable
+        deployOnly.serviceSettable = false;
 
         Document doc = generatePar("Process Archive.par",
                 Collections.emptyList(), Collections.emptyList(),
-                Collections.singletonList(optional));
+                Collections.singletonList(deployOnly));
 
-        assertNull("TRA_PROPERTIES_VARIABLES must be absent when no vars require configuration",
+        assertNull("Runtime Variables must be absent when no var is service-settable",
+                findNamedBlock(doc, "Runtime Variables"));
+        assertNull("The old TRA_PROPERTIES_VARIABLES block must never be emitted",
                 findNamedBlock(doc, "TRA_PROPERTIES_VARIABLES"));
     }
 
     @Test
-    public void parDescriptorTRAPropertiesVarsEmittedForRequiredVar() throws Exception {
-        SubstVarParser.GlobalVariable required = new SubstVarParser.GlobalVariable();
-        required.name = "DbPassword";
-        required.value = "";
-        required.type = "password";
-        required.requiresConfiguration = true;
+    public void parDescriptorRuntimeVarsEmittedForServiceSettableVar() throws Exception {
+        SubstVarParser.GlobalVariable conn = new SubstVarParser.GlobalVariable();
+        conn.name = "IntegrationServices/SharedUtilities/Connections/JDBC/TIB-JDBC-Connection/Password";
+        conn.value = "";
+        conn.type = "password";
+        conn.requiresConfiguration = true;
+        conn.serviceSettable = true;
 
         Document doc = generatePar("Process Archive.par",
                 Collections.emptyList(), Collections.emptyList(),
-                Collections.singletonList(required));
+                Collections.singletonList(conn));
 
-        Element traBlock = findNamedBlock(doc, "TRA_PROPERTIES_VARIABLES");
-        assertNotNull("TRA_PROPERTIES_VARIABLES must be present when a var requiresConfiguration", traBlock);
-        Element nvp = firstNamedNvp(traBlock, "DbPassword");
-        assertNotNull("DbPassword must appear in TRA_PROPERTIES_VARIABLES", nvp);
-        assertEquals("true", child(nvp, "requiresConfiguration").getTextTrim());
+        Element rtBlock = findNamedBlock(doc, "Runtime Variables");
+        assertNotNull("Runtime Variables must be present for a service-settable var", rtBlock);
+        Element nvp = firstNamedNvp(rtBlock,
+                "IntegrationServices/SharedUtilities/Connections/JDBC/TIB-JDBC-Connection/Password");
+        assertNotNull("connection GV must appear in Runtime Variables", nvp);
+        assertEquals("requiresConfiguration reflects deploymentSettable",
+                "true", child(nvp, "requiresConfiguration").getTextTrim());
     }
 
     @Test
-    public void parDescriptorTRAPropertiesVarsOnlyIncludesRequiredVars() throws Exception {
-        SubstVarParser.GlobalVariable req = new SubstVarParser.GlobalVariable();
-        req.name = "ApiKey";
-        req.value = "";
-        req.type = "String";
-        req.requiresConfiguration = true;
+    public void parDescriptorRuntimeVarsOnlyIncludesServiceSettableVars() throws Exception {
+        SubstVarParser.GlobalVariable svc = new SubstVarParser.GlobalVariable();
+        svc.name = "ApiEndpoint";
+        svc.value = "";
+        svc.type = "String";
+        svc.requiresConfiguration = true;
+        svc.serviceSettable = true;
 
-        SubstVarParser.GlobalVariable opt = new SubstVarParser.GlobalVariable();
-        opt.name = "LogLevel";
-        opt.value = "INFO";
-        opt.type = "String";
-        opt.requiresConfiguration = false;
+        // deployment-settable but not service-settable (e.g. Deployment, DirLedger, queues)
+        SubstVarParser.GlobalVariable deploy = new SubstVarParser.GlobalVariable();
+        deploy.name = "Deployment";
+        deploy.value = "App";
+        deploy.type = "String";
+        deploy.requiresConfiguration = true;
+        deploy.serviceSettable = false;
 
         Document doc = generatePar("Process Archive.par",
                 Collections.emptyList(), Collections.emptyList(),
-                Arrays.asList(req, opt));
+                Arrays.asList(svc, deploy));
 
-        Element traBlock = findNamedBlock(doc, "TRA_PROPERTIES_VARIABLES");
-        assertNotNull(traBlock);
-        assertNotNull("ApiKey must be in TRA block", firstNamedNvp(traBlock, "ApiKey"));
-        assertNull("LogLevel must NOT be in TRA block (not required)", firstNamedNvp(traBlock, "LogLevel"));
+        Element rtBlock = findNamedBlock(doc, "Runtime Variables");
+        assertNotNull(rtBlock);
+        assertNotNull("ApiEndpoint must be in Runtime Variables", firstNamedNvp(rtBlock, "ApiEndpoint"));
+        assertNull("Deployment (not service-settable) must NOT be in Runtime Variables",
+                firstNamedNvp(rtBlock, "Deployment"));
     }
 
+    /**
+     * Regression (Bug #5): the PAR "Adapter SDK Properties" block is emitted from the
+     * supplied engine-property list (loaded from bwengine.xml), not a hardcoded set. The
+     * caller-provided properties appear; nothing extra (e.g. java.extended.properties,
+     * which buildear never emits) is injected by the generator.
+     */
     @Test
-    public void aarDescriptorTRAPropertiesVarsEmittedForRequiredVar() throws Exception {
-        SubstVarParser.GlobalVariable required = new SubstVarParser.GlobalVariable();
-        required.name = "EndpointUrl";
-        required.value = "https://example.com";
-        required.type = "String";
-        required.requiresConfiguration = true;
+    public void parDescriptorEmitsSuppliedEnginePropertiesOnly() throws Exception {
+        List<TibcoXmlGenerator.SdkProperty> engine = Arrays.asList(
+            new TibcoXmlGenerator.SdkProperty("Trace.Task.*", "false",
+                "Activity Trace", "Controls activity invocation trace", false),
+            new TibcoXmlGenerator.SdkProperty("bw.log4j.configuration", "",
+                "Log4j Configuration File", "Log4j Configuration file path", false));
+
+        File tmp = File.createTempFile("par-tibco", ".xml");
+        tmp.deleteOnExit();
+        new TibcoXmlGenerator().generateParDescriptor(tmp, "Process Archive.par",
+            Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
+            Collections.emptyList(), engine, "1", "test-owner", null);
+        Document doc = new SAXBuilder().build(tmp);
+
+        Element sdk = findNamedBlock(doc, "Adapter SDK Properties");
+        assertNotNull("Adapter SDK Properties block must be present in the PAR", sdk);
+        assertNotNull("supplied engine property must appear", firstNamedNvp(sdk, "Trace.Task.*"));
+        assertNotNull("supplied engine property must appear", firstNamedNvp(sdk, "bw.log4j.configuration"));
+        assertNull("generator must NOT inject java.extended.properties",
+                firstNamedNvp(sdk, "java.extended.properties"));
+    }
+
+    /**
+     * Regression (Bug A-bis): the Adapter SDK Properties description must match buildear's
+     * rule exactly: an empty deployment description yields an empty {@code <description/>}
+     * (the label is NOT substituted); a non-empty one yields "{@code <label> <description>}"
+     * with significant whitespace preserved (labels can carry trailing spaces).
+     */
+    @Test
+    public void aarSdkPropertyDescriptionMatchesBuildearRule() throws Exception {
+        List<TibcoXmlGenerator.SdkProperty> sdk = Arrays.asList(
+            // empty description → empty <description/>, label ignored
+            new TibcoXmlGenerator.SdkProperty("adb.stmtCache", "1",
+                "Number of cache statements", "", false),
+            // label + description combined
+            new TibcoXmlGenerator.SdkProperty("adb.url", "",
+                "Url", "The Url configured for the adapter at runtime.", false),
+            // trailing space in the label must be preserved (double space before desc)
+            new TibcoXmlGenerator.SdkProperty("adb.useBetweenClause", "",
+                "Enable using between clause ", "use 'between' clause", false));
+
+        File tmp = File.createTempFile("aar-tibco", ".xml");
+        tmp.deleteOnExit();
+        new TibcoXmlGenerator().generateAarDescriptor(tmp, "ADB.aar",
+            "/X.adb#adapter.X", "adb", "7.3.2.0", sdk, Collections.emptyList(), "1", "o");
+        Document doc = new SAXBuilder().build(tmp);
+        Element block = findNamedBlock(doc, "Adapter SDK Properties");
+
+        Element stmtCache = firstNamedNvp(block, "adb.stmtCache");
+        Element descEl = child(stmtCache, "description");
+        assertNotNull("empty-description property must still have a <description> element", descEl);
+        assertEquals("empty deployment description → empty output (label NOT used)",
+            "", descEl.getText());
+
+        assertEquals("label + space + description",
+            "Url The Url configured for the adapter at runtime.",
+            child(firstNamedNvp(block, "adb.url"), "description").getText());
+
+        assertEquals("trailing space in label preserved → double space",
+            "Enable using between clause  use 'between' clause",
+            child(firstNamedNvp(block, "adb.useBetweenClause"), "description").getText());
+    }
+
+    /**
+     * Regression (Bug B): the adapter AAR must list service-settable GVs in a
+     * "Runtime Variables" block — matching buildear's AdapterArchiveResource, which selects
+     * variables by their {@code serviceSettable} flag (not {@code deploymentSettable}).
+     */
+    @Test
+    public void aarDescriptorRuntimeVariablesEmittedForServiceSettableVar() throws Exception {
+        SubstVarParser.GlobalVariable service = new SubstVarParser.GlobalVariable();
+        service.name = "ADB_NAME";
+        service.value = "MyAdb";
+        service.type = "String";
+        service.requiresConfiguration = true;
+        service.serviceSettable = true;
+
+        // A deployment-settable-only var must NOT appear in the Runtime Variables block.
+        SubstVarParser.GlobalVariable deployOnly = new SubstVarParser.GlobalVariable();
+        deployOnly.name = "ADBOpcode";
+        deployOnly.value = "";
+        deployOnly.type = "String";
+        deployOnly.requiresConfiguration = true;
+        deployOnly.serviceSettable = false;
 
         Document doc = generateAar("MyAdapter.aar",
                 "/BusinessDomains/EAI/Adapters/MyAdapter.adapter#adapter.MyAdapter",
-                Collections.singletonList(required));
+                java.util.Arrays.asList(service, deployOnly));
 
-        Element traBlock = findNamedBlock(doc, "TRA_PROPERTIES_VARIABLES");
-        assertNotNull("TRA_PROPERTIES_VARIABLES must be present in AAR for required vars", traBlock);
-        assertNotNull("EndpointUrl must appear in AAR TRA block",
-                firstNamedNvp(traBlock, "EndpointUrl"));
-    }
-
-    @Test
-    public void aarDescriptorTRAPropertiesVarsAbsentWhenEmpty() throws Exception {
-        Document doc = generateAar("MyAdapter.aar",
-                "/BusinessDomains/EAI/Adapters/MyAdapter.adapter#adapter.MyAdapter",
-                Collections.emptyList());
-
-        assertNull("TRA_PROPERTIES_VARIABLES must be absent in AAR when no vars require configuration",
+        Element rtBlock = findNamedBlock(doc, "Runtime Variables");
+        assertNotNull("Runtime Variables block must be present for service-settable vars", rtBlock);
+        assertNotNull("ADB_NAME (serviceSettable) must appear in Runtime Variables",
+                firstNamedNvp(rtBlock, "ADB_NAME"));
+        assertNull("ADBOpcode (not serviceSettable) must NOT appear in Runtime Variables",
+                firstNamedNvp(rtBlock, "ADBOpcode"));
+        assertNull("AAR must no longer emit the TRA_PROPERTIES_VARIABLES block",
                 findNamedBlock(doc, "TRA_PROPERTIES_VARIABLES"));
+    }
+
+    /**
+     * Regression (BUG-3): the archive version (from the {@code .archive} {@code <versionProperty>})
+     * must be stamped into the PAR and AAR {@code <version>} — not hardcoded to 1.
+     */
+    @Test
+    public void parAndAarUseArchiveVersion() throws Exception {
+        File parTmp = File.createTempFile("par-tibco", ".xml");
+        parTmp.deleteOnExit();
+        new TibcoXmlGenerator().generateParDescriptor(parTmp, "Process Archive.par",
+            Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
+            Collections.emptyList(), Collections.emptyList(), "7", "o", null);
+        assertEquals("PAR <version> must come from the archive version",
+            "7", childText(new SAXBuilder().build(parTmp).getRootElement(), "version"));
+
+        File aarTmp = File.createTempFile("aar-tibco", ".xml");
+        aarTmp.deleteOnExit();
+        new TibcoXmlGenerator().generateAarDescriptor(aarTmp, "X.aar", "/X.adb#adapter.X",
+            "adb", "7.3.2.0", null, Collections.emptyList(), "7", "o");
+        assertEquals("AAR <version> must come from the archive version",
+            "7", childText(new SAXBuilder().build(aarTmp).getRootElement(), "version"));
+    }
+
+    @Test
+    public void aarDescriptorRuntimeVariablesAbsentWhenNoServiceSettableVars() throws Exception {
+        SubstVarParser.GlobalVariable deployOnly = new SubstVarParser.GlobalVariable();
+        deployOnly.name = "Deployment";
+        deployOnly.value = "App";
+        deployOnly.type = "String";
+        deployOnly.requiresConfiguration = true;
+        deployOnly.serviceSettable = false;
+
+        Document doc = generateAar("MyAdapter.aar",
+                "/BusinessDomains/EAI/Adapters/MyAdapter.adapter#adapter.MyAdapter",
+                Collections.singletonList(deployOnly));
+
+        assertNull("Runtime Variables must be absent in AAR when no vars are service-settable",
+                findNamedBlock(doc, "Runtime Variables"));
+    }
+
+    /**
+     * Regression (Bug A): the archive-descriptor AAR path must set componentSoftwareName
+     * from the descriptor's softwareTypeProperty and emit an Adapter SDK Properties block
+     * carrying the supplied SDK properties. Before the fix it hardcoded
+     * {@code componentSoftwareName=adapter} and emitted no SDK properties, stripping the
+     * AAR TIBCO.xml down to a few KB.
+     */
+    @Test
+    public void aarDescriptorEmitsComponentSoftwareNameAndSdkProperties() throws Exception {
+        List<TibcoXmlGenerator.SdkProperty> sdk = new java.util.ArrayList<>();
+        sdk.add(new TibcoXmlGenerator.SdkProperty(
+                "adb.url", "jdbc:oracle", "Database URL", "The database URL", false));
+        sdk.add(new TibcoXmlGenerator.SdkProperty(
+                "adb.password", "", "Password", "The database password", true));
+
+        File tmp = File.createTempFile("aar-tibco", ".xml");
+        tmp.deleteOnExit();
+        new TibcoXmlGenerator().generateAarDescriptor(tmp, "ADB_Config.aar",
+                "/Adapters/ADB_Config.adb#adapter.ADB_Config",
+                "adb", "7.3.2.0", sdk, Collections.emptyList(), "1", "test-owner");
+        Document doc = new SAXBuilder().build(tmp);
+
+        // componentSoftwareName must be the adapter type, not the hardcoded "adapter"
+        Element startAsOneOf = child(doc.getRootElement(), "StartAsOneOf");
+        Element csr = child(startAsOneOf, "ComponentSoftwareReference");
+        assertEquals("componentSoftwareName must come from softwareTypeProperty",
+                "adb", childText(csr, "componentSoftwareName"));
+
+        // Adapter SDK Properties block must carry the supplied properties
+        Element sdkBlock = findNamedBlock(doc, "Adapter SDK Properties");
+        assertNotNull("Adapter SDK Properties block must be present", sdkBlock);
+        assertNotNull("adb.url must appear in the SDK block",
+                firstNamedNvp(sdkBlock, "adb.url"));
+        // password properties must use NameValuePairPassword
+        boolean hasPasswordTag = sdkBlock.getChildren().stream()
+                .anyMatch(e -> "NameValuePairPassword".equals(e.getName())
+                        && "adb.password".equals(childText(e, "name")));
+        assertTrue("adb.password must be emitted as NameValuePairPassword", hasPasswordTag);
     }
 
     // -----------------------------------------------------------------------
@@ -387,7 +651,20 @@ public class TibcoXmlGeneratorTest {
         File tmp = File.createTempFile("par-tibco", ".xml");
         tmp.deleteOnExit();
         new TibcoXmlGenerator().generateParDescriptor(tmp, parFileName, processes, sarPaths,
-            Collections.emptyList(), globalVars, "test-owner");
+            Collections.emptyList(), globalVars, Collections.emptyList(), "1", "test-owner", null);
+        return new SAXBuilder().build(tmp);
+    }
+
+    /** Variant that supplies declared processProperty paths (descriptor-based PAR). */
+    private Document generateParWithDeclared(String parFileName,
+            List<ProcessParser.ProcessMetadata> processes,
+            List<String> sarPaths,
+            List<String> declaredProcessPaths) throws Exception {
+        File tmp = File.createTempFile("par-tibco", ".xml");
+        tmp.deleteOnExit();
+        new TibcoXmlGenerator().generateParDescriptor(tmp, parFileName, processes, sarPaths,
+            Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), "1",
+            "test-owner", declaredProcessPaths);
         return new SAXBuilder().build(tmp);
     }
 
@@ -396,7 +673,7 @@ public class TibcoXmlGeneratorTest {
         File tmp = File.createTempFile("aar-tibco", ".xml");
         tmp.deleteOnExit();
         new TibcoXmlGenerator().generateAarDescriptor(tmp, aarFileName, adapterRef,
-            "7.3.2.0", globalVars, "test-owner");
+            "adapter", "7.3.2.0", null, globalVars, "1", "test-owner");
         return new SAXBuilder().build(tmp);
     }
 

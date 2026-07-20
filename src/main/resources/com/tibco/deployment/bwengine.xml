@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--  template for adding a property
+    <property>
+	   <name>Name that will show up in the Admin UI</name>
+	   <option>property.name.written.into.the.tra.file</option>
+	   <default>Value of the property</default>
+	   <description>Description of the property</description>
+    </property>
+ -->
+<properties>
+    <property>
+	   <name>Activity Trace</name>
+	   <option>Trace.Task.*</option>
+	   <default>false</default>
+	   <description>Controls activity invocation trace</description>
+    </property>
+
+    <property>
+	   <name>Memory Saving Mode</name>
+	   <option>EnableMemorySavingMode</option>
+	   <default>false</default>
+	   <description>controls process variable memory saving mode</description>
+    </property>
+
+    <property>
+	   <name>maintain checkpoints for failed processes</name>
+	   <option>bw.engine.enableJobRecovery</option>
+	   <default>false</default>
+	   <description>enables the preservation of checkpoints for process instances that end with a fault</description>
+    </property>
+
+    <property>
+	   <name>auto checkpoint restart</name>
+	   <option>bw.engine.autoCheckpointRestart</option>
+	   <default>true</default>
+	   <description>controls automatic restarting of checkpoints when engine first starts up</description>
+    </property>
+
+    <property>
+	   <name>maintain job history file</name>
+	   <option>bw.engine.jobstats.enable</option>
+	   <default>false</default>
+	   <description>controls maintence of job history csv file</description>
+    </property>
+
+    <property>
+	   <name>set log file encoding</name>
+	   <option>log.file.encoding</option>
+	   <default></default>
+	   <description>controls log file encoding</description>
+    </property>
+
+    <property>
+	   <name>Enables Enterprise Management Advisor Interface</name>
+	   <option>bw.engine.emaEnabled</option>
+	   <default>false</default>
+	   <description>Enables Enterprise Management Advisor driven process control based on resource state</description>
+    </property>
+
+    <property>
+	   <name>BW Service Container</name>
+	   <option>bw.container.service</option>
+	   <default></default>
+	   <description>Enables BW engine to be hosted within a container</description>
+    </property>
+
+    <property>
+	   <name>BW Service Container RMI Port</name>
+	   <option>bw.container.service.rmi.port</option>
+	   <default>9995</default>
+	   <description>Enables Container Communication Port</description>
+    </property>
+
+    <property>
+    	   <name>Built-in Resource Provider Activation</name>
+    	   <option>bw.platform.services.retreiveresources.Enabled</option>
+    	   <default>false</default>
+    	   <description>Enables Built in Resource Provider</description>
+    </property>
+
+    <property>
+	   <name>Built-in Resource Provider Host</name>
+	   <option>bw.platform.services.retreiveresources.Hostname</option>
+	   <default>localhost</default>
+	   <description>Sets Built-in Resource Provider Host Name</description>
+    </property>
+
+    <property>
+    	   <name>Built-in Resource Provider Http Port</name>
+    	   <option>bw.platform.services.retreiveresources.Httpport</option>
+    	   <default>8010</default>
+    	   <description>Sets Built-in Resource Provider Http Port Number</description>
+    </property>
+
+    <property>
+    	   <name>Built-in Resource Provider Default Encoding</name>
+    	   <option>bw.platform.services.retreiveresources.defaultEncoding</option>
+    	   <default>ISO8859_1</default>
+    	   <description>Sets Built-in Resource Provider defaultEncoding</description>
+    </property>
+
+    <property>
+    	   <name>Built-in Resource Provider DNS Lookups</name>
+    	   <option>bw.platform.services.retreiveresources.enableLookups</option>
+    	   <default>false</default>
+    	   <description>Enables Built-in Resource Provider DNS Lookups</description>
+    </property>
+
+    <property>
+    	   <name>Built-in Resource Provider Secure Socket Layer(SSL) support</name>
+    	   <option>bw.platform.services.retreiveresources.isSecure</option>
+    	   <default>false</default>
+    	   <description>Enables Built-in Resource Provider Secure Socket Layer(SSL) support</description>
+    </property>
+
+    <property>
+    	   <name>Built-in Resource Provider Identity </name>
+    	   <option>bw.platform.services.retreiveresources.identity</option>
+    	   <default>/Identity_HTTPConnection.id</default>
+    	   <description>Sets Built-in Resource Provider Identity if Secure Socket Layer(SSL) support is enabled</description>
+    </property>
+
+    <property>
+    	   <name>Log4j Configuration File</name>
+    	   <option>bw.log4j.configuration</option>
+    	   <default></default>
+    	   <description>Log4j Configuration file path</description>
+    </property>
+</properties>

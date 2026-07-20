@@ -72,6 +72,28 @@ public class BwEarMojo extends AbstractBw5Mojo {
     private String sharedArchiveName;
 
     /**
+     * Charset used to read raw {@code .cpy} (COBOL copybook) source files when wrapping them
+     * into their {@code ae.shared.CCBSchemaResource} XML resource.
+     *
+     * <p>Defaults to {@code ISO-8859-1}, a lossless byte↔char mapping that preserves every
+     * source byte (including non-ASCII characters common in copybook comments, e.g. accented
+     * text). This deliberately differs from TIBCO {@code buildear}, which reads copybooks as
+     * UTF-8 and replaces invalid bytes with U+FFFD — corrupting non-ASCII copybooks. For
+     * ASCII-only copybooks (the vast majority) the output is byte-identical to buildear. Set
+     * this to {@code UTF-8} (to reproduce buildear exactly) or to the copybook's true charset
+     * when it is known.</p>
+     */
+    @Parameter(defaultValue = "ISO-8859-1", property = "bw5.copybookEncoding")
+    private String copybookEncoding;
+
+    /**
+     * Archive version stamped into the {@code <version>} of the EAR, every PAR and every AAR —
+     * resolved from the {@code .archive} {@code <versionProperty>} (falling back to the POM major
+     * version). Set at the start of {@code execute()}; read by the PAR/AAR build helpers.
+     */
+    private String archiveVersion = "1";
+
+    /**
      * Generate an AppManage-compatible XML deployment configuration file
      * ({@code <finalName>-deploy.xml}) alongside the EAR.
      * Set to {@code false} to skip this file.
@@ -212,6 +234,31 @@ public class BwEarMojo extends AbstractBw5Mojo {
      */
     @Parameter(defaultValue = "false", property = "bw5.includeFolderMetadata")
     private boolean includeFolderMetadata;
+
+    /**
+     * Additional BW engine properties to append to each PAR's <em>Adapter SDK Properties</em>
+     * block, on top of the ones read from the bundled {@code com/tibco/deployment/bwengine.xml}.
+     *
+     * <p>Some TIBCO palettes/hotfixes expose behaviour toggles as engine properties that an
+     * administrator adds to the engine's {@code bwengine.xml} — for example the REST/JSON plugin's
+     * {@code com.tibco.plugin.restjson.escape.unicodeInText} (defect REST-1803). {@code buildear}
+     * reads them from {@code bwengine.xml} and emits them (with the {@code java.property.} twin that
+     * turns them into JVM system properties) into every PAR. These are environment/config-driven and
+     * not derivable from the project, so they are opt-in here.</p>
+     *
+     * <p>Each entry is a {@code name=value} pair. For any entry whose name does not already start
+     * with {@code java.property.}, the {@code java.property.<name>} twin is emitted automatically
+     * (matching buildear), so the property also becomes a {@code -D} JVM system property at runtime.</p>
+     *
+     * <pre>
+     * &lt;extraEngineProperties&gt;
+     *   &lt;property&gt;com.tibco.plugin.restjson.escape.unicodeInText=true&lt;/property&gt;
+     * &lt;/extraEngineProperties&gt;
+     * </pre>
+     * <pre>mvn package -Dbw5.extraEngineProperties=com.tibco.plugin.restjson.escape.unicodeInText=true</pre>
+     */
+    @Parameter(property = "bw5.extraEngineProperties")
+    private List<String> extraEngineProperties;
 
     private static final Namespace JCF_NS =
         Namespace.getNamespace("http://www.tibco.com/bw/javaxpath/2003");
@@ -397,6 +444,16 @@ public class BwEarMojo extends AbstractBw5Mojo {
             // 0. Optionally load the .archive descriptor
             ArchiveDescriptorParser.ArchiveDescriptor archiveDescriptor = loadArchiveDescriptor();
 
+            // Archive version stamped into every EAR/PAR/AAR <version> (matches buildear, which
+            // uses the .archive <versionProperty>). Falls back to the POM major version when no
+            // descriptor version is available.
+            String pomMajor = project.getVersion().contains(".")
+                ? project.getVersion().substring(0, project.getVersion().indexOf('.'))
+                : project.getVersion();
+            archiveVersion = (archiveDescriptor != null && archiveDescriptor.version != null
+                    && !archiveDescriptor.version.isEmpty())
+                ? archiveDescriptor.version : pomMajor;
+
             // 1. Collect all project files into a shared pool
             List<BwFile> allParFiles = new ArrayList<>();
             List<BwFile> allSarFiles = new ArrayList<>();
@@ -462,9 +519,19 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     addAdapterFolderMetadata(sarFiles, allSarFiles);
                     accumulateSarFiles(sarFiles, combinedSarFiles, seenSarPaths);
 
-                    List<String> sarPaths = toSarPaths(combinedSarFiles);
+                    // Each PAR's EXTERNAL_RESOURCE_DEPENDENCY lists only ITS OWN reachable SAR
+                    // resources (buildear scopes them per-archive via getArchiveDependencies /
+                    // getAssignedResources) — NOT the accumulated union across all PARs.
+                    // combinedSarFiles is the union used to assemble the shared SAR; the per-PAR
+                    // extdep uses this PAR's sarFiles. (Using the union made every PAR list the
+                    // other PARs' schemas/wsdls — the BookingDetails/EVENTS "sobra".)
+                    List<String> sarPaths = toSarPaths(sarFiles);
                     List<ProcessParser.ProcessMetadata> meta = parseProcesses(parFiles, srcDir);
-                    buildPar(parFile, parFiles, srcDir, meta, sarPaths, globalVars);
+                    // Descriptor-based PAR: the EXTERNAL_RESOURCE_DEPENDENCY process members are
+                    // the declared processProperty entries (getHiddenReferences), not just starters.
+                    List<String> declaredProcessPaths = pa.hasExplicitProcessList()
+                        ? pa.processPaths : null;
+                    buildPar(parFile, parFiles, meta, sarPaths, globalVars, declaredProcessPaths);
                     moduleFiles.add(parFile);
                     getLog().info("PAR assembled: " + parFile.getName()
                         + " (" + parFile.length() + " bytes, " + parFiles.size() + " process(es))");
@@ -602,10 +669,13 @@ public class BwEarMojo extends AbstractBw5Mojo {
                             applyTransitiveDependencyAnalysis(parFiles, sarFiles,
                                 starterPaths, sharedResPaths, true);
                         } else {
-                            // No starters: adapter project with no runnable processes (e.g. only
-                            // test/helper processes). Treat as adapter-only → empty PAR; BFS with
-                            // empty seeds + filterParByReachability=true leaves both parFiles and
-                            // sarFiles empty so collectAdapterAeschemas fills the SAR correctly.
+                            // Adapter instances present but NO starter processes (e.g.
+                            // adfiles/ManualSchema's single non-starter test process). buildear
+                            // excludes the non-starter processes from the PAR — but still emits
+                            // an (empty) Process Archive.par because the project has .process
+                            // files. BFS with empty seeds + filterParByReachability=true empties
+                            // parFiles; collectAdapterAeschemas then fills the SAR, and the empty
+                            // PAR is emitted below (see hadProcessFiles).
                             applyTransitiveDependencyAnalysis(parFiles, sarFiles,
                                 Collections.emptyList(), sharedResPaths, true);
                         }
@@ -638,13 +708,30 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     collectAdapterAeschemas(allSarFiles, combinedSarFiles, seenSarPaths);
                 }
 
-                if (!parFiles.isEmpty()) {
-                    List<String> sarPaths = toSarPaths(combinedSarFiles);
+                // buildear emits a Process Archive.par whenever the project contains any
+                // .process files — even if none are runnable (all non-starter), in which case
+                // the PAR is empty of processes but still present. A genuinely adapter-only
+                // project (no .process files at all) gets no PAR.
+                boolean hadProcessFiles = !allParFiles.isEmpty();
+                if (!parFiles.isEmpty() || hadProcessFiles) {
+                    // An empty PAR (project has .process files but none are packaged) lists no
+                    // EXTERNAL_RESOURCE_DEPENDENCY — buildear scopes it to the PAR's processes,
+                    // of which there are none. A PAR with processes lists the SAR resources.
+                    List<String> sarPaths = parFiles.isEmpty()
+                        ? Collections.emptyList() : toSarPaths(combinedSarFiles);
                     List<ProcessParser.ProcessMetadata> meta = parseProcesses(parFiles, srcDir);
+                    // Descriptor-based PAR: EXTERNAL_RESOURCE_DEPENDENCY process members are the
+                    // declared processProperty entries (getHiddenReferences), not just starters.
+                    // Skip for the empty PAR (no processes packaged → no dependency list).
+                    List<String> declaredProcessPaths =
+                        (!parFiles.isEmpty() && archiveDescriptor != null
+                            && archiveDescriptor.hasExplicitProcessList())
+                            ? archiveDescriptor.getProcessPaths() : null;
                     File parFile = new File(workDir, parFileName);
-                    buildPar(parFile, parFiles, srcDir, meta, sarPaths, globalVars);
+                    buildPar(parFile, parFiles, meta, sarPaths, globalVars, declaredProcessPaths);
                     moduleFiles.add(parFile);
-                    getLog().info("PAR assembled: " + parFile.getName() + " (" + parFile.length() + " bytes)");
+                    getLog().info("PAR assembled: " + parFile.getName() + " ("
+                        + parFile.length() + " bytes, " + parFiles.size() + " process(es))");
                 } else {
                     getLog().info("Adapter-only project: no process files, skipping PAR.");
                 }
@@ -678,15 +765,11 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     && archiveDescriptor.earName != null
                     && !archiveDescriptor.earName.isEmpty())
                 ? archiveDescriptor.earName : archiveName;
-            String projectVersion = project.getVersion();
-            String majorVersion = projectVersion.contains(".")
-                ? projectVersion.substring(0, projectVersion.indexOf('.'))
-                : projectVersion;
             TibcoXmlGenerator generator = new TibcoXmlGenerator();
             generator.generateEarDescriptor(
                 earTibcoXml,
                 effectiveEarName,
-                majorVersion,
+                archiveVersion,
                 moduleFileNames,
                 getProjectlibDependencies(),
                 getJarDependencies(),
@@ -908,15 +991,35 @@ public class BwEarMojo extends AbstractBw5Mojo {
         List<ProcessParser.ProcessMetadata> result = new ArrayList<>();
         ProcessParser parser = new ProcessParser();
         for (BwFile bwf : parFiles) {
+            boolean isServiceAgent =
+                bwf.file.getName().toLowerCase(Locale.ROOT).endsWith(".serviceagent");
             try {
-                ProcessParser.ProcessMetadata meta = parser.parse(bwf.file);
-                if (meta.name == null || meta.name.isEmpty()) {
-                    // Use relative path as fallback name
-                    meta.name = bwf.relativePath;
+                ProcessParser.ProcessMetadata meta;
+                if (isServiceAgent) {
+                    // Service agents are top-level runnable modules: they need their own
+                    // BwBPConfiguration entry keyed by the .serviceagent BW path.
+                    meta = parser.parseServiceAgent(bwf.file);
+                    meta.name = normalizeBwPath(bwf.relativePath);
+                    if (meta.starterName == null || meta.starterName.isEmpty()) {
+                        String fn = bwf.file.getName();
+                        int dot = fn.lastIndexOf('.');
+                        meta.starterName = dot > 0 ? fn.substring(0, dot) : fn;
+                    }
+                } else {
+                    meta = parser.parse(bwf.file);
+                    // buildear keys BwBPConfiguration.processDefinitionName (and the BOM entry)
+                    // off the resource's REPOSITORY PATH — ProcessDeploymentData.getPath() in
+                    // BaseProcessArchive.updateBWBpConfigurations — not the process's internal
+                    // <pd:name>. They usually match, but a process copied between folders keeps a
+                    // stale internal name (e.g. an MVS process whose <pd:name> still reads
+                    // BusinessDomains/COMPLEX/...), so use the actual file location to match buildear.
+                    meta.name = normalizeBwPath(bwf.relativePath);
                 }
                 result.add(meta);
             } catch (Exception e) {
-                getLog().warn("Could not parse process file: " + bwf.file.getName() + " - " + e.getMessage());
+                getLog().warn("Could not parse "
+                    + (isServiceAgent ? "service agent" : "process") + " file: "
+                    + bwf.file.getName() + " - " + e.getMessage());
                 // Still add with minimal metadata
                 ProcessParser.ProcessMetadata meta = new ProcessParser.ProcessMetadata();
                 meta.name = bwf.relativePath;
@@ -1146,31 +1249,30 @@ public class BwEarMojo extends AbstractBw5Mojo {
         return !sub.contains("/") && ADAPTER_TYPE_FOLDER_NAMES.contains(sub);
     }
 
-    /**
-     * Scans {@code srcDir} recursively for {@code .sharedjdbc} files and returns their paths
-     * in the form {@code /relative/path/WithoutExtension}, which is the format used by
-     * {@code <chk:availableSharedResourceName>} in the PAR-level TIBCO.xml.
-     */
-    private List<String> scanJdbcResourcePaths(File srcDir) {
-        List<String> paths = new ArrayList<>();
-        scanJdbcResourcePathsRecursive(srcDir, srcDir, paths);
-        java.util.Collections.sort(paths);
-        return paths;
-    }
+    private static final String SHAREDJDBC_EXT = ".sharedjdbc";
 
-    private void scanJdbcResourcePathsRecursive(File rootDir, File dir, List<String> paths) {
-        File[] files = dir.listFiles();
-        if (files == null) return;
-        for (File f : files) {
-            if (f.isDirectory()) {
-                scanJdbcResourcePathsRecursive(rootDir, f, paths);
-            } else if (f.getName().endsWith(".sharedjdbc")) {
-                String rel = rootDir.toURI().relativize(f.toURI()).getPath();
-                // strip extension and add leading slash
-                String path = "/" + rel.substring(0, rel.lastIndexOf('.'));
-                paths.add(path);
+    /**
+     * Derives the JDBC checkpoint repository paths from the SAR resource list. Every
+     * {@code .sharedjdbc} resource in the SAR is a candidate checkpoint repository, listed
+     * in the PAR-level TIBCO.xml as {@code <chk:availableSharedResourceName>} with the
+     * extension stripped.
+     *
+     * <p>Deriving from {@code sarPaths} (rather than re-scanning the source tree) ensures
+     * JDBC connections that live inside project library ({@code .projlib}) dependencies —
+     * whose resources are already collected into the SAR under their BW repository path —
+     * are included. A filesystem scan of the project source misses them.</p>
+     */
+    static List<String> jdbcCheckpointPaths(List<String> sarPaths) {
+        List<String> paths = new ArrayList<>();
+        if (sarPaths != null) {
+            for (String p : sarPaths) {
+                if (p.toLowerCase(Locale.ROOT).endsWith(SHAREDJDBC_EXT)) {
+                    paths.add(p.substring(0, p.length() - SHAREDJDBC_EXT.length()));
+                }
             }
         }
+        java.util.Collections.sort(paths);
+        return paths;
     }
 
     /**
@@ -2032,21 +2134,29 @@ public class BwEarMojo extends AbstractBw5Mojo {
     //  PAR assembly
     // -----------------------------------------------------------------------
 
-    private void buildPar(File parFile, List<BwFile> parFiles, File srcDir,
+    private void buildPar(File parFile, List<BwFile> parFiles,
                           List<ProcessParser.ProcessMetadata> processMetadata,
                           List<String> sarPaths,
-                          List<SubstVarParser.GlobalVariable> globalVars) throws Exception {
+                          List<SubstVarParser.GlobalVariable> globalVars,
+                          List<String> declaredProcessPaths) throws Exception {
         // Generate PAR-level TIBCO.xml into a temp file
         File parTibcoXml = File.createTempFile("par-TIBCO", ".xml");
         parTibcoXml.deleteOnExit();
+        // Adapter SDK Properties = bundled bwengine.xml properties + any opt-in extras.
+        List<TibcoXmlGenerator.SdkProperty> engineProps =
+            new ArrayList<>(readSdkProperties("bwengine"));
+        engineProps.addAll(parseExtraEngineProperties(extraEngineProperties));
         new TibcoXmlGenerator().generateParDescriptor(
             parTibcoXml,
             parFile.getName(),
             processMetadata,
             sarPaths,
-            scanJdbcResourcePaths(srcDir),
+            jdbcCheckpointPaths(sarPaths),
             globalVars,
-            null
+            engineProps,
+            archiveVersion,
+            null,
+            declaredProcessPaths
         );
 
         try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(parFile.toPath()))) {
@@ -2063,7 +2173,11 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     getLog().debug("Skipping duplicate PAR entry: " + entryName);
                     continue;
                 }
-                addToZip(zos, bwf.relativePath, bwf.file);
+                if (bwf.file.getName().toLowerCase(Locale.ROOT).endsWith(".serviceagent")) {
+                    addToZip(zos, bwf.relativePath, ensureServiceAgentIdentity(bwf.file));
+                } else {
+                    addToZip(zos, bwf.relativePath, bwf.file);
+                }
             }
 
             // Add compiled Java classes if any
@@ -2230,7 +2344,13 @@ public class BwEarMojo extends AbstractBw5Mojo {
             buildAdapterAar(aarFile, bwf, bwPath, instanceName,
                             componentSoftwareName, adapterVersion, adapterFragName,
                             sdkProps, externalDeps);
-            moduleFiles.add(aarFile);
+            // An adapter instance that is ALSO an explicit <adapterArchive> was already
+            // registered (and possibly written with a placeholder descriptor) by the archive
+            // descriptor loop; buildAdapterAar has just overwritten the file with the correct
+            // content. Register the module only once to avoid a duplicate entry in the EAR.
+            if (!moduleFiles.contains(aarFile)) {
+                moduleFiles.add(aarFile);
+            }
             getLog().info("Adapter AAR assembled: " + aarFileName
                           + " (" + aarFile.length() + " bytes) [" + componentSoftwareName + "]");
         }
@@ -2239,7 +2359,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
     /**
      * Computes the EXTERNAL_RESOURCE_DEPENDENCY value for an adapter AAR by scanning
      * the adapter instance file for AESchema references and following them transitively.
-     * Returns a list with the AESchema paths (sorted) followed by the adapter fragment.
+     * Returns the AESchema paths plus the adapter fragment in {@link java.util.HashSet}
+     * iteration order — matching buildear's {@code ArchiveResource.addExternalResourceBom},
+     * which joins a {@code HashSet<String>} (so the order is hash-based, not sorted).
      * If the adapter has no AESchema references, returns a single-element list containing
      * just the fragment (as buildear does for unconfigured adapter instances).
      */
@@ -2269,12 +2391,26 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 }
             }
         }
-        // Re-add the leading "/" stripped by normalizeBwPath before returning.
-        List<String> result = new ArrayList<>();
-        for (String path : visited) result.add("/" + path);
-        Collections.sort(result);
-        result.add(adapterTypeFrag);
-        return result;
+        // Re-add the leading "/" stripped by normalizeBwPath, then order like buildear.
+        List<String> withSlash = new ArrayList<>();
+        for (String path : visited) withSlash.add("/" + path);
+        return externalDepsInBuildearOrder(withSlash, adapterTypeFrag);
+    }
+
+    /**
+     * Orders adapter {@code EXTERNAL_RESOURCE_DEPENDENCY} entries the way buildear does.
+     * buildear's {@code ArchiveResource.addExternalResourceBom} joins a
+     * {@code java.util.HashSet<String>}, so the entry order is the HashSet iteration order —
+     * NOT sorted. {@code String.hashCode} and {@code HashMap} bucketing are JVM-stable, so
+     * building the same kind of set (default capacity, one add per entry) yields
+     * byte-identical ordering to buildear.
+     */
+    static List<String> externalDepsInBuildearOrder(Collection<String> depsWithSlash,
+                                                     String adapterTypeFrag) {
+        Set<String> deps = new HashSet<>();
+        for (String d : depsWithSlash) deps.add(d);
+        if (adapterTypeFrag != null && !adapterTypeFrag.isEmpty()) deps.add(adapterTypeFrag);
+        return new ArrayList<>(deps);
     }
 
     /**
@@ -2312,7 +2448,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
         return AAR_ADAPTER_EXTENSIONS.contains(extNoDot.toLowerCase(Locale.ROOT));
     }
 
-    private static String getExtNoDot(File f) {
+    static String getExtNoDot(File f) {
         String name = f.getName();
         int dot = name.lastIndexOf('.');
         return dot >= 0 ? name.substring(dot + 1).toLowerCase(Locale.ROOT) : "";
@@ -2360,10 +2496,54 @@ public class BwEarMojo extends AbstractBw5Mojo {
             case "adr3TID": return "7.3.2.0";
             case "adldap":  return "6.1.2.0";
             case "adfiles": return "7.1.1.0";
+            case "adb":     // TIBCO Adapter for JDBC — instance files use the .adb extension
             case "adadb":   return "7.1.0.0";
             case "adas400": return "7.1.0.0";
             default:        return "7.0.0.0";
         }
+    }
+
+    /**
+     * Parses {@code name=value} entries from {@link #extraEngineProperties} into
+     * {@link TibcoXmlGenerator.SdkProperty} objects for the <em>Adapter SDK Properties</em> block.
+     *
+     * <p>For each entry a plain property is produced; when the name does not already start with
+     * {@code java.property.}, a {@code java.property.<name>} twin is also produced — matching
+     * buildear, which emits both so the property becomes a JVM {@code -D} system property at runtime
+     * (e.g. {@code com.tibco.plugin.restjson.escape.unicodeInText}, read via
+     * {@code Boolean.getBoolean}). Label and description are both set to the property name, which
+     * reproduces buildear's {@code "<name> <name>"} description for bwengine.xml-style properties.</p>
+     */
+    static List<TibcoXmlGenerator.SdkProperty> parseExtraEngineProperties(List<String> entries) {
+        List<TibcoXmlGenerator.SdkProperty> out = new ArrayList<>();
+        if (entries == null) return out;
+        for (String entry : entries) {
+            if (entry == null) continue;
+            String e = entry.trim();
+            if (e.isEmpty()) continue;
+            int eq = e.indexOf('=');
+            String name = (eq >= 0 ? e.substring(0, eq) : e).trim();
+            String value = eq >= 0 ? e.substring(eq + 1).trim() : "";
+            if (name.isEmpty()) continue;
+            out.add(new TibcoXmlGenerator.SdkProperty(name, value, name, name, false));
+            if (!name.startsWith("java.property.")) {
+                String twin = "java.property." + name;
+                out.add(new TibcoXmlGenerator.SdkProperty(twin, value, twin, twin, false));
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Maps an adapter component-software name to the base name of its bundled deployment
+     * resource ({@code com/tibco/deployment/{base}.xml}). Most adapters use their name
+     * verbatim; the JDBC adapter is an exception — its instance files carry the
+     * {@code .adb} extension (component name {@code adb}) but the deployment resource is
+     * named {@code adadb.xml}.
+     */
+    static String deploymentResourceBase(String componentSoftwareName) {
+        if ("adb".equals(componentSoftwareName)) return "adadb";
+        return componentSoftwareName;
     }
 
     /**
@@ -2372,12 +2552,16 @@ public class BwEarMojo extends AbstractBw5Mojo {
      * Returns an empty list if the resource is not found.
      */
     static List<TibcoXmlGenerator.SdkProperty> readSdkProperties(String componentSoftwareName) {
-        String resource = "com/tibco/deployment/" + componentSoftwareName + ".xml";
+        String resource = "com/tibco/deployment/"
+                + deploymentResourceBase(componentSoftwareName) + ".xml";
         try (java.io.InputStream in =
                 BwEarMojo.class.getClassLoader().getResourceAsStream(resource)) {
             if (in == null) return Collections.emptyList();
             String xml = new String(org.apache.commons.io.IOUtils.toByteArray(in),
                                     StandardCharsets.UTF_8);
+            // Strip XML comments so template blocks (e.g. bwengine.xml documents its
+            // <property> schema inside a comment) are not parsed as real properties.
+            xml = xml.replaceAll("(?s)<!--.*?-->", "");
             List<TibcoXmlGenerator.SdkProperty> props = new ArrayList<>();
             java.util.regex.Pattern propPat = java.util.regex.Pattern.compile(
                     "<property>(.*?)</property>", java.util.regex.Pattern.DOTALL);
@@ -2403,7 +2587,22 @@ public class BwEarMojo extends AbstractBw5Mojo {
     private static String firstGroup(String text, String regex) {
         java.util.regex.Matcher m = java.util.regex.Pattern
                 .compile(regex, java.util.regex.Pattern.DOTALL).matcher(text);
-        return m.find() ? m.group(1).trim() : null;
+        // Do NOT trim: buildear XML-parses the deployment file and preserves the element's
+        // exact text, including significant trailing spaces in labels/descriptions (e.g.
+        // "Enable using between clause "). The extracted value is still XML-escaped (regex
+        // scan), so decode it — the writer re-escapes on output, and leaving it encoded
+        // would double-escape (&amp;quot;).
+        return m.find() ? xmlDecode(m.group(1)) : null;
+    }
+
+    /** Decodes the five predefined XML entities. {@code &amp;} is decoded last. */
+    private static String xmlDecode(String s) {
+        if (s == null || s.indexOf('&') < 0) return s;
+        return s.replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&quot;", "\"")
+                .replace("&apos;", "'")
+                .replace("&amp;", "&");
     }
 
     /** Creates a single AESDK adapter AAR containing the adapter file and its TIBCO.xml. */
@@ -2423,7 +2622,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
         aarTibcoXml.deleteOnExit();
         new TibcoXmlGenerator().generateAdapterAarDescriptor(
                 aarTibcoXml, aarFileName, instanceName, componentSoftwareName,
-                adapterVersion, adapterBwPath, adapterFragName, sdkProperties, externalDeps);
+                adapterVersion, adapterBwPath, adapterFragName, sdkProperties, externalDeps,
+                archiveVersion);
 
         try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(aarFile.toPath()))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);
@@ -2469,11 +2669,20 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 + "\nSearched under: " + srcDir.getAbsolutePath());
         }
 
+        // Determine the adapter component software name (e.g. adb, adr3): prefer the
+        // descriptor's softwareTypeProperty, else infer from the adapter file extension.
+        String componentSoftwareName = (aa.softwareType != null && !aa.softwareType.isEmpty())
+            ? aa.softwareType : getExtNoDot(adapterFile);
+        // Load the adapter's SDK properties so the AAR carries its Adapter SDK Properties
+        // block (buildear emits e.g. the adb.*/adr3.* runtime tuning options).
+        List<TibcoXmlGenerator.SdkProperty> sdkProps = readSdkProperties(componentSoftwareName);
+
         // Generate AAR-level TIBCO.xml
         File aarTibcoXml = File.createTempFile("aar-TIBCO-", ".xml");
         aarTibcoXml.deleteOnExit();
         new TibcoXmlGenerator().generateAarDescriptor(
-            aarTibcoXml, aarFileName, aa.adapterReference, aa.getSdkVersionFourPart(), globalVars, null);
+            aarTibcoXml, aarFileName, aa.adapterReference, componentSoftwareName,
+            aa.getSdkVersionFourPart(), sdkProps, globalVars, archiveVersion, null);
 
         try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(aarFile.toPath()))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);
@@ -2491,6 +2700,158 @@ public class BwEarMojo extends AbstractBw5Mojo {
     // -----------------------------------------------------------------------
 
     @SuppressWarnings("PMD.UnusedFormalParameter")
+    /**
+     * Ensures a {@code .serviceagent} carries the {@code <name>} and {@code <resourceType>}
+     * that buildear injects into the top-level {@code <config>} from the resource's repository
+     * identity. buildear does not copy the file — it re-serializes the resource from its object
+     * model (ServiceObjectFactory), which always emits {@code <name>} (the resource base name)
+     * and {@code <resourceType>service.definition</resourceType>}. The on-disk "designer" form
+     * usually omits them, so a verbatim copy is missing them.
+     *
+     * <p>Idempotent: returns the original file unchanged when both elements are already present
+     * (some sources include them) or when the file is not a parseable service agent. Only the
+     * top-level {@code <config>} is inspected/modified — nested {@code <config>} blocks are left
+     * untouched. Element order is irrelevant to BW and to the C14N comparison.</p>
+     */
+    File ensureServiceAgentIdentity(File saFile) {
+        try {
+            org.jdom2.Document doc = new org.jdom2.input.SAXBuilder().build(saFile);
+            org.jdom2.Element config = doc.getRootElement().getChild("config");
+            if (config == null) return saFile;
+            boolean changed = false;
+            if (config.getChild("name") == null) {
+                String base = saFile.getName();
+                int dot = base.lastIndexOf('.');
+                config.addContent(new org.jdom2.Element("name")
+                        .setText(dot > 0 ? base.substring(0, dot) : base));
+                changed = true;
+            }
+            if (config.getChild("resourceType") == null) {
+                config.addContent(new org.jdom2.Element("resourceType").setText("service.definition"));
+                changed = true;
+            }
+            if (!changed) return saFile;
+            File tmp = File.createTempFile("bw5-sa-", ".serviceagent");
+            tmp.deleteOnExit();
+            try (java.io.OutputStream os = Files.newOutputStream(tmp.toPath())) {
+                new XMLOutputter(Format.getRawFormat().setEncoding("UTF-8")).output(doc, os);
+            }
+            return tmp;
+        } catch (org.jdom2.JDOMException | IOException e) {
+            getLog().warn("Could not inject service agent identity into "
+                + saFile.getName() + " - " + e.getMessage() + "; packaging verbatim");
+            return saFile;
+        }
+    }
+
+    /**
+     * Ensures a {@code .cpy} is packaged as its {@code ae.shared.CCBSchemaResource} XML resource,
+     * matching what TIBCO {@code buildear} produces.
+     *
+     * <ul>
+     *   <li><b>Raw COBOL source</b> (plain copybook text): wrapped into the full
+     *       {@code <BWSharedResource>} XML — {@code <version>3.6.0</version>} (current copybook
+     *       palette {@code CBVersion}) plus the fixed metadata block and the copybook text
+     *       (XML-escaped, CR→{@code &#xD;}, LF kept). The raw bytes are read with
+     *       {@link #copybookEncoding} (default ISO-8859-1) so non-ASCII characters are preserved
+     *       — unlike buildear, which reads as UTF-8 and corrupts them.</li>
+     *   <li><b>Already-XML</b> copybook resource: the five metadata elements buildear adds
+     *       ({@code copybookType}, {@code float}, {@code floatSet}, {@code legacyAlign},
+     *       {@code metadataVersion}) are injected if absent; the stored {@code <version>} is
+     *       preserved.</li>
+     * </ul>
+     * Returns the original file on any error (packaged verbatim).
+     */
+    File ensureCopybookResource(File cpyFile) {
+        try {
+            byte[] bytes = Files.readAllBytes(cpyFile.toPath());
+            String head = new String(bytes, 0, Math.min(bytes.length, 64),
+                    StandardCharsets.ISO_8859_1).trim();
+            if (head.startsWith("<?xml") || head.startsWith("<BWSharedResource")) {
+                return injectCopybookMetadata(cpyFile);
+            }
+            // Raw copybook → wrap into the CCBSchemaResource XML resource.
+            String enc = (copybookEncoding == null || copybookEncoding.isEmpty())
+                    ? "ISO-8859-1" : copybookEncoding;
+            String text = new String(bytes, java.nio.charset.Charset.forName(enc));
+            String xml = buildCopybookResourceXml(cpyFile.getName(), text);
+            File tmp = File.createTempFile("bw5-cpy-", ".cpy");
+            tmp.deleteOnExit();
+            Files.write(tmp.toPath(), xml.getBytes(StandardCharsets.UTF_8));
+            return tmp;
+        } catch (IOException e) {
+            getLog().warn("Could not wrap copybook " + cpyFile.getName()
+                + " - " + e.getMessage() + "; packaging verbatim");
+            return cpyFile;
+        }
+    }
+
+    /** Builds the {@code ae.shared.CCBSchemaResource} XML for a raw copybook. */
+    private static String buildCopybookResourceXml(String fileName, String copybookText) {
+        String cb = escape(copybookText).replace("\r", "&#xD;");
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<BWSharedResource>\n"
+            + "    <name>" + escape(fileName) + "</name>\n"
+            + "    <resourceType>ae.shared.CCBSchemaResource</resourceType>\n"
+            + "    <config>\n"
+            + "        <version>3.6.0</version>\n"
+            + "        <fixedFormat>true</fixedFormat>\n"
+            + "        <encoding>ASCII</encoding>\n"
+            + "        <copybookType>COBOL</copybookType>\n"
+            + "        <float>ieee</float>\n"
+            + "        <floatSet>true</floatSet>\n"
+            + "        <modified>false</modified>\n"
+            + "        <dayMonth>Day/month</dayMonth>\n"
+            + "        <dateFormat>YYYYXXXX</dateFormat>\n"
+            + "        <legacyAlign>true</legacyAlign>\n"
+            + "        <copybook>" + cb + "</copybook>\n"
+            + "        <metadataVersion>1</metadataVersion>\n"
+            + "        <redefineGroups/>\n"
+            + "    </config>\n"
+            + "</BWSharedResource>\n";
+    }
+
+    /** XML-escapes text content ({@code &}, {@code <}, {@code >}). */
+    private static String escape(String s) {
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    }
+
+    /**
+     * Injects the five metadata elements buildear adds to an already-XML copybook resource's
+     * {@code <config>} when absent. Returns the original file when nothing changed.
+     */
+    private File injectCopybookMetadata(File cpyFile) {
+        try {
+            org.jdom2.Document doc = new org.jdom2.input.SAXBuilder().build(cpyFile);
+            org.jdom2.Element config = doc.getRootElement().getChild("config");
+            if (config == null) return cpyFile;
+            boolean changed = false;
+            changed |= addChildIfAbsent(config, "copybookType", "COBOL");
+            changed |= addChildIfAbsent(config, "float", "ieee");
+            changed |= addChildIfAbsent(config, "floatSet", "true");
+            changed |= addChildIfAbsent(config, "legacyAlign", "true");
+            changed |= addChildIfAbsent(config, "metadataVersion", "1");
+            if (!changed) return cpyFile;
+            File tmp = File.createTempFile("bw5-cpy-", ".cpy");
+            tmp.deleteOnExit();
+            try (java.io.OutputStream os = Files.newOutputStream(tmp.toPath())) {
+                new XMLOutputter(Format.getRawFormat().setEncoding("UTF-8")).output(doc, os);
+            }
+            return tmp;
+        } catch (org.jdom2.JDOMException | IOException e) {
+            getLog().warn("Could not inject copybook metadata into "
+                + cpyFile.getName() + " - " + e.getMessage() + "; packaging verbatim");
+            return cpyFile;
+        }
+    }
+
+    /** Adds {@code <name>value</name>} to {@code parent} iff no direct child {@code name} exists. */
+    private static boolean addChildIfAbsent(org.jdom2.Element parent, String name, String value) {
+        if (parent.getChild(name) != null) return false;
+        parent.addContent(new org.jdom2.Element(name).setText(value));
+        return true;
+    }
+
     private void buildSar(File sarFile, List<BwFile> sarFiles, File srcDir) throws Exception {
         try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(sarFile.toPath()))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);
@@ -2501,8 +2862,13 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     getLog().debug("Skipping duplicate SAR entry: " + entryName);
                     continue;
                 }
+                String lname = bwf.file.getName().toLowerCase(Locale.ROOT);
                 if (bwf.file.getName().endsWith(".javaxpath")) {
                     addJavaxpathToSar(zos, bwf);
+                } else if (lname.endsWith(".serviceagent")) {
+                    addToZip(zos, bwf.relativePath, ensureServiceAgentIdentity(bwf.file));
+                } else if (lname.endsWith(".cpy")) {
+                    addToZip(zos, bwf.relativePath, ensureCopybookResource(bwf.file));
                 } else {
                     addToZip(zos, bwf.relativePath, bwf.file);
                 }
@@ -2633,10 +2999,27 @@ public class BwEarMojo extends AbstractBw5Mojo {
     private List<String> toSarPaths(List<BwFile> sarFiles) {
         List<String> paths = new ArrayList<>();
         for (BwFile bwf : sarFiles) {
-            String path = bwf.relativePath.startsWith("/") ? bwf.relativePath : "/" + bwf.relativePath;
-            paths.add(path);
+            paths.add(toBomResourcePath(bwf));
         }
         return paths;
+    }
+
+    /**
+     * BW-repository URI of a SAR resource as it appears in a PAR/AAR EXTERNAL_DEPENDENCIES list.
+     *
+     * <p>buildear references an adapter instance resource in the BOM by its adapter-type URI —
+     * {@code "<path>#adapter.<fragmentName>"} (matching {@code AEResource.getURI()} for the
+     * adapter) — not the bare file path. The fragment name is the {@code name} attribute of the
+     * {@code *:adapter} element inside the instance file (e.g. {@code SAPAdapter}, {@code ldap},
+     * {@code ActiveDatabaseAdapterConfiguration}). Only the EXTERNAL_DEPENDENCIES string carries
+     * the fragment; the packaged SAR entry itself keeps the bare path.</p>
+     */
+    private String toBomResourcePath(BwFile bwf) {
+        String path = bwf.relativePath.startsWith("/") ? bwf.relativePath : "/" + bwf.relativePath;
+        if (adapterSupportsAar(getExtNoDot(bwf.file)) && isAdapterInstanceFile(bwf.file)) {
+            return path + "#adapter." + readAdapterFragName(bwf.file);
+        }
+        return path;
     }
 
     // -----------------------------------------------------------------------

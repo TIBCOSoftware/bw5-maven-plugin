@@ -21,6 +21,13 @@ public class ArchiveDescriptorParserTest {
         assertEquals("MyApp", d.earName);
     }
 
+    /** Regression (BUG-3): the enterpriseArchive {@code <versionProperty>} must be parsed. */
+    @Test
+    public void parsesVersionProperty() throws Exception {
+        ArchiveDescriptorParser.ArchiveDescriptor d = new ArchiveDescriptorParser().parse(resource("MyApp.archive"));
+        assertEquals("1", d.version);
+    }
+
     @Test
     public void parsesProcessArchiveName() throws Exception {
         ArchiveDescriptorParser.ArchiveDescriptor d = new ArchiveDescriptorParser().parse(resource("MyApp.archive"));

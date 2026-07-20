@@ -52,4 +52,20 @@ public class ProcessParserTest {
         meta.name = "";
         assertEquals("", meta.getReferencePath());
     }
+
+    /**
+     * Regression (Bug C): a {@code .serviceagent} file is a top-level runnable module,
+     * so it must be reported as a starter with {@code starterName} taken from
+     * {@code <config>/<name>}. Before the fix service agents fell through the generic
+     * {@code parse()} path, which found no {@code pd:starter}, so no BwBPConfiguration
+     * entry was emitted for them in the PAR TIBCO.xml.
+     */
+    @Test
+    public void serviceAgentParsedAsStarter() throws Exception {
+        ProcessParser.ProcessMetadata meta =
+            new ProcessParser().parseServiceAgent(resource("SampleService_v2.serviceagent"));
+        assertTrue("service agent must be reported as a starter", meta.hasStarter);
+        assertEquals("starterName must come from <config>/<name>",
+            "SampleService_v2", meta.starterName);
+    }
 }

@@ -47,6 +47,18 @@ public class SubstVarParserTest {
         assertTrue(v.isPassword());
     }
 
+    /**
+     * Regression (Bug B): the {@code serviceSettable} flag must be parsed independently of
+     * {@code deploymentSettable}. It drives inclusion in the adapter AAR "Runtime Variables"
+     * block. ServerHost is service-settable; the other variables are not.
+     */
+    @Test
+    public void serviceSettableFlagParsed() throws Exception {
+        assertTrue("ServerHost must be service-settable", firstNamed("ServerHost").serviceSettable);
+        assertFalse("ServerPort must not be service-settable", firstNamed("ServerPort").serviceSettable);
+        assertFalse("DbPassword must not be service-settable", firstNamed("DbPassword").serviceSettable);
+    }
+
     @Test
     public void booleanTypePreserved() throws Exception {
         SubstVarParser.GlobalVariable v = firstNamed("DebugEnabled");

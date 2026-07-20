@@ -138,6 +138,7 @@ public class ArchiveDescriptorParser {
         }
 
         descriptor.earName = getTextNoNs(enterpriseArchive, "name");
+        descriptor.version = getTextNoNs(enterpriseArchive, "versionProperty");
 
         // All <processArchive> elements (multi-PAR support)
         for (Element pa : getChildrenNoNs(enterpriseArchive, "processArchive")) {
@@ -159,6 +160,7 @@ public class ArchiveDescriptorParser {
             entry.name = aa.getAttributeValue("name");
             entry.adapterReference = getTextNoNs(aa, "adapterReference");
             entry.sdkVersion = getTextNoNs(aa, "sdkVersion");
+            entry.softwareType = getTextNoNs(aa, "softwareTypeProperty");
             descriptor.adapterArchives.add(entry);
         }
 
@@ -224,6 +226,12 @@ public class ArchiveDescriptorParser {
         public String adapterReference;
         /** SDK version from {@code <sdkVersion>}, e.g. {@code 5.3.0}. */
         public String sdkVersion;
+        /**
+         * Adapter component software type from {@code <softwareTypeProperty>}
+         * (e.g. {@code adb}, {@code adr3}). Determines the {@code componentSoftwareName}
+         * and which bundled deployment resource supplies the Adapter SDK Properties.
+         */
+        public String softwareType;
 
         /**
          * BW path of the {@code .adapter} file — {@code adapterReference} with the
@@ -253,6 +261,12 @@ public class ArchiveDescriptorParser {
     public static class ArchiveDescriptor {
         /** EAR archive name from {@code enterpriseArchive/name}. */
         public String earName;
+        /**
+         * Archive version from {@code enterpriseArchive/versionProperty} (e.g. {@code 2}, {@code 8}).
+         * buildear stamps this same value into the {@code <version>} of the EAR, every PAR and
+         * every AAR TIBCO.xml. {@code null} when the descriptor omits it.
+         */
+        public String version;
         /** Name of the Shared Archive (SAR), from {@code sharedArchive/@name}. */
         public String sharedArchiveName;
         /** All {@code <processArchive>} elements — one entry per PAR. */

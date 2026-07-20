@@ -52,6 +52,41 @@ public class ProcessParser {
         return meta;
     }
 
+    /**
+     * Parses a {@code .serviceagent} file (SOAP/REST service agent) and returns metadata
+     * describing it as a deployable starter module.
+     *
+     * <p>A service agent has the structure:</p>
+     * <pre>
+     * &lt;serviceResource&gt;
+     *   &lt;config&gt;
+     *     &lt;name&gt;MyService_v2&lt;/name&gt;
+     *     ...
+     *   &lt;/config&gt;
+     * &lt;/serviceResource&gt;
+     * </pre>
+     *
+     * <p>The returned metadata always has {@code hasStarter=true} — a service agent is a
+     * top-level runnable module in the PAR, so it needs its own {@code BwBPConfiguration}
+     * entry. The {@code starterName} is the {@code <config>/<name>} value. The caller sets
+     * {@code name} to the service agent's BW repository path.</p>
+     */
+    public ProcessMetadata parseServiceAgent(File serviceAgentFile) throws Exception {
+        SAXBuilder builder = new SAXBuilder();
+        Document doc = builder.build(serviceAgentFile);
+        Element root = doc.getRootElement();
+
+        ProcessMetadata meta = new ProcessMetadata();
+        meta.hasStarter = true;
+        // <config>/<name> — plain (no-namespace) elements in a .serviceagent file
+        Element config = root.getChild("config");
+        if (config != null) {
+            Element nameEl = config.getChild("name");
+            if (nameEl != null) meta.starterName = nameEl.getTextTrim();
+        }
+        return meta;
+    }
+
     private String getChildText(Element parent, String childLocalName) {
         Element child = parent.getChild(childLocalName, PD_NS);
         return child != null ? child.getTextTrim() : "";

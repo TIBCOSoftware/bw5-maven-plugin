@@ -286,9 +286,43 @@ my-app-1.0.0-SNAPSHOT.ear
 | `archiveDescriptorFile` | `bw5.archiveDescriptorFile` | _(auto-detected)_ | TIBCO `.archive` descriptor. When not set, the plugin scans the project root for a `*.archive` file |
 | `skipManifest` | `bw5.skipManifest` | `false` | If `true`, skips generating `manifest-bw5.json` |
 | `includeFolderMetadata` | `bw5.includeFolderMetadata` | `false` | If `true`, includes `.folder` Designer metadata files in the PAR |
+| `copybookEncoding` | `bw5.copybookEncoding` | `ISO-8859-1` | Charset used to read raw (non-XML) `.cpy` copybooks when wrapping them into shared-resource XML |
+| `extraEngineProperties` | `bw5.extraEngineProperties` | — | Extra BW engine properties (`name=value`) appended to each PAR's **Adapter SDK Properties** block. See [Extra engine properties](#extra-engine-properties) below |
 | `globalPropertiesFile` | `bw5.deployConfig.globalPropertiesFile` | — | Global property overrides |
 | `projectPropertiesFile` | `bw5.deployConfig.projectPropertiesFile` | — | Project-specific overrides |
 | `skip` | `bw5.skip` | `false` | Skip goal |
+
+#### Extra engine properties
+
+Some TIBCO palettes/hotfixes expose behaviour toggles as **BW engine properties** that an administrator
+normally adds to the engine's `com/tibco/deployment/bwengine.xml`. `buildear` reads them from that file
+and stamps them into every PAR's *Adapter SDK Properties* block — together with a `java.property.<name>`
+twin that turns them into JVM `-D` system properties at runtime.
+
+A concrete example is the REST/JSON plugin's `com.tibco.plugin.restjson.escape.unicodeInText` (defect
+REST-1803): it is read at runtime via `Boolean.getBoolean(...)`, so it only takes effect when its
+`java.property.` twin is present. These properties are environment/config-driven and **not derivable from
+the project**, so the plugin does not emit them by default (that would diverge from EARs built without
+them). Enable them explicitly with `extraEngineProperties`:
+
+```xml
+<plugin>
+  <groupId>com.tibco.bw</groupId>
+  <artifactId>bw5-maven-plugin</artifactId>
+  <configuration>
+    <extraEngineProperties>
+      <property>com.tibco.plugin.restjson.escape.unicodeInText=true</property>
+    </extraEngineProperties>
+  </configuration>
+</plugin>
+```
+
+For each `name=value` entry the plugin emits the property **and** its `java.property.<name>` twin
+(unless the name already starts with `java.property.`), matching `buildear`. Command-line form:
+
+```bash
+mvn package -Dbw5.extraEngineProperties=com.tibco.plugin.restjson.escape.unicodeInText=true
+```
 
 **Examples:**
 
@@ -304,6 +338,9 @@ mvn package -Dbw5.deployConfig.globalPropertiesFile=/etc/bw5/prod.properties
 
 # Override individual variables
 mvn package -Dbw5.project.JmsHost=mq.prod.example.com
+
+# Enable a palette engine property (REST/JSON unicode escaping)
+mvn package -Dbw5.extraEngineProperties=com.tibco.plugin.restjson.escape.unicodeInText=true
 ```
 
 ---
