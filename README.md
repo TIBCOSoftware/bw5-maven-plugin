@@ -288,6 +288,7 @@ my-app-1.0.0-SNAPSHOT.ear
 | `includeFolderMetadata` | `bw5.includeFolderMetadata` | `false` | If `true`, includes `.folder` Designer metadata files in the PAR |
 | `copybookEncoding` | `bw5.copybookEncoding` | `ISO-8859-1` | Charset used to read raw (non-XML) `.cpy` copybooks when wrapping them into shared-resource XML |
 | `extraEngineProperties` | `bw5.extraEngineProperties` | — | Extra BW engine properties (`name=value`) appended to each PAR's **Adapter SDK Properties** block. See [Extra engine properties](#extra-engine-properties) below |
+| `adapterVersions` | _(pom only)_ | _(from descriptor / install)_ | Per-adapter-type SDK version overrides for the AAR. See [Adapter versions](#adapter-versions) below |
 | `globalPropertiesFile` | `bw5.deployConfig.globalPropertiesFile` | — | Global property overrides |
 | `projectPropertiesFile` | `bw5.deployConfig.projectPropertiesFile` | — | Project-specific overrides |
 | `skip` | `bw5.skip` | `false` | Skip goal |
@@ -323,6 +324,37 @@ For each `name=value` entry the plugin emits the property **and** its `java.prop
 ```bash
 mvn package -Dbw5.extraEngineProperties=com.tibco.plugin.restjson.escape.unicodeInText=true
 ```
+
+#### Adapter versions
+
+Each AAR stamps the adapter SDK version into `minimumComponentSoftwareVersion` / `configVersion`.
+The version is resolved with this precedence (highest first):
+
+1. `adapterVersions` pom override for the adapter type;
+2. the `.archive` descriptor's `<sdkVersion>` for that adapter (`<adapterArchive>` entry);
+3. the version detected from the local TIBCO install (`/opt/tibco/adapter/<type>/<version>`);
+4. a built-in default.
+
+Because a project can use several adapters of **different types and versions**, the override is a map
+keyed by adapter type (its component-software name / instance-file extension, e.g. `adas400`, `adr3`,
+`adb`, `adldap`). Give a full 4-part version:
+
+```xml
+<plugin>
+  <groupId>com.tibco.bw</groupId>
+  <artifactId>bw5-maven-plugin</artifactId>
+  <configuration>
+    <adapterVersions>
+      <adas400>6.3.0.0</adas400>
+      <adr3>7.3.2.0</adr3>
+    </adapterVersions>
+  </configuration>
+</plugin>
+```
+
+Normally you don't need this — the descriptor's `<sdkVersion>` is honoured automatically. Use it when the
+descriptor is absent/auto-discovered or to force a specific version (e.g. when the locally installed
+adapter version differs from the target runtime).
 
 **Examples:**
 

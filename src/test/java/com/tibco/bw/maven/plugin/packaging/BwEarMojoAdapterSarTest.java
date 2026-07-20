@@ -220,6 +220,38 @@ public class BwEarMojoAdapterSarTest {
             Arrays.asList("", "   ", null)).isEmpty());
     }
 
+    /**
+     * The per-type {@code adapterVersions} pom override takes precedence over the fallback
+     * (descriptor {@code <sdkVersion>} / detected version); unspecified types fall back.
+     */
+    @Test
+    public void adapterVersionOverrideTakesPrecedencePerType() throws Exception {
+        BwEarMojo mojo = new BwEarMojo();
+        java.lang.reflect.Field f = BwEarMojo.class.getDeclaredField("adapterVersions");
+        f.setAccessible(true);
+        Map<String, String> m = new HashMap<>();
+        m.put("adas400", "6.3.0.0");
+        f.set(mojo, m);
+
+        java.lang.reflect.Method rv = BwEarMojo.class.getDeclaredMethod(
+            "resolveAdapterVersion", String.class, String.class);
+        rv.setAccessible(true);
+
+        assertEquals("override wins for the configured type",
+            "6.3.0.0", rv.invoke(mojo, "adas400", "7.1.0.0"));
+        assertEquals("other types keep the fallback (descriptor/detected) version",
+            "7.3.2.0", rv.invoke(mojo, "adr3", "7.3.2.0"));
+    }
+
+    @Test
+    public void adapterVersionNoOverrideReturnsFallback() throws Exception {
+        BwEarMojo mojo = new BwEarMojo(); // adapterVersions == null
+        java.lang.reflect.Method rv = BwEarMojo.class.getDeclaredMethod(
+            "resolveAdapterVersion", String.class, String.class);
+        rv.setAccessible(true);
+        assertEquals("6.3.0.0", rv.invoke(mojo, "adas400", "6.3.0.0"));
+    }
+
     // -----------------------------------------------------------------------
     //  Unit test: extractBwResourceRefs strips #fragment from .adb and .adldap
     // -----------------------------------------------------------------------

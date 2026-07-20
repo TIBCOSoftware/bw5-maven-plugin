@@ -260,6 +260,30 @@ public class BwEarMojo extends AbstractBw5Mojo {
     @Parameter(property = "bw5.extraEngineProperties")
     private List<String> extraEngineProperties;
 
+    /**
+     * Per-adapter-type overrides for the adapter SDK version stamped into each AAR's
+     * {@code minimumComponentSoftwareVersion} / {@code configVersion}.
+     *
+     * <p>The map key is the adapter <em>type</em> — its component software name / instance-file
+     * extension, e.g. {@code adas400}, {@code adr3}, {@code adb}, {@code adldap}. A project may use
+     * several adapters of different types (and versions), so the override is keyed per type rather
+     * than a single global value.</p>
+     *
+     * <p>Version precedence (highest first): this override → the {@code .archive} descriptor's
+     * {@code <sdkVersion>} for that adapter → the version detected from the local TIBCO install →
+     * a built-in default. Values are used verbatim, so give a full 4-part version
+     * (e.g. {@code 6.3.0.0}).</p>
+     *
+     * <pre>
+     * &lt;adapterVersions&gt;
+     *   &lt;adas400&gt;6.3.0.0&lt;/adas400&gt;
+     *   &lt;adr3&gt;7.3.2.0&lt;/adr3&gt;
+     * &lt;/adapterVersions&gt;
+     * </pre>
+     */
+    @Parameter
+    private Map<String, String> adapterVersions;
+
     private static final Namespace JCF_NS =
         Namespace.getNamespace("http://www.tibco.com/bw/javaxpath/2003");
 
@@ -2305,10 +2329,19 @@ public class BwEarMojo extends AbstractBw5Mojo {
             ArchiveDescriptorParser.ArchiveDescriptor descriptor) throws Exception {
 
         Set<String> explicitPaths = new HashSet<>();
+        // Map an adapter instance file (normalized, lower-cased BW path) to the <sdkVersion>
+        // declared for it in the descriptor's <adapterArchive> — so the auto-discovered AAR uses
+        // the descriptor's version (e.g. adas400 6.3.0.0, adb 7.3.2.0) instead of a
+        // detected/default one.
+        Map<String, String> explicitVersions = new HashMap<>();
         if (descriptor != null && descriptor.adapterArchives != null) {
             for (ArchiveDescriptorParser.AdapterArchiveEntry aa : descriptor.adapterArchives) {
                 String path = aa.getAdapterFilePath();
-                if (path != null) explicitPaths.add(path.toLowerCase(Locale.ROOT));
+                if (path != null) {
+                    explicitPaths.add(path.toLowerCase(Locale.ROOT));
+                    explicitVersions.put(normalizeBwPath(path).toLowerCase(Locale.ROOT),
+                            aa.getSdkVersionFourPart());
+                }
             }
         }
 
@@ -2333,7 +2366,14 @@ public class BwEarMojo extends AbstractBw5Mojo {
             // Preserve original case of extension for componentSoftwareName (e.g. adr3TID)
             String componentSoftwareName = fileName.substring(dot + 1);
             String adapterFragName = readAdapterFragName(bwf.file);
-            String adapterVersion  = detectAdapterVersion(componentSoftwareName);
+            // Version precedence: pom override → descriptor <sdkVersion> for this adapter →
+            // detected/default. The descriptor version (when the adapter is an explicit
+            // <adapterArchive>) is authoritative over local-install detection.
+            String descriptorVersion =
+                explicitVersions.get(normalizeBwPath(bwPath).toLowerCase(Locale.ROOT));
+            String baseVersion = (descriptorVersion != null && !descriptorVersion.isEmpty())
+                ? descriptorVersion : detectAdapterVersion(componentSoftwareName);
+            String adapterVersion = resolveAdapterVersion(componentSoftwareName, baseVersion);
             List<TibcoXmlGenerator.SdkProperty> sdkProps = readSdkProperties(componentSoftwareName);
             String adapterTypeFrag = bwPath + "#adapter." + adapterFragName;
             List<String> externalDeps = computeAdapterExternalDeps(
@@ -2475,6 +2515,22 @@ public class BwEarMojo extends AbstractBw5Mojo {
      * Detects the installed version of a TIBCO adapter by scanning its standard
      * installation directory. Returns a sensible fallback version if not installed.
      */
+    /**
+     * Resolves the adapter SDK version for a given adapter type, applying the per-type
+     * {@link #adapterVersions} pom override on top of the supplied {@code fallback} (which is the
+     * descriptor's {@code <sdkVersion>} or the detected/default version). Returns {@code fallback}
+     * when no override is configured for the type.
+     */
+    private String resolveAdapterVersion(String componentSoftwareName, String fallback) {
+        if (adapterVersions != null && componentSoftwareName != null) {
+            String override = adapterVersions.get(componentSoftwareName);
+            if (override != null && !override.trim().isEmpty()) {
+                return override.trim();
+            }
+        }
+        return fallback;
+    }
+
     static String detectAdapterVersion(String componentSoftwareName) {
         for (String base : new String[]{
                 "/opt/tibco/adapter/" + componentSoftwareName,
@@ -2682,7 +2738,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
         aarTibcoXml.deleteOnExit();
         new TibcoXmlGenerator().generateAarDescriptor(
             aarTibcoXml, aarFileName, aa.adapterReference, componentSoftwareName,
-            aa.getSdkVersionFourPart(), sdkProps, globalVars, archiveVersion, null);
+            resolveAdapterVersion(componentSoftwareName, aa.getSdkVersionFourPart()),
+            sdkProps, globalVars, archiveVersion, null);
 
         try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(aarFile.toPath()))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);
