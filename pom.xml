@@ -20,7 +20,10 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.version>3.8.1</maven.version>
+        <!-- Minimum supported Maven runtime. maven-core/plugin-api are provided by the running
+             Maven, and the code only uses stable Maven 3.0-era APIs, so 3.6.3 is a safe floor.
+             This value is stamped into the plugin descriptor as <requiredMavenVersion>. -->
+        <maven.version>3.6.3</maven.version>
         <!-- OWASP Dependency Check is skipped by default (slow NVD download).
              Enable on demand: mvn verify -Dodc.skip=false -->
         <odc.skip>true</odc.skip>
