@@ -376,7 +376,7 @@ public class ProcessDocParser {
                     count++;
                 }
                 // Detect shared resource references
-                if (val.startsWith("/SharedResources/") || val.startsWith("SharedResources/")) {
+                if (isSharedResourceRef(val)) {
                     if (!act.sharedResourceRefs.contains(val)) {
                         act.sharedResourceRefs.add(val);
                     }
@@ -388,6 +388,21 @@ public class ProcessDocParser {
 
     private String truncate(String s, int max) {
         return s.length() > max ? s.substring(0, max) + "…" : s;
+    }
+
+    /**
+     * True when a config value is a reference to a BW5 shared resource. These are repository
+     * paths that either live under {@code SharedResources/} or (commonly for connections, e.g.
+     * {@code <sharedChannel>/HTTP Connection.sharedhttp</sharedChannel>}) end in a
+     * {@code .shared<type>} extension. A trailing {@code #fragment} is ignored.
+     */
+    static boolean isSharedResourceRef(String val) {
+        if (val == null || val.isEmpty()) return false;
+        if (val.startsWith("/SharedResources/") || val.startsWith("SharedResources/")) return true;
+        String v = val;
+        int hash = v.indexOf('#');
+        if (hash >= 0) v = v.substring(0, hash);
+        return v.matches(".*\\.shared[A-Za-z0-9]+");
     }
 
     // ---- XML helpers ----

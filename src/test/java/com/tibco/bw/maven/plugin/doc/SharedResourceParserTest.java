@@ -145,6 +145,72 @@ public class SharedResourceParserTest {
             + "</jdbcSharedResource>\n");
     }
 
+    /**
+     * Regression: a shared resource whose XML has NO top-level {@code <name>} element (the real
+     * TIBCO format for e.g. {@code .sharedhttp}/{@code .sharedjdbc}, where the resource name is the
+     * file name and the root is namespaced) must still be parsed — name derived from the file name,
+     * type from the root element — not silently dropped.
+     */
+    @Test
+    public void parsesResourceWithoutNameElementUsingFileName() throws Exception {
+        File dir = tmp.newFolder("sr-noname");
+        writeXml(dir, "HTTP Connection.sharedhttp",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<ns0:httpSharedResource xmlns:ns0=\"www.tibco.com/shared/HTTPConnection\">\n"
+            + "    <config>\n"
+            + "        <Host>localhost</Host>\n"
+            + "        <Port>8080</Port>\n"
+            + "    </config>\n"
+            + "</ns0:httpSharedResource>\n");
+
+        List<SharedResourceModel> res = new SharedResourceParser().parse(dir);
+        assertEquals("resource must NOT be dropped for lacking <name>", 1, res.size());
+        SharedResourceModel sr = res.get(0);
+        assertEquals("HTTP Connection", sr.name);
+        assertEquals("HTTP Connection", sr.displayName);
+        // .sharedhttp → friendly type label (was the raw root element name before the mapping)
+        assertEquals("HTTP Connection", sr.type);
+        assertEquals("localhost", sr.config.get("Host"));
+    }
+
+    /**
+     * Regression: a JMS shared resource uses a generic {@code <BWSharedResource>} root and carries
+     * its kind in {@code <resourceType>}; the report must show a friendly JMS type (derived from the
+     * .sharedjmsapp extension), not the generic root element name "BWSharedResource".
+     */
+    @Test
+    public void jmsResourceShowsFriendlyTypeNotBWSharedResource() throws Exception {
+        File dir = tmp.newFolder("sr-jms");
+        writeXml(dir, "JMSProps.sharedjmsapp",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<BWSharedResource>\n"
+            + "    <name>JMSProps</name>\n"
+            + "    <resourceType>ae.shared.JMSAppPropResource</resourceType>\n"
+            + "    <config><Foo>bar</Foo></config>\n"
+            + "</BWSharedResource>\n");
+
+        List<SharedResourceModel> res = new SharedResourceParser().parse(dir);
+        assertEquals(1, res.size());
+        SharedResourceModel sr = res.get(0);
+        assertEquals("JMSProps", sr.name);
+        assertEquals("JMS Application Properties", sr.type);
+        assertEquals("ae.shared.JMSAppPropResource", sr.resourceType);
+    }
+
+    @Test
+    public void friendlyTypePrefersExtensionThenResourceTypeThenRoot() {
+        assertEquals("HTTP Connection",
+            SharedResourceParser.friendlyType("Conn.sharedhttp", null, "httpSharedResource"));
+        assertEquals("JMS Application Properties",
+            SharedResourceParser.friendlyType("X.sharedjmsapp", "ae.shared.JMSAppPropResource", "BWSharedResource"));
+        // unknown extension → fall back to resourceType
+        assertEquals("ae.shared.Custom",
+            SharedResourceParser.friendlyType("X.sharedcustomxyz", "ae.shared.Custom", "BWSharedResource"));
+        // no extension match, no resourceType → root element
+        assertEquals("someRoot",
+            SharedResourceParser.friendlyType("X.sharedcustomxyz", null, "someRoot"));
+    }
+
     private void writeHttpResource(File dir, String filename, String name, String type)
             throws Exception {
         writeXml(dir, filename,

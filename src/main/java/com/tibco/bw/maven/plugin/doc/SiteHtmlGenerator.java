@@ -101,10 +101,13 @@ public class SiteHtmlGenerator {
         for (ProcessDocModel p : processes) {
             for (ProcessDocModel.Activity a : p.allActivities()) {
                 for (String ref : a.sharedResourceRefs) {
+                    String refKey = srKey(ref);
+                    String refLast = lastSegment(refKey);
                     for (SharedResourceModel sr : sharedResources) {
-                        String srNorm = sr.name.startsWith("/") ? sr.name.substring(1) : sr.name;
-                        String refNorm = ref.startsWith("/") ? ref.substring(1) : ref;
-                        if (srNorm.equals(refNorm) || sr.displayName.equals(lastSegment(ref))) {
+                        String srKeyName = srKey(sr.name);
+                        if (srKeyName.equals(refKey)
+                                || srKeyName.equals(refLast)
+                                || srKey(sr.displayName).equals(refLast)) {
                             String entry = fullDisplayName(p) + " / " + a.name;
                             if (!sr.usedBy.contains(entry)) sr.usedBy.add(entry);
                         }
@@ -693,11 +696,14 @@ public class SiteHtmlGenerator {
      */
     private String renderConfigValue(String val) {
         if (val == null) return "";
-        // Check if it's a shared resource reference
-        String valNorm = val.startsWith("/") ? val.substring(1) : val;
+        // Check if it's a shared resource reference (path may carry a .shared<type> extension
+        // and/or a #fragment; the SR name is the file/resource name without them).
+        String valKey = srKey(val);
+        String valLast = lastSegment(valKey);
         for (SharedResourceModel sr : sharedResources) {
-            String srNorm = sr.name.startsWith("/") ? sr.name.substring(1) : sr.name;
-            if (srNorm.equals(valNorm)) {
+            String srKeyName = srKey(sr.name);
+            if (srKeyName.equals(valKey) || srKeyName.equals(valLast)
+                    || srKey(sr.displayName).equals(valLast)) {
                 String href = "../" + srNameToHtml.getOrDefault(sr.name, "#");
                 return "<a href=\"" + href + "\" class=\"sr-link\">" + esc(sr.displayName) + "</a>";
             }
@@ -1497,6 +1503,20 @@ public class SiteHtmlGenerator {
         if (path == null) return "";
         int s = path.lastIndexOf('/');
         return s >= 0 ? path.substring(s + 1) : path;
+    }
+
+    /**
+     * Normalizes a shared-resource path/name for cross-referencing: drops a leading {@code /},
+     * a trailing {@code #fragment}, and a {@code .shared<type>} extension. So a process reference
+     * like {@code /HTTP Connection.sharedhttp} and a resource named {@code HTTP Connection}
+     * normalize to the same key.
+     */
+    private static String srKey(String s) {
+        if (s == null) return "";
+        int hash = s.indexOf('#');
+        if (hash >= 0) s = s.substring(0, hash);
+        if (s.startsWith("/")) s = s.substring(1);
+        return s.replaceFirst("\\.shared[A-Za-z0-9]+$", "");
     }
 
     private String safeFileName(String name) {

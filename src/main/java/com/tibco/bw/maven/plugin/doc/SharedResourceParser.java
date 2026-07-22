@@ -24,6 +24,45 @@ public class SharedResourceParser {
     private static final java.util.Set<String> SKIP_NAMES = new java.util.HashSet<>(
         java.util.Arrays.asList(".DS_Store", "Thumbs.db", ".folder", "vcrepo.dat"));
 
+    /** Friendly type label per shared-resource file extension. */
+    private static final java.util.Map<String, String> EXT_TYPE = new java.util.HashMap<>();
+    static {
+        EXT_TYPE.put("sharedhttp",     "HTTP Connection");
+        EXT_TYPE.put("sharedjdbc",     "JDBC Connection");
+        EXT_TYPE.put("sharedjmscon",   "JMS Connection");
+        EXT_TYPE.put("sharedjmsapp",   "JMS Application Properties");
+        EXT_TYPE.put("sharedjndi",     "JNDI Configuration");
+        EXT_TYPE.put("sharedvariable", "Shared Variable");
+        EXT_TYPE.put("sharednotify",   "Notify Configuration");
+        EXT_TYPE.put("sharedparse",    "Data Format (Parse)");
+        EXT_TYPE.put("sharedftp",      "FTP Connection");
+        EXT_TYPE.put("sharedrv",       "Rendezvous Transport");
+        EXT_TYPE.put("sharedae",       "ActiveEnterprise Connection");
+        EXT_TYPE.put("sharedch",       "RV/Channel Connection");
+        EXT_TYPE.put("sharedtcp",      "TCP Connection");
+        EXT_TYPE.put("sharedwss",      "WSS Configuration");
+        EXT_TYPE.put("sharedidentity", "Identity");
+        EXT_TYPE.put("sharedssl",      "SSL Configuration");
+        EXT_TYPE.put("sharedjms",      "JMS Connection");
+    }
+
+    /**
+     * Derives a human-friendly resource type. Prefers the file extension (most reliable, e.g.
+     * {@code .sharedjmsapp} → "JMS Application Properties"), then the {@code <resourceType>}
+     * value (e.g. {@code ae.shared.JMSAppPropResource}), then the XML root element name.
+     */
+    static String friendlyType(String fileName, String resourceType, String rootElement) {
+        if (fileName != null) {
+            int dot = fileName.lastIndexOf('.');
+            if (dot >= 0) {
+                String label = EXT_TYPE.get(fileName.substring(dot + 1).toLowerCase(java.util.Locale.ROOT));
+                if (label != null) return label;
+            }
+        }
+        if (resourceType != null && !resourceType.isEmpty()) return resourceType;
+        return rootElement;
+    }
+
     /**
      * Scans the entire {@code srcDir} tree for shared resource files (extension starts with
      * {@code "shared"}, e.g. {@code .sharedjdbc}, {@code .sharedhttp}) and parses each one.
@@ -58,8 +97,9 @@ public class SharedResourceParser {
             } else if (f.isFile() && isSharedResourceFile(f) && !SKIP_NAMES.contains(f.getName())
                        && !f.getName().startsWith(".")) {
                 try {
-                    SharedResourceModel sr = parseFile(f);
-                    if (sr != null) result.add(sr);
+                    // parseFile always returns a model (name falls back to the file name);
+                    // genuinely unparseable files throw and are skipped below.
+                    result.add(parseFile(f));
                 } catch (Exception e) {
                     LOG.fine("SharedResourceParser: skipping " + f.getName() + ": " + e.getMessage());
                 }
@@ -73,14 +113,28 @@ public class SharedResourceParser {
         Element root = doc.getRootElement();
 
         String name = childText(root, "name");
-        if (name == null || name.isEmpty()) return null;
+        if (name == null || name.isEmpty()) {
+            // Many shared resources (e.g. .sharedhttp / .sharedjdbc / .sharedjmscon) carry no
+            // top-level <name> element — the resource name IS the file name (its repository path).
+            // Fall back to the file name (minus extension) instead of dropping the resource.
+            String fn = f.getName();
+            int dot = fn.lastIndexOf('.');
+            name = dot > 0 ? fn.substring(0, dot) : fn;
+        }
 
         SharedResourceModel sr = new SharedResourceModel();
         sr.name = name;
         int slash = name.lastIndexOf('/');
         sr.displayName = slash >= 0 ? name.substring(slash + 1) : name;
-        sr.type = childText(root, "type");
         sr.resourceType = childText(root, "resourceType");
+        sr.type = childText(root, "type");
+        if (sr.type == null || sr.type.isEmpty()) {
+            // No <type> element. Many shared resources use a generic <BWSharedResource> root and
+            // carry the real kind in <resourceType> (e.g. ae.shared.JMSAppPropResource); others
+            // (e.g. .sharedhttp) have a type-specific root but no <type>. Derive a friendly label
+            // from the file extension first (most reliable), then <resourceType>, then the root tag.
+            sr.type = friendlyType(f.getName(), sr.resourceType, root.getName());
+        }
 
         Element configEl = root.getChild("config");
         if (configEl != null) {
