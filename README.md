@@ -2,7 +2,12 @@
 
 Maven plugin for **TIBCO BusinessWorks 5.x** that provides full application lifecycle management — dependency management, EAR/projlib assembly, deployment config generation, and documentation — **without requiring any TIBCO tools installed on the build machine**.
 
-> **Requires:** Java 11+, Maven 3.6.3+
+> **Requires:** Java 11+, Maven 3.6.3+ (tested through Maven 4.0.0).
+
+> **Maven 4 note:** Maven 4 requires every project to declare its root. If you build with Maven 4,
+> mark the root module — add a `.mvn/` directory at the repository root, or `root="true"` on the
+> root `<project>` — otherwise Maven 4 fails early (in its own compiler plugin) before this plugin's
+> goals run. This is a Maven 4 requirement, not specific to this plugin.
 
 ---
 
@@ -137,6 +142,28 @@ If you prefer the Maven source layout, set `bwProjectPath`:
     <bwProjectPath>${basedir}/src/main/bw</bwProjectPath>
 </configuration>
 ```
+
+### Sources below the module root (auto-detection)
+
+When the `pom.xml` lives **above** the BW project — a common convention is
+`src/main/tibco/<name>` or `src/main/bw` — you don't have to set `bwProjectPath`.
+If `bwProjectPath` (default `${basedir}`) is not itself a BW project, the plugin
+auto-detects the nearest sub-directory that **is** one (identified by its
+`vcrepo.dat` file) and every goal — build, `validate`, `run`, `site` and
+`designer-setup` (which also opens Designer on that folder) — operates on it:
+
+```
+my-bw5-app/
+├── pom.xml
+└── src/main/tibco/
+    └── MyApp/            ← auto-detected (contains vcrepo.dat)
+        ├── vcrepo.dat
+        ├── defaultVars/
+        └── Services/
+```
+
+Auto-detection is a safe no-op when `bwProjectPath` already points at a BW project
+root; set `bwProjectPath` explicitly to override it.
 
 ---
 
