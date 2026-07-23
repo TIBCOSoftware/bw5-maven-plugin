@@ -146,7 +146,7 @@ public class RunBwMojo extends AbstractBw5Mojo {
         getLog().info("BW Engine  : " + engine.getAbsolutePath());
         getLog().info("App name   : " + project.getArtifactId());
         getLog().info("Props file : " + engineProps.getAbsolutePath());
-        getLog().info("BW project : " + bwProjectPath.getAbsolutePath());
+        getLog().info("BW project : " + getEffectiveSourceDir().getAbsolutePath());
         getLog().info("Background : " + background);
         getLog().info("Command    : " + String.join(" ", cmd));
 
@@ -317,8 +317,10 @@ public class RunBwMojo extends AbstractBw5Mojo {
             cmd.addAll(Arrays.asList(extraArgs));
         }
 
-        // BW project path — positional, must be last
-        cmd.add(bwProjectPath.getAbsolutePath());
+        // BW project path — positional, must be last. Use the effective source dir so a build's
+        // processed sources (target/bw-src, with compiled JCF bytecode) are run when present,
+        // falling back to the configured bwProjectPath when running standalone.
+        cmd.add(getEffectiveSourceDir().getAbsolutePath());
 
         return cmd;
     }

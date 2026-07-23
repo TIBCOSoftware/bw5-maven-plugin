@@ -144,7 +144,7 @@ public class ConfigureMojo extends AbstractBw5Mojo {
 
         validateBwProjectPath();
 
-        File srcDir = bwSourcesDirectory.exists() ? bwSourcesDirectory : bwProjectPath;
+        File srcDir = getEffectiveSourceDir();
         getLog().info("Configuring BW5 project: " + project.getArtifactId());
         getLog().info("Source dir : " + srcDir.getAbsolutePath());
 

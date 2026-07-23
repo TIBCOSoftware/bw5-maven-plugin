@@ -176,6 +176,76 @@ public abstract class AbstractBw5Mojo extends AbstractMojo {
     }
 
     /**
+     * Returns the effective BW source directory every goal should read from: the staged copy
+     * ({@code target/bw-src}, produced by {@code copy-bw-sources} and enriched with compiled JCF
+     * bytecode / resolved libs) when it exists, otherwise the configured {@code bwProjectPath}.
+     *
+     * <p>All goals resolve BW sources through this single method so the {@code bwProjectPath}
+     * property is honored consistently — whether a goal runs standalone (uses {@code bwProjectPath})
+     * or as part of the build lifecycle (uses the processed {@code target/bw-src}).</p>
+     */
+    protected File getEffectiveSourceDir() {
+        return (bwSourcesDirectory != null && bwSourcesDirectory.exists())
+            ? bwSourcesDirectory : resolveBwSourceDir();
+    }
+
+    /**
+     * Resolves the actual BW project source directory (the folder that contains the Designer
+     * project — marked by {@code vcrepo.dat}).
+     *
+     * <p>Normally this is {@code bwProjectPath}. But when the pom lives ABOVE the BW project
+     * (e.g. the sources are under {@code src/main/bw} or {@code src/main/tibco/<name>} while the
+     * pom is at the module root), {@code bwProjectPath} defaults to the module root, which is NOT
+     * the Designer project folder. In that case this auto-detects the nearest descendant that IS a
+     * BW project root (contains {@code vcrepo.dat}) so every goal — including launching Designer —
+     * operates on the real sources.</p>
+     *
+     * <p>Safe by construction: when {@code bwProjectPath} itself contains {@code vcrepo.dat} it is
+     * returned unchanged (the common case), so auto-detection never overrides an explicit or
+     * conventional layout.</p>
+     */
+    protected File resolveBwSourceDir() {
+        if (bwProjectPath == null) return bwProjectPath;
+        if (new File(bwProjectPath, "vcrepo.dat").isFile()) return bwProjectPath;
+        File detected = findBwProjectRoot(bwProjectPath, 5);
+        if (detected != null) {
+            getLog().info("Auto-detected BW project root: " + detected.getAbsolutePath()
+                + " (pom lives above the BW sources)");
+            return detected;
+        }
+        return bwProjectPath;
+    }
+
+    /**
+     * Bounded breadth-first search for the shallowest directory under {@code root} that is a BW
+     * project root (contains {@code vcrepo.dat}). Skips build output ({@code target}) and hidden
+     * directories. Returns {@code null} if none is found within {@code maxDepth} levels.
+     */
+    private File findBwProjectRoot(File root, int maxDepth) {
+        List<File> current = new ArrayList<>();
+        current.add(root);
+        for (int depth = 0; depth <= maxDepth && !current.isEmpty(); depth++) {
+            List<File> next = new ArrayList<>();
+            for (File dir : current) {
+                File[] children = dir.listFiles();
+                if (children == null) continue;
+                for (File c : children) {
+                    if (!c.isDirectory() || c.getName().startsWith(".")
+                            || "target".equals(c.getName())) {
+                        continue;
+                    }
+                    if (new File(c, "vcrepo.dat").isFile()) {
+                        return c;
+                    }
+                    next.add(c);
+                }
+            }
+            current = next;
+        }
+        return null;
+    }
+
+    /**
      * Validates that the BW project path exists and contains BW project files.
      */
     protected void validateBwProjectPath() throws MojoExecutionException {

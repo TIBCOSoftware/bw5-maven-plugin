@@ -35,7 +35,11 @@ public class CopyBwSourcesMojo extends AbstractBw5Mojo {
 
         validateBwProjectPath();
 
-        getLog().info("Copying BW sources from: " + bwProjectPath.getAbsolutePath());
+        // Copy from the real BW project folder (with vcrepo.dat) — auto-detected when the pom
+        // lives above the sources (e.g. src/main/tibco/<name>) — so target/bw-src holds the BW
+        // project itself, not the surrounding Maven module.
+        File sourceDir = resolveBwSourceDir();
+        getLog().info("Copying BW sources from: " + sourceDir.getAbsolutePath());
         getLog().info("                     to: " + bwSourcesDirectory.getAbsolutePath());
 
         try {
@@ -56,7 +60,7 @@ public class CopyBwSourcesMojo extends AbstractBw5Mojo {
                     return true;
                 }
             };
-            FileUtils.copyDirectory(bwProjectPath, bwSourcesDirectory, excludeBuildDir);
+            FileUtils.copyDirectory(sourceDir, bwSourcesDirectory, excludeBuildDir);
             getLog().info("BW sources copied successfully.");
         } catch (IOException e) {
             throw new MojoExecutionException("Failed to copy BW sources: " + e.getMessage(), e);

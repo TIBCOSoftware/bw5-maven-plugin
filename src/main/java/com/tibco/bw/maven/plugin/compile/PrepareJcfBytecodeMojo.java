@@ -52,7 +52,7 @@ public class PrepareJcfBytecodeMojo extends AbstractBw5Mojo {
             return;
         }
 
-        File srcDir = bwSourcesDirectory.exists() ? bwSourcesDirectory : bwProjectPath;
+        File srcDir = getEffectiveSourceDir();
         List<File> javaxpathFiles = findJavaxpathFiles(srcDir);
 
         if (javaxpathFiles.isEmpty()) {

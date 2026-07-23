@@ -78,7 +78,7 @@ public class Bw5ModuleMojo extends AbstractBw5Mojo {
 
         validateBwProjectPath();
 
-        File srcDir = bwSourcesDirectory.exists() ? bwSourcesDirectory : bwProjectPath;
+        File srcDir = getEffectiveSourceDir();
         getLog().info("Assembling BW5 projlib from: " + srcDir.getAbsolutePath());
 
         try {

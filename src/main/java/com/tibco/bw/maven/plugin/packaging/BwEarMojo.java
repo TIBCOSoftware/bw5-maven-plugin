@@ -460,7 +460,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
         if (!skipResolveDependencies) resolveDependencies();
 
-        File srcDir = bwSourcesDirectory.exists() ? bwSourcesDirectory : bwProjectPath;
+        File srcDir = getEffectiveSourceDir();
         getLog().info("Assembling BW5 EAR from: " + srcDir.getAbsolutePath());
         getLog().info("Archive name: " + archiveName);
 

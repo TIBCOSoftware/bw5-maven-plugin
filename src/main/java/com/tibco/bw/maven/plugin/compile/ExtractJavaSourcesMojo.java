@@ -67,7 +67,7 @@ public class ExtractJavaSourcesMojo extends AbstractBw5Mojo {
             return;
         }
 
-        File srcDir = bwSourcesDirectory.exists() ? bwSourcesDirectory : bwProjectPath;
+        File srcDir = getEffectiveSourceDir();
 
         List<File> processFiles = findProcessFiles(srcDir);
         if (processFiles.isEmpty()) {

@@ -26,16 +26,18 @@ import java.util.regex.Pattern;
  * <p>What it does:</p>
  * <ol>
  *   <li>Resolves all {@code projlib} and {@code jar} dependencies from the Maven repository.</li>
- *   <li>Copies them to {@code ${bw5.designerLibsDir}} (default: {@code ${basedir}/.designer-libs}).
+ *   <li>Copies them to {@code ${bw5.designerLibsDir}} (default: {@code ${project.build.directory}/designer-libs}).
  *       The directory is created if it doesn't exist. Files are only copied if the destination
  *       is missing or has a different size, making the goal idempotent and fast on re-runs.</li>
  *   <li>Updates (or creates) the {@code .designtimelibs} file in the BW project source directory
+ *       (auto-detected when the pom lives above the sources, e.g. {@code src/main/tibco/<name>})
  *       with entries in the format {@code N=groupId:artifactId:version:type\=} that TIBCO Designer
  *       understands when the bw-maven-plugin Designer integration is configured.</li>
  * </ol>
  *
- * <p>Add {@code .designer-libs/} to your {@code .gitignore} since it contains resolved
- * artifacts that should not be committed.</p>
+ * <p>The default libs cache lives under {@code target/} so git ignores it automatically. If you
+ * override {@code bw5.designerLibsDir} to a location outside {@code target/}, the goal adds that
+ * directory to {@code .gitignore} since it contains resolved artifacts that should not be committed.</p>
  *
  */
 @Mojo(
@@ -47,10 +49,14 @@ public class PullMojo extends AbstractBw5Mojo {
 
     /**
      * Directory where dependencies will be staged for Designer use.
-     * Defaults to {@code ${basedir}/.designer-libs}.
-     * Add this directory to your .gitignore.
+     * Defaults to {@code ${project.build.directory}/designer-libs} — under {@code target/}, so the
+     * staged JAR cache is auto-ignored by git, never pollutes the BW source tree (not copied into
+     * {@code target/bw-src}), and is regenerated together with the Designer prefs (which also live
+     * under {@code target/}) on the next {@code designer-setup} after a {@code clean}. Designer
+     * resolves the JARs via the generated prefs (absolute paths), so the location is flexible.
+     * Override with {@code -Dbw5.designerLibsDir} for a persistent location outside {@code target/}.
      */
-    @Parameter(defaultValue = "${basedir}/.designer-libs", property = "bw5.designerLibsDir")
+    @Parameter(defaultValue = "${project.build.directory}/designer-libs", property = "bw5.designerLibsDir")
     private File designerLibsDir;
 
     /**
@@ -84,8 +90,15 @@ public class PullMojo extends AbstractBw5Mojo {
             return;
         }
 
+        // The real BW project folder (with vcrepo.dat) — auto-detected when the pom lives above
+        // the sources (e.g. src/main/tibco/<name>). The .designtimelibs file must live INSIDE this
+        // folder (Designer reads it from the project it opens). The .designer-libs JAR cache, by
+        // contrast, stays at the module root (see designerLibsDir) so it does not pollute the BW
+        // source tree.
+        File bwSourceDir = resolveBwSourceDir();
+
         // Resolve effective .designtimelibs target dir
-        File libsSourceDir = (designtimeLibsDir != null) ? designtimeLibsDir : bwProjectPath;
+        File libsSourceDir = (designtimeLibsDir != null) ? designtimeLibsDir : bwSourceDir;
 
         List<Artifact> projlibs = getProjectlibDependencies();
         List<Artifact> jars = getJarDependencies();
@@ -136,8 +149,11 @@ public class PullMojo extends AbstractBw5Mojo {
         // Generate target/.TIBCO/Designer5.prefs with FileAlias entries for all staged deps
         writeDesigner5Prefs(stagedProjlibs, stagedJars);
 
-        // Suggest .gitignore entry
-        ensureGitignore();
+        // Only manage .gitignore when the libs cache is OUTSIDE target/ (an override). The default
+        // location is under target/, which git ignores already.
+        if (!isUnderBuildDirectory(designerLibsDir)) {
+            ensureGitignore();
+        }
 
         // Optionally launch Designer
         if (shouldLaunchDesigner) {
@@ -336,9 +352,20 @@ public class PullMojo extends AbstractBw5Mojo {
     /**
      * Adds {@code .designer-libs/} to the project's {@code .gitignore} if not already present.
      */
+    /** True when {@code dir} lives inside the Maven build directory (target/), which git ignores. */
+    private boolean isUnderBuildDirectory(File dir) {
+        try {
+            String build = new File(project.getBuild().getDirectory()).getCanonicalPath()
+                + File.separator;
+            return (dir.getCanonicalPath() + File.separator).startsWith(build);
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
     private void ensureGitignore() {
         File gitignore = new File(project.getBasedir(), ".gitignore");
-        String entry = ".designer-libs/";
+        String entry = designerLibsDir.getName() + "/";
         try {
             if (gitignore.exists()) {
                 String content = FileUtils.readFileToString(gitignore, StandardCharsets.UTF_8);
@@ -373,6 +400,9 @@ public class PullMojo extends AbstractBw5Mojo {
 
         File binDir = executable.getParentFile();
         String targetDir = project.getBuild().getDirectory();
+        // Open the actual BW project (the folder with vcrepo.dat), auto-detected when the pom
+        // lives above the sources (e.g. src/main/tibco/<name>), not the Maven module root.
+        File projectToOpen = resolveBwSourceDir();
 
         // JAVA_TOOL_OPTIONS is injected into the JVM before any TRA properties are applied.
         // Since designer.tra has no java.property.user.home entry, this sets user.home cleanly,
@@ -382,12 +412,12 @@ public class PullMojo extends AbstractBw5Mojo {
         String javaToolOptions = "-Duser.home=" + targetDir;
 
         getLog().info("Launching Designer: " + executable.getAbsolutePath());
-        getLog().info("Project directory : " + bwProjectPath.getAbsolutePath());
+        getLog().info("Project directory : " + projectToOpen.getAbsolutePath());
         getLog().info("JAVA_TOOL_OPTIONS  : " + javaToolOptions);
 
         try {
             ProcessBuilder pb = new ProcessBuilder(
-                    executable.getAbsolutePath(), bwProjectPath.getAbsolutePath())
+                    executable.getAbsolutePath(), projectToOpen.getAbsolutePath())
                 .directory(binDir)
                 .inheritIO();
             pb.environment().put("JAVA_TOOL_OPTIONS", javaToolOptions);

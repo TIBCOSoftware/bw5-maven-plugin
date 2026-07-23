@@ -65,7 +65,7 @@ public class Bw5SiteMojo extends AbstractBw5Mojo {
             return;
         }
 
-        File srcDir = bwSourcesDirectory.exists() ? bwSourcesDirectory : bwProjectPath;
+        File srcDir = getEffectiveSourceDir();
         if (!srcDir.exists()) {
             getLog().warn("BW project source directory not found: " + srcDir.getAbsolutePath()
                 + "\nSkipping site generation. Run 'mvn generate-sources bw5:site' to include sources copy.");

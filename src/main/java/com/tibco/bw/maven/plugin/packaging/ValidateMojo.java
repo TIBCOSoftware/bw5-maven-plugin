@@ -105,12 +105,13 @@ public class ValidateMojo extends AbstractBw5Mojo {
 
         List<Issue> issues = new ArrayList<>();
 
-        List<File> processFiles  = findFiles(bwProjectPath, ".process");
-        List<File> substVarFiles = findFiles(bwProjectPath, ".substvar");
-        List<File> aliasLibFiles = findFiles(bwProjectPath, ".aliaslib");
-        List<File> archiveFiles  = findFiles(bwProjectPath, ".archive");
+        File srcDir = getEffectiveSourceDir();
+        List<File> processFiles  = findFiles(srcDir, ".process");
+        List<File> substVarFiles = findFiles(srcDir, ".substvar");
+        List<File> aliasLibFiles = findFiles(srcDir, ".aliaslib");
+        List<File> archiveFiles  = findFiles(srcDir, ".archive");
 
-        getLog().info("Validating BW5 project: " + bwProjectPath.getAbsolutePath());
+        getLog().info("Validating BW5 project: " + srcDir.getAbsolutePath());
         getLog().info("Found " + processFiles.size() + " process(es), "
             + substVarFiles.size() + " substvar(s), " + archiveFiles.size() + " archive(s).");
 
