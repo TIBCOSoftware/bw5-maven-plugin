@@ -176,6 +176,15 @@ public class PullMojo extends AbstractBw5Mojo {
      * which translates to {@code -Duser.home=<project>/target} on the JVM. See
      * {@link #prepareDesignerTra(File)}.</p>
      */
+    /**
+     * Escapes a file-system path for inclusion in the value of a Java properties-format entry
+     * (Designer5.prefs). Only backslashes need doubling so Windows paths survive the un-escaping
+     * Designer performs on read. No-op for POSIX paths (forward slashes). Package-private for tests.
+     */
+    static String escapePrefsPath(String path) {
+        return path == null ? "" : path.replace("\\", "\\\\");
+    }
+
     private void writeDesigner5Prefs(List<StagedDep> stagedProjlibs, List<StagedDep> stagedJars)
             throws MojoExecutionException {
 
@@ -197,20 +206,24 @@ public class PullMojo extends AbstractBw5Mojo {
             }
         }
 
-        // Append filealias entries: projlibs first, then JARs
+        // Append filealias entries: projlibs first, then JARs.
+        // The .prefs is a Java properties-format file, so backslashes in the value are un-escaped
+        // when Designer reads it. Windows paths (C:\Users\...\target\...) must therefore have their
+        // backslashes doubled, otherwise sequences like "\t"/"\U" are mangled (e.g. "\target" -> TAB)
+        // and every path breaks. On POSIX (forward slashes) this is a no-op.
         int idx = 0;
         for (StagedDep dep : stagedProjlibs) {
             Artifact a = dep.artifact;
             lines.add("filealias.pref." + idx + "="
                 + a.getGroupId() + ":" + a.getArtifactId() + ":" + a.getVersion() + ":projlib"
-                + "\\=" + dep.stagedFile.getAbsolutePath());
+                + "\\=" + escapePrefsPath(dep.stagedFile.getAbsolutePath()));
             idx++;
         }
         for (StagedDep dep : stagedJars) {
             Artifact a = dep.artifact;
             lines.add("filealias.pref." + idx + "="
                 + a.getGroupId() + ":" + a.getArtifactId() + ":" + a.getVersion() + ":jar"
-                + "\\=" + dep.stagedFile.getAbsolutePath());
+                + "\\=" + escapePrefsPath(dep.stagedFile.getAbsolutePath()));
             idx++;
         }
 
