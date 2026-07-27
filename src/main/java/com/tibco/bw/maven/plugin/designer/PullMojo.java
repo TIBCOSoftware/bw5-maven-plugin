@@ -149,6 +149,13 @@ public class PullMojo extends AbstractBw5Mojo {
         // Generate target/.TIBCO/Designer5.prefs with FileAlias entries for all staged deps
         writeDesigner5Prefs(stagedProjlibs, stagedJars);
 
+        // Generate target/.TIBCO/designer.tra: a copy of the real designer.tra with the staged JARs
+        // prepended to CUSTOM_CP_EXT. File Aliases only resolve projlib/resource references; the Java
+        // classes used by Java activities (e.g. the *InterfacesJLib jars) must be on the actual JVM
+        // classpath, which the TRA launcher builds from CUSTOM_CP_EXT. Designer is then launched with
+        // --propFile <this copy>, so the generic installation tra is never modified.
+        prepareDesignerTra(stagedJars);
+
         // Only manage .gitignore when the libs cache is OUTSIDE target/ (an override). The default
         // location is under target/, which git ignores already.
         if (!isUnderBuildDirectory(designerLibsDir)) {
@@ -447,13 +454,26 @@ public class PullMojo extends AbstractBw5Mojo {
         // No TIBCO installation files are modified.
         String javaToolOptions = "-Duser.home=" + targetDir;
 
+        // Use the project-local designer.tra copy (with the staged JARs on CUSTOM_CP_EXT) if present,
+        // so Java activity classes resolve at design time. The generic installation tra is untouched.
+        List<String> command = new ArrayList<>();
+        command.add(executable.getAbsolutePath());
+        File traCopy = designerTraFile();
+        if (traCopy.isFile()) {
+            command.add("--propFile");
+            command.add(traCopy.getAbsolutePath());
+        }
+        command.add(projectToOpen.getAbsolutePath());
+
         getLog().info("Launching Designer: " + executable.getAbsolutePath());
         getLog().info("Project directory : " + projectToOpen.getAbsolutePath());
+        if (traCopy.isFile()) {
+            getLog().info("Designer TRA       : " + traCopy.getAbsolutePath() + " (--propFile)");
+        }
         getLog().info("JAVA_TOOL_OPTIONS  : " + javaToolOptions);
 
         try {
-            ProcessBuilder pb = new ProcessBuilder(
-                    executable.getAbsolutePath(), projectToOpen.getAbsolutePath())
+            ProcessBuilder pb = new ProcessBuilder(command)
                 .directory(binDir)
                 .inheritIO();
             pb.environment().put("JAVA_TOOL_OPTIONS", javaToolOptions);
@@ -502,6 +522,101 @@ public class PullMojo extends AbstractBw5Mojo {
         if (bytes < 1024) return bytes + " B";
         if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
         return String.format("%.1f MB", bytes / (1024.0 * 1024));
+    }
+
+    /** Location of the project-local designer.tra copy: {@code target/.TIBCO/designer.tra}. */
+    private File designerTraFile() {
+        return new File(project.getBuild().getDirectory(), ".TIBCO/designer.tra");
+    }
+
+    /**
+     * Generates {@code target/.TIBCO/designer.tra}: a copy of the installed {@code designer.tra} with
+     * the staged JAR paths prepended to {@code tibco.env.CUSTOM_CP_EXT}. The TRA launcher builds the
+     * design-time Java classpath ({@code -Djava.class.path}) from that variable, so this is what puts
+     * the {@code *InterfacesJLib} classes (used by Java activities) on the classpath and clears the
+     * {@code BW-JAVA-100017 ClassNotFoundException} validation errors. Designer is launched with
+     * {@code --propFile <this copy>}, leaving the generic installation tra untouched.
+     *
+     * <p>No-op (with a warning) when the installed designer.tra cannot be located (e.g. no TIBCO_HOME
+     * on a build machine) or when there are no JARs to add.</p>
+     */
+    private void prepareDesignerTra(List<StagedDep> stagedJars) throws MojoExecutionException {
+        if (stagedJars.isEmpty()) {
+            return;
+        }
+        File executable = findDesignerExecutable();
+        if (executable == null) {
+            getLog().info("designer.tra not generated: Designer executable not found "
+                + "(set TIBCO_HOME or <tibcoHome> to enable classpath injection for validation).");
+            return;
+        }
+        File baseTra = new File(executable.getParentFile(), "designer.tra");
+        if (!baseTra.isFile()) {
+            getLog().warn("designer.tra not generated: base file not found next to executable: "
+                + baseTra.getAbsolutePath());
+            return;
+        }
+
+        List<String> jarPaths = new ArrayList<>();
+        for (StagedDep dep : stagedJars) {
+            jarPaths.add(dep.stagedFile.getAbsolutePath());
+        }
+
+        List<String> lines = new ArrayList<>();
+        try (BufferedReader r = new BufferedReader(new InputStreamReader(
+                java.nio.file.Files.newInputStream(baseTra.toPath()), StandardCharsets.ISO_8859_1))) {
+            String line;
+            while ((line = r.readLine()) != null) {
+                lines.add(line);
+            }
+        } catch (IOException e) {
+            throw new MojoExecutionException("Failed to read " + baseTra + ": " + e.getMessage(), e);
+        }
+
+        List<String> injected = injectClasspath(lines, jarPaths, File.pathSeparator);
+
+        File traCopy = designerTraFile();
+        File parent = traCopy.getParentFile();
+        if (!parent.mkdirs() && !parent.isDirectory()) {
+            throw new MojoExecutionException("Failed to create directory: " + parent.getAbsolutePath());
+        }
+        try (Writer w = new OutputStreamWriter(
+                java.nio.file.Files.newOutputStream(traCopy.toPath()), StandardCharsets.ISO_8859_1)) {
+            for (String line : injected) {
+                w.write(line);
+                w.write("\n");
+            }
+        } catch (IOException e) {
+            throw new MojoExecutionException("Failed to write " + traCopy + ": " + e.getMessage(), e);
+        }
+        getLog().info("Generated: " + traCopy.getAbsolutePath()
+            + " (" + jarPaths.size() + " JAR(s) added to CUSTOM_CP_EXT for design-time classpath)");
+    }
+
+    /**
+     * Prepends {@code jarPaths} to the {@code tibco.env.CUSTOM_CP_EXT} entry of a designer.tra, joined
+     * with {@code pathSep}. The entry is space-separated ({@code key<space>value}); the JARs are
+     * inserted at the front of the value so they take precedence, and the original value is preserved.
+     * If no {@code CUSTOM_CP_EXT} line exists, one is appended. Package-private for tests.
+     */
+    static List<String> injectClasspath(List<String> traLines, List<String> jarPaths, String pathSep) {
+        final String key = "tibco.env.CUSTOM_CP_EXT";
+        String prefix = String.join(pathSep, jarPaths);
+        List<String> out = new ArrayList<>(traLines.size() + 1);
+        boolean found = false;
+        for (String line : traLines) {
+            if (!found && line.startsWith(key + " ")) {
+                found = true;
+                String existing = line.substring((key + " ").length());
+                out.add(key + " " + prefix + (existing.isEmpty() ? "" : pathSep + existing));
+            } else {
+                out.add(line);
+            }
+        }
+        if (!found) {
+            out.add(key + " " + prefix);
+        }
+        return out;
     }
 
     private static class StagedDep {

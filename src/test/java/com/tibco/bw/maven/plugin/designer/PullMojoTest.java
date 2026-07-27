@@ -3,6 +3,9 @@ package com.tibco.bw.maven.plugin.designer;
 import org.junit.Test;
 
 import java.io.StringReader;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
@@ -69,5 +72,44 @@ public class PullMojoTest {
         String managed = "com.ceva.eai.generic.plugins:CommonFramework:4.1.0:projlib";
         String stale   = "com.ceva.eai.generic.plugins:CommonFramework:4.5.0:projlib";
         assertEquals(PullMojo.groupArtifactKey(managed), PullMojo.groupArtifactKey(stale));
+    }
+
+    // -----------------------------------------------------------------------
+    //  injectClasspath — prepend staged JARs to designer.tra CUSTOM_CP_EXT
+    //  (the design-time Java classpath the TRA launcher builds -Djava.class.path from)
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void injectClasspathPrependsToExistingCustomCpExt() {
+        List<String> tra = Arrays.asList(
+            "tibco.env.TIB_HOME /opt/tibco",
+            "tibco.env.CUSTOM_CP_EXT /opt/tibco/bw/5.16/lib:/existing.jar",
+            "tibco.class.path.extended %CUSTOM_CP_EXT%:%STD_CP_EXT%");
+        List<String> out = PullMojo.injectClasspath(
+            tra, Arrays.asList("/libs/GCPPubSubInterfacesJLib.jar", "/libs/CommonFramework.jar"), ":");
+
+        assertEquals(3, out.size());
+        assertEquals(
+            "tibco.env.CUSTOM_CP_EXT /libs/GCPPubSubInterfacesJLib.jar:/libs/CommonFramework.jar:/opt/tibco/bw/5.16/lib:/existing.jar",
+            out.get(1));
+        // untouched lines preserved
+        assertEquals("tibco.env.TIB_HOME /opt/tibco", out.get(0));
+        assertEquals("tibco.class.path.extended %CUSTOM_CP_EXT%:%STD_CP_EXT%", out.get(2));
+    }
+
+    @Test
+    public void injectClasspathAddsCustomCpExtWhenAbsent() {
+        List<String> tra = Collections.singletonList("tibco.env.TIB_HOME /opt/tibco");
+        List<String> out = PullMojo.injectClasspath(tra, Arrays.asList("/libs/a.jar"), ":");
+        assertEquals(2, out.size());
+        assertEquals("tibco.env.CUSTOM_CP_EXT /libs/a.jar", out.get(1));
+    }
+
+    @Test
+    public void injectClasspathHonorsWindowsPathSeparator() {
+        List<String> tra = Collections.singletonList("tibco.env.CUSTOM_CP_EXT C:\\tibco\\lib");
+        List<String> out = PullMojo.injectClasspath(
+            tra, Arrays.asList("C:\\libs\\a.jar", "C:\\libs\\b.jar"), ";");
+        assertEquals("tibco.env.CUSTOM_CP_EXT C:\\libs\\a.jar;C:\\libs\\b.jar;C:\\tibco\\lib", out.get(0));
     }
 }

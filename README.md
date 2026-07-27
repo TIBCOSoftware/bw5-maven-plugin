@@ -464,9 +464,13 @@ mvn bw5:designer-setup -Dbw5.designerSetup.force=true
 **What it does:**
 
 1. Resolves all `projlib` and `jar` dependencies from the Maven repository
-2. Copies them to `${basedir}/.designer-libs/` (add to `.gitignore`)
-3. Updates `.designtimelibs` in the BW project with entries in TIBCO Designer format
-4. Optionally launches TIBCO Designer on the project directory
+2. Copies them to `${project.build.directory}/designer-libs/`
+3. Updates `.designtimelibs` in the BW project (projlib entries, TIBCO Designer format), dropping any stale version-duplicate entries
+4. Generates `target/.TIBCO/Designer5.prefs` with `filealias` entries for every staged dependency (so projlib/resource references resolve)
+5. Generates `target/.TIBCO/designer.tra` — a copy of the installed `designer.tra` with the staged JARs prepended to `tibco.env.CUSTOM_CP_EXT`, so the Java classes used by Java activities (e.g. `*InterfacesJLib`) are on the design-time classpath. This is what clears `BW-JAVA-100017 ... ClassNotFoundException` validation errors. The generic installation `designer.tra` is never modified.
+6. Optionally launches TIBCO Designer on the project directory with `--propFile target/.TIBCO/designer.tra` and `-Duser.home` pointed at `target/`, so it uses the generated prefs and classpath
+
+> **Note:** generating `designer.tra` (step 5) and launching (step 6) require a local TIBCO installation (`tibcoHome`/`TIBCO_HOME`) so the base `designer.tra` can be located. Staging and the `.designtimelibs`/`Designer5.prefs` files (steps 1–4) work without it.
 
 **Key parameters:**
 
