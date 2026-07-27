@@ -49,4 +49,25 @@ public class PullMojoTest {
         assertTrue("real backslashes retained", value.contains("\\target\\designer-libs\\"));
         assertFalse("\\t must NOT have become a tab", value.indexOf('\t') >= 0);
     }
+
+    // -----------------------------------------------------------------------
+    //  groupArtifactKey — used to drop stale .designtimelibs version duplicates
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void groupArtifactKeyStripsVersionAndType() {
+        assertEquals("com.ceva.eai.generic.plugins:CommonFramework",
+            PullMojo.groupArtifactKey("com.ceva.eai.generic.plugins:CommonFramework:4.5.0:projlib"));
+        assertEquals("com.ceva.eai.generic.plugins:CommonFramework",
+            PullMojo.groupArtifactKey("com.ceva.eai.generic.plugins:CommonFramework:4.1.0:projlib"));
+    }
+
+    @Test
+    public void groupArtifactKeyIdentifiesStaleDuplicate() {
+        // A leftover 4.5.0 entry shares the group:artifact key of the managed 4.1.0 entry,
+        // so it is recognised as a stale duplicate and dropped.
+        String managed = "com.ceva.eai.generic.plugins:CommonFramework:4.1.0:projlib";
+        String stale   = "com.ceva.eai.generic.plugins:CommonFramework:4.5.0:projlib";
+        assertEquals(PullMojo.groupArtifactKey(managed), PullMojo.groupArtifactKey(stale));
+    }
 }

@@ -301,6 +301,19 @@ public class PullMojo extends AbstractBw5Mojo {
      * Colons are escaped as {@code \:} and each entry ends with {@code \=} as required
      * by the Java properties-like format TIBCO Designer reads.</p>
      */
+    /**
+     * Returns the version-agnostic {@code groupId:artifactId} key of a
+     * {@code groupId:artifactId:version:type} coordinate, or the input unchanged if it has fewer
+     * than two colon-separated segments. Package-private for tests.
+     */
+    static String groupArtifactKey(String coord) {
+        if (coord == null) return "";
+        int firstColon = coord.indexOf(':');
+        if (firstColon < 0) return coord;
+        int secondColon = coord.indexOf(':', firstColon + 1);
+        return secondColon < 0 ? coord : coord.substring(0, secondColon);
+    }
+
     private void updateDesigntimeLibs(File projectDir, List<StagedDep> stagedProjlibs)
             throws MojoExecutionException {
 
@@ -308,9 +321,15 @@ public class PullMojo extends AbstractBw5Mojo {
 
         // Build the set of Maven coordinates for projlibs managed by this plugin
         LinkedHashSet<String> managedCoords = new LinkedHashSet<>();
+        // ...and the version-agnostic groupId:artifactId keys, to drop STALE entries for the same
+        // artifact at a different version (e.g. a leftover CommonFramework:4.5.0 when the project
+        // now resolves CommonFramework:4.1.0). Such stale coords have no File Alias and make
+        // Designer report "invalid file alias / not a .projlib".
+        LinkedHashSet<String> managedKeys = new LinkedHashSet<>();
         for (StagedDep dep : stagedProjlibs) {
             Artifact a = dep.artifact;
             managedCoords.add(a.getGroupId() + ":" + a.getArtifactId() + ":" + a.getVersion() + ":projlib");
+            managedKeys.add(a.getGroupId() + ":" + a.getArtifactId());
         }
 
         // Read existing entries; preserve manual ones (valid coord entries not in our managed set)
@@ -327,9 +346,13 @@ public class PullMojo extends AbstractBw5Mojo {
                     String value = line.substring(eq + 1);
                     if (value.endsWith("\\=")) value = value.substring(0, value.length() - 2);
                     value = value.replace("\\:", ":");
-                    if (!managedCoords.contains(value) && value.contains(":") && !value.startsWith("/")) {
+                    if (!managedCoords.contains(value) && value.contains(":") && !value.startsWith("/")
+                            && !managedKeys.contains(groupArtifactKey(value))) {
                         manualCoords.add(value);
                         getLog().debug("Preserving manual .designtimelibs entry: " + value);
+                    } else if (managedKeys.contains(groupArtifactKey(value))
+                            && !managedCoords.contains(value)) {
+                        getLog().info("Dropping stale .designtimelibs entry (superseded version): " + value);
                     }
                 }
             } catch (IOException e) {
