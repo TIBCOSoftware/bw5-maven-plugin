@@ -245,7 +245,7 @@ public class TibcoXmlGeneratorTest {
      * Regression (BUG-M2/M3): when the archive descriptor is available, the PAR
      * EXTERNAL_RESOURCE_DEPENDENCY process members are the DECLARED processProperty entries
      * (buildear's getHiddenReferences) — every declared process, starter or not — NOT the
-     * starter-filtered set. Verified byte-for-byte against buildear on MVS/COMPLEX/WS.
+     * starter-filtered set. Verified byte-for-byte against buildear.
      */
     @Test
     public void parDescriptorExternalDepsUsesDeclaredProcessPathsWhenGiven() throws Exception {
@@ -258,7 +258,7 @@ public class TibcoXmlGeneratorTest {
                 "/Services/A/SubProcess/Rep.process",
                 "/DomainResources/On Startup.process");
 
-        String value = getExternalDepsValue(generateParWithDeclared("MVS_BW_01.par",
+        String value = getExternalDepsValue(generateParWithDeclared("Process Archive.par",
                 Arrays.asList(starter, sub1, sub2),
                 Collections.singletonList("/SharedResources/CopyBook/X.cpy"),
                 declared));

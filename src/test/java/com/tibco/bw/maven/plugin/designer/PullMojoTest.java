@@ -25,9 +25,9 @@ public class PullMojoTest {
 
     @Test
     public void escapesWindowsBackslashes() {
-        String win = "C:\\Users\\Pandeyki\\Downloads\\proj\\target\\designer-libs\\commons-io-2.6.jar";
+        String win = "C:\\Users\\dev\\Downloads\\proj\\target\\designer-libs\\commons-io-2.6.jar";
         assertEquals(
-            "C:\\\\Users\\\\Pandeyki\\\\Downloads\\\\proj\\\\target\\\\designer-libs\\\\commons-io-2.6.jar",
+            "C:\\\\Users\\\\dev\\\\Downloads\\\\proj\\\\target\\\\designer-libs\\\\commons-io-2.6.jar",
             PullMojo.escapePrefsPath(win));
     }
 
@@ -40,7 +40,7 @@ public class PullMojoTest {
     /** The escaped value must round-trip back to the exact Windows path through Properties.load(). */
     @Test
     public void escapedPathRoundTripsThroughProperties() throws Exception {
-        String win = "C:\\Users\\Pandeyki\\Downloads\\proj\\target\\designer-libs\\x.jar";
+        String win = "C:\\Users\\dev\\Downloads\\proj\\target\\designer-libs\\x.jar";
         String line = "filealias.pref.0=grp:art:1.0:jar\\=" + PullMojo.escapePrefsPath(win);
 
         Properties p = new Properties();
@@ -59,18 +59,18 @@ public class PullMojoTest {
 
     @Test
     public void groupArtifactKeyStripsVersionAndType() {
-        assertEquals("com.ceva.eai.generic.plugins:CommonFramework",
-            PullMojo.groupArtifactKey("com.ceva.eai.generic.plugins:CommonFramework:4.5.0:projlib"));
-        assertEquals("com.ceva.eai.generic.plugins:CommonFramework",
-            PullMojo.groupArtifactKey("com.ceva.eai.generic.plugins:CommonFramework:4.1.0:projlib"));
+        assertEquals("com.example.libs:SharedLib",
+            PullMojo.groupArtifactKey("com.example.libs:SharedLib:4.5.0:projlib"));
+        assertEquals("com.example.libs:SharedLib",
+            PullMojo.groupArtifactKey("com.example.libs:SharedLib:4.1.0:projlib"));
     }
 
     @Test
     public void groupArtifactKeyIdentifiesStaleDuplicate() {
         // A leftover 4.5.0 entry shares the group:artifact key of the managed 4.1.0 entry,
         // so it is recognised as a stale duplicate and dropped.
-        String managed = "com.ceva.eai.generic.plugins:CommonFramework:4.1.0:projlib";
-        String stale   = "com.ceva.eai.generic.plugins:CommonFramework:4.5.0:projlib";
+        String managed = "com.example.libs:SharedLib:4.1.0:projlib";
+        String stale   = "com.example.libs:SharedLib:4.5.0:projlib";
         assertEquals(PullMojo.groupArtifactKey(managed), PullMojo.groupArtifactKey(stale));
     }
 
@@ -86,11 +86,11 @@ public class PullMojoTest {
             "tibco.env.CUSTOM_CP_EXT /opt/tibco/bw/5.16/lib:/existing.jar",
             "tibco.class.path.extended %CUSTOM_CP_EXT%:%STD_CP_EXT%");
         List<String> out = PullMojo.injectClasspath(
-            tra, Arrays.asList("/libs/GCPPubSubInterfacesJLib.jar", "/libs/CommonFramework.jar"), ":");
+            tra, Arrays.asList("/libs/InterfacesLib.jar", "/libs/SharedLib.jar"), ":");
 
         assertEquals(3, out.size());
         assertEquals(
-            "tibco.env.CUSTOM_CP_EXT /libs/GCPPubSubInterfacesJLib.jar:/libs/CommonFramework.jar:/opt/tibco/bw/5.16/lib:/existing.jar",
+            "tibco.env.CUSTOM_CP_EXT /libs/InterfacesLib.jar:/libs/SharedLib.jar:/opt/tibco/bw/5.16/lib:/existing.jar",
             out.get(1));
         // untouched lines preserved
         assertEquals("tibco.env.TIB_HOME /opt/tibco", out.get(0));
@@ -122,7 +122,7 @@ public class PullMojoTest {
     public void injectClasspathDoublesBackslashesSoTheyRoundTrip() throws Exception {
         List<String> out = PullMojo.injectClasspath(
             Collections.<String>emptyList(),
-            Collections.singletonList("C:\\Users\\ki\\target\\designer-libs\\x.jar"),
+            Collections.singletonList("C:\\Users\\dev\\target\\designer-libs\\x.jar"),
             ";");
         String value = out.get(0).substring("tibco.env.CUSTOM_CP_EXT ".length());
         assertFalse("no raw single backslash left", value.matches(".*[^\\\\]\\\\[^\\\\].*"));
@@ -130,6 +130,6 @@ public class PullMojoTest {
         // Round-trip through Properties (the un-escaping the TRA launcher performs) yields the path back.
         Properties p = new Properties();
         p.load(new StringReader("cp=" + value));
-        assertEquals("C:\\Users\\ki\\target\\designer-libs\\x.jar", p.getProperty("cp"));
+        assertEquals("C:\\Users\\dev\\target\\designer-libs\\x.jar", p.getProperty("cp"));
     }
 }
