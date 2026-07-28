@@ -598,10 +598,19 @@ public class PullMojo extends AbstractBw5Mojo {
      * with {@code pathSep}. The entry is space-separated ({@code key<space>value}); the JARs are
      * inserted at the front of the value so they take precedence, and the original value is preserved.
      * If no {@code CUSTOM_CP_EXT} line exists, one is appended. Package-private for tests.
+     *
+     * <p>The TRA launcher un-escapes backslashes when reading the file (like a Java properties file:
+     * {@code \t} becomes a TAB, other {@code \x} drop the backslash), so Windows paths in the injected
+     * JARs must have their backslashes doubled or every path breaks. Only the injected paths are
+     * escaped; the pre-existing value is preserved verbatim (TIBCO already stores it escaped).</p>
      */
     static List<String> injectClasspath(List<String> traLines, List<String> jarPaths, String pathSep) {
         final String key = "tibco.env.CUSTOM_CP_EXT";
-        String prefix = String.join(pathSep, jarPaths);
+        List<String> escaped = new ArrayList<>(jarPaths.size());
+        for (String p : jarPaths) {
+            escaped.add(escapePrefsPath(p)); // double backslashes for the TRA parser (no-op on POSIX)
+        }
+        String prefix = String.join(pathSep, escaped);
         List<String> out = new ArrayList<>(traLines.size() + 1);
         boolean found = false;
         for (String line : traLines) {

@@ -107,9 +107,29 @@ public class PullMojoTest {
 
     @Test
     public void injectClasspathHonorsWindowsPathSeparator() {
-        List<String> tra = Collections.singletonList("tibco.env.CUSTOM_CP_EXT C:\\tibco\\lib");
+        // Injected paths get their backslashes doubled (the TRA parser un-escapes them, like Java
+        // properties); the pre-existing value is preserved verbatim (TIBCO already stores it escaped).
+        List<String> tra = Collections.singletonList("tibco.env.CUSTOM_CP_EXT C:\\\\tibco\\\\lib");
         List<String> out = PullMojo.injectClasspath(
             tra, Arrays.asList("C:\\libs\\a.jar", "C:\\libs\\b.jar"), ";");
-        assertEquals("tibco.env.CUSTOM_CP_EXT C:\\libs\\a.jar;C:\\libs\\b.jar;C:\\tibco\\lib", out.get(0));
+        assertEquals(
+            "tibco.env.CUSTOM_CP_EXT C:\\\\libs\\\\a.jar;C:\\\\libs\\\\b.jar;C:\\\\tibco\\\\lib",
+            out.get(0));
+    }
+
+    /** A backslash sequence like {@code \t} must not survive un-escaped (would become a TAB). */
+    @Test
+    public void injectClasspathDoublesBackslashesSoTheyRoundTrip() throws Exception {
+        List<String> out = PullMojo.injectClasspath(
+            Collections.<String>emptyList(),
+            Collections.singletonList("C:\\Users\\ki\\target\\designer-libs\\x.jar"),
+            ";");
+        String value = out.get(0).substring("tibco.env.CUSTOM_CP_EXT ".length());
+        assertFalse("no raw single backslash left", value.matches(".*[^\\\\]\\\\[^\\\\].*"));
+
+        // Round-trip through Properties (the un-escaping the TRA launcher performs) yields the path back.
+        Properties p = new Properties();
+        p.load(new StringReader("cp=" + value));
+        assertEquals("C:\\Users\\ki\\target\\designer-libs\\x.jar", p.getProperty("cp"));
     }
 }
