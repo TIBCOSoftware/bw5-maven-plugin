@@ -173,6 +173,58 @@ public class TibcoXmlGeneratorTest {
     }
 
     @Test
+    public void earDescriptorNonConfigurableGlobalVarGetsDisableFlag() throws Exception {
+        // buildear marks every non-deployment-settable Global Variable with
+        // disableConfigureAtDeployment=true in the EAR Global Variables block.
+        SubstVarParser.GlobalVariable var = new SubstVarParser.GlobalVariable();
+        var.name = "CommonCore/Cache/DefaultCache/DefaultDiskExpiryThreadIntervalSeconds";
+        var.value = "120";
+        var.type = "Integer";
+        var.requiresConfiguration = false;
+
+        Document doc = generateEar("MyApp", "Process Archive.par",
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.singletonList(var));
+
+        Element globalVars = findNamedBlock(doc, "Global Variables");
+        Element nvp = firstNamedNvp(globalVars,
+                "CommonCore/Cache/DefaultCache/DefaultDiskExpiryThreadIntervalSeconds");
+        assertNotNull(nvp);
+        assertEquals("false", child(nvp, "requiresConfiguration").getTextTrim());
+        assertEquals("true", child(nvp, "disableConfigureAtDeployment").getTextTrim());
+    }
+
+    @Test
+    public void earDescriptorConfigurableGlobalVarHasNoDisableFlag() throws Exception {
+        SubstVarParser.GlobalVariable var = new SubstVarParser.GlobalVariable();
+        var.name = "ServerHost";
+        var.value = "localhost";
+        var.type = "String";
+        var.requiresConfiguration = true;
+
+        Document doc = generateEar("MyApp", "Process Archive.par",
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.singletonList(var));
+
+        Element nvp = firstNamedNvp(findNamedBlock(doc, "Global Variables"), "ServerHost");
+        assertNull("configurable GV must not carry disableConfigureAtDeployment",
+                child(nvp, "disableConfigureAtDeployment"));
+    }
+
+    @Test
+    public void earDescriptorMessageEncodingHasNoDisableFlag() throws Exception {
+        // MessageEncoding is requiresConfiguration=false but buildear appends it WITHOUT the flag.
+        Document doc = generateEar("MyApp", "Process Archive.par",
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+
+        Element nvp = firstNamedNvp(findNamedBlock(doc, "Global Variables"), "MessageEncoding");
+        assertNotNull(nvp);
+        assertEquals("false", child(nvp, "requiresConfiguration").getTextTrim());
+        assertNull("MessageEncoding must not carry disableConfigureAtDeployment",
+                child(nvp, "disableConfigureAtDeployment"));
+    }
+
+    @Test
     public void earDescriptorPasswordVarUsesPasswordTag() throws Exception {
         SubstVarParser.GlobalVariable var = new SubstVarParser.GlobalVariable();
         var.name = "DbPass";
@@ -409,6 +461,28 @@ public class TibcoXmlGeneratorTest {
         assertNotNull("connection GV must appear in Runtime Variables", nvp);
         assertEquals("requiresConfiguration reflects deploymentSettable",
                 "true", child(nvp, "requiresConfiguration").getTextTrim());
+    }
+
+    @Test
+    public void parDescriptorRuntimeVarsNeverCarryDisableFlag() throws Exception {
+        // A non-deployment-settable service-settable var: in the PAR Runtime Variables block
+        // buildear does NOT add disableConfigureAtDeployment (only the EAR Global Variables do).
+        SubstVarParser.GlobalVariable v = new SubstVarParser.GlobalVariable();
+        v.name = "CommonCore/Cache/DefaultCache/DefaultDiskStorePath";
+        v.value = "/local/tibco/data/";
+        v.type = "String";
+        v.requiresConfiguration = false;
+        v.serviceSettable = true;
+
+        Document doc = generatePar("Process Archive.par",
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.singletonList(v));
+
+        Element nvp = firstNamedNvp(findNamedBlock(doc, "Runtime Variables"),
+                "CommonCore/Cache/DefaultCache/DefaultDiskStorePath");
+        assertNotNull(nvp);
+        assertNull("Runtime Variables must not carry disableConfigureAtDeployment",
+                child(nvp, "disableConfigureAtDeployment"));
     }
 
     @Test

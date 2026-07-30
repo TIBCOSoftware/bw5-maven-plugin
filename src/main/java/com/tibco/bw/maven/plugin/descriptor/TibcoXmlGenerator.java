@@ -111,7 +111,7 @@ public class TibcoXmlGenerator {
             sb.append("    <NameValuePairs>\n");
             sb.append("        <name>Global Variables</name>\n");
             for (SubstVarParser.GlobalVariable var : globalVars) {
-                appendGlobalVar(sb, var);
+                appendGlobalVar(sb, var, true);
             }
             // buildEAR always appends MessageEncoding as the last Global Variable
             boolean hasMessageEncoding = globalVars.stream()
@@ -448,7 +448,9 @@ public class TibcoXmlGenerator {
         sb.append("    <NameValuePairs>\n");
         sb.append("        <name>Runtime Variables</name>\n");
         for (SubstVarParser.GlobalVariable v : serviceVars) {
-            appendGlobalVar(sb, v);
+            // Runtime Variables never carry disableConfigureAtDeployment, even when the GV is
+            // not deployment-settable (buildear only marks the EAR-level Global Variables block).
+            appendGlobalVar(sb, v, false);
         }
         sb.append("    </NameValuePairs>\n");
     }
@@ -466,7 +468,8 @@ public class TibcoXmlGenerator {
         sb.append("        </NameValuePair>\n");
     }
 
-    private void appendGlobalVar(StringBuilder sb, SubstVarParser.GlobalVariable var) {
+    private void appendGlobalVar(StringBuilder sb, SubstVarParser.GlobalVariable var,
+            boolean emitDisableAtDeployment) {
         String tag = getGlobalVarTag(var.type);
         String value = var.value;
         if ("boolean".equalsIgnoreCase(var.type)) {
@@ -487,6 +490,13 @@ public class TibcoXmlGenerator {
             sb.append("            <description>This is the encoding used the EAR.</description>\n");
         }
         sb.append("            <requiresConfiguration>").append(var.requiresConfiguration).append("</requiresConfiguration>\n");
+        // buildear marks every non-deployment-settable Global Variable (requiresConfiguration=false)
+        // in the EAR-level Global Variables block with disableConfigureAtDeployment=true. The one
+        // exception is MessageEncoding, which buildear appends without the flag.
+        if (emitDisableAtDeployment && !var.requiresConfiguration
+                && !"MessageEncoding".equals(var.name)) {
+            sb.append("            <disableConfigureAtDeployment>true</disableConfigureAtDeployment>\n");
+        }
         sb.append("        </").append(tag).append(">\n");
     }
 
