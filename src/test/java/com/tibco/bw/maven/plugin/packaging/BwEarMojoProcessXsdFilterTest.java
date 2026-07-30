@@ -59,15 +59,36 @@ public class BwEarMojoProcessXsdFilterTest {
     }
 
     @Test
-    public void findArchiveFilesIsNotRecursive() throws Exception {
+    public void findArchiveFilesIsRecursive() throws Exception {
+        // TIBCO Designer stores the .archive under the project's Deployment/ subfolder,
+        // so auto-discovery must descend into subdirectories to find it.
         File dir = tmp.newFolder("nested-archive");
         File subdir = new File(dir, "Deployment");
         subdir.mkdir();
-        new File(subdir, "nested.archive").createNewFile();
+        new File(subdir, "MyApp.archive").createNewFile();
 
         List<File> found = BwEarMojo.findArchiveFiles(dir);
 
-        assertTrue(".archive in a subdirectory must not be auto-discovered", found.isEmpty());
+        assertEquals(".archive in a Deployment/ subfolder must be auto-discovered", 1, found.size());
+        assertEquals("MyApp.archive", found.get(0).getName());
+    }
+
+    @Test
+    public void findArchiveFilesSkipsTargetDirectory() throws Exception {
+        // A copy of the descriptor under target/bw-src/Deployment/ must never be picked up.
+        File dir = tmp.newFolder("with-target");
+        File deployment = new File(dir, "Deployment");
+        deployment.mkdir();
+        new File(deployment, "MyApp.archive").createNewFile();
+        File targetCopy = new File(dir, "target/bw-src/Deployment");
+        targetCopy.mkdirs();
+        new File(targetCopy, "MyApp.archive").createNewFile();
+
+        List<File> found = BwEarMojo.findArchiveFiles(dir);
+
+        assertEquals("Only the source descriptor is found; target/ copy is skipped", 1, found.size());
+        assertTrue("Must be the Deployment/ copy, not target/",
+            found.get(0).getAbsolutePath().replace('\\', '/').contains("/Deployment/MyApp.archive"));
     }
 
     @Test

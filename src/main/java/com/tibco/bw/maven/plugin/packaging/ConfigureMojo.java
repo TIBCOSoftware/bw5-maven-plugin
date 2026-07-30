@@ -135,6 +135,18 @@ public class ConfigureMojo extends AbstractBw5Mojo {
     @Parameter(defaultValue = "true", property = "bw5.deployConfig.generateValuesYaml")
     private boolean generateValuesYaml;
 
+    /**
+     * Path to a Java {@code .properties} file with <em>service</em> overrides
+     * ({@code bw[<par>]/...} keys) merged into an existing {@code -services.properties}.
+     * Also honours {@code bw5.service.*} Maven properties.
+     *
+     * <p>This goal does not assemble the EAR, so it re-merges overrides onto the
+     * {@code <finalName>-services.properties} produced by a prior {@code bw5:bwear} run. When that
+     * file is absent, the service step is skipped (run {@code package}/{@code bw5:bwear} first).</p>
+     */
+    @Parameter(property = "bw5.deployConfig.servicePropertiesFile")
+    private File servicePropertiesFile;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (skip) {
@@ -228,7 +240,10 @@ public class ConfigureMojo extends AbstractBw5Mojo {
         try {
             if (generateDeployXml) {
                 File out = new File(targetDir, finalName + "-deploy.xml");
-                gen.generateDeployXml(out, appName, appVersion, vars);
+                // deploy-config re-merges global variables only — it does not assemble the EAR, so
+                // it has no per-PAR service model. The <services> block (bindings/processes) comes
+                // from bw5:bwear; here it is omitted.
+                gen.generateDeployXml(out, appName, appVersion, vars, Collections.emptyList());
                 getLog().info("Generated deploy XML    : " + out.getName());
             }
             if (generateProperties) {
@@ -241,9 +256,37 @@ public class ConfigureMojo extends AbstractBw5Mojo {
                 gen.generateValuesYaml(out, appName, appVersion, vars);
                 getLog().info("Generated values.yaml   : " + out.getName());
             }
+            remergeServiceProperties(gen, targetDir, finalName, appName, appVersion);
+        } catch (MojoExecutionException e) {
+            throw e;
         } catch (Exception e) {
             throw new MojoExecutionException("Failed to generate config files: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Re-applies {@code servicePropertiesFile} / {@code bw5.service.*} overrides onto the
+     * {@code -services.properties} produced by a prior {@code bw5:bwear} run and rewrites it.
+     * No-op (with an info log) when no override source is configured or the base file is absent.
+     */
+    private void remergeServiceProperties(DeploymentConfigGenerator gen, File targetDir,
+            String finalName, String appName, String appVersion) throws Exception {
+        boolean hasOverride = servicePropertiesFile != null
+                || countMavenProps(PropertyMerger.SERVICE_PREFIX) > 0;
+        if (!hasOverride) return;
+
+        File out = new File(targetDir, finalName + "-services.properties");
+        if (!out.isFile()) {
+            getLog().info("Service overrides configured but " + out.getName()
+                    + " not found — run bw5:bwear (package) first; skipping.");
+            return;
+        }
+        PropertyMerger merger = new PropertyMerger();
+        Map<String, String> base = merger.loadProperties(out);
+        Map<String, String> merged = merger.mergeServiceProperties(
+                base, servicePropertiesFile, getAllMavenProperties());
+        gen.generateServicesProperties(out, appName, appVersion, merged);
+        getLog().info("Re-merged service props : " + out.getName());
     }
 
     private List<File> findSubstVarFiles(File dir) {

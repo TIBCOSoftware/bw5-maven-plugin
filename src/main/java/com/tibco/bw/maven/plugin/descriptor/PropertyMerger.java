@@ -44,6 +44,46 @@ public class PropertyMerger {
     /** Maven property prefix for per-project overrides. */
     public static final String PROJECT_PREFIX = "bw5.project.";
 
+    /** Maven property prefix for service-property overrides ({@code bw[<par>]/...} keys). */
+    public static final String SERVICE_PREFIX = "bw5.service.";
+
+    /**
+     * Merges service-property overrides on top of a generated {@code bw[<par>]/...=value} map.
+     *
+     * <p>Override sources, applied in increasing priority: the generated defaults ({@code base}),
+     * the {@code servicePropsFile} (if any), then Maven properties prefixed with
+     * {@code bw5.service.}. Unlike the global-variable merge, keys are matched verbatim and new
+     * keys are added (an admin may introduce extra bindings/machines), not just override existing
+     * ones. The input map is not mutated.</p>
+     *
+     * @param base             generated service-property map (never null)
+     * @param servicePropsFile optional {@code .properties} override file (may be null)
+     * @param mavenProperties  all Maven project properties ({@code bw5.service.*} are applied)
+     * @return a new map with overrides merged in
+     */
+    public Map<String, String> mergeServiceProperties(
+            Map<String, String> base,
+            File servicePropsFile,
+            Map<String, String> mavenProperties) throws IOException {
+
+        Map<String, String> result = new LinkedHashMap<>(base);
+        if (servicePropsFile != null) {
+            if (!servicePropsFile.isFile()) {
+                throw new IOException("Service properties file not found: "
+                        + servicePropsFile.getAbsolutePath());
+            }
+            result.putAll(loadProperties(servicePropsFile));
+        }
+        if (mavenProperties != null) {
+            for (Map.Entry<String, String> e : mavenProperties.entrySet()) {
+                if (e.getKey().startsWith(SERVICE_PREFIX)) {
+                    result.put(e.getKey().substring(SERVICE_PREFIX.length()), e.getValue());
+                }
+            }
+        }
+        return result;
+    }
+
     /**
      * Applies global and project overrides to a list of global variables.
      *
@@ -133,6 +173,7 @@ public class PropertyMerger {
         dst.description           = src.description;
         dst.type                  = src.type;
         dst.requiresConfiguration = src.requiresConfiguration;
+        dst.serviceSettable       = src.serviceSettable;
         dst.substVarFile          = src.substVarFile;
         return dst;
     }

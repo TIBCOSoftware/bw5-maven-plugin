@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -36,6 +37,92 @@ public class DeploymentConfigGenerator {
 
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
+    /**
+     * Deployment model of one PAR (BW service) — its filename and the entry-point processes
+     * (those with a starter) that AppManage lists under {@code <bwprocesses>}. The bindings,
+     * runtime variables, engine (Adapter SDK) properties, monitor and fault-tolerance settings
+     * are the standard AppManage single-binding export template and are emitted from fixed
+     * defaults, so they are not part of this model.
+     */
+    public static class ServiceModel {
+        /** PAR filename inside the EAR, e.g. {@code "MyApp-LB.par"}. */
+        public final String parFileName;
+        /** Entry-point processes (starters only). */
+        public final List<ProcessEntry> processes;
+
+        public ServiceModel(String parFileName, List<ProcessEntry> processes) {
+            this.parFileName = parFileName;
+            this.processes = processes != null ? processes : new ArrayList<>();
+        }
+
+        /** Processes sorted by BW path for deterministic output. */
+        public List<ProcessEntry> sortedProcesses() {
+            List<ProcessEntry> copy = new ArrayList<>(processes);
+            copy.sort(Comparator.comparing(p -> p.name != null ? p.name : ""));
+            return copy;
+        }
+
+        /** One entry-point process: its BW path (no leading slash) and starter name. */
+        public static class ProcessEntry {
+            public final String name;
+            public final String starterName;
+
+            public ProcessEntry(String name, String starterName) {
+                this.name = name;
+                this.starterName = starterName;
+            }
+        }
+    }
+
+    /**
+     * Standard BW engine (Adapter SDK) properties AppManage emits in the {@code <services>}
+     * {@code Adapter SDK Properties} block of a fresh export. Deliberately the deployment-level
+     * subset (not the full {@code bwengine.xml} SDK list emitted into the PAR TIBCO.xml).
+     */
+    private static final List<String[]> ADAPTER_SDK_PROPERTIES = Arrays.asList(
+        new String[]{"Trace.Task.*", "false"},
+        new String[]{"EnableMemorySavingMode", "false"},
+        new String[]{"bw.engine.enableJobRecovery", "false"},
+        new String[]{"bw.engine.autoCheckpointRestart", "true"},
+        new String[]{"bw.engine.jobstats.enable", "false"},
+        new String[]{"log.file.encoding", ""},
+        new String[]{"bw.engine.emaEnabled", "false"},
+        new String[]{"bw.container.service", ""},
+        new String[]{"bw.container.service.rmi.port", "9995"},
+        new String[]{"bw.platform.services.retreiveresources.Enabled", "false"},
+        new String[]{"bw.platform.services.retreiveresources.Hostname", "localhost"},
+        new String[]{"bw.platform.services.retreiveresources.Httpport", "8010"},
+        new String[]{"bw.platform.services.retreiveresources.defaultEncoding", "ISO8859_1"},
+        new String[]{"bw.platform.services.retreiveresources.enableLookups", "false"},
+        new String[]{"bw.platform.services.retreiveresources.isSecure", "false"},
+        new String[]{"bw.platform.services.retreiveresources.identity", "/Identity_HTTPConnection.id"},
+        new String[]{"bw.log4j.configuration", ""}
+    );
+
+    /** Fixed {@code <repoInstances>} block (AppManage default, local repo selected). */
+    private static final String REPO_INSTANCES_BLOCK =
+        "    <repoInstances selected=\"local\">\n"
+        + "        <httpRepoInstance>\n"
+        + "            <timeout>600</timeout>\n"
+        + "            <url></url>\n"
+        + "        </httpRepoInstance>\n"
+        + "        <rvRepoInstance>\n"
+        + "            <timeout>600</timeout>\n"
+        + "            <discoveryTimout>10</discoveryTimout>\n"
+        + "            <daemon>tcp:7500</daemon>\n"
+        + "            <service>7500</service>\n"
+        + "            <network></network>\n"
+        + "            <regionalSubject></regionalSubject>\n"
+        + "            <operationRetry>0</operationRetry>\n"
+        + "        </rvRepoInstance>\n"
+        + "        <localRepoInstance>\n"
+        + "            <encoding>UTF-8</encoding>\n"
+        + "        </localRepoInstance>\n"
+        + "    </repoInstances>\n";
+
+    /** Fixed {@code <monitor>} block (AppManage default: all events present, actions disabled). */
+    private static final String MONITOR_BLOCK = buildMonitorBlock();
+
     // -----------------------------------------------------------------------
     //  XML — AppManage deployment config
     // -----------------------------------------------------------------------
@@ -43,21 +130,32 @@ public class DeploymentConfigGenerator {
     /**
      * Generates an AppManage-compatible XML deployment configuration file.
      *
-     * <p>The format matches what {@code appmanage -exportConfig} produces and
-     * what {@code appmanage -setDeployConfig} consumes.</p>
+     * <p>The format matches what {@code appmanage -exportConfig} produces and what
+     * {@code appmanage -setDeployConfig} consumes: root {@code <application>} (namespace
+     * {@code ApplicationManagement}), {@code <description>}/{@code <contact>} as child elements,
+     * type-specific Global-Variable tags ({@code NameValuePair} / {@code NameValuePairInteger} /
+     * {@code NameValuePairBoolean} / {@code NameValuePairPassword}) with only {@code <name>} and
+     * {@code <value>} children, plus the {@code <repoInstances>} and {@code <services>} sections.</p>
+     *
+     * <p>The {@code <services>} block is generated as a fresh single-binding export template (one
+     * {@code <bw>} per PAR): the machine, credentials and heap settings are placeholders/defaults
+     * an administrator edits or overrides before deployment.</p>
      *
      * @param outputFile  target file (e.g. {@code target/myapp-1.0.0-deploy.xml})
      * @param appName     application name
      * @param appVersion  application version
      * @param globalVars  global variables parsed from {@code .substvar} files
+     * @param services    per-PAR service models (bindings/processes); may be empty
      */
     public void generateDeployXml(
             File outputFile,
             String appName,
             String appVersion,
-            List<SubstVarParser.GlobalVariable> globalVars) throws IOException {
+            List<SubstVarParser.GlobalVariable> globalVars,
+            List<ServiceModel> services) throws IOException {
 
         List<SubstVarParser.GlobalVariable> sorted = sorted(globalVars);
+        List<SubstVarParser.GlobalVariable> runtimeVars = serviceSettable(globalVars);
         String date = timestamp();
 
         StringBuilder sb = new StringBuilder();
@@ -69,33 +167,119 @@ public class DeploymentConfigGenerator {
         sb.append("    Generated   : ").append(date).append("\n");
         sb.append("    Tool        : bw5-maven-plugin\n");
         sb.append("-->\n");
-        sb.append("<applicationManagement\n");
-        sb.append("    xmlns=\"http://www.tibco.com/xmlns/ApplicationManagement\"\n");
-        sb.append("    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n");
-        sb.append("  <application name=\"").append(xmlAttr(appName)).append("\"");
-        sb.append(" contact=\"\" description=\"\">\n");
+        sb.append("<application xmlns=\"http://www.tibco.com/xmlns/ApplicationManagement\" name=\"")
+          .append(xmlAttr(appName)).append("\">\n");
+        sb.append("    <description></description>\n");
+        sb.append("    <contact></contact>\n");
 
         if (!sorted.isEmpty()) {
             sb.append("    <NVPairs name=\"Global Variables\">\n");
             for (SubstVarParser.GlobalVariable var : sorted) {
-                sb.append("      <NameValuePair>\n");
-                sb.append("        <name>").append(xmlEscape(var.name)).append("</name>\n");
-                sb.append("        <value>").append(xmlEscape(var.value)).append("</value>\n");
-                if (var.description != null && !var.description.isEmpty()) {
-                    sb.append("        <description>").append(xmlEscape(var.description)).append("</description>\n");
-                }
-                sb.append("        <type>").append(xmlEscape(nvlType(var.type))).append("</type>\n");
-                sb.append("        <requiresConfiguration>").append(var.requiresConfiguration).append("</requiresConfiguration>\n");
-                sb.append("        <deploymentSettable>").append(var.requiresConfiguration).append("</deploymentSettable>\n");
-                sb.append("      </NameValuePair>\n");
+                String tag = globalVarTag(var.type);
+                sb.append("        <").append(tag).append(">\n");
+                sb.append("            <name>").append(xmlEscape(var.name)).append("</name>\n");
+                sb.append("            <value>").append(xmlEscape(normalizedValue(var))).append("</value>\n");
+                sb.append("        </").append(tag).append(">\n");
             }
             sb.append("    </NVPairs>\n");
         }
 
-        sb.append("  </application>\n");
-        sb.append("</applicationManagement>\n");
+        sb.append(REPO_INSTANCES_BLOCK);
+
+        if (services != null && !services.isEmpty()) {
+            sb.append("    <services>\n");
+            for (ServiceModel svc : services) {
+                appendServiceBw(sb, svc, runtimeVars);
+            }
+            sb.append("    </services>\n");
+        }
+
+        sb.append("</application>\n");
 
         write(outputFile, sb.toString());
+    }
+
+    /** Appends one {@code <bw name="...par">} service block (single-binding export template). */
+    private void appendServiceBw(StringBuilder sb, ServiceModel svc,
+            List<SubstVarParser.GlobalVariable> runtimeVars) {
+        String par = svc.parFileName;
+        sb.append("        <bw name=\"").append(xmlAttr(par)).append("\">\n");
+        sb.append("            <enabled>true</enabled>\n");
+        sb.append("            <bindings>\n");
+        sb.append("                <binding name=\"\">\n");
+        sb.append("                    <machine>%%").append(par).append("-machine%%</machine>\n");
+        sb.append("                    <product>\n");
+        sb.append("                        <type>bwengine</type>\n");
+        sb.append("                        <version></version>\n");
+        sb.append("                        <location></location>\n");
+        sb.append("                    </product>\n");
+        sb.append("                    <description></description>\n");
+        sb.append("                    <contact></contact>\n");
+        sb.append("                    <setting>\n");
+        sb.append("                        <startOnBoot>false</startOnBoot>\n");
+        sb.append("                        <enableVerbose>false</enableVerbose>\n");
+        sb.append("                        <maxLogFileSize>20000</maxLogFileSize>\n");
+        sb.append("                        <maxLogFileCount>5</maxLogFileCount>\n");
+        sb.append("                        <threadCount>8</threadCount>\n");
+        sb.append("                        <NTService>\n");
+        sb.append("                            <runAsNT>false</runAsNT>\n");
+        sb.append("                            <startupType>automatic</startupType>\n");
+        sb.append("                            <loginAs>%%").append(par).append("loginAs%%</loginAs>\n");
+        sb.append("                            <password>%%").append(par).append("password%%</password>\n");
+        sb.append("                        </NTService>\n");
+        sb.append("                        <java>\n");
+        sb.append("                            <prepandClassPath></prepandClassPath>\n");
+        sb.append("                            <appendClassPath></appendClassPath>\n");
+        sb.append("                            <initHeapSize>32</initHeapSize>\n");
+        sb.append("                            <maxHeapSize>256</maxHeapSize>\n");
+        sb.append("                            <threadStackSize>256</threadStackSize>\n");
+        sb.append("                        </java>\n");
+        sb.append("                    </setting>\n");
+        sb.append("                    <ftWeight>1000</ftWeight>\n");
+        sb.append("                    <shutdown>\n");
+        sb.append("                        <checkpoint>false</checkpoint>\n");
+        sb.append("                        <timeout>0</timeout>\n");
+        sb.append("                    </shutdown>\n");
+        appendPlainNvPairs(sb, "                    ", "INSTANCE_RUNTIME_VARIABLES",
+                runtimeVarPairs(runtimeVars));
+        sb.append("                </binding>\n");
+        sb.append("            </bindings>\n");
+        appendPlainNvPairs(sb, "            ", "Runtime Variables", runtimeVarPairs(runtimeVars));
+        appendPlainNvPairs(sb, "            ", "Adapter SDK Properties", ADAPTER_SDK_PROPERTIES);
+        sb.append("            <failureCount>0</failureCount>\n");
+        sb.append("            <failureInterval>0</failureInterval>\n");
+        sb.append(MONITOR_BLOCK);
+        sb.append("            <bwprocesses>\n");
+        for (ServiceModel.ProcessEntry p : svc.sortedProcesses()) {
+            sb.append("                <bwprocess name=\"").append(xmlAttr(p.name)).append("\">\n");
+            sb.append("                    <starter>").append(xmlEscape(p.starterName)).append("</starter>\n");
+            sb.append("                    <enabled>true</enabled>\n");
+            sb.append("                    <maxJob>0</maxJob>\n");
+            sb.append("                    <activation>true</activation>\n");
+            sb.append("                    <flowLimit>0</flowLimit>\n");
+            sb.append("                </bwprocess>\n");
+        }
+        sb.append("            </bwprocesses>\n");
+        sb.append("            <isFt>false</isFt>\n");
+        sb.append("            <faultTolerant>\n");
+        sb.append("                <hbInterval>10000</hbInterval>\n");
+        sb.append("                <activationInterval>35000</activationInterval>\n");
+        sb.append("                <preparationDelay>0</preparationDelay>\n");
+        sb.append("            </faultTolerant>\n");
+        sb.append("        </bw>\n");
+    }
+
+    /** Appends a {@code <NVPairs name="...">} block of plain (untyped) name/value pairs. */
+    private void appendPlainNvPairs(StringBuilder sb, String indent, String blockName,
+            List<String[]> pairs) {
+        sb.append(indent).append("<NVPairs name=\"").append(xmlAttr(blockName)).append("\">\n");
+        for (String[] kv : pairs) {
+            sb.append(indent).append("    <NameValuePair>\n");
+            sb.append(indent).append("        <name>").append(xmlEscape(kv[0])).append("</name>\n");
+            sb.append(indent).append("        <value>").append(xmlEscape(kv[1])).append("</value>\n");
+            sb.append(indent).append("    </NameValuePair>\n");
+        }
+        sb.append(indent).append("</NVPairs>\n");
     }
 
     // -----------------------------------------------------------------------
@@ -145,6 +329,116 @@ public class DeploymentConfigGenerator {
         }
 
         write(outputFile, sb.toString());
+    }
+
+    // -----------------------------------------------------------------------
+    //  services.properties — bindings / processes (AppManage service config)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Generates the flat {@code services.properties} file: the {@code <services>} deployment
+     * template flattened to {@code bw[<par>]/...=value} keys (bindings, runtime variables,
+     * Adapter SDK properties, bwprocesses, fault tolerance). This is the same content as the
+     * {@code <services>} block of the {@code -deploy.xml}, in the {@code key=value} form
+     * {@code AppManage} reads/writes. Keys are emitted in sorted order for stable output.
+     *
+     * @param outputFile  target file (e.g. {@code target/myapp-1.0.0-services.properties})
+     * @param appName     application name
+     * @param appVersion  application version
+     * @param flat        flat {@code bw[<par>]/...=value} map (from {@link #servicePropertyMap},
+     *                    with any overrides already merged in)
+     */
+    public void generateServicesProperties(
+            File outputFile,
+            String appName,
+            String appVersion,
+            Map<String, String> flat) throws IOException {
+
+        List<String> keys = new ArrayList<>(flat.keySet());
+        keys.sort(Comparator.naturalOrder());
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("# BW5 Service Deployment Properties (bindings, processes)\n");
+        sb.append("# Application : ").append(appName).append("\n");
+        sb.append("# Version     : ").append(appVersion).append("\n");
+        sb.append("# Generated   : ").append(timestamp()).append("\n");
+        sb.append("# Tool        : bw5-maven-plugin\n");
+        sb.append("\n");
+        for (String key : keys) {
+            sb.append(propertiesEscapeKey(key)).append("=")
+              .append(propertiesEscape(flat.get(key))).append("\n");
+        }
+        write(outputFile, sb.toString());
+    }
+
+    /**
+     * Builds the flat {@code bw[<par>]/...=value} map for the {@code services.properties} file.
+     * Exposed (package-private) so overrides can be merged before the file and the
+     * {@code -deploy.xml} {@code <services>} block are written.
+     */
+    public Map<String, String> servicePropertyMap(
+            List<SubstVarParser.GlobalVariable> globalVars,
+            List<ServiceModel> services) {
+
+        Map<String, String> flat = new LinkedHashMap<>();
+        if (services == null) return flat;
+        List<String[]> runtimeVars = runtimeVarPairs(serviceSettable(globalVars));
+
+        for (ServiceModel svc : services) {
+            String p = "bw[" + svc.parFileName + "]";
+            flat.put(p + "/enabled", "true");
+            flat.put(p + "/failureCount", "0");
+            flat.put(p + "/failureInterval", "0");
+            flat.put(p + "/isFt", "false");
+            flat.put(p + "/faultTolerant/hbInterval", "10000");
+            flat.put(p + "/faultTolerant/activationInterval", "35000");
+            flat.put(p + "/faultTolerant/preparationDelay", "0");
+
+            // Single default binding
+            String b = p + "/bindings/binding[]";
+            flat.put(b + "/machine", "%%" + svc.parFileName + "-machine%%");
+            flat.put(b + "/description", "");
+            flat.put(b + "/contact", "");
+            flat.put(b + "/product/type", "bwengine");
+            flat.put(b + "/product/version", "");
+            flat.put(b + "/product/location", "");
+            flat.put(b + "/ftWeight", "1000");
+            flat.put(b + "/setting/startOnBoot", "false");
+            flat.put(b + "/setting/enableVerbose", "false");
+            flat.put(b + "/setting/maxLogFileSize", "20000");
+            flat.put(b + "/setting/maxLogFileCount", "5");
+            flat.put(b + "/setting/threadCount", "8");
+            flat.put(b + "/setting/NTService/runAsNT", "false");
+            flat.put(b + "/setting/NTService/startupType", "automatic");
+            flat.put(b + "/setting/NTService/loginAs", "%%" + svc.parFileName + "loginAs%%");
+            flat.put(b + "/setting/NTService/password", "%%" + svc.parFileName + "password%%");
+            flat.put(b + "/setting/java/prepandClassPath", "");
+            flat.put(b + "/setting/java/appendClassPath", "");
+            flat.put(b + "/setting/java/initHeapSize", "32");
+            flat.put(b + "/setting/java/maxHeapSize", "256");
+            flat.put(b + "/setting/java/threadStackSize", "256");
+            flat.put(b + "/shutdown/checkpoint", "false");
+            flat.put(b + "/shutdown/timeout", "0");
+            for (String[] kv : runtimeVars) {
+                flat.put(b + "/variables/variable[" + kv[0] + "]", kv[1]);
+            }
+
+            for (String[] kv : runtimeVars) {
+                flat.put(p + "/variables[Runtime Variables]/variable[" + kv[0] + "]", kv[1]);
+            }
+            for (String[] kv : ADAPTER_SDK_PROPERTIES) {
+                flat.put(p + "/variables[Adapter SDK Properties]/variable[" + kv[0] + "]", kv[1]);
+            }
+            for (ServiceModel.ProcessEntry proc : svc.sortedProcesses()) {
+                String bp = p + "/bwprocesses/bwprocess[" + proc.name + "]";
+                flat.put(bp + "/starter", proc.starterName);
+                flat.put(bp + "/enabled", "true");
+                flat.put(bp + "/maxJob", "0");
+                flat.put(bp + "/activation", "true");
+                flat.put(bp + "/flowLimit", "0");
+            }
+        }
+        return flat;
     }
 
     // -----------------------------------------------------------------------
@@ -266,8 +560,50 @@ public class DeploymentConfigGenerator {
         return new SimpleDateFormat(DATE_FORMAT, Locale.ROOT).format(new Date());
     }
 
-    private String nvlType(String type) {
-        return (type != null && !type.isEmpty()) ? type : "String";
+    /** The service-settable global variables (those AppManage lists as Runtime Variables). */
+    private List<SubstVarParser.GlobalVariable> serviceSettable(
+            List<SubstVarParser.GlobalVariable> vars) {
+        List<SubstVarParser.GlobalVariable> result = new ArrayList<>();
+        if (vars != null) {
+            for (SubstVarParser.GlobalVariable v : vars) {
+                if (v.serviceSettable) result.add(v);
+            }
+        }
+        result.sort(Comparator.comparing(v -> v.name != null ? v.name : ""));
+        return result;
+    }
+
+    /** Runtime-variable name/value pairs for the service blocks. */
+    private List<String[]> runtimeVarPairs(List<SubstVarParser.GlobalVariable> serviceVars) {
+        List<String[]> pairs = new ArrayList<>();
+        for (SubstVarParser.GlobalVariable v : serviceVars) {
+            pairs.add(new String[]{v.name, normalizedValue(v)});
+        }
+        return pairs;
+    }
+
+    /**
+     * The type-specific Global-Variable element tag used by AppManage:
+     * {@code NameValuePairInteger} / {@code NameValuePairBoolean} / {@code NameValuePairPassword},
+     * or plain {@code NameValuePair} for strings/unknown types.
+     */
+    private static String globalVarTag(String type) {
+        if (type == null) return "NameValuePair";
+        switch (type.toLowerCase(Locale.ROOT)) {
+            case "password": return "NameValuePairPassword";
+            case "boolean":  return "NameValuePairBoolean";
+            case "integer":  return "NameValuePairInteger";
+            default:         return "NameValuePair";
+        }
+    }
+
+    /** Value with boolean {@code 1}/{@code true} normalised to {@code true}/{@code false}. */
+    private static String normalizedValue(SubstVarParser.GlobalVariable var) {
+        String value = var.value != null ? var.value : "";
+        if ("boolean".equalsIgnoreCase(var.type)) {
+            return ("1".equals(value) || "true".equalsIgnoreCase(value)) ? "true" : "false";
+        }
+        return value;
     }
 
     // XML escaping
@@ -306,6 +642,15 @@ public class DeploymentConfigGenerator {
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * Escapes a {@code .properties} <em>key</em>. Same as {@link #propertiesEscape} plus spaces
+     * (which delimit key from value and so must be escaped inside a key), matching the
+     * {@code variables[Adapter\ SDK\ Properties]} form AppManage writes.
+     */
+    private static String propertiesEscapeKey(String s) {
+        return propertiesEscape(s).replace(" ", "\\ ");
     }
 
     /**
@@ -363,5 +708,72 @@ public class DeploymentConfigGenerator {
         try (Writer w = new OutputStreamWriter(Files.newOutputStream(file.toPath()), StandardCharsets.UTF_8)) {
             w.write(content);
         }
+    }
+
+    /**
+     * Builds the fixed {@code <monitor>} block (12-space base indent) emitted inside each
+     * {@code <bw>} service — the AppManage default: a single empty rulebase, the four failure
+     * events (ANY/FIRST/SECOND/Subsequent), a log event and a suspend-process event, every
+     * action present but disabled.
+     */
+    private static String buildMonitorBlock() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("            <monitor>\n");
+        sb.append("                <rulebases>\n");
+        sb.append("                    <rulebase>\n");
+        sb.append("                        <uri></uri>\n");
+        sb.append("                        <data></data>\n");
+        sb.append("                    </rulebase>\n");
+        sb.append("                </rulebases>\n");
+        sb.append("                <events>\n");
+        for (String failure : new String[]{"ANY", "FIRST", "SECOND", "Subsequent"}) {
+            sb.append("                    <failureEvent>\n");
+            sb.append("                        <restart>false</restart>\n");
+            sb.append("                        <description></description>\n");
+            appendMonitorActions(sb);
+            sb.append("                        <failure>").append(failure).append("</failure>\n");
+            sb.append("                    </failureEvent>\n");
+        }
+        sb.append("                    <logEvent>\n");
+        sb.append("                        <restart>false</restart>\n");
+        sb.append("                        <description></description>\n");
+        appendMonitorActions(sb);
+        sb.append("                        <match></match>\n");
+        sb.append("                    </logEvent>\n");
+        sb.append("                    <suspendProcessEvent>\n");
+        sb.append("                        <restart>false</restart>\n");
+        sb.append("                        <description></description>\n");
+        appendMonitorActions(sb);
+        sb.append("                    </suspendProcessEvent>\n");
+        sb.append("                </events>\n");
+        sb.append("            </monitor>\n");
+        return sb.toString();
+    }
+
+    /** Appends the shared {@code <actions>} block (alert/email/custom, all disabled). */
+    private static void appendMonitorActions(StringBuilder sb) {
+        sb.append("                        <actions>\n");
+        sb.append("                            <alertAction>\n");
+        sb.append("                                <performPolicy>Once</performPolicy>\n");
+        sb.append("                                <enabled>false</enabled>\n");
+        sb.append("                                <level>High</level>\n");
+        sb.append("                                <message></message>\n");
+        sb.append("                            </alertAction>\n");
+        sb.append("                            <emailAction>\n");
+        sb.append("                                <performPolicy>Once</performPolicy>\n");
+        sb.append("                                <enabled>false</enabled>\n");
+        sb.append("                                <message></message>\n");
+        sb.append("                                <to></to>\n");
+        sb.append("                                <cc></cc>\n");
+        sb.append("                                <subject></subject>\n");
+        sb.append("                                <sMTPServer></sMTPServer>\n");
+        sb.append("                            </emailAction>\n");
+        sb.append("                            <customAction>\n");
+        sb.append("                                <performPolicy>Once</performPolicy>\n");
+        sb.append("                                <enabled>false</enabled>\n");
+        sb.append("                                <command></command>\n");
+        sb.append("                                <arguments></arguments>\n");
+        sb.append("                            </customAction>\n");
+        sb.append("                        </actions>\n");
     }
 }

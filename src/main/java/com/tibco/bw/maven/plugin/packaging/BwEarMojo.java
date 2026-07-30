@@ -118,6 +118,14 @@ public class BwEarMojo extends AbstractBw5Mojo {
     private boolean generateValuesYaml;
 
     /**
+     * Generate a flat {@code -services.properties} deployment configuration file alongside the EAR.
+     * This is the {@code <services>} section (bindings, processes, runtime/engine properties) of the
+     * {@code -deploy.xml} in AppManage {@code key=value} form. Set to {@code false} to skip it.
+     */
+    @Parameter(defaultValue = "true", property = "bw5.generateServicesProperties")
+    private boolean generateServicesProperties;
+
+    /**
      * When {@code true}, skips copying projlib/JAR dependencies to {@code target/bw-lib}
      * before assembling the EAR. Useful when {@code bw5:resolve-dependencies} has already
      * been executed earlier in the build (e.g. bound to the {@code process-resources} phase).
@@ -154,6 +162,15 @@ public class BwEarMojo extends AbstractBw5Mojo {
      */
     @Parameter(property = "bw5.deployConfig.projectPropertiesFile")
     private File projectPropertiesFile;
+
+    /**
+     * Path to a Java {@code .properties} file with <em>service</em> overrides
+     * ({@code bw[<par>]/...} keys) merged into the generated {@code -services.properties}
+     * before it is written. Also honours {@code bw5.service.*} Maven properties. Lets an
+     * environment tune bindings/heap/thread settings without editing generated output.
+     */
+    @Parameter(property = "bw5.deployConfig.servicePropertiesFile")
+    private File servicePropertiesFile;
 
     /**
      * When {@code true}, the {@code .javaxpath} bytecode already embedded in the source file
@@ -510,6 +527,9 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
             // 5. Assemble PAR(s) and AAR(s) — multi-archive or single-PAR
             List<File> moduleFiles = new ArrayList<>();  // all PAR/AAR files for this EAR
+            // One service model per PAR — drives the <services> block of the -deploy.xml and the
+            // services.properties file (bindings/processes deployment template).
+            List<DeploymentConfigGenerator.ServiceModel> serviceModels = new ArrayList<>();
             // SAR resources accumulated across all archives (union, deduped by path)
             List<BwFile> combinedSarFiles = new ArrayList<>();
             Set<String> seenSarPaths = new LinkedHashSet<>();
@@ -557,6 +577,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                         ? pa.processPaths : null;
                     buildPar(parFile, parFiles, meta, sarPaths, globalVars, declaredProcessPaths);
                     moduleFiles.add(parFile);
+                    serviceModels.add(toServiceModel(parFile.getName(), meta));
                     getLog().info("PAR assembled: " + parFile.getName()
                         + " (" + parFile.length() + " bytes, " + parFiles.size() + " process(es))");
                 }
@@ -754,6 +775,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     File parFile = new File(workDir, parFileName);
                     buildPar(parFile, parFiles, meta, sarPaths, globalVars, declaredProcessPaths);
                     moduleFiles.add(parFile);
+                    serviceModels.add(toServiceModel(parFile.getName(), meta));
                     getLog().info("PAR assembled: " + parFile.getName() + " ("
                         + parFile.length() + " bytes, " + parFiles.size() + " process(es))");
                 } else {
@@ -838,7 +860,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
             // 10. Apply property overrides and generate deployment configuration files
             if (!earOnly) {
                 List<SubstVarParser.GlobalVariable> configuredVars = applyPropertyOverrides(globalVars);
-                generateDeploymentConfigs(configuredVars);
+                generateDeploymentConfigs(configuredVars, serviceModels);
             }
 
         } catch (MojoExecutionException e) {
@@ -877,10 +899,12 @@ public class BwEarMojo extends AbstractBw5Mojo {
     //  Deployment config generation
     // -----------------------------------------------------------------------
 
-    private void generateDeploymentConfigs(List<SubstVarParser.GlobalVariable> globalVars)
+    private void generateDeploymentConfigs(List<SubstVarParser.GlobalVariable> globalVars,
+            List<DeploymentConfigGenerator.ServiceModel> serviceModels)
             throws MojoExecutionException {
 
-        if (earOnly || (!generateDeployXml && !generateProperties && !generateValuesYaml)) {
+        if (earOnly || (!generateDeployXml && !generateProperties
+                && !generateValuesYaml && !generateServicesProperties)) {
             return;
         }
 
@@ -894,7 +918,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
         try {
             if (generateDeployXml) {
                 File out = new File(targetDir, finalName + "-deploy.xml");
-                gen.generateDeployXml(out, appName, appVersion, globalVars);
+                gen.generateDeployXml(out, appName, appVersion, globalVars, serviceModels);
                 getLog().info("Generated deploy XML : " + out.getName());
             }
             if (generateProperties) {
@@ -902,13 +926,59 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 gen.generateProperties(out, appName, appVersion, globalVars);
                 getLog().info("Generated properties : " + out.getName());
             }
+            if (generateServicesProperties) {
+                File out = new File(targetDir, finalName + "-services.properties");
+                Map<String, String> flat = gen.servicePropertyMap(globalVars, serviceModels);
+                flat = applyServicePropertyOverrides(flat);
+                gen.generateServicesProperties(out, appName, appVersion, flat);
+                getLog().info("Generated services   : " + out.getName());
+            }
             if (generateValuesYaml) {
                 File out = new File(targetDir, finalName + "-values.yaml");
                 gen.generateValuesYaml(out, appName, appVersion, globalVars);
                 getLog().info("Generated values.yaml: " + out.getName());
             }
-        } catch (Exception e) {
+        } catch (MojoExecutionException e) {
+            throw e;
+        } catch (IOException e) {
             throw new MojoExecutionException("Failed to generate deployment config files: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Builds the {@link DeploymentConfigGenerator.ServiceModel} for a PAR from its process
+     * metadata: one entry per process/serviceagent that has a starter (the entry points
+     * AppManage lists under {@code <bwprocesses>}).
+     */
+    private DeploymentConfigGenerator.ServiceModel toServiceModel(
+            String parFileName, List<ProcessParser.ProcessMetadata> meta) {
+        List<DeploymentConfigGenerator.ServiceModel.ProcessEntry> entries = new ArrayList<>();
+        for (ProcessParser.ProcessMetadata m : meta) {
+            if (m.hasStarter) {
+                entries.add(new DeploymentConfigGenerator.ServiceModel.ProcessEntry(
+                        m.name, m.starterName));
+            }
+        }
+        return new DeploymentConfigGenerator.ServiceModel(parFileName, entries);
+    }
+
+    /**
+     * Applies {@code servicePropertiesFile} (and {@code bw5.service.*} Maven properties) overrides
+     * on top of the generated service-property map, so the {@code services.properties} artifact can
+     * be tuned per environment (heap sizes, thread counts, extra machines) and merged into a
+     * deployment. Returns the map unchanged when no override source is configured.
+     */
+    private Map<String, String> applyServicePropertyOverrides(Map<String, String> base)
+            throws MojoExecutionException {
+        try {
+            return new PropertyMerger().mergeServiceProperties(
+                    base, servicePropertiesFile, getAllMavenProperties());
+        } catch (IOException e) {
+            throw new MojoExecutionException(e.getMessage(), e);
+        } catch (Exception e) {
+            getLog().warn("Could not apply service-property overrides: " + e.getMessage()
+                    + " — using generated defaults");
+            return base;
         }
     }
 
@@ -1392,20 +1462,38 @@ public class BwEarMojo extends AbstractBw5Mojo {
     }
 
     /**
-     * Scans the top level of {@code dir} for files with a {@code .archive} extension.
-     * Non-recursive — {@code .archive} files in BW5 projects always live at the project root.
+     * Scans {@code dir} recursively for files with a {@code .archive} extension.
+     *
+     * <p>TIBCO Designer stores the {@code .archive} descriptor under the project's
+     * {@code Deployment/} subfolder (not the project root), so a non-recursive scan misses it
+     * and the EAR falls back to the default {@code "Process Archive.par"} PAR name. Walking the
+     * tree lets auto-discovery find {@code Deployment/<App>.archive} and honour its
+     * {@code processArchive/@name}.</p>
+     *
+     * <p>Build-output and VCS directories ({@code target}, {@code .git}, {@code .svn}) are skipped
+     * so a copy under {@code target/bw-src/Deployment/} is never picked up. Results are sorted by
+     * absolute path for deterministic selection when more than one descriptor exists.</p>
      */
     static List<File> findArchiveFiles(File dir) {
         List<File> result = new ArrayList<>();
-        if (dir == null || !dir.isDirectory()) return result;
+        collectArchiveFiles(dir, result);
+        result.sort(Comparator.comparing(File::getAbsolutePath));
+        return result;
+    }
+
+    private static void collectArchiveFiles(File dir, List<File> result) {
+        if (dir == null || !dir.isDirectory()) return;
         File[] files = dir.listFiles();
-        if (files == null) return result;
+        if (files == null) return;
         for (File f : files) {
-            if (f.isFile() && f.getName().endsWith(".archive")) {
+            if (f.isDirectory()) {
+                String name = f.getName();
+                if ("target".equals(name) || ".git".equals(name) || ".svn".equals(name)) continue;
+                collectArchiveFiles(f, result);
+            } else if (f.getName().endsWith(".archive")) {
                 result.add(f);
             }
         }
-        return result;
     }
 
     /**

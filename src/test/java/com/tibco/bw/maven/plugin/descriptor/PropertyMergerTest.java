@@ -142,4 +142,79 @@ public class PropertyMergerTest {
             merger.merge(oneVar("X", "v"), null, null, Collections.emptyMap());
         assertEquals("v", result.get(0).value);
     }
+
+    // -----------------------------------------------------------------------
+    //  serviceSettable flag must survive the merge copy (feeds Runtime Variables)
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void mergePreservesServiceSettableFlag() throws Exception {
+        SubstVarParser.GlobalVariable v = new SubstVarParser.GlobalVariable();
+        v.name = "CommonCore/Cache/cacheManagerConfig";
+        v.value = "x";
+        v.serviceSettable = true;
+
+        PropertyMerger merger = new PropertyMerger();
+        List<SubstVarParser.GlobalVariable> result =
+            merger.merge(java.util.Arrays.asList(v), null, null, Collections.emptyMap());
+
+        assertTrue("serviceSettable must survive the merge (else Runtime Variables is empty)",
+            result.get(0).serviceSettable);
+    }
+
+    // -----------------------------------------------------------------------
+    //  Service-property override merge (bw[<par>]/... keys)
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void serviceOverrideFileOverridesGeneratedValue() throws Exception {
+        Map<String, String> base = new HashMap<>();
+        String key = "bw[MyApp-LB.par]/bindings/binding[]/setting/java/maxHeapSize";
+        base.put(key, "256");
+
+        File override = propsFile(key, "512");
+
+        Map<String, String> merged =
+            new PropertyMerger().mergeServiceProperties(base, override, Collections.emptyMap());
+
+        assertEquals("service override file must override generated default", "512", merged.get(key));
+    }
+
+    @Test
+    public void serviceOverrideMavenPropWins() throws Exception {
+        Map<String, String> base = new HashMap<>();
+        String key = "bw[MyApp-LB.par]/bindings/binding[]/setting/threadCount";
+        base.put(key, "8");
+
+        File override = propsFile(key, "16");
+        Map<String, String> mavenProps = new HashMap<>();
+        mavenProps.put(PropertyMerger.SERVICE_PREFIX + key, "32");
+
+        Map<String, String> merged =
+            new PropertyMerger().mergeServiceProperties(base, override, mavenProps);
+
+        assertEquals("bw5.service.* must override the service properties file", "32", merged.get(key));
+    }
+
+    @Test
+    public void serviceOverrideAddsNewKey() throws Exception {
+        Map<String, String> base = new HashMap<>();
+        base.put("bw[MyApp-LB.par]/enabled", "true");
+
+        String extra = "bw[MyApp-LB.par]/bindings/binding[]/machine";
+        File override = propsFile(extra, "%%host%%");
+
+        Map<String, String> merged =
+            new PropertyMerger().mergeServiceProperties(base, override, Collections.emptyMap());
+
+        assertEquals("override may add new keys (extra bindings/machines)", "%%host%%", merged.get(extra));
+        assertEquals("existing keys are preserved", "true", merged.get("bw[MyApp-LB.par]/enabled"));
+    }
+
+    @Test(expected = IOException.class)
+    public void missingServicePropertiesFileThrows() throws Exception {
+        File missing = new File(tmp.getRoot(), "does-not-exist-service.properties");
+        new PropertyMerger().mergeServiceProperties(
+            new HashMap<>(), missing, Collections.emptyMap());
+    }
 }
