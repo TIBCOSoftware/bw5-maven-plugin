@@ -292,8 +292,12 @@ target/
 The `-deploy.xml` is written in the native AppManage format (`appmanage -exportConfig` /
 `-setDeployConfig`): a root `<application>` element with the Global Variables, a `<repoInstances>`
 section and a `<services>` section (one `<bw>` per PAR — bindings, runtime variables, engine
-properties and processes) generated as a single-binding export template you edit or override before
-deployment. The `-services.properties` file is that `<services>` section in flat `key=value` form.
+properties and processes) generated as a single-binding export template. The `-services.properties`
+file is that same `<services>` section in flat `key=value` form.
+
+Both are rendered from the **same** `bw[<par>]/...` map, so any [service override](#property-override-model)
+(`servicePropertiesFile` / `bw5.service.*`) is applied to the `<services>` block of the `-deploy.xml`
+and the `-services.properties` identically — just like an `appmanage` deploy-config merge.
 
 **EAR structure:**
 

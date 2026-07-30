@@ -50,7 +50,7 @@ public class DeploymentConfigGeneratorTest {
     private String readDeployXml(List<SubstVarParser.GlobalVariable> vars,
             List<DeploymentConfigGenerator.ServiceModel> services) throws Exception {
         File out = tmp.newFile("deploy.xml");
-        new DeploymentConfigGenerator().generateDeployXml(out, "MyApp", "1.0.0", vars, services);
+        new DeploymentConfigGenerator().generateDeployXml(out, "MyApp", "1.0.0", vars, services, null);
         return new String(Files.readAllBytes(out.toPath()), StandardCharsets.UTF_8);
     }
 
@@ -122,6 +122,28 @@ public class DeploymentConfigGeneratorTest {
     public void deployXmlWithoutServicesOmitsServicesBlock() throws Exception {
         String xml = readDeployXml(Arrays.asList(gv("A", "1", "String", false)), null);
         assertFalse(xml.contains("<services>"));
+    }
+
+    @Test
+    public void deployXmlServicesReflectServiceOverrides() throws Exception {
+        // A merged service-property map (as AppManage merge would apply) must drive the <services>
+        // block: overridden values appear in the XML, not the generated defaults.
+        DeploymentConfigGenerator gen = new DeploymentConfigGenerator();
+        List<DeploymentConfigGenerator.ServiceModel> services = oneService();
+        java.util.Map<String, String> flat = gen.servicePropertyMap(
+                Arrays.asList(gv("CommonCore/Cache/cacheManagerConfig", "cfg", "String", true)), services);
+        flat.put("bw[MyApp-LB.par]/bindings/binding[]/setting/java/maxHeapSize", "2048");
+        flat.put("bw[MyApp-LB.par]/isFt", "true");
+
+        File out = tmp.newFile("deploy-ovr.xml");
+        gen.generateDeployXml(out, "MyApp", "1.0.0",
+                Arrays.asList(gv("CommonCore/Cache/cacheManagerConfig", "cfg", "String", true)),
+                services, flat);
+        String xml = new String(Files.readAllBytes(out.toPath()), StandardCharsets.UTF_8);
+
+        assertTrue("overridden heap must appear in <services>", xml.contains("<maxHeapSize>2048</maxHeapSize>"));
+        assertFalse("default heap must be gone", xml.contains("<maxHeapSize>256</maxHeapSize>"));
+        assertTrue("overridden isFt must appear", xml.contains("<isFt>true</isFt>"));
     }
 
     // -----------------------------------------------------------------------

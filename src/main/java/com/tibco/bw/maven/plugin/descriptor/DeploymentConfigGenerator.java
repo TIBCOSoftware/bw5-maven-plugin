@@ -146,16 +146,25 @@ public class DeploymentConfigGenerator {
      * @param appVersion  application version
      * @param globalVars  global variables parsed from {@code .substvar} files
      * @param services    per-PAR service models (bindings/processes); may be empty
+     * @param serviceProps flat {@code bw[<par>]/...} map (from {@link #servicePropertyMap}, with any
+     *                    overrides already merged) that supplies the values for the {@code <services>}
+     *                    block — so overrides show up in the XML exactly as in the
+     *                    {@code -services.properties}. When {@code null} the generated defaults are used.
      */
     public void generateDeployXml(
             File outputFile,
             String appName,
             String appVersion,
             List<SubstVarParser.GlobalVariable> globalVars,
-            List<ServiceModel> services) throws IOException {
+            List<ServiceModel> services,
+            Map<String, String> serviceProps) throws IOException {
 
         List<SubstVarParser.GlobalVariable> sorted = sorted(globalVars);
         List<SubstVarParser.GlobalVariable> runtimeVars = serviceSettable(globalVars);
+        // The <services> block renders from the same (possibly overridden) flat map as the
+        // services.properties file. Fall back to freshly generated defaults when none is supplied.
+        Map<String, String> flat = serviceProps != null
+                ? serviceProps : servicePropertyMap(globalVars, services);
         String date = timestamp();
 
         StringBuilder sb = new StringBuilder();
@@ -189,7 +198,7 @@ public class DeploymentConfigGenerator {
         if (services != null && !services.isEmpty()) {
             sb.append("    <services>\n");
             for (ServiceModel svc : services) {
-                appendServiceBw(sb, svc, runtimeVars);
+                appendServiceBw(sb, svc, runtimeVars, flat);
             }
             sb.append("    </services>\n");
         }
@@ -199,87 +208,114 @@ public class DeploymentConfigGenerator {
         write(outputFile, sb.toString());
     }
 
-    /** Appends one {@code <bw name="...par">} service block (single-binding export template). */
+    /**
+     * Appends one {@code <bw name="...par">} service block. Every scalar value is read from the
+     * flat {@code bw[<par>]/...} map ({@code flat}) so overrides merged into the
+     * {@code -services.properties} appear identically here — the {@code <monitor>} block is the only
+     * fixed part. Structure (process list, runtime-variable names) comes from the model.
+     */
     private void appendServiceBw(StringBuilder sb, ServiceModel svc,
-            List<SubstVarParser.GlobalVariable> runtimeVars) {
+            List<SubstVarParser.GlobalVariable> runtimeVars, Map<String, String> flat) {
         String par = svc.parFileName;
+        String p = "bw[" + par + "]";
+        String b = p + "/bindings/binding[]";
         sb.append("        <bw name=\"").append(xmlAttr(par)).append("\">\n");
-        sb.append("            <enabled>true</enabled>\n");
+        sb.append("            <enabled>").append(esc(flat, p + "/enabled", "true")).append("</enabled>\n");
         sb.append("            <bindings>\n");
         sb.append("                <binding name=\"\">\n");
-        sb.append("                    <machine>%%").append(par).append("-machine%%</machine>\n");
+        sb.append("                    <machine>").append(esc(flat, b + "/machine", "%%" + par + "-machine%%")).append("</machine>\n");
         sb.append("                    <product>\n");
-        sb.append("                        <type>bwengine</type>\n");
-        sb.append("                        <version></version>\n");
-        sb.append("                        <location></location>\n");
+        sb.append("                        <type>").append(esc(flat, b + "/product/type", "bwengine")).append("</type>\n");
+        sb.append("                        <version>").append(esc(flat, b + "/product/version", "")).append("</version>\n");
+        sb.append("                        <location>").append(esc(flat, b + "/product/location", "")).append("</location>\n");
         sb.append("                    </product>\n");
-        sb.append("                    <description></description>\n");
-        sb.append("                    <contact></contact>\n");
+        sb.append("                    <description>").append(esc(flat, b + "/description", "")).append("</description>\n");
+        sb.append("                    <contact>").append(esc(flat, b + "/contact", "")).append("</contact>\n");
         sb.append("                    <setting>\n");
-        sb.append("                        <startOnBoot>false</startOnBoot>\n");
-        sb.append("                        <enableVerbose>false</enableVerbose>\n");
-        sb.append("                        <maxLogFileSize>20000</maxLogFileSize>\n");
-        sb.append("                        <maxLogFileCount>5</maxLogFileCount>\n");
-        sb.append("                        <threadCount>8</threadCount>\n");
+        sb.append("                        <startOnBoot>").append(esc(flat, b + "/setting/startOnBoot", "false")).append("</startOnBoot>\n");
+        sb.append("                        <enableVerbose>").append(esc(flat, b + "/setting/enableVerbose", "false")).append("</enableVerbose>\n");
+        sb.append("                        <maxLogFileSize>").append(esc(flat, b + "/setting/maxLogFileSize", "20000")).append("</maxLogFileSize>\n");
+        sb.append("                        <maxLogFileCount>").append(esc(flat, b + "/setting/maxLogFileCount", "5")).append("</maxLogFileCount>\n");
+        sb.append("                        <threadCount>").append(esc(flat, b + "/setting/threadCount", "8")).append("</threadCount>\n");
         sb.append("                        <NTService>\n");
-        sb.append("                            <runAsNT>false</runAsNT>\n");
-        sb.append("                            <startupType>automatic</startupType>\n");
-        sb.append("                            <loginAs>%%").append(par).append("loginAs%%</loginAs>\n");
-        sb.append("                            <password>%%").append(par).append("password%%</password>\n");
+        sb.append("                            <runAsNT>").append(esc(flat, b + "/setting/NTService/runAsNT", "false")).append("</runAsNT>\n");
+        sb.append("                            <startupType>").append(esc(flat, b + "/setting/NTService/startupType", "automatic")).append("</startupType>\n");
+        sb.append("                            <loginAs>").append(esc(flat, b + "/setting/NTService/loginAs", "%%" + par + "loginAs%%")).append("</loginAs>\n");
+        sb.append("                            <password>").append(esc(flat, b + "/setting/NTService/password", "%%" + par + "password%%")).append("</password>\n");
         sb.append("                        </NTService>\n");
         sb.append("                        <java>\n");
-        sb.append("                            <prepandClassPath></prepandClassPath>\n");
-        sb.append("                            <appendClassPath></appendClassPath>\n");
-        sb.append("                            <initHeapSize>32</initHeapSize>\n");
-        sb.append("                            <maxHeapSize>256</maxHeapSize>\n");
-        sb.append("                            <threadStackSize>256</threadStackSize>\n");
+        sb.append("                            <prepandClassPath>").append(esc(flat, b + "/setting/java/prepandClassPath", "")).append("</prepandClassPath>\n");
+        sb.append("                            <appendClassPath>").append(esc(flat, b + "/setting/java/appendClassPath", "")).append("</appendClassPath>\n");
+        sb.append("                            <initHeapSize>").append(esc(flat, b + "/setting/java/initHeapSize", "32")).append("</initHeapSize>\n");
+        sb.append("                            <maxHeapSize>").append(esc(flat, b + "/setting/java/maxHeapSize", "256")).append("</maxHeapSize>\n");
+        sb.append("                            <threadStackSize>").append(esc(flat, b + "/setting/java/threadStackSize", "256")).append("</threadStackSize>\n");
         sb.append("                        </java>\n");
         sb.append("                    </setting>\n");
-        sb.append("                    <ftWeight>1000</ftWeight>\n");
+        sb.append("                    <ftWeight>").append(esc(flat, b + "/ftWeight", "1000")).append("</ftWeight>\n");
         sb.append("                    <shutdown>\n");
-        sb.append("                        <checkpoint>false</checkpoint>\n");
-        sb.append("                        <timeout>0</timeout>\n");
+        sb.append("                        <checkpoint>").append(esc(flat, b + "/shutdown/checkpoint", "false")).append("</checkpoint>\n");
+        sb.append("                        <timeout>").append(esc(flat, b + "/shutdown/timeout", "0")).append("</timeout>\n");
         sb.append("                    </shutdown>\n");
-        appendPlainNvPairs(sb, "                    ", "INSTANCE_RUNTIME_VARIABLES",
-                runtimeVarPairs(runtimeVars));
+        appendServiceVars(sb, "                    ", "INSTANCE_RUNTIME_VARIABLES", runtimeVars,
+                flat, b + "/variables/variable[");
         sb.append("                </binding>\n");
         sb.append("            </bindings>\n");
-        appendPlainNvPairs(sb, "            ", "Runtime Variables", runtimeVarPairs(runtimeVars));
-        appendPlainNvPairs(sb, "            ", "Adapter SDK Properties", ADAPTER_SDK_PROPERTIES);
-        sb.append("            <failureCount>0</failureCount>\n");
-        sb.append("            <failureInterval>0</failureInterval>\n");
+        appendServiceVars(sb, "            ", "Runtime Variables", runtimeVars,
+                flat, p + "/variables[Runtime Variables]/variable[");
+        appendSdkVars(sb, "            ", flat, p + "/variables[Adapter SDK Properties]/variable[");
+        sb.append("            <failureCount>").append(esc(flat, p + "/failureCount", "0")).append("</failureCount>\n");
+        sb.append("            <failureInterval>").append(esc(flat, p + "/failureInterval", "0")).append("</failureInterval>\n");
         sb.append(MONITOR_BLOCK);
         sb.append("            <bwprocesses>\n");
-        for (ServiceModel.ProcessEntry p : svc.sortedProcesses()) {
-            sb.append("                <bwprocess name=\"").append(xmlAttr(p.name)).append("\">\n");
-            sb.append("                    <starter>").append(xmlEscape(p.starterName)).append("</starter>\n");
-            sb.append("                    <enabled>true</enabled>\n");
-            sb.append("                    <maxJob>0</maxJob>\n");
-            sb.append("                    <activation>true</activation>\n");
-            sb.append("                    <flowLimit>0</flowLimit>\n");
+        for (ServiceModel.ProcessEntry proc : svc.sortedProcesses()) {
+            String bp = p + "/bwprocesses/bwprocess[" + proc.name + "]";
+            sb.append("                <bwprocess name=\"").append(xmlAttr(proc.name)).append("\">\n");
+            sb.append("                    <starter>").append(esc(flat, bp + "/starter", proc.starterName)).append("</starter>\n");
+            sb.append("                    <enabled>").append(esc(flat, bp + "/enabled", "true")).append("</enabled>\n");
+            sb.append("                    <maxJob>").append(esc(flat, bp + "/maxJob", "0")).append("</maxJob>\n");
+            sb.append("                    <activation>").append(esc(flat, bp + "/activation", "true")).append("</activation>\n");
+            sb.append("                    <flowLimit>").append(esc(flat, bp + "/flowLimit", "0")).append("</flowLimit>\n");
             sb.append("                </bwprocess>\n");
         }
         sb.append("            </bwprocesses>\n");
-        sb.append("            <isFt>false</isFt>\n");
+        sb.append("            <isFt>").append(esc(flat, p + "/isFt", "false")).append("</isFt>\n");
         sb.append("            <faultTolerant>\n");
-        sb.append("                <hbInterval>10000</hbInterval>\n");
-        sb.append("                <activationInterval>35000</activationInterval>\n");
-        sb.append("                <preparationDelay>0</preparationDelay>\n");
+        sb.append("                <hbInterval>").append(esc(flat, p + "/faultTolerant/hbInterval", "10000")).append("</hbInterval>\n");
+        sb.append("                <activationInterval>").append(esc(flat, p + "/faultTolerant/activationInterval", "35000")).append("</activationInterval>\n");
+        sb.append("                <preparationDelay>").append(esc(flat, p + "/faultTolerant/preparationDelay", "0")).append("</preparationDelay>\n");
         sb.append("            </faultTolerant>\n");
         sb.append("        </bw>\n");
     }
 
-    /** Appends a {@code <NVPairs name="...">} block of plain (untyped) name/value pairs. */
-    private void appendPlainNvPairs(StringBuilder sb, String indent, String blockName,
-            List<String[]> pairs) {
+    /** Runtime/instance variables block: one entry per service-settable GV, value read from {@code flat}. */
+    private void appendServiceVars(StringBuilder sb, String indent, String blockName,
+            List<SubstVarParser.GlobalVariable> runtimeVars, Map<String, String> flat, String keyPrefix) {
         sb.append(indent).append("<NVPairs name=\"").append(xmlAttr(blockName)).append("\">\n");
-        for (String[] kv : pairs) {
+        for (SubstVarParser.GlobalVariable v : runtimeVars) {
             sb.append(indent).append("    <NameValuePair>\n");
-            sb.append(indent).append("        <name>").append(xmlEscape(kv[0])).append("</name>\n");
-            sb.append(indent).append("        <value>").append(xmlEscape(kv[1])).append("</value>\n");
+            sb.append(indent).append("        <name>").append(xmlEscape(v.name)).append("</name>\n");
+            sb.append(indent).append("        <value>").append(esc(flat, keyPrefix + v.name + "]", normalizedValue(v))).append("</value>\n");
             sb.append(indent).append("    </NameValuePair>\n");
         }
         sb.append(indent).append("</NVPairs>\n");
+    }
+
+    /** Adapter SDK Properties block: fixed key set, values read from {@code flat}. */
+    private void appendSdkVars(StringBuilder sb, String indent, Map<String, String> flat, String keyPrefix) {
+        sb.append(indent).append("<NVPairs name=\"Adapter SDK Properties\">\n");
+        for (String[] kv : ADAPTER_SDK_PROPERTIES) {
+            sb.append(indent).append("    <NameValuePair>\n");
+            sb.append(indent).append("        <name>").append(xmlEscape(kv[0])).append("</name>\n");
+            sb.append(indent).append("        <value>").append(esc(flat, keyPrefix + kv[0] + "]", kv[1])).append("</value>\n");
+            sb.append(indent).append("    </NameValuePair>\n");
+        }
+        sb.append(indent).append("</NVPairs>\n");
+    }
+
+    /** XML-escaped value from the flat map for {@code key}, or {@code def} when absent. */
+    private static String esc(Map<String, String> flat, String key, String def) {
+        String v = flat != null ? flat.get(key) : null;
+        return xmlEscape(v != null ? v : def);
     }
 
     // -----------------------------------------------------------------------

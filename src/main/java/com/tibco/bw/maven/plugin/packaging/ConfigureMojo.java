@@ -243,7 +243,7 @@ public class ConfigureMojo extends AbstractBw5Mojo {
                 // deploy-config re-merges global variables only — it does not assemble the EAR, so
                 // it has no per-PAR service model. The <services> block (bindings/processes) comes
                 // from bw5:bwear; here it is omitted.
-                gen.generateDeployXml(out, appName, appVersion, vars, Collections.emptyList());
+                gen.generateDeployXml(out, appName, appVersion, vars, Collections.emptyList(), null);
                 getLog().info("Generated deploy XML    : " + out.getName());
             }
             if (generateProperties) {

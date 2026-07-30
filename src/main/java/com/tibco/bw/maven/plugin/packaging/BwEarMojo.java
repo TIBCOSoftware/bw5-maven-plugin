@@ -915,10 +915,18 @@ public class BwEarMojo extends AbstractBw5Mojo {
 
         DeploymentConfigGenerator gen = new DeploymentConfigGenerator();
 
+        // Build the service-property map once (with overrides merged) so both the <services> block
+        // of the -deploy.xml and the -services.properties file reflect the same values.
+        Map<String, String> serviceFlat = null;
+        if (generateDeployXml || generateServicesProperties) {
+            serviceFlat = applyServicePropertyOverrides(
+                    gen.servicePropertyMap(globalVars, serviceModels));
+        }
+
         try {
             if (generateDeployXml) {
                 File out = new File(targetDir, finalName + "-deploy.xml");
-                gen.generateDeployXml(out, appName, appVersion, globalVars, serviceModels);
+                gen.generateDeployXml(out, appName, appVersion, globalVars, serviceModels, serviceFlat);
                 getLog().info("Generated deploy XML : " + out.getName());
             }
             if (generateProperties) {
@@ -928,9 +936,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
             }
             if (generateServicesProperties) {
                 File out = new File(targetDir, finalName + "-services.properties");
-                Map<String, String> flat = gen.servicePropertyMap(globalVars, serviceModels);
-                flat = applyServicePropertyOverrides(flat);
-                gen.generateServicesProperties(out, appName, appVersion, flat);
+                gen.generateServicesProperties(out, appName, appVersion, serviceFlat);
                 getLog().info("Generated services   : " + out.getName());
             }
             if (generateValuesYaml) {
@@ -938,8 +944,6 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 gen.generateValuesYaml(out, appName, appVersion, globalVars);
                 getLog().info("Generated values.yaml: " + out.getName());
             }
-        } catch (MojoExecutionException e) {
-            throw e;
         } catch (IOException e) {
             throw new MojoExecutionException("Failed to generate deployment config files: " + e.getMessage(), e);
         }
