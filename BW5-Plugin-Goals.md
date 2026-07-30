@@ -84,14 +84,16 @@ The EAR contains:
 |---|---|---|---|
 | `bwProjectPath` | `bw5.bwProjectPath` | `${basedir}` | Root directory of the BW5 sources |
 | `archiveName` | `bw5.archiveName` | `${project.artifactId}` | Application name used in `TIBCO.xml`, `manifest-bw5.json`, and as PAR name. Overridden by the descriptor's own name when a `.archive` file is present |
-| `archiveDescriptorFile` | `bw5.archiveDescriptorFile` | _(auto-detected)_ | Path to the Designer `.archive` file. When not set, the plugin scans the project root for a `*.archive` file automatically |
+| `archiveDescriptorFile` | `bw5.archiveDescriptorFile` | _(auto-detected)_ | Path to the Designer `.archive` file. When not set, the plugin scans the project **recursively** for a `*.archive` file (typically under `Deployment/`), skipping `target/`, `.git`, `.svn` |
 | `includeSharedArchive` | `bw5.includeSharedArchive` | `true` | If `false`, the SAR is not included in the EAR |
 | `sharedArchiveName` | `bw5.sharedArchiveName` | `Shared Archive` | Name of the SAR inside the EAR |
-| `generateDeployXml` | `bw5.generateDeployXml` | `true` | Generates an AppManage-compatible deployment XML file |
-| `generateProperties` | `bw5.generateProperties` | `true` | Generates a flat `.properties` deployment file |
+| `generateDeployXml` | `bw5.generateDeployXml` | `true` | Generates the AppManage-native deployment XML (global variables + `<repoInstances>` + `<services>`) |
+| `generateProperties` | `bw5.generateProperties` | `true` | Generates a flat `.properties` deployment file (global variables) |
+| `generateServicesProperties` | `bw5.generateServicesProperties` | `true` | Generates the flat `-services.properties` file (bindings/processes, `bw[<par>]/...` keys) |
 | `generateValuesYaml` | `bw5.generateValuesYaml` | `true` | Generates a `values.yaml` file for Helm |
 | `globalPropertiesFile` | `bw5.deployConfig.globalPropertiesFile` | — | `.properties` file with global variable overrides applied to all modules in the build |
 | `projectPropertiesFile` | `bw5.deployConfig.projectPropertiesFile` | — | `.properties` file with overrides specific to this project |
+| `servicePropertiesFile` | `bw5.deployConfig.servicePropertiesFile` | — | `.properties` file with service (bindings/processes) overrides merged into `-services.properties`; also honours `bw5.service.*` |
 | `skipResolveDependencies` | `bw5.bwear.skipResolveDependencies` | `false` | If `true`, skips copying dependencies to the build directory |
 | `earOnly` | `bw5.earOnly` | `false` | If `true`, only assembles the EAR without generating any deployment configuration files |
 | `oldJavaCustomFunctions` | `bw5.oldJavaCustomFunctions` | `false` | If `true`, uses the `.javaxpath` bytecode already embedded in the source files instead of freshly compiled classes |
@@ -213,9 +215,11 @@ mvn verify -Dbw5.validate.skipXPath=true
 Generates or refreshes deployment configuration files by applying environment-specific global variable overrides. Implements a two-level override model: global (applies to every module in the build) and per-project.
 
 **Files generated** (under `target/`):
-- `deploy.xml` — compatible with TIBCO AppManage
-- `deploy.properties` — flat key=value format
+- `deploy.xml` — AppManage-native format (global variables + `<repoInstances>`). The `<services>` block is only produced by `bwear` (it needs the assembled PARs), so `deploy-config` writes it without services.
+- `deploy.properties` — flat key=value format (global variables)
 - `values.yaml` — for Helm / Kubernetes deployments
+
+This goal re-merges **global variables** only. When `servicePropertiesFile` (or `bw5.service.*`) is set, it additionally re-applies those overrides onto the `-services.properties` produced by a prior `bwear` run (run `package` first).
 
 > **When to use:** To regenerate deployment configuration for a specific environment without rebuilding the entire EAR, or as an automated pre-deployment step.
 
@@ -225,6 +229,7 @@ Generates or refreshes deployment configuration files by applying environment-sp
 |---|---|---|---|
 | `globalPropertiesFile` | `bw5.deployConfig.globalPropertiesFile` | — | `.properties` file with overrides applied to all modules in the build |
 | `projectPropertiesFile` | `bw5.deployConfig.projectPropertiesFile` | — | `.properties` file with overrides specific to this project |
+| `servicePropertiesFile` | `bw5.deployConfig.servicePropertiesFile` | — | `.properties` file with service (bindings/processes) overrides re-merged onto an existing `-services.properties`; also honours `bw5.service.*` |
 | `updateSubstVarFiles` | `bw5.deployConfig.updateSubstVarFiles` | `false` | If `true`, writes the merged values back into the project's `.substvar` source files |
 | `generateDeployXml` | `bw5.deployConfig.generateDeployXml` | `true` | Generates `deploy.xml` |
 | `generateProperties` | `bw5.deployConfig.generateProperties` | `true` | Generates `deploy.properties` |

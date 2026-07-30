@@ -63,6 +63,7 @@ Maven plugin for **TIBCO BusinessWorks 5.x** that provides full application life
 mvn package   # → target/my-bw5-app-1.0.0-SNAPSHOT.ear
               #   target/my-bw5-app-1.0.0-SNAPSHOT-deploy.xml
               #   target/my-bw5-app-1.0.0-SNAPSHOT-deploy.properties
+              #   target/my-bw5-app-1.0.0-SNAPSHOT-services.properties
               #   target/values.yaml
 mvn install   # → local Maven repository
 mvn deploy    # → remote repository (Nexus/Artifactory)
@@ -282,17 +283,24 @@ Assembles the BW5 Enterprise Archive. Runs automatically during `mvn package` fo
 ```
 target/
 ├── my-app-1.0.0-SNAPSHOT.ear         ← EAR (PAR + SAR + TIBCO.xml)
-├── my-app-1.0.0-SNAPSHOT-deploy.xml  ← AppManage XML for TIBCO Administrator
-├── my-app-1.0.0-SNAPSHOT-deploy.properties  ← Flat key=value
+├── my-app-1.0.0-SNAPSHOT-deploy.xml  ← AppManage XML (global vars + repoInstances + services)
+├── my-app-1.0.0-SNAPSHOT-deploy.properties     ← Flat key=value (global variables)
+├── my-app-1.0.0-SNAPSHOT-services.properties   ← Flat key=value (bindings/processes)
 └── values.yaml                        ← Helm values for Kubernetes deployments
 ```
+
+The `-deploy.xml` is written in the native AppManage format (`appmanage -exportConfig` /
+`-setDeployConfig`): a root `<application>` element with the Global Variables, a `<repoInstances>`
+section and a `<services>` section (one `<bw>` per PAR — bindings, runtime variables, engine
+properties and processes) generated as a single-binding export template you edit or override before
+deployment. The `-services.properties` file is that `<services>` section in flat `key=value` form.
 
 **EAR structure:**
 
 ```
 my-app-1.0.0-SNAPSHOT.ear
 ├── TIBCO.xml                 ← EAR descriptor (FileAliases, GlobalVars, Modules)
-├── Process Archive.par       ← Process Archive
+├── Process Archive.par       ← Process Archive (named after the .archive processArchive, if present)
 │   ├── TIBCO.xml             ← PAR descriptor (BwBPConfigurations, EXTERNAL_DEPENDENCIES)
 │   └── **/*.process
 └── Shared Archive.sar        ← Shared resources (connections, schemas, variables)
@@ -307,10 +315,12 @@ my-app-1.0.0-SNAPSHOT.ear
 | `sharedArchiveName` | `bw5.sharedArchiveName` | `Shared Archive` | SAR name |
 | `includeSharedArchive` | `bw5.includeSharedArchive` | `true` | Include SAR in EAR |
 | `earOnly` | `bw5.earOnly` | `false` | Skip deploy config generation |
-| `generateDeployXml` | `bw5.generateDeployXml` | `true` | Generate `-deploy.xml` |
-| `generateProperties` | `bw5.generateProperties` | `true` | Generate `-deploy.properties` |
+| `generateDeployXml` | `bw5.generateDeployXml` | `true` | Generate `-deploy.xml` (AppManage global vars + repoInstances + services) |
+| `generateProperties` | `bw5.generateProperties` | `true` | Generate `-deploy.properties` (global variables) |
+| `generateServicesProperties` | `bw5.generateServicesProperties` | `true` | Generate `-services.properties` (bindings/processes) |
 | `generateValuesYaml` | `bw5.generateValuesYaml` | `true` | Generate `values.yaml` |
-| `archiveDescriptorFile` | `bw5.archiveDescriptorFile` | _(auto-detected)_ | TIBCO `.archive` descriptor. When not set, the plugin scans the project root for a `*.archive` file |
+| `archiveDescriptorFile` | `bw5.archiveDescriptorFile` | _(auto-detected)_ | TIBCO `.archive` descriptor. When not set, the plugin scans the project **recursively** for a `*.archive` file (typically under `Deployment/`), skipping `target/`, `.git`, `.svn` |
+| `servicePropertiesFile` | `bw5.deployConfig.servicePropertiesFile` | — | Service overrides (`bw[<par>]/...` keys) merged into `-services.properties`. Also honours `bw5.service.*` |
 | `skipManifest` | `bw5.skipManifest` | `false` | If `true`, skips generating `manifest-bw5.json` |
 | `includeFolderMetadata` | `bw5.includeFolderMetadata` | `false` | If `true`, includes `.folder` Designer metadata files in the PAR |
 | `copybookEncoding` | `bw5.copybookEncoding` | `ISO-8859-1` | Charset used to read raw (non-XML) `.cpy` copybooks when wrapping them into shared-resource XML |
@@ -440,7 +450,15 @@ mvn bw5:deploy-config -Dbw5.project.AppQueueName=PROD.ORDERS.IN
 # Update .substvar source files with merged values
 mvn bw5:deploy-config -Dbw5.deployConfig.updateSubstVarFiles=true \
     -Dbw5.deployConfig.projectPropertiesFile=config/uat.properties
+
+# Re-apply service (bindings/processes) overrides onto an existing -services.properties
+mvn bw5:deploy-config -Dbw5.deployConfig.servicePropertiesFile=config/prod-services.properties
 ```
+
+This goal re-merges **global variables** only; it does not assemble the EAR, so the `-deploy.xml`
+it writes has no `<services>` block (that comes from `bw5:bwear`). When `servicePropertiesFile` (or
+`bw5.service.*`) is set, it re-merges those overrides onto the `-services.properties` produced by a
+prior `bw5:bwear` run — run `package` first.
 
 See [Property Override Model](#property-override-model) for full details.
 
@@ -597,6 +615,18 @@ The plugin implements a **two-level property override model** for environment-sp
 3. Maven properties prefixed `bw5.global.*`
 4. Project properties file (`bw5.deployConfig.projectPropertiesFile`)
 5. Maven properties prefixed `bw5.project.*`
+
+This model covers **global variables** (the `-deploy.xml` / `-deploy.properties` / `values.yaml`).
+The **service** configuration (`-services.properties`, i.e. bindings/processes) has its own override
+layer, applied on top of the generated defaults:
+
+1. Generated service defaults (single-binding template)
+2. Service properties file (`bw5.deployConfig.servicePropertiesFile`)
+3. Maven properties prefixed `bw5.service.*`
+
+Service override keys are the flat `bw[<par>]/...` keys found in `-services.properties` (e.g.
+`bw[MyApp-LB.par]/bindings/binding[]/setting/java/maxHeapSize=512`); unlike variable overrides they
+may also add new keys (extra bindings/machines).
 
 ### Configuration
 
@@ -756,11 +786,13 @@ Reports are written to `target/dependency-check-report.html` and `.json`. The bu
         <!-- Deploy config generation (all true by default) -->
         <generateDeployXml>true</generateDeployXml>
         <generateProperties>true</generateProperties>
+        <generateServicesProperties>true</generateServicesProperties>
         <generateValuesYaml>true</generateValuesYaml>
 
         <!-- Property override files (optional) -->
         <!-- <globalPropertiesFile>${project.basedir}/../config/global.properties</globalPropertiesFile> -->
         <!-- <projectPropertiesFile>${project.basedir}/config/project.properties</projectPropertiesFile> -->
+        <!-- <servicePropertiesFile>${project.basedir}/config/service.properties</servicePropertiesFile> -->
 
         <!-- Skip all goals -->
         <skip>false</skip>
@@ -775,10 +807,13 @@ Reports are written to `target/dependency-check-report.html` and `.json`. The bu
 | `-Dbw5.skip=true` | Skip all plugin goals |
 | `-Dbw5.earOnly=true` | Assemble EAR only, no deploy configs |
 | `-Dbw5.generateValuesYaml=false` | Skip `values.yaml` generation |
+| `-Dbw5.generateServicesProperties=false` | Skip `-services.properties` generation |
 | `-Dbw5.deployConfig.globalPropertiesFile=<path>` | Global property overrides |
 | `-Dbw5.deployConfig.projectPropertiesFile=<path>` | Project property overrides |
+| `-Dbw5.deployConfig.servicePropertiesFile=<path>` | Service (bindings/processes) overrides |
 | `-Dbw5.global.<name>=<value>` | Override individual global variable |
 | `-Dbw5.project.<name>=<value>` | Override individual project variable |
+| `-Dbw5.service.<key>=<value>` | Override individual service property (`bw[<par>]/...`) |
 | `-Dbw5.archiveName=<name>` | Override PAR name |
 | `-Dbw5.bwProjectPath=<path>` | Override BW project path |
 | `-Dodc.skip=false` | Enable OWASP vulnerability scan |
