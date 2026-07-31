@@ -17,8 +17,6 @@ import org.jdom2.input.SAXBuilder;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertNull;
 
 /**
  * Regression tests for BFS traversal of promoted {@code .serviceagent} files.
@@ -99,61 +97,6 @@ public class BwEarMojoServiceAgentBfsTest {
         File f = new File(dir, name);
         Files.write(f.toPath(), content.getBytes(StandardCharsets.UTF_8));
         return f;
-    }
-
-    // -----------------------------------------------------------------------
-    //  BUG-1: service agent <name>/<resourceType> injection (buildear parity)
-    // -----------------------------------------------------------------------
-
-    /**
-     * Regression (BUG-1): buildear re-serializes each service agent from its object model,
-     * always emitting {@code <name>} (the resource base name) and
-     * {@code <resourceType>service.definition</resourceType>} in the top {@code <config>}.
-     * The on-disk source omits them, so a verbatim copy differs. ensureServiceAgentIdentity
-     * must inject them into the TOP config only.
-     */
-    @Test
-    public void serviceAgentIdentityInjectedWhenMissing() throws Exception {
-        File dir = tmp.newFolder("sa-inject");
-        File sa = writeFile(dir, "AIU0.serviceagent",
-            "<serviceResource xmlns:ns0=\"http://schemas.xmlsoap.org/wsdl/\">\n"
-            + "  <config>\n"
-            + "    <class>com.tibco.bw.service.serviceAgent.ServiceServiceAgent</class>\n"
-            + "    <implType>bw</implType>\n"
-            + "    <interfaceImpl>\n"
-            + "      <tab><config><name>nested-should-not-count</name></config></tab>\n"
-            + "    </interfaceImpl>\n"
-            + "  </config>\n"
-            + "</serviceResource>\n");
-
-        File out = new BwEarMojo().ensureServiceAgentIdentity(sa);
-        Element config = new SAXBuilder().build(out).getRootElement().getChild("config");
-        assertEquals("<name> = file basename", "AIU0", config.getChildText("name"));
-        assertEquals("<resourceType> = service.definition",
-            "service.definition", config.getChildText("resourceType"));
-        // the nested <config><name> must be untouched (still present, still nested)
-        assertNull("top config must not gain a stray value from the nested one",
-            config.getChild("interfaceImpl").getChild("name"));
-    }
-
-    /**
-     * Regression (BUG-1): idempotent — when the source already declares both, the original
-     * file is returned unchanged (no duplication, no rewrite).
-     */
-    @Test
-    public void serviceAgentIdentityIdempotentWhenPresent() throws Exception {
-        File dir = tmp.newFolder("sa-idem");
-        File sa = writeFile(dir, "Svc.serviceagent",
-            "<serviceResource>\n"
-            + "  <config>\n"
-            + "    <name>Svc</name>\n"
-            + "    <resourceType>service.definition</resourceType>\n"
-            + "    <class>x</class>\n"
-            + "  </config>\n"
-            + "</serviceResource>\n");
-
-        File out = new BwEarMojo().ensureServiceAgentIdentity(sa);
-        assertSame("already has both → original file returned unchanged", sa, out);
     }
 
     // -----------------------------------------------------------------------
@@ -559,6 +502,104 @@ public class BwEarMojoServiceAgentBfsTest {
             parNames.contains("Java Stats Transactions.serviceagent"));
         assertTrue("Java Global serviceagent must also remain in SAR (buildear places it in both)",
             sarNames.contains("Java Stats Transactions.serviceagent"));
+    }
+
+    /**
+     * Regression (Fix #3): a Java Global service agent already promoted to the PAR from the
+     * descriptor's {@code processProperty} list (so it starts in {@code parFiles}, NOT in the
+     * SAR pool / {@code resourceIndex}) must ALSO be placed in the SAR when a packaged process
+     * references it via {@code <JavaGlobalInstance>}.
+     *
+     * <p>The existing resourceIndex-based loop cannot find such an agent — promotion removed it
+     * from the SAR pool. Fix #3b resolves it from the promoted-PAR set instead. buildear packages
+     * Java Global service agents in BOTH the PAR and the SAR.</p>
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void descriptorPromotedServiceAgentAlsoPlacedInSarViaJavaGlobalInstance() throws Exception {
+        File dir = tmp.newFolder("descriptor-promoted-sa");
+
+        File saFile = writeFile(dir, "EMSRuntimeGlobalInstance.serviceagent",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<BWSharedResource>\n"
+            + "  <name>EMSRuntimeGlobalInstance</name>\n"
+            + "  <resourceType>ae.shared.JavaGlobalServiceAgent</resourceType>\n"
+            + "  <config>\n"
+            + "    <class>com.tibco.plugin.java.JavaGlobalServiceAgent</class>\n"
+            + "  </config>\n"
+            + "</BWSharedResource>");
+
+        File proc = writeFile(dir, "Bootstrap.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/App/Bootstrap</pd:name>\n"
+            + "  <pd:activity name=\"InitEMS\">\n"
+            + "    <JavaGlobalInstance>/App/Resources/EMSRuntimeGlobalInstance.serviceagent"
+            + "</JavaGlobalInstance>\n"
+            + "  </pd:activity>\n"
+            + "</pd:ProcessDefinition>");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(proc, "App/Bootstrap.process"));
+        // Descriptor-promoted serviceagent starts in the PAR, NOT in the SAR pool.
+        parFiles.add(bwFile(saFile, "App/Resources/EMSRuntimeGlobalInstance.serviceagent"));
+
+        List sarFiles = new ArrayList();
+
+        List<String> entryPoints = Collections.singletonList("/App/Bootstrap.process");
+        List<String> sharedRes = Collections.emptyList();
+
+        applyTransitive(parFiles, sarFiles, entryPoints, sharedRes, true);
+
+        Set<String> parNames = fileNames(parFiles);
+        Set<String> sarNames = fileNames(sarFiles);
+
+        assertTrue("descriptor-promoted serviceagent stays in PAR",
+            parNames.contains("EMSRuntimeGlobalInstance.serviceagent"));
+        assertTrue("descriptor-promoted serviceagent referenced via JavaGlobalInstance must also be in SAR",
+            sarNames.contains("EMSRuntimeGlobalInstance.serviceagent"));
+    }
+
+    /**
+     * Regression (Fix #3): a serviceagent that is NOT referenced by any packaged process must
+     * NOT appear in the SAR merely because a global variable value names its path. buildear
+     * places Java Global service agents in the SAR only through {@code <JavaGlobalInstance>}
+     * process references, never via a global-variable path.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void unreferencedServiceAgentNotPulledIntoSar() throws Exception {
+        File dir = tmp.newFolder("unreferenced-sa");
+
+        File saFile = writeFile(dir, "CacheGlobalInstance.serviceagent",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<BWSharedResource>\n"
+            + "  <name>CacheGlobalInstance</name>\n"
+            + "  <resourceType>ae.shared.JavaGlobalServiceAgent</resourceType>\n"
+            + "  <config><class>x</class></config>\n"
+            + "</BWSharedResource>");
+
+        // Process references nothing.
+        File proc = writeFile(dir, "Noop.process",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<pd:ProcessDefinition xmlns:pd=\"http://xmlns.tibco.com/bw/process/2003\">\n"
+            + "  <pd:name>/App/Noop</pd:name>\n"
+            + "</pd:ProcessDefinition>");
+
+        List parFiles = new ArrayList();
+        parFiles.add(bwFile(proc, "App/Noop.process"));
+
+        List sarFiles = new ArrayList();
+        sarFiles.add(bwFile(saFile, "App/Resources/CacheGlobalInstance.serviceagent"));
+
+        List<String> entryPoints = Collections.singletonList("/App/Noop.process");
+        List<String> sharedRes = Collections.emptyList();
+
+        applyTransitive(parFiles, sarFiles, entryPoints, sharedRes, true);
+
+        Set<String> sarNames = fileNames(sarFiles);
+        assertFalse("unreferenced serviceagent must not appear in SAR",
+            sarNames.contains("CacheGlobalInstance.serviceagent"));
     }
 
     @SuppressWarnings("rawtypes")

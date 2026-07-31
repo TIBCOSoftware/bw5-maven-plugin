@@ -472,9 +472,6 @@ public class BwEarMojo extends AbstractBw5Mojo {
     private static final Set<String> EXCLUDED_NAMES = new HashSet<>(Arrays.asList(
         ".DS_Store", "Thumbs.db", ".git", ".svn", "target", "vcrepo.dat",
         ".designtimelibs", "Deployment", "library.manifest",
-        // Deployment-time config and version-info directories present in some projlibs
-        // — these are not BW shared resources and buildear never includes them in the EAR
-        "config", "VersionInfo",
         // Maven build descriptors — not BW resources
         "pom.xml"
     ));
@@ -1271,6 +1268,11 @@ public class BwEarMojo extends AbstractBw5Mojo {
             // Skip values without a file extension (not a resource path)
             String norm = normalizeBwPath(val);
             if (!norm.contains(".")) continue;
+            // A GV whose value points at a .serviceagent must NOT force it into the SAR.
+            // buildear places a Java Global service agent in the SAR only when a packaged
+            // process references it via <JavaGlobalInstance> (handled in the transitive
+            // analysis), never merely because a global variable names its path.
+            if (norm.endsWith(".serviceagent")) continue;
             if (included.contains(norm)) continue;
             BwFile f = allIdx.get(norm);
             if (f != null) {
@@ -1778,6 +1780,24 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     reachableResources.add(f);
                 }
             } else if (sarPathsSeen.add(normalizeBwPath(f.relativePath))) {
+                reachableResources.add(f);
+            }
+        }
+
+        // A Java Global service agent already promoted to the PAR from the descriptor's
+        // processProperty list is ALSO placed in the SAR when a packaged process references
+        // it via <JavaGlobalInstance>. Such agents were pulled out of the SAR pool during
+        // promotion (they are not in resourceIndex), so the loop above cannot find them —
+        // resolve them from the promoted-PAR set instead. buildear packages Java Global
+        // service agents in BOTH the PAR and the SAR.
+        Map<String, BwFile> promotedIndex = buildBwIndex(promotedParEntries);
+        for (String path : referencedResourcePaths) {
+            if (!path.endsWith(".serviceagent")) continue;
+            if (resourceIndex.containsKey(path)) continue;
+            BwFile f = promotedIndex.get(path);
+            if (f != null && sarPathsSeen.add(normalizeBwPath(f.relativePath))) {
+                getLog().info("Java Global serviceagent also placed in SAR (JavaGlobalInstance): "
+                        + f.relativePath);
                 reachableResources.add(f);
             }
         }
@@ -2308,11 +2328,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     getLog().debug("Skipping duplicate PAR entry: " + entryName);
                     continue;
                 }
-                if (bwf.file.getName().toLowerCase(Locale.ROOT).endsWith(".serviceagent")) {
-                    addToZip(zos, bwf.relativePath, ensureServiceAgentIdentity(bwf.file));
-                } else {
-                    addToZip(zos, bwf.relativePath, bwf.file);
-                }
+                addToZip(zos, bwf.relativePath, bwf.file);
             }
 
             // Add compiled Java classes if any
@@ -2867,50 +2883,6 @@ public class BwEarMojo extends AbstractBw5Mojo {
     //  SAR assembly
     // -----------------------------------------------------------------------
 
-    @SuppressWarnings("PMD.UnusedFormalParameter")
-    /**
-     * Ensures a {@code .serviceagent} carries the {@code <name>} and {@code <resourceType>}
-     * that buildear injects into the top-level {@code <config>} from the resource's repository
-     * identity. buildear does not copy the file — it re-serializes the resource from its object
-     * model (ServiceObjectFactory), which always emits {@code <name>} (the resource base name)
-     * and {@code <resourceType>service.definition</resourceType>}. The on-disk "designer" form
-     * usually omits them, so a verbatim copy is missing them.
-     *
-     * <p>Idempotent: returns the original file unchanged when both elements are already present
-     * (some sources include them) or when the file is not a parseable service agent. Only the
-     * top-level {@code <config>} is inspected/modified — nested {@code <config>} blocks are left
-     * untouched. Element order is irrelevant to BW and to the C14N comparison.</p>
-     */
-    File ensureServiceAgentIdentity(File saFile) {
-        try {
-            org.jdom2.Document doc = new org.jdom2.input.SAXBuilder().build(saFile);
-            org.jdom2.Element config = doc.getRootElement().getChild("config");
-            if (config == null) return saFile;
-            boolean changed = false;
-            if (config.getChild("name") == null) {
-                String base = saFile.getName();
-                int dot = base.lastIndexOf('.');
-                config.addContent(new org.jdom2.Element("name")
-                        .setText(dot > 0 ? base.substring(0, dot) : base));
-                changed = true;
-            }
-            if (config.getChild("resourceType") == null) {
-                config.addContent(new org.jdom2.Element("resourceType").setText("service.definition"));
-                changed = true;
-            }
-            if (!changed) return saFile;
-            File tmp = File.createTempFile("bw5-sa-", ".serviceagent");
-            tmp.deleteOnExit();
-            try (java.io.OutputStream os = Files.newOutputStream(tmp.toPath())) {
-                new XMLOutputter(Format.getRawFormat().setEncoding("UTF-8")).output(doc, os);
-            }
-            return tmp;
-        } catch (org.jdom2.JDOMException | IOException e) {
-            getLog().warn("Could not inject service agent identity into "
-                + saFile.getName() + " - " + e.getMessage() + "; packaging verbatim");
-            return saFile;
-        }
-    }
 
     /**
      * Ensures a {@code .cpy} is packaged as its {@code ae.shared.CCBSchemaResource} XML resource,
@@ -3033,8 +3005,6 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 String lname = bwf.file.getName().toLowerCase(Locale.ROOT);
                 if (bwf.file.getName().endsWith(".javaxpath")) {
                     addJavaxpathToSar(zos, bwf);
-                } else if (lname.endsWith(".serviceagent")) {
-                    addToZip(zos, bwf.relativePath, ensureServiceAgentIdentity(bwf.file));
                 } else if (lname.endsWith(".cpy")) {
                     addToZip(zos, bwf.relativePath, ensureCopybookResource(bwf.file));
                 } else {

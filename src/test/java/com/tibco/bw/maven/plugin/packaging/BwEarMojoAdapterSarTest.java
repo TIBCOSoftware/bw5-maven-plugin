@@ -1800,6 +1800,51 @@ public class BwEarMojoAdapterSarTest {
     }
 
     /**
+     * Regression (Fix #3a): a GV whose value points at a {@code .serviceagent} must NOT force
+     * that agent into the SAR. buildear places a Java Global service agent in the SAR only when
+     * a packaged process references it via {@code <JavaGlobalInstance>} (handled by the transitive
+     * analysis), never merely because a global variable names its path. A non-serviceagent GV
+     * resource in the same call must still be added.
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void gvReferencedServiceAgentNotAddedToSar() throws Exception {
+        File dir = tmp.newFolder("gv-sa");
+        File saFile = writeFile(dir, "CacheGlobalInstance.serviceagent",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<BWSharedResource><name>CacheGlobalInstance</name>"
+            + "<resourceType>ae.shared.JavaGlobalServiceAgent</resourceType>"
+            + "<config><class>x</class></config></BWSharedResource>\n");
+        File wsdlFile = writeFile(dir, "partner.wsdl",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<wsdl:definitions xmlns:wsdl=\"http://schemas.xmlsoap.org/wsdl/\"/>\n");
+
+        SubstVarParser.GlobalVariable saGv = new SubstVarParser.GlobalVariable();
+        saGv.name = "cache.instance";
+        saGv.value = "/Resources/CacheGlobalInstance.serviceagent";
+        saGv.type = "String";
+        SubstVarParser.GlobalVariable wsdlGv = new SubstVarParser.GlobalVariable();
+        wsdlGv.name = "partner.wsdl";
+        wsdlGv.value = "/Resources/partner.wsdl";
+        wsdlGv.type = "String";
+        List<SubstVarParser.GlobalVariable> gvars = Arrays.asList(saGv, wsdlGv);
+
+        List allSarFiles = new ArrayList();
+        allSarFiles.add(bwFile(saFile,   "Resources/CacheGlobalInstance.serviceagent"));
+        allSarFiles.add(bwFile(wsdlFile, "Resources/partner.wsdl"));
+
+        List sarFiles = new ArrayList();
+
+        addGvResources(gvars, sarFiles, allSarFiles);
+
+        Set<String> names = fileNames(sarFiles);
+        assertFalse("GV-referenced serviceagent must NOT be forced into the SAR",
+            names.contains("CacheGlobalInstance.serviceagent"));
+        assertTrue("GV-referenced WSDL must still be added to the SAR",
+            names.contains("partner.wsdl"));
+    }
+
+    /**
      * GV values that do NOT look like BW resource paths (no leading slash, or no
      * file extension, or no matching file in the project) must not cause errors or
      * spurious SAR additions.
