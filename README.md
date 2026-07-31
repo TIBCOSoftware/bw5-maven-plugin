@@ -325,6 +325,8 @@ my-app-1.0.0-SNAPSHOT.ear
 | `generateValuesYaml` | `bw5.generateValuesYaml` | `true` | Generate `values.yaml` |
 | `archiveDescriptorFile` | `bw5.archiveDescriptorFile` | _(auto-detected)_ | TIBCO `.archive` descriptor. When not set, the plugin scans the project **recursively** for a `*.archive` file (typically under `Deployment/`), skipping `target/`, `.git`, `.svn` |
 | `servicePropertiesFile` | `bw5.deployConfig.servicePropertiesFile` | — | Service overrides (`bw[<par>]/...` keys) merged into `-services.properties`. Also honours `bw5.service.*` |
+| `deployDescription` | `bw5.deploy.description` | _(empty)_ | Value for the application `<description>` in `-deploy.xml`. Legacy `-Ddeploy.description` is also honoured |
+| `deployContact` | `bw5.deploy.contact` | _(empty)_ | Value for the application `<contact>` in `-deploy.xml`. Legacy `-Ddeploy.contact` is also honoured |
 | `skipManifest` | `bw5.skipManifest` | `false` | If `true`, skips generating `manifest-bw5.json` |
 | `includeFolderMetadata` | `bw5.includeFolderMetadata` | `false` | If `true`, includes `.folder` Designer metadata files in the PAR |
 | `copybookEncoding` | `bw5.copybookEncoding` | `ISO-8859-1` | Charset used to read raw (non-XML) `.cpy` copybooks when wrapping them into shared-resource XML |
@@ -798,6 +800,10 @@ Reports are written to `target/dependency-check-report.html` and `.json`. The bu
         <!-- <projectPropertiesFile>${project.basedir}/config/project.properties</projectPropertiesFile> -->
         <!-- <servicePropertiesFile>${project.basedir}/config/service.properties</servicePropertiesFile> -->
 
+        <!-- Application <description>/<contact> in -deploy.xml (optional) -->
+        <!-- <deployDescription>develop:1.0.1-SNAPSHOT</deployDescription> -->
+        <!-- <deployContact>Team Name, team@example.com</deployContact> -->
+
         <!-- Skip all goals -->
         <skip>false</skip>
     </configuration>
@@ -815,6 +821,8 @@ Reports are written to `target/dependency-check-report.html` and `.json`. The bu
 | `-Dbw5.deployConfig.globalPropertiesFile=<path>` | Global property overrides |
 | `-Dbw5.deployConfig.projectPropertiesFile=<path>` | Project property overrides |
 | `-Dbw5.deployConfig.servicePropertiesFile=<path>` | Service (bindings/processes) overrides |
+| `-Dbw5.deploy.description=<text>` | Application `<description>` in `-deploy.xml` (or legacy `-Ddeploy.description`) |
+| `-Dbw5.deploy.contact=<text>` | Application `<contact>` in `-deploy.xml` (or legacy `-Ddeploy.contact`) |
 | `-Dbw5.global.<name>=<value>` | Override individual global variable |
 | `-Dbw5.project.<name>=<value>` | Override individual project variable |
 | `-Dbw5.service.<key>=<value>` | Override individual service property (`bw[<par>]/...`) |

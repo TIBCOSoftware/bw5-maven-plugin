@@ -147,6 +147,20 @@ public class ConfigureMojo extends AbstractBw5Mojo {
     @Parameter(property = "bw5.deployConfig.servicePropertiesFile")
     private File servicePropertiesFile;
 
+    /**
+     * Value for the application {@code <description>} element of the generated {@code -deploy.xml}
+     * (empty by default). The legacy {@code -Ddeploy.description} property is also honoured.
+     */
+    @Parameter(property = "bw5.deploy.description")
+    private String deployDescription;
+
+    /**
+     * Value for the application {@code <contact>} element of the generated {@code -deploy.xml}
+     * (empty by default). The legacy {@code -Ddeploy.contact} property is also honoured.
+     */
+    @Parameter(property = "bw5.deploy.contact")
+    private String deployContact;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (skip) {
@@ -243,7 +257,10 @@ public class ConfigureMojo extends AbstractBw5Mojo {
                 // deploy-config re-merges global variables only — it does not assemble the EAR, so
                 // it has no per-PAR service model. The <services> block (bindings/processes) comes
                 // from bw5:bwear; here it is omitted.
-                gen.generateDeployXml(out, appName, appVersion, vars, Collections.emptyList(), null);
+                gen.generateDeployXml(out, appName, appVersion,
+                        resolveWithFallback(deployDescription, "deploy.description"),
+                        resolveWithFallback(deployContact, "deploy.contact"),
+                        vars, Collections.emptyList(), null);
                 getLog().info("Generated deploy XML    : " + out.getName());
             }
             if (generateProperties) {

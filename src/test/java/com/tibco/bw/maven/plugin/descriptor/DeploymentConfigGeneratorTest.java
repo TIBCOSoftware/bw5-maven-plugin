@@ -50,7 +50,7 @@ public class DeploymentConfigGeneratorTest {
     private String readDeployXml(List<SubstVarParser.GlobalVariable> vars,
             List<DeploymentConfigGenerator.ServiceModel> services) throws Exception {
         File out = tmp.newFile("deploy.xml");
-        new DeploymentConfigGenerator().generateDeployXml(out, "MyApp", "1.0.0", vars, services, null);
+        new DeploymentConfigGenerator().generateDeployXml(out, "MyApp", "1.0.0", "", "", vars, services, null);
         return new String(Files.readAllBytes(out.toPath()), StandardCharsets.UTF_8);
     }
 
@@ -86,6 +86,31 @@ public class DeploymentConfigGeneratorTest {
         assertFalse("no <type> child", xml.contains("<type>"));
         assertFalse("no <requiresConfiguration> child", xml.contains("<requiresConfiguration>"));
         assertFalse("no <deploymentSettable> child", xml.contains("<deploymentSettable>"));
+    }
+
+    @Test
+    public void deployXmlDescriptionAndContactPopulatedAndEscaped() throws Exception {
+        File out = tmp.newFile("deploy-dc.xml");
+        new DeploymentConfigGenerator().generateDeployXml(out, "MyApp", "1.0.0",
+                "develop:1.0.1-SNAPSHOT", "Team <A> & B, team@example.com",
+                Arrays.asList(gv("A", "1", "String", false)), null, null);
+        String xml = new String(Files.readAllBytes(out.toPath()), StandardCharsets.UTF_8);
+
+        assertTrue(xml.contains("<description>develop:1.0.1-SNAPSHOT</description>"));
+        assertTrue("contact value must be XML-escaped",
+                xml.contains("<contact>Team &lt;A&gt; &amp; B, team@example.com</contact>"));
+    }
+
+    @Test
+    public void deployXmlDescriptionAndContactEmptyByDefault() throws Exception {
+        // null description/contact render as empty elements (unchanged default behaviour)
+        File out = tmp.newFile("deploy-empty.xml");
+        new DeploymentConfigGenerator().generateDeployXml(out, "MyApp", "1.0.0", null, null,
+                Arrays.asList(gv("A", "1", "String", false)), null, null);
+        String xml = new String(Files.readAllBytes(out.toPath()), StandardCharsets.UTF_8);
+
+        assertTrue(xml.contains("<description></description>"));
+        assertTrue(xml.contains("<contact></contact>"));
     }
 
     @Test
@@ -136,7 +161,7 @@ public class DeploymentConfigGeneratorTest {
         flat.put("bw[MyApp-LB.par]/isFt", "true");
 
         File out = tmp.newFile("deploy-ovr.xml");
-        gen.generateDeployXml(out, "MyApp", "1.0.0",
+        gen.generateDeployXml(out, "MyApp", "1.0.0", "", "",
                 Arrays.asList(gv("CommonCore/Cache/cacheManagerConfig", "cfg", "String", true)),
                 services, flat);
         String xml = new String(Files.readAllBytes(out.toPath()), StandardCharsets.UTF_8);

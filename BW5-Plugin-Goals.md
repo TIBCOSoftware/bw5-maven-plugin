@@ -94,6 +94,8 @@ The EAR contains:
 | `globalPropertiesFile` | `bw5.deployConfig.globalPropertiesFile` | — | `.properties` file with global variable overrides applied to all modules in the build |
 | `projectPropertiesFile` | `bw5.deployConfig.projectPropertiesFile` | — | `.properties` file with overrides specific to this project |
 | `servicePropertiesFile` | `bw5.deployConfig.servicePropertiesFile` | — | `.properties` file with service (bindings/processes) overrides merged into `-services.properties`; also honours `bw5.service.*` |
+| `deployDescription` | `bw5.deploy.description` | _(empty)_ | Application `<description>` in the generated `-deploy.xml`; legacy `-Ddeploy.description` is also honoured |
+| `deployContact` | `bw5.deploy.contact` | _(empty)_ | Application `<contact>` in the generated `-deploy.xml`; legacy `-Ddeploy.contact` is also honoured |
 | `skipResolveDependencies` | `bw5.bwear.skipResolveDependencies` | `false` | If `true`, skips copying dependencies to the build directory |
 | `earOnly` | `bw5.earOnly` | `false` | If `true`, only assembles the EAR without generating any deployment configuration files |
 | `oldJavaCustomFunctions` | `bw5.oldJavaCustomFunctions` | `false` | If `true`, uses the `.javaxpath` bytecode already embedded in the source files instead of freshly compiled classes |

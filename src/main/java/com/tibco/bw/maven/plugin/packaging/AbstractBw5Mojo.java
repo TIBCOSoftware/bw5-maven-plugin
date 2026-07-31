@@ -90,6 +90,22 @@ public abstract class AbstractBw5Mojo extends AbstractMojo {
      * This is the correct source for {@code bw5.global.*} and {@code bw5.project.*}
      * override resolution.</p>
      */
+    /**
+     * Resolves a value that may be supplied under a canonical {@code bw5.*} parameter or a legacy
+     * property name (for compatibility with the fastconnect plugin). The canonical value wins when
+     * set; otherwise the legacy Maven property is used; otherwise an empty string is returned.
+     *
+     * @param canonicalValue value bound to the canonical {@code @Parameter} (may be null/empty)
+     * @param legacyPropertyKey legacy Maven/CLI property name to fall back to (e.g. {@code deploy.description})
+     */
+    protected String resolveWithFallback(String canonicalValue, String legacyPropertyKey) {
+        if (canonicalValue != null && !canonicalValue.isEmpty()) {
+            return canonicalValue;
+        }
+        String legacy = getAllMavenProperties().get(legacyPropertyKey);
+        return legacy != null ? legacy : "";
+    }
+
     protected Map<String, String> getAllMavenProperties() {
         Map<String, String> props = new LinkedHashMap<>();
         Properties pomProps = project.getProperties();

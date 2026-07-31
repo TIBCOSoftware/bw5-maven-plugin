@@ -173,6 +173,22 @@ public class BwEarMojo extends AbstractBw5Mojo {
     private File servicePropertiesFile;
 
     /**
+     * Value for the application {@code <description>} element of the generated {@code -deploy.xml}
+     * (empty by default). For compatibility with the fastconnect plugin the legacy
+     * {@code -Ddeploy.description} property is also honoured when this is not set.
+     */
+    @Parameter(property = "bw5.deploy.description")
+    private String deployDescription;
+
+    /**
+     * Value for the application {@code <contact>} element of the generated {@code -deploy.xml}
+     * (empty by default). For compatibility with the fastconnect plugin the legacy
+     * {@code -Ddeploy.contact} property is also honoured when this is not set.
+     */
+    @Parameter(property = "bw5.deploy.contact")
+    private String deployContact;
+
+    /**
      * When {@code true}, the {@code .javaxpath} bytecode already embedded in the source file
      * is used as-is instead of failing when no freshly compiled class is found.
      *
@@ -926,7 +942,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
         try {
             if (generateDeployXml) {
                 File out = new File(targetDir, finalName + "-deploy.xml");
-                gen.generateDeployXml(out, appName, appVersion, globalVars, serviceModels, serviceFlat);
+                gen.generateDeployXml(out, appName, appVersion,
+                        resolveWithFallback(deployDescription, "deploy.description"),
+                        resolveWithFallback(deployContact, "deploy.contact"),
+                        globalVars, serviceModels, serviceFlat);
                 getLog().info("Generated deploy XML : " + out.getName());
             }
             if (generateProperties) {

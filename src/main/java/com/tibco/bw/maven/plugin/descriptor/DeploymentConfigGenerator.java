@@ -144,6 +144,8 @@ public class DeploymentConfigGenerator {
      * @param outputFile  target file (e.g. {@code target/myapp-1.0.0-deploy.xml})
      * @param appName     application name
      * @param appVersion  application version
+     * @param description value for the application {@code <description>} element (may be null/empty)
+     * @param contact     value for the application {@code <contact>} element (may be null/empty)
      * @param globalVars  global variables parsed from {@code .substvar} files
      * @param services    per-PAR service models (bindings/processes); may be empty
      * @param serviceProps flat {@code bw[<par>]/...} map (from {@link #servicePropertyMap}, with any
@@ -155,6 +157,8 @@ public class DeploymentConfigGenerator {
             File outputFile,
             String appName,
             String appVersion,
+            String description,
+            String contact,
             List<SubstVarParser.GlobalVariable> globalVars,
             List<ServiceModel> services,
             Map<String, String> serviceProps) throws IOException {
@@ -178,8 +182,8 @@ public class DeploymentConfigGenerator {
         sb.append("-->\n");
         sb.append("<application xmlns=\"http://www.tibco.com/xmlns/ApplicationManagement\" name=\"")
           .append(xmlAttr(appName)).append("\">\n");
-        sb.append("    <description></description>\n");
-        sb.append("    <contact></contact>\n");
+        sb.append("    <description>").append(xmlEscape(description)).append("</description>\n");
+        sb.append("    <contact>").append(xmlEscape(contact)).append("</contact>\n");
 
         if (!sorted.isEmpty()) {
             sb.append("    <NVPairs name=\"Global Variables\">\n");
