@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +28,8 @@ import java.util.Properties;
  *       (set in {@code <properties>} or passed as {@code -Dbw5.global.VarName=value}).</li>
  * </ul>
  *
- * <p><b>Merge order (lowest → highest priority):</b></p>
+ * <p><b>Merge order (lowest → highest priority), with the default
+ * {@code projectPropertiesWin = true}:</b></p>
  * <ol>
  *   <li>.substvar default values</li>
  *   <li>Global properties file</li>
@@ -35,6 +37,11 @@ import java.util.Properties;
  *   <li>Project properties file</li>
  *   <li>Maven properties prefixed with {@code bw5.project.}</li>
  * </ol>
+ *
+ * <p>When {@code projectPropertiesWin = false} the two levels swap: the whole
+ * project bundle (project file + {@code bw5.project.*}) is applied first and the
+ * whole global bundle (global file + {@code bw5.global.*}) on top, so global
+ * values win.</p>
  */
 public class PropertyMerger {
 
@@ -48,16 +55,13 @@ public class PropertyMerger {
     public static final String SERVICE_PREFIX = "bw5.service.";
 
     /**
-     * Merges service-property overrides on top of a generated {@code bw[<par>]/...=value} map.
-     *
-     * <p>Override sources, applied in increasing priority: the generated defaults ({@code base}),
-     * the {@code servicePropsFile} (if any), then Maven properties prefixed with
-     * {@code bw5.service.}. Unlike the global-variable merge, keys are matched verbatim and new
-     * keys are added (an admin may introduce extra bindings/machines), not just override existing
-     * ones. The input map is not mutated.</p>
+     * Merges a single project-level service-property override file on top of a generated
+     * {@code bw[<par>]/...=value} map. Equivalent to
+     * {@link #mergeServiceProperties(Map, File, File, Map, boolean)} with no common file and
+     * {@code projectPropertiesWin = true}.
      *
      * @param base             generated service-property map (never null)
-     * @param servicePropsFile optional {@code .properties} override file (may be null)
+     * @param servicePropsFile optional project {@code .properties} override file (may be null)
      * @param mavenProperties  all Maven project properties ({@code bw5.service.*} are applied)
      * @return a new map with overrides merged in
      */
@@ -65,27 +69,80 @@ public class PropertyMerger {
             Map<String, String> base,
             File servicePropsFile,
             Map<String, String> mavenProperties) throws IOException {
-
-        Map<String, String> result = new LinkedHashMap<>(base);
-        if (servicePropsFile != null) {
-            if (!servicePropsFile.isFile()) {
-                throw new IOException("Service properties file not found: "
-                        + servicePropsFile.getAbsolutePath());
-            }
-            result.putAll(loadProperties(servicePropsFile));
-        }
-        if (mavenProperties != null) {
-            for (Map.Entry<String, String> e : mavenProperties.entrySet()) {
-                if (e.getKey().startsWith(SERVICE_PREFIX)) {
-                    result.put(e.getKey().substring(SERVICE_PREFIX.length()), e.getValue());
-                }
-            }
-        }
-        return result;
+        return mergeServiceProperties(base, null, servicePropsFile, mavenProperties, true);
     }
 
     /**
-     * Applies global and project overrides to a list of global variables.
+     * Merges two levels of service-property override on top of a generated
+     * {@code bw[<par>]/...=value} map: a common/global file shared across projects and a
+     * per-project file.
+     *
+     * <p>Override sources, applied in increasing priority when
+     * {@code projectPropertiesWin = true} (the default): the generated defaults ({@code base}),
+     * the {@code globalServicePropsFile} (if any), the {@code projectServicePropsFile} (if any),
+     * then Maven properties prefixed with {@code bw5.service.}. When
+     * {@code projectPropertiesWin = false} the two files swap so the common file wins over the
+     * project file; the inline {@code bw5.service.*} properties always remain the highest
+     * priority. Unlike the global-variable merge, keys are matched verbatim and new keys are
+     * added (an admin may introduce extra bindings/machines), not just override existing ones.
+     * The input map is not mutated.</p>
+     *
+     * @param base                    generated service-property map (never null)
+     * @param globalServicePropsFile  optional common/global override file (may be null)
+     * @param projectServicePropsFile optional per-project override file (may be null)
+     * @param mavenProperties         all Maven project properties ({@code bw5.service.*} applied)
+     * @param projectPropertiesWin    when {@code true} the project file wins over the common file
+     * @return a new map with overrides merged in
+     */
+    public Map<String, String> mergeServiceProperties(
+            Map<String, String> base,
+            File globalServicePropsFile,
+            File projectServicePropsFile,
+            Map<String, String> mavenProperties,
+            boolean projectPropertiesWin) throws IOException {
+
+        Map<String, String> result = new LinkedHashMap<>(base);
+        Map<String, String> globalOverrides  = loadServiceFile(globalServicePropsFile);
+        Map<String, String> projectOverrides = loadServiceFile(projectServicePropsFile);
+
+        if (projectPropertiesWin) {
+            result.putAll(globalOverrides);
+            result.putAll(projectOverrides);
+        } else {
+            result.putAll(projectOverrides);
+            result.putAll(globalOverrides);
+        }
+        // Inline bw5.service.* Maven properties are always the most explicit override.
+        addPrefixed(result, mavenProperties, SERVICE_PREFIX);
+        return result;
+    }
+
+    private Map<String, String> loadServiceFile(File file) throws IOException {
+        if (file == null) return new LinkedHashMap<>();
+        if (!file.isFile()) {
+            throw new IOException("Service properties file not found: " + file.getAbsolutePath());
+        }
+        return loadProperties(file);
+    }
+
+    /**
+     * Copies every {@code mavenProperties} entry whose key starts with {@code prefix} into
+     * {@code target}, stripping the prefix from the key. No-op when {@code mavenProperties} is null.
+     */
+    private void addPrefixed(Map<String, String> target,
+            Map<String, String> mavenProperties, String prefix) {
+        if (mavenProperties == null) return;
+        for (Map.Entry<String, String> e : mavenProperties.entrySet()) {
+            if (e.getKey().startsWith(prefix)) {
+                target.put(e.getKey().substring(prefix.length()), e.getValue());
+            }
+        }
+    }
+
+    /**
+     * Applies global and project overrides to a list of global variables, with the project
+     * level winning over the global level. Equivalent to
+     * {@link #merge(List, File, File, Map, boolean)} with {@code projectPropertiesWin = true}.
      *
      * @param vars              variables parsed from .substvar files (default values)
      * @param globalPropsFile   optional path to a global .properties file (may be null)
@@ -98,52 +155,61 @@ public class PropertyMerger {
             File   globalPropsFile,
             File   projectPropsFile,
             Map<String, String> mavenProperties) throws IOException {
+        return merge(vars, globalPropsFile, projectPropsFile, mavenProperties, true);
+    }
 
-        // --- Build override maps ---
+    /**
+     * Applies global and project overrides to a list of global variables, letting the caller
+     * choose which level wins.
+     *
+     * @param vars                 variables parsed from .substvar files (default values)
+     * @param globalPropsFile      optional path to a global .properties file (may be null)
+     * @param projectPropsFile     optional path to a project .properties file (may be null)
+     * @param mavenProperties      all Maven project properties (bw5.global.* and bw5.project.*)
+     * @param projectPropertiesWin when {@code true} the project level (project file +
+     *                             {@code bw5.project.*}) wins over the global level; when
+     *                             {@code false} the global level wins
+     * @return a new list of GlobalVariable objects with merged values (originals are not mutated)
+     */
+    public List<SubstVarParser.GlobalVariable> merge(
+            List<SubstVarParser.GlobalVariable> vars,
+            File   globalPropsFile,
+            File   projectPropsFile,
+            Map<String, String> mavenProperties,
+            boolean projectPropertiesWin) throws IOException {
+
+        // --- Build one override map per level (file value + matching bw5.<level>.* prefix) ---
         Map<String, String> globalOverrides  = new LinkedHashMap<>();
-        Map<String, String> projectOverrides = new LinkedHashMap<>();
-
-        // 1. Global properties file
         if (globalPropsFile != null) {
             if (!globalPropsFile.isFile()) {
                 throw new IOException("Global properties file not found: " + globalPropsFile.getAbsolutePath());
             }
             globalOverrides.putAll(loadProperties(globalPropsFile));
         }
-        // 2. Maven properties with bw5.global. prefix (override file values)
-        if (mavenProperties != null) {
-            for (Map.Entry<String, String> e : mavenProperties.entrySet()) {
-                if (e.getKey().startsWith(GLOBAL_PREFIX)) {
-                    globalOverrides.put(e.getKey().substring(GLOBAL_PREFIX.length()), e.getValue());
-                }
-            }
-        }
-        // 3. Project properties file
+        addPrefixed(globalOverrides, mavenProperties, GLOBAL_PREFIX);
+
+        Map<String, String> projectOverrides = new LinkedHashMap<>();
         if (projectPropsFile != null) {
             if (!projectPropsFile.isFile()) {
                 throw new IOException("Project properties file not found: " + projectPropsFile.getAbsolutePath());
             }
             projectOverrides.putAll(loadProperties(projectPropsFile));
         }
-        // 4. Maven properties with bw5.project. prefix (highest priority)
-        if (mavenProperties != null) {
-            for (Map.Entry<String, String> e : mavenProperties.entrySet()) {
-                if (e.getKey().startsWith(PROJECT_PREFIX)) {
-                    projectOverrides.put(e.getKey().substring(PROJECT_PREFIX.length()), e.getValue());
-                }
-            }
-        }
+        addPrefixed(projectOverrides, mavenProperties, PROJECT_PREFIX);
+
+        // Apply the lower-priority level first, then the higher-priority one on top.
+        List<Map<String, String>> ordered = projectPropertiesWin
+                ? Arrays.asList(globalOverrides, projectOverrides)
+                : Arrays.asList(projectOverrides, globalOverrides);
 
         // --- Apply to variables ---
         List<SubstVarParser.GlobalVariable> result = new ArrayList<>(vars.size());
         for (SubstVarParser.GlobalVariable orig : vars) {
             SubstVarParser.GlobalVariable merged = copy(orig);
-            String name = orig.name;
-            if (globalOverrides.containsKey(name)) {
-                merged.value = globalOverrides.get(name);
-            }
-            if (projectOverrides.containsKey(name)) {
-                merged.value = projectOverrides.get(name);
+            for (Map<String, String> overrides : ordered) {
+                if (overrides.containsKey(orig.name)) {
+                    merged.value = overrides.get(orig.name);
+                }
             }
             result.add(merged);
         }

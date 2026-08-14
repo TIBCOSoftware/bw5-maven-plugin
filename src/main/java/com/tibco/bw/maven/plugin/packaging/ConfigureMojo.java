@@ -148,6 +148,25 @@ public class ConfigureMojo extends AbstractBw5Mojo {
     private File servicePropertiesFile;
 
     /**
+     * Path to a Java {@code .properties} file with <em>common/global service</em> overrides
+     * ({@code bw[<par>]/...} keys) shared across projects, merged at a lower priority than
+     * {@code servicePropertiesFile} (unless {@code projectPropertiesPrecedence=false}).
+     * Mirrors the two-level model already available for global variables.
+     */
+    @Parameter(property = "bw5.deployConfig.globalServicePropertiesFile")
+    private File globalServicePropertiesFile;
+
+    /**
+     * Controls which override level wins when both a global/common file and a per-project file
+     * define the same key, for both global variables and service properties.
+     *
+     * <p>{@code true} (default): the project-level file wins over the global/common file.
+     * {@code false}: the global/common file wins.</p>
+     */
+    @Parameter(defaultValue = "true", property = "bw5.deployConfig.projectPropertiesPrecedence")
+    private boolean projectPropertiesPrecedence;
+
+    /**
      * Value for the application {@code <description>} element of the generated {@code -deploy.xml}
      * (empty by default). The legacy {@code -Ddeploy.description} property is also honoured.
      */
@@ -207,7 +226,8 @@ public class ConfigureMojo extends AbstractBw5Mojo {
             PropertyMerger merger = new PropertyMerger();
             Map<String, String> mavenProps = getAllMavenProperties();
             List<SubstVarParser.GlobalVariable> mergedVars =
-                merger.merge(allVars, globalPropertiesFile, projectPropertiesFile, mavenProps);
+                merger.merge(allVars, globalPropertiesFile, projectPropertiesFile, mavenProps,
+                        projectPropertiesPrecedence);
 
             logMergeStats(allVars, mergedVars);
 
@@ -289,6 +309,7 @@ public class ConfigureMojo extends AbstractBw5Mojo {
     private void remergeServiceProperties(DeploymentConfigGenerator gen, File targetDir,
             String finalName, String appName, String appVersion) throws Exception {
         boolean hasOverride = servicePropertiesFile != null
+                || globalServicePropertiesFile != null
                 || countMavenProps(PropertyMerger.SERVICE_PREFIX) > 0;
         if (!hasOverride) return;
 
@@ -301,7 +322,8 @@ public class ConfigureMojo extends AbstractBw5Mojo {
         PropertyMerger merger = new PropertyMerger();
         Map<String, String> base = merger.loadProperties(out);
         Map<String, String> merged = merger.mergeServiceProperties(
-                base, servicePropertiesFile, getAllMavenProperties());
+                base, globalServicePropertiesFile, servicePropertiesFile,
+                getAllMavenProperties(), projectPropertiesPrecedence);
         gen.generateServicesProperties(out, appName, appVersion, merged);
         getLog().info("Re-merged service props : " + out.getName());
     }
@@ -329,6 +351,16 @@ public class ConfigureMojo extends AbstractBw5Mojo {
             getLog().info("Project properties : " + projectPropertiesFile.getAbsolutePath()
                 + (projectPropertiesFile.isFile() ? "" : " (not found)"));
         }
+        if (globalServicePropertiesFile != null) {
+            getLog().info("Common services    : " + globalServicePropertiesFile.getAbsolutePath()
+                + (globalServicePropertiesFile.isFile() ? "" : " (not found)"));
+        }
+        if (servicePropertiesFile != null) {
+            getLog().info("Project services   : " + servicePropertiesFile.getAbsolutePath()
+                + (servicePropertiesFile.isFile() ? "" : " (not found)"));
+        }
+        getLog().info("Project properties precedence: "
+                + (projectPropertiesPrecedence ? "project wins" : "global/common wins"));
         // Count inline Maven property overrides
         long globalCount  = countMavenProps(PropertyMerger.GLOBAL_PREFIX);
         long projectCount = countMavenProps(PropertyMerger.PROJECT_PREFIX);

@@ -164,13 +164,38 @@ public class BwEarMojo extends AbstractBw5Mojo {
     private File projectPropertiesFile;
 
     /**
-     * Path to a Java {@code .properties} file with <em>service</em> overrides
+     * Path to a Java {@code .properties} file with <em>per-project service</em> overrides
      * ({@code bw[<par>]/...} keys) merged into the generated {@code -services.properties}
      * before it is written. Also honours {@code bw5.service.*} Maven properties. Lets an
      * environment tune bindings/heap/thread settings without editing generated output.
+     *
+     * <p>Takes precedence over {@code globalServicePropertiesFile} unless
+     * {@code projectPropertiesPrecedence=false}.</p>
      */
     @Parameter(property = "bw5.deployConfig.servicePropertiesFile")
     private File servicePropertiesFile;
+
+    /**
+     * Path to a Java {@code .properties} file with <em>common/global service</em> overrides
+     * ({@code bw[<par>]/...} keys) shared across projects, merged into the generated
+     * {@code -services.properties} at a lower priority than {@code servicePropertiesFile}
+     * (unless {@code projectPropertiesPrecedence=false}). Mirrors the two-level model already
+     * available for global variables via {@code globalPropertiesFile}/{@code projectPropertiesFile}.
+     */
+    @Parameter(property = "bw5.deployConfig.globalServicePropertiesFile")
+    private File globalServicePropertiesFile;
+
+    /**
+     * Controls which override level wins when both a global/common file and a per-project file
+     * define the same key, for both global variables and service properties.
+     *
+     * <p>{@code true} (default): the project-level file wins over the global/common file.
+     * {@code false}: the global/common file wins. In both cases inline Maven properties
+     * ({@code bw5.project.*}, {@code bw5.global.*}, {@code bw5.service.*}) keep their usual
+     * precedence.</p>
+     */
+    @Parameter(defaultValue = "true", property = "bw5.deployConfig.projectPropertiesPrecedence")
+    private boolean projectPropertiesPrecedence;
 
     /**
      * Value for the application {@code <description>} element of the generated {@code -deploy.xml}
@@ -893,7 +918,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
             PropertyMerger merger = new PropertyMerger();
             Map<String, String> mavenProps = getAllMavenProperties();
             List<SubstVarParser.GlobalVariable> merged =
-                merger.merge(vars, globalPropertiesFile, projectPropertiesFile, mavenProps);
+                merger.merge(vars, globalPropertiesFile, projectPropertiesFile, mavenProps,
+                        projectPropertiesPrecedence);
             long changed = 0;
             for (int i = 0; i < vars.size(); i++) {
                 if (!Objects.equals(vars.get(i).value, merged.get(i).value)) changed++;
@@ -992,7 +1018,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
             throws MojoExecutionException {
         try {
             return new PropertyMerger().mergeServiceProperties(
-                    base, servicePropertiesFile, getAllMavenProperties());
+                    base, globalServicePropertiesFile, servicePropertiesFile,
+                    getAllMavenProperties(), projectPropertiesPrecedence);
         } catch (IOException e) {
             throw new MojoExecutionException(e.getMessage(), e);
         } catch (Exception e) {

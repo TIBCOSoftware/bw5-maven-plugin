@@ -217,4 +217,142 @@ public class PropertyMergerTest {
         new PropertyMerger().mergeServiceProperties(
             new HashMap<>(), missing, Collections.emptyMap());
     }
+
+    // -----------------------------------------------------------------------
+    //  #11: two-level service-property merge (common + project files)
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void projectServiceFileOverridesCommonServiceFile() throws Exception {
+        String key = "bw[MyApp-LB.par]/bindings/binding[]/setting/java/maxHeapSize";
+        Map<String, String> base = new HashMap<>();
+        base.put(key, "256");
+
+        File common  = propsFile(key, "512");   // global/common service file
+        File project = propsFile(key, "1024");  // per-project service file (higher priority)
+
+        Map<String, String> merged = new PropertyMerger().mergeServiceProperties(
+            base, common, project, Collections.emptyMap(), true);
+
+        assertEquals("project service file must override common service file (default precedence)",
+            "1024", merged.get(key));
+    }
+
+    @Test
+    public void commonServiceFileWinsWhenPrecedenceFlipped() throws Exception {
+        String key = "bw[MyApp-LB.par]/bindings/binding[]/setting/threadCount";
+        Map<String, String> base = new HashMap<>();
+        base.put(key, "8");
+
+        File common  = propsFile(key, "64");
+        File project = propsFile(key, "16");
+
+        Map<String, String> merged = new PropertyMerger().mergeServiceProperties(
+            base, common, project, Collections.emptyMap(), false);
+
+        assertEquals("common service file must win when projectPropertiesWin=false",
+            "64", merged.get(key));
+    }
+
+    @Test
+    public void commonServiceFileFillsKeysAbsentFromProjectFile() throws Exception {
+        Map<String, String> base = new HashMap<>();
+        base.put("bw[MyApp-LB.par]/enabled", "true");
+
+        String commonKey  = "bw[MyApp-LB.par]/bindings/binding[]/machine";
+        String projectKey = "bw[MyApp-LB.par]/bindings/binding[]/setting/threadCount";
+        File common  = propsFile(commonKey, "%%host%%");
+        File project = propsFile(projectKey, "16");
+
+        Map<String, String> merged = new PropertyMerger().mergeServiceProperties(
+            base, common, project, Collections.emptyMap(), true);
+
+        assertEquals("common key present when project file omits it", "%%host%%", merged.get(commonKey));
+        assertEquals("project key applied", "16", merged.get(projectKey));
+        assertEquals("base key preserved", "true", merged.get("bw[MyApp-LB.par]/enabled"));
+    }
+
+    @Test
+    public void inlineServicePropertyBeatsBothServiceFiles() throws Exception {
+        String key = "bw[MyApp-LB.par]/bindings/binding[]/setting/threadCount";
+        Map<String, String> base = new HashMap<>();
+        base.put(key, "8");
+
+        File common  = propsFile(key, "64");
+        File project = propsFile(key, "16");
+        Map<String, String> mavenProps = new HashMap<>();
+        mavenProps.put(PropertyMerger.SERVICE_PREFIX + key, "128");
+
+        // Even with global precedence, inline bw5.service.* stays the highest priority.
+        Map<String, String> merged = new PropertyMerger().mergeServiceProperties(
+            base, common, project, mavenProps, false);
+
+        assertEquals("bw5.service.* must beat both service files regardless of precedence",
+            "128", merged.get(key));
+    }
+
+    @Test
+    public void singleFileServiceOverloadMapsToProjectLevel() throws Exception {
+        // The legacy 3-arg overload must behave as a project-level (higher-priority) file.
+        String key = "bw[MyApp-LB.par]/enabled";
+        Map<String, String> base = new HashMap<>();
+        base.put(key, "false");
+        File project = propsFile(key, "true");
+
+        Map<String, String> merged =
+            new PropertyMerger().mergeServiceProperties(base, project, Collections.emptyMap());
+
+        assertEquals("legacy single-file overload still applies the override", "true", merged.get(key));
+    }
+
+    @Test(expected = IOException.class)
+    public void missingCommonServicePropertiesFileThrows() throws Exception {
+        File missing = new File(tmp.getRoot(), "does-not-exist-common-service.properties");
+        new PropertyMerger().mergeServiceProperties(
+            new HashMap<>(), missing, null, Collections.emptyMap(), true);
+    }
+
+    // -----------------------------------------------------------------------
+    //  #11: configurable global-variable precedence (projectPropertiesWin)
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void globalFileWinsWhenPrecedenceFlipped() throws Exception {
+        File globalFile  = propsFile("Domain", "global-value");
+        File projectFile = propsFile("Domain", "project-value");
+
+        List<SubstVarParser.GlobalVariable> result = new PropertyMerger().merge(
+            oneVar("Domain", "default"), globalFile, projectFile, Collections.emptyMap(), false);
+
+        assertEquals("globalPropertiesFile must win when projectPropertiesWin=false",
+            "global-value", result.get(0).value);
+    }
+
+    @Test
+    public void projectWinsIsTheDefaultOverload() throws Exception {
+        File globalFile  = propsFile("Domain", "global-value");
+        File projectFile = propsFile("Domain", "project-value");
+
+        // The 4-arg overload must keep the historical project-wins behaviour.
+        List<SubstVarParser.GlobalVariable> result = new PropertyMerger().merge(
+            oneVar("Domain", "default"), globalFile, projectFile, Collections.emptyMap());
+
+        assertEquals("4-arg merge() must default to project-wins", "project-value",
+            result.get(0).value);
+    }
+
+    @Test
+    public void globalCliBeatsProjectFileWhenGlobalWins() throws Exception {
+        // With global precedence, the whole global bundle (file + bw5.global.*) sits on top.
+        File globalFile  = propsFile("X", "global-file");
+        File projectFile = propsFile("X", "project-file");
+        Map<String, String> mavenProps = new HashMap<>();
+        mavenProps.put(PropertyMerger.GLOBAL_PREFIX + "X", "global-cli");
+
+        List<SubstVarParser.GlobalVariable> result = new PropertyMerger().merge(
+            oneVar("X", "default"), globalFile, projectFile, mavenProps, false);
+
+        assertEquals("bw5.global.* is top of the global bundle, which wins when flipped",
+            "global-cli", result.get(0).value);
+    }
 }
