@@ -93,7 +93,9 @@ The EAR contains:
 | `generateValuesYaml` | `bw5.generateValuesYaml` | `true` | Generates a `values.yaml` file for Helm |
 | `globalPropertiesFile` | `bw5.deployConfig.globalPropertiesFile` | — | `.properties` file with global variable overrides applied to all modules in the build |
 | `projectPropertiesFile` | `bw5.deployConfig.projectPropertiesFile` | — | `.properties` file with overrides specific to this project |
-| `servicePropertiesFile` | `bw5.deployConfig.servicePropertiesFile` | — | `.properties` file with service (bindings/processes) overrides merged into `-services.properties`; also honours `bw5.service.*` |
+| `globalServicePropertiesFile` | `bw5.deployConfig.globalServicePropertiesFile` | — | `.properties` file with common/shared service (bindings/processes) overrides, merged at a lower priority than `servicePropertiesFile` |
+| `servicePropertiesFile` | `bw5.deployConfig.servicePropertiesFile` | — | `.properties` file with per-project service (bindings/processes) overrides merged into `-services.properties`. Wins over `globalServicePropertiesFile` unless `projectPropertiesPrecedence=false`; also honours `bw5.service.*` |
+| `projectPropertiesPrecedence` | `bw5.deployConfig.projectPropertiesPrecedence` | `true` | Which level wins when a common and a project file set the same key (global variables **and** service properties). `true` = project wins; `false` = global/common wins |
 | `deployDescription` | `bw5.deploy.description` | _(empty)_ | Application `<description>` in the generated `-deploy.xml`; legacy `-Ddeploy.description` is also honoured |
 | `deployContact` | `bw5.deploy.contact` | _(empty)_ | Application `<contact>` in the generated `-deploy.xml`; legacy `-Ddeploy.contact` is also honoured |
 | `skipResolveDependencies` | `bw5.bwear.skipResolveDependencies` | `false` | If `true`, skips copying dependencies to the build directory |
@@ -221,7 +223,7 @@ Generates or refreshes deployment configuration files by applying environment-sp
 - `deploy.properties` — flat key=value format (global variables)
 - `values.yaml` — for Helm / Kubernetes deployments
 
-This goal re-merges **global variables** only. When `servicePropertiesFile` (or `bw5.service.*`) is set, it additionally re-applies those overrides onto the `-services.properties` produced by a prior `bwear` run (run `package` first).
+This goal re-merges **global variables** only. When `servicePropertiesFile`, `globalServicePropertiesFile` (or `bw5.service.*`) is set, it additionally re-applies those overrides onto the `-services.properties` produced by a prior `bwear` run (run `package` first).
 
 > **When to use:** To regenerate deployment configuration for a specific environment without rebuilding the entire EAR, or as an automated pre-deployment step.
 
@@ -231,7 +233,9 @@ This goal re-merges **global variables** only. When `servicePropertiesFile` (or 
 |---|---|---|---|
 | `globalPropertiesFile` | `bw5.deployConfig.globalPropertiesFile` | — | `.properties` file with overrides applied to all modules in the build |
 | `projectPropertiesFile` | `bw5.deployConfig.projectPropertiesFile` | — | `.properties` file with overrides specific to this project |
-| `servicePropertiesFile` | `bw5.deployConfig.servicePropertiesFile` | — | `.properties` file with service (bindings/processes) overrides re-merged onto an existing `-services.properties`; also honours `bw5.service.*` |
+| `globalServicePropertiesFile` | `bw5.deployConfig.globalServicePropertiesFile` | — | `.properties` file with common/shared service (bindings/processes) overrides, merged at a lower priority than `servicePropertiesFile` |
+| `servicePropertiesFile` | `bw5.deployConfig.servicePropertiesFile` | — | `.properties` file with per-project service (bindings/processes) overrides re-merged onto an existing `-services.properties`. Wins over `globalServicePropertiesFile` unless `projectPropertiesPrecedence=false`; also honours `bw5.service.*` |
+| `projectPropertiesPrecedence` | `bw5.deployConfig.projectPropertiesPrecedence` | `true` | Which level wins when a common and a project file set the same key (global variables **and** service properties). `true` = project wins; `false` = global/common wins |
 | `updateSubstVarFiles` | `bw5.deployConfig.updateSubstVarFiles` | `false` | If `true`, writes the merged values back into the project's `.substvar` source files |
 | `generateDeployXml` | `bw5.deployConfig.generateDeployXml` | `true` | Generates `deploy.xml` |
 | `generateProperties` | `bw5.deployConfig.generateProperties` | `true` | Generates `deploy.properties` |
@@ -253,11 +257,19 @@ mvn generate-resources \
   -Dbw5.deployConfig.generateProperties=false
 ```
 
-**Override priority** (highest to lowest):
-1. `-D` properties passed on the command line
+**Override priority for global variables** (highest to lowest):
+1. `-D` properties passed on the command line (`bw5.project.*` then `bw5.global.*`)
 2. `projectPropertiesFile` (module-specific)
 3. `globalPropertiesFile` (build-wide)
 4. Default values in the project's `.substvar` files
+
+**Override priority for service properties** (highest to lowest):
+1. `bw5.service.*` properties passed on the command line
+2. `servicePropertiesFile` (per-project)
+3. `globalServicePropertiesFile` (common/shared)
+4. Generated service defaults
+
+Set `bw5.deployConfig.projectPropertiesPrecedence=false` to flip levels 2 and 3 in **both** lists, so the common/global file wins over the project file. Inline `-D` overrides always keep the top priority.
 
 ---
 
@@ -465,6 +477,9 @@ Instead of passing parameters on the command line every time, set them permanent
 
         <!-- Deployment configuration -->
         <globalPropertiesFile>${project.basedir}/config/global.properties</globalPropertiesFile>
+        <!-- Two-level service overrides: common file + per-project file (project wins by default) -->
+        <globalServicePropertiesFile>${project.basedir}/../config/common-services.properties</globalServicePropertiesFile>
+        <servicePropertiesFile>${project.basedir}/config/service.properties</servicePropertiesFile>
         <generateValuesYaml>true</generateValuesYaml>
 
         <!-- Documentation site -->

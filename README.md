@@ -296,8 +296,9 @@ properties and processes) generated as a single-binding export template. The `-s
 file is that same `<services>` section in flat `key=value` form.
 
 Both are rendered from the **same** `bw[<par>]/...` map, so any [service override](#property-override-model)
-(`servicePropertiesFile` / `bw5.service.*`) is applied to the `<services>` block of the `-deploy.xml`
-and the `-services.properties` identically — just like an `appmanage` deploy-config merge.
+(`globalServicePropertiesFile` / `servicePropertiesFile` / `bw5.service.*`) is applied to the
+`<services>` block of the `-deploy.xml` and the `-services.properties` identically — just like an
+`appmanage` deploy-config merge.
 
 **EAR structure:**
 
@@ -324,7 +325,8 @@ my-app-1.0.0-SNAPSHOT.ear
 | `generateServicesProperties` | `bw5.generateServicesProperties` | `true` | Generate `-services.properties` (bindings/processes) |
 | `generateValuesYaml` | `bw5.generateValuesYaml` | `true` | Generate `values.yaml` |
 | `archiveDescriptorFile` | `bw5.archiveDescriptorFile` | _(auto-detected)_ | TIBCO `.archive` descriptor. When not set, the plugin scans the project **recursively** for a `*.archive` file (typically under `Deployment/`), skipping `target/`, `.git`, `.svn` |
-| `servicePropertiesFile` | `bw5.deployConfig.servicePropertiesFile` | — | Service overrides (`bw[<par>]/...` keys) merged into `-services.properties`. Also honours `bw5.service.*` |
+| `servicePropertiesFile` | `bw5.deployConfig.servicePropertiesFile` | — | Per-project service overrides (`bw[<par>]/...` keys) merged into `-services.properties`. Takes precedence over `globalServicePropertiesFile` (unless `projectPropertiesPrecedence=false`). Also honours `bw5.service.*` |
+| `globalServicePropertiesFile` | `bw5.deployConfig.globalServicePropertiesFile` | — | Common/shared service overrides (`bw[<par>]/...` keys) merged at a lower priority than `servicePropertiesFile`. Mirrors the two-level model of `globalPropertiesFile`/`projectPropertiesFile` for service properties |
 | `deployDescription` | `bw5.deploy.description` | _(empty)_ | Value for the application `<description>` in `-deploy.xml`. Legacy `-Ddeploy.description` is also honoured |
 | `deployContact` | `bw5.deploy.contact` | _(empty)_ | Value for the application `<contact>` in `-deploy.xml`. Legacy `-Ddeploy.contact` is also honoured |
 | `skipManifest` | `bw5.skipManifest` | `false` | If `true`, skips generating `manifest-bw5.json` |
@@ -334,6 +336,7 @@ my-app-1.0.0-SNAPSHOT.ear
 | `adapterVersions` | _(pom only)_ | _(from descriptor / install)_ | Per-adapter-type SDK version overrides for the AAR. See [Adapter versions](#adapter-versions) below |
 | `globalPropertiesFile` | `bw5.deployConfig.globalPropertiesFile` | — | Global property overrides |
 | `projectPropertiesFile` | `bw5.deployConfig.projectPropertiesFile` | — | Project-specific overrides |
+| `projectPropertiesPrecedence` | `bw5.deployConfig.projectPropertiesPrecedence` | `true` | Which level wins when both a common and a project file set the same key (global variables **and** service properties). `true` = project wins; `false` = global/common wins |
 | `skip` | `bw5.skip` | `false` | Skip goal |
 
 #### Extra engine properties
@@ -458,13 +461,16 @@ mvn bw5:deploy-config -Dbw5.deployConfig.updateSubstVarFiles=true \
     -Dbw5.deployConfig.projectPropertiesFile=config/uat.properties
 
 # Re-apply service (bindings/processes) overrides onto an existing -services.properties
-mvn bw5:deploy-config -Dbw5.deployConfig.servicePropertiesFile=config/prod-services.properties
+# (a common file plus a project file; the project file wins by default)
+mvn bw5:deploy-config \
+    -Dbw5.deployConfig.globalServicePropertiesFile=config/common-services.properties \
+    -Dbw5.deployConfig.servicePropertiesFile=config/prod-services.properties
 ```
 
 This goal re-merges **global variables** only; it does not assemble the EAR, so the `-deploy.xml`
-it writes has no `<services>` block (that comes from `bw5:bwear`). When `servicePropertiesFile` (or
-`bw5.service.*`) is set, it re-merges those overrides onto the `-services.properties` produced by a
-prior `bw5:bwear` run — run `package` first.
+it writes has no `<services>` block (that comes from `bw5:bwear`). When `servicePropertiesFile`,
+`globalServicePropertiesFile` (or `bw5.service.*`) is set, it re-merges those overrides onto the
+`-services.properties` produced by a prior `bw5:bwear` run — run `package` first.
 
 See [Property Override Model](#property-override-model) for full details.
 
@@ -623,27 +629,40 @@ The plugin implements a **two-level property override model** for environment-sp
 5. Maven properties prefixed `bw5.project.*`
 
 This model covers **global variables** (the `-deploy.xml` / `-deploy.properties` / `values.yaml`).
-The **service** configuration (`-services.properties`, i.e. bindings/processes) has its own override
-layer, applied on top of the generated defaults:
+The **service** configuration (`-services.properties`, i.e. bindings/processes) has the **same**
+two-level model, applied on top of the generated defaults:
 
 1. Generated service defaults (single-binding template)
-2. Service properties file (`bw5.deployConfig.servicePropertiesFile`)
-3. Maven properties prefixed `bw5.service.*`
+2. Common/global service properties file (`bw5.deployConfig.globalServicePropertiesFile`)
+3. Project service properties file (`bw5.deployConfig.servicePropertiesFile`)
+4. Maven properties prefixed `bw5.service.*`
 
 Service override keys are the flat `bw[<par>]/...` keys found in `-services.properties` (e.g.
 `bw[MyApp-LB.par]/bindings/binding[]/setting/java/maxHeapSize=512`); unlike variable overrides they
 may also add new keys (extra bindings/machines).
 
+### Choosing which level wins
+
+By default the **project** level wins over the **global/common** level (a project file value
+overrides the same key in the common file). This applies to both global variables and service
+properties. Set `bw5.deployConfig.projectPropertiesPrecedence=false` to flip it so the common file
+wins. Inline Maven properties (`bw5.project.*`, `bw5.global.*`, `bw5.service.*`) keep their usual
+precedence regardless of this switch.
+
 ### Configuration
 
 ```xml
-<!-- pom.xml — project-level override file -->
+<!-- pom.xml — two-level override files (variables + services) -->
 <plugin>
     <groupId>com.tibco.bw</groupId>
     <artifactId>bw5-maven-plugin</artifactId>
     <configuration>
         <globalPropertiesFile>${project.basedir}/../config/global.properties</globalPropertiesFile>
         <projectPropertiesFile>${project.basedir}/config/project.properties</projectPropertiesFile>
+        <globalServicePropertiesFile>${project.basedir}/../config/common-services.properties</globalServicePropertiesFile>
+        <servicePropertiesFile>${project.basedir}/config/service.properties</servicePropertiesFile>
+        <!-- optional; default is true (project file wins over the common file) -->
+        <projectPropertiesPrecedence>true</projectPropertiesPrecedence>
     </configuration>
 </plugin>
 ```
@@ -798,7 +817,9 @@ Reports are written to `target/dependency-check-report.html` and `.json`. The bu
         <!-- Property override files (optional) -->
         <!-- <globalPropertiesFile>${project.basedir}/../config/global.properties</globalPropertiesFile> -->
         <!-- <projectPropertiesFile>${project.basedir}/config/project.properties</projectPropertiesFile> -->
+        <!-- <globalServicePropertiesFile>${project.basedir}/../config/common-services.properties</globalServicePropertiesFile> -->
         <!-- <servicePropertiesFile>${project.basedir}/config/service.properties</servicePropertiesFile> -->
+        <!-- <projectPropertiesPrecedence>true</projectPropertiesPrecedence> -->
 
         <!-- Application <description>/<contact> in -deploy.xml (optional) -->
         <!-- <deployDescription>develop:1.0.1-SNAPSHOT</deployDescription> -->
@@ -820,7 +841,9 @@ Reports are written to `target/dependency-check-report.html` and `.json`. The bu
 | `-Dbw5.generateServicesProperties=false` | Skip `-services.properties` generation |
 | `-Dbw5.deployConfig.globalPropertiesFile=<path>` | Global property overrides |
 | `-Dbw5.deployConfig.projectPropertiesFile=<path>` | Project property overrides |
-| `-Dbw5.deployConfig.servicePropertiesFile=<path>` | Service (bindings/processes) overrides |
+| `-Dbw5.deployConfig.globalServicePropertiesFile=<path>` | Common/shared service (bindings/processes) overrides |
+| `-Dbw5.deployConfig.servicePropertiesFile=<path>` | Project service (bindings/processes) overrides |
+| `-Dbw5.deployConfig.projectPropertiesPrecedence=<bool>` | `true` (default) project file wins; `false` common file wins |
 | `-Dbw5.deploy.description=<text>` | Application `<description>` in `-deploy.xml` (or legacy `-Ddeploy.description`) |
 | `-Dbw5.deploy.contact=<text>` | Application `<contact>` in `-deploy.xml` (or legacy `-Ddeploy.contact`) |
 | `-Dbw5.global.<name>=<value>` | Override individual global variable |
