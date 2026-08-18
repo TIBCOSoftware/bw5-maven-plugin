@@ -9,12 +9,15 @@ import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Generates deployment configuration files from the global variables collected
@@ -222,11 +225,15 @@ public class DeploymentConfigGenerator {
             List<SubstVarParser.GlobalVariable> runtimeVars, Map<String, String> flat) {
         String par = svc.parFileName;
         String p = "bw[" + par + "]";
-        String b = p + "/bindings/binding[]";
+        // The binding name is data-driven: after resolveServiceBindings() the flat map carries the
+        // deployment binding name supplied by the service overrides (e.g. "MyApp-LB-esb06"); when no
+        // override named it, this is the empty AppManage template name.
+        String bindingName = resolveBindingNameForPar(flat, p);
+        String b = p + "/bindings/binding[" + bindingName + "]";
         sb.append("        <bw name=\"").append(xmlAttr(par)).append("\">\n");
         sb.append("            <enabled>").append(esc(flat, p + "/enabled", "true")).append("</enabled>\n");
         sb.append("            <bindings>\n");
-        sb.append("                <binding name=\"\">\n");
+        sb.append("                <binding name=\"").append(xmlAttr(bindingName)).append("\">\n");
         sb.append("                    <machine>").append(esc(flat, b + "/machine", "%%" + par + "-machine%%")).append("</machine>\n");
         sb.append("                    <product>\n");
         sb.append("                        <type>").append(esc(flat, b + "/product/type", "bwengine")).append("</type>\n");
@@ -479,6 +486,246 @@ public class DeploymentConfigGenerator {
             }
         }
         return flat;
+    }
+
+    // -----------------------------------------------------------------------
+    //  Service-property resolution (named bindings + wildcard expansion)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Resolves a merged service-property map into the concrete, AppManage-ready form used by both
+     * the {@code -services.properties} file and the {@code <services>} block of the
+     * {@code -deploy.xml}. Two transformations are applied:
+     *
+     * <ol>
+     *   <li><b>Named-binding reconciliation.</b> The generated template uses an empty-named binding
+     *       ({@code bw[<par>]/bindings/binding[]/...}). When an override supplies a named binding
+     *       ({@code binding[<par>-<node>]/...}), the template binding is renamed to that name and
+     *       all template defaults are carried over, so a single fully-populated
+     *       {@code binding[<name>]} results — matching what {@code AppManage} exports. Without the
+     *       reconciliation the named override keys and the empty template binding stay disjoint, and
+     *       the XML renders only {@code <binding name="">} with default values.</li>
+     *   <li><b>Wildcard / glob expansion.</b> {@code AppManage}-style wildcard keys — {@code bw[*]},
+     *       {@code binding[*]}, {@code binding[*esbNN]} (suffix match), {@code bwprocess[*]},
+     *       {@code variable[*]}, {@code adapter[*]} and a bare wildcard path segment — are
+     *       expanded onto every concrete key they match and then dropped. A wildcard never
+     *       overwrites a key the user set explicitly (present in {@code explicitOverrideKeys});
+     *       explicit values always win over a glob. Wildcards that match nothing concrete are
+     *       silently discarded (e.g. {@code adapter[*]} entries when the app has no adapters).</li>
+     * </ol>
+     *
+     * <p>The returned map contains only concrete keys — no {@code *}, no empty-named binding.
+     * Passing a map with no named bindings and no wildcards returns it unchanged, so the method is
+     * safe (and idempotent) to call even when no overrides are configured.</p>
+     *
+     * @param merged               flat map after {@link PropertyMerger#mergeServiceProperties}
+     *                             (template defaults + explicit overrides + wildcard entries)
+     * @param explicitOverrideKeys concrete (non-wildcard) keys the user set explicitly via a service
+     *                             override file or a {@code bw5.service.*} property; protected from
+     *                             wildcard expansion. May be {@code null}.
+     * @return the resolved concrete map (a new {@link LinkedHashMap})
+     */
+    public Map<String, String> resolveServiceBindings(
+            Map<String, String> merged, Set<String> explicitOverrideKeys) {
+
+        Set<String> explicit = explicitOverrideKeys != null ? explicitOverrideKeys : Collections.emptySet();
+
+        // 1. Partition into concrete keys and wildcard patterns.
+        Map<String, String> concrete = new LinkedHashMap<>();
+        Map<String, String> wildcards = new LinkedHashMap<>();
+        for (Map.Entry<String, String> e : merged.entrySet()) {
+            if (isWildcardKey(e.getKey())) {
+                wildcards.put(e.getKey(), e.getValue());
+            } else {
+                concrete.put(e.getKey(), e.getValue());
+            }
+        }
+
+        // 2. Reconcile the empty-named template binding with the override-supplied binding name.
+        reconcileBindingNames(concrete);
+
+        // 3. Expand wildcards. Apply least-specific (most stars) first so a more specific glob wins;
+        //    never overwrite an explicitly-set key.
+        List<String> patterns = new ArrayList<>(wildcards.keySet());
+        patterns.sort(Comparator.comparingInt(DeploymentConfigGenerator::wildcardCount).reversed()
+                .thenComparing(Comparator.naturalOrder()));
+        List<String> concreteKeys = new ArrayList<>(concrete.keySet());
+        for (String pattern : patterns) {
+            String value = wildcards.get(pattern);
+            List<String> patternComps = splitTopLevel(pattern);
+            for (String key : concreteKeys) {
+                if (explicit.contains(key)) continue;
+                if (componentsMatch(patternComps, key)) {
+                    concrete.put(key, value);
+                }
+            }
+        }
+        return concrete;
+    }
+
+    /**
+     * Per PAR, renames the empty-named template binding ({@code binding[]}) to the non-empty binding
+     * name found among the override keys, carrying over every template default that the override did
+     * not already set. Mutates {@code concrete} in place. No-op for a PAR whose bindings are all
+     * empty-named (no override named the binding).
+     */
+    private void reconcileBindingNames(Map<String, String> concrete) {
+        // First pass: choose, per PAR token, the binding name to adopt.
+        Map<String, String> parToName = new LinkedHashMap<>();
+        for (String key : concrete.keySet()) {
+            List<String> c = splitTopLevel(key);
+            if (isBindingKey(c)) {
+                String name = bracketInner(c.get(2));
+                if (!name.isEmpty()) {
+                    parToName.putIfAbsent(c.get(0), name);
+                }
+            }
+        }
+        if (parToName.isEmpty()) return;
+
+        // Second pass: rename binding[] -> binding[<name>], filling only the keys the override omitted.
+        Map<String, String> renamed = new LinkedHashMap<>();
+        List<String> toRemove = new ArrayList<>();
+        for (Map.Entry<String, String> e : concrete.entrySet()) {
+            List<String> c = splitTopLevel(e.getKey());
+            if (isBindingKey(c) && bracketInner(c.get(2)).isEmpty()) {
+                String name = parToName.get(c.get(0));
+                if (name != null) {
+                    c.set(2, "binding[" + name + "]");
+                    String nk = String.join("/", c);
+                    if (!concrete.containsKey(nk)) {
+                        renamed.put(nk, e.getValue());
+                    }
+                    toRemove.add(e.getKey());
+                }
+            }
+        }
+        concrete.keySet().removeAll(toRemove);
+        concrete.putAll(renamed);
+    }
+
+    /** Binding name (possibly empty) carried in {@code flat} for {@code par} = {@code "bw[<par>]"}. */
+    private static String resolveBindingNameForPar(Map<String, String> flat, String par) {
+        if (flat == null) return "";
+        String best = "";
+        for (String key : flat.keySet()) {
+            List<String> c = splitTopLevel(key);
+            if (isBindingKey(c) && par.equals(c.get(0))) {
+                String name = bracketInner(c.get(2));
+                if (!name.isEmpty() && (best.isEmpty() || name.compareTo(best) < 0)) {
+                    best = name;
+                }
+            }
+        }
+        return best;
+    }
+
+    /** True when {@code c} is a {@code bw[..]/bindings/binding[..]/...} key (component form). */
+    private static boolean isBindingKey(List<String> c) {
+        return c.size() >= 4
+                && c.get(0).startsWith("bw[") && c.get(0).endsWith("]")
+                && "bindings".equals(c.get(1))
+                && c.get(2).startsWith("binding[") && c.get(2).endsWith("]");
+    }
+
+    /** Substring between the first {@code [} and the last {@code ]}, or {@code ""} if absent. */
+    private static String bracketInner(String token) {
+        int lo = token.indexOf('[');
+        int hi = token.lastIndexOf(']');
+        return (lo >= 0 && hi > lo) ? token.substring(lo + 1, hi) : "";
+    }
+
+    /**
+     * A key is a wildcard pattern when one of its <em>structural</em> components is a glob
+     * (see {@link #isGlobComponent(String)}). A {@code *} inside a {@code variable[...]} name is
+     * <em>not</em> a wildcard: real BW engine properties legitimately contain one (e.g.
+     * {@code variable[Trace.Task.*]}), so such keys stay concrete and are never expanded/dropped.
+     */
+    private static boolean isWildcardKey(String key) {
+        for (String comp : splitTopLevel(key)) {
+            if (isGlobComponent(comp)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * True when a single key component is a glob: it contains a {@code *} and is not a
+     * {@code variable[...]} leaf (whose {@code *} belongs to the property name, not the pattern).
+     * The plural {@code variables[...]} block name carries no {@code *} in practice, so a
+     * hypothetical {@code variables[*]} still counts as a glob.
+     */
+    private static boolean isGlobComponent(String comp) {
+        return comp.indexOf('*') >= 0 && !comp.startsWith("variable[");
+    }
+
+    private static int wildcardCount(String key) {
+        int n = 0;
+        for (String comp : splitTopLevel(key)) {
+            if (isGlobComponent(comp)) {
+                for (int i = 0; i < comp.length(); i++) {
+                    if (comp.charAt(i) == '*') n++;
+                }
+            }
+        }
+        return n;
+    }
+
+    /**
+     * Splits a flat key on {@code /} at bracket depth 0 only, so slashes <em>inside</em> a bracketed
+     * token (process paths like {@code bwprocess[A/B/C.process]}, variable names) stay in one
+     * component.
+     */
+    private static List<String> splitTopLevel(String key) {
+        List<String> parts = new ArrayList<>();
+        StringBuilder cur = new StringBuilder();
+        int depth = 0;
+        for (int i = 0; i < key.length(); i++) {
+            char ch = key.charAt(i);
+            if (ch == '[') {
+                depth++;
+            } else if (ch == ']') {
+                if (depth > 0) depth--;
+            }
+            if (ch == '/' && depth == 0) {
+                parts.add(cur.toString());
+                cur.setLength(0);
+            } else {
+                cur.append(ch);
+            }
+        }
+        parts.add(cur.toString());
+        return parts;
+    }
+
+    /** True when a wildcard pattern (already split into components) matches a concrete key. */
+    private static boolean componentsMatch(List<String> patternComps, String key) {
+        List<String> keyComps = splitTopLevel(key);
+        if (patternComps.size() != keyComps.size()) return false;
+        for (int i = 0; i < patternComps.size(); i++) {
+            String p = patternComps.get(i);
+            String k = keyComps.get(i);
+            if (isGlobComponent(p)) {
+                if (!globComponentMatches(p, k)) return false;
+            } else if (!p.equals(k)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Glob match of a single component, where {@code *} matches any run of characters. */
+    private static boolean globComponentMatches(String pattern, String value) {
+        StringBuilder rx = new StringBuilder();
+        int last = 0;
+        for (int i = 0; i < pattern.length(); i++) {
+            if (pattern.charAt(i) == '*') {
+                rx.append(Pattern.quote(pattern.substring(last, i)));
+                rx.append(".*");
+                last = i + 1;
+            }
+        }
+        rx.append(Pattern.quote(pattern.substring(last)));
+        return value.matches(rx.toString());
     }
 
     // -----------------------------------------------------------------------

@@ -1009,17 +1009,26 @@ public class BwEarMojo extends AbstractBw5Mojo {
     }
 
     /**
-     * Applies {@code servicePropertiesFile} (and {@code bw5.service.*} Maven properties) overrides
-     * on top of the generated service-property map, so the {@code services.properties} artifact can
-     * be tuned per environment (heap sizes, thread counts, extra machines) and merged into a
-     * deployment. Returns the map unchanged when no override source is configured.
+     * Applies {@code servicePropertiesFile} / {@code globalServicePropertiesFile} (and
+     * {@code bw5.service.*} Maven properties) overrides on top of the generated service-property
+     * map, then resolves the merged map into its AppManage-ready form — named-binding reconciliation
+     * and wildcard expansion (see
+     * {@link DeploymentConfigGenerator#resolveServiceBindings(Map, java.util.Set)}) — so both the
+     * {@code -services.properties} artifact and the {@code <services>} block of the
+     * {@code -deploy.xml} carry a single fully-populated {@code binding[<name>]} per PAR. Returns the
+     * resolved map (unchanged defaults when no override source is configured).
      */
     private Map<String, String> applyServicePropertyOverrides(Map<String, String> base)
             throws MojoExecutionException {
         try {
-            return new PropertyMerger().mergeServiceProperties(
+            PropertyMerger merger = new PropertyMerger();
+            Map<String, String> mavenProps = getAllMavenProperties();
+            Map<String, String> merged = merger.mergeServiceProperties(
                     base, globalServicePropertiesFile, servicePropertiesFile,
-                    getAllMavenProperties(), projectPropertiesPrecedence);
+                    mavenProps, projectPropertiesPrecedence);
+            java.util.Set<String> explicit = merger.collectServiceOverrideKeys(
+                    globalServicePropertiesFile, servicePropertiesFile, mavenProps);
+            return new DeploymentConfigGenerator().resolveServiceBindings(merged, explicit);
         } catch (IOException e) {
             throw new MojoExecutionException(e.getMessage(), e);
         } catch (Exception e) {

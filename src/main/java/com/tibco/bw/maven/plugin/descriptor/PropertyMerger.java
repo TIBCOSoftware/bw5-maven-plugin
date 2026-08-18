@@ -117,6 +117,41 @@ public class PropertyMerger {
         return result;
     }
 
+    /**
+     * Collects the concrete (non-wildcard) service-property keys the user set explicitly through the
+     * common file, the project file or {@code bw5.service.*} Maven properties. These keys are
+     * protected from wildcard expansion in
+     * {@link DeploymentConfigGenerator#resolveServiceBindings(Map, java.util.Set)} — an explicit
+     * value always wins over a glob. Keys that themselves contain a {@code *} (wildcard patterns)
+     * are excluded.
+     *
+     * @param globalServicePropsFile  optional common/global override file (may be null)
+     * @param projectServicePropsFile optional per-project override file (may be null)
+     * @param mavenProperties         all Maven project properties ({@code bw5.service.*} applied)
+     * @return the set of explicitly-set concrete keys (never null)
+     */
+    public java.util.Set<String> collectServiceOverrideKeys(
+            File globalServicePropsFile,
+            File projectServicePropsFile,
+            Map<String, String> mavenProperties) throws IOException {
+
+        java.util.Set<String> keys = new java.util.LinkedHashSet<>();
+        for (File f : Arrays.asList(globalServicePropsFile, projectServicePropsFile)) {
+            for (String k : loadServiceFile(f).keySet()) {
+                if (k.indexOf('*') < 0) keys.add(k);
+            }
+        }
+        if (mavenProperties != null) {
+            for (String k : mavenProperties.keySet()) {
+                if (k.startsWith(SERVICE_PREFIX)) {
+                    String real = k.substring(SERVICE_PREFIX.length());
+                    if (real.indexOf('*') < 0) keys.add(real);
+                }
+            }
+        }
+        return keys;
+    }
+
     private Map<String, String> loadServiceFile(File file) throws IOException {
         if (file == null) return new LinkedHashMap<>();
         if (!file.isFile()) {

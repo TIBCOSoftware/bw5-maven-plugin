@@ -208,4 +208,164 @@ public class DeploymentConfigGeneratorTest {
             txt.contains("variables[Adapter\\ SDK\\ Properties]"));
         assertTrue(txt.contains("bw[MyApp-LB.par]/enabled=true"));
     }
+
+    // -----------------------------------------------------------------------
+    //  #12: service-binding resolution — named bindings + wildcard expansion
+    // -----------------------------------------------------------------------
+
+    /** Builds the generated template map for a single PAR (empty-named binding + defaults). */
+    private Map<String, String> template() {
+        return new DeploymentConfigGenerator().servicePropertyMap(new ArrayList<>(), oneService());
+    }
+
+    @Test
+    public void namedBindingOverrideRenamesTemplateBindingAndMergesValues() {
+        Map<String, String> merged = template();
+        String base = "bw[MyApp-LB.par]/bindings/binding[MyApp-LB-esb06]";
+        // Override supplies a NAMED binding with only two keys.
+        merged.put(base + "/setting/java/initHeapSize", "256");
+        merged.put(base + "/setting/java/maxHeapSize", "512");
+
+        java.util.Set<String> explicit = new java.util.HashSet<>(Arrays.asList(
+            base + "/setting/java/initHeapSize", base + "/setting/java/maxHeapSize"));
+
+        Map<String, String> r = new DeploymentConfigGenerator().resolveServiceBindings(merged, explicit);
+
+        // Empty-named template binding is gone; a single named binding carries defaults + overrides.
+        assertFalse("empty-named template binding must be removed",
+            r.containsKey("bw[MyApp-LB.par]/bindings/binding[]/machine"));
+        assertEquals("override applied", "256", r.get(base + "/setting/java/initHeapSize"));
+        assertEquals("override applied", "512", r.get(base + "/setting/java/maxHeapSize"));
+        // Template default carried over onto the named binding (was under binding[]).
+        assertEquals("template default carried over to named binding",
+            "%%MyApp-LB.par-machine%%", r.get(base + "/machine"));
+        assertEquals("template default carried over to named binding",
+            "8", r.get(base + "/setting/threadCount"));
+    }
+
+    @Test
+    public void wildcardExpandsOntoNamedBindingAndIsDropped() {
+        Map<String, String> merged = template();
+        String base = "bw[MyApp-LB.par]/bindings/binding[MyApp-LB-esb06]";
+        merged.put(base + "/setting/java/initHeapSize", "256");   // explicit override -> names the binding
+        // Common/global wildcard entries (suffix + full-glob) as they appear in a shared service file.
+        merged.put("bw[*]/bindings/binding[*esb06]/machine", "host06.example.com");
+        merged.put("bw[*]/bindings/binding[*]/product/version", "5.16");
+        merged.put("bw[*]/bindings/binding[*]/product/type", "BW");
+
+        java.util.Set<String> explicit = new java.util.HashSet<>(Arrays.asList(
+            base + "/setting/java/initHeapSize"));
+
+        Map<String, String> r = new DeploymentConfigGenerator().resolveServiceBindings(merged, explicit);
+
+        assertEquals("suffix wildcard resolved onto the named binding",
+            "host06.example.com", r.get(base + "/machine"));
+        assertEquals("full wildcard resolved onto the named binding",
+            "5.16", r.get(base + "/product/version"));
+        assertEquals("BW", r.get(base + "/product/type"));
+        // No structural wildcard keys survive. A literal '*' inside a variable[...] name
+        // (e.g. the Adapter-SDK 'Trace.Task.*' property) is not a glob and legitimately remains.
+        for (String k : r.keySet()) {
+            assertFalse("no structural wildcard key must remain: " + k, k.contains("[*"));
+        }
+    }
+
+    @Test
+    public void explicitOverrideBeatsWildcard() {
+        Map<String, String> merged = template();
+        String base = "bw[MyApp-LB.par]/bindings/binding[MyApp-LB-esb06]";
+        merged.put(base + "/setting/threadCount", "16");                     // explicit
+        merged.put("bw[*]/bindings/binding[*]/setting/threadCount", "99");   // wildcard on same key
+
+        java.util.Set<String> explicit = new java.util.HashSet<>(Arrays.asList(
+            base + "/setting/threadCount"));
+
+        Map<String, String> r = new DeploymentConfigGenerator().resolveServiceBindings(merged, explicit);
+
+        assertEquals("explicit value must win over the wildcard", "16",
+            r.get(base + "/setting/threadCount"));
+    }
+
+    @Test
+    public void wildcardMatchingBwProcessCrossesSlashesInsideBrackets() {
+        Map<String, String> merged = template();
+        // The template emits bwprocess keys whose names contain '/'.
+        merged.put("bw[*]/bwprocesses/bwprocess[*]/flowLimit", "16");
+
+        Map<String, String> r = new DeploymentConfigGenerator().resolveServiceBindings(
+            merged, java.util.Collections.<String>emptySet());
+
+        assertEquals("wildcard must match a process name containing '/'", "16",
+            r.get("bw[MyApp-LB.par]/bwprocesses/bwprocess[MyApp/Mediation/Receive.process]/flowLimit"));
+    }
+
+    @Test
+    public void namedBindingRendersInDeployXml() throws Exception {
+        Map<String, String> merged = template();
+        String base = "bw[MyApp-LB.par]/bindings/binding[MyApp-LB-esb06]";
+        merged.put(base + "/setting/java/initHeapSize", "256");
+        merged.put("bw[*]/bindings/binding[*esb06]/machine", "host06.example.com");
+        Map<String, String> r = new DeploymentConfigGenerator().resolveServiceBindings(
+            merged, new java.util.HashSet<>(Arrays.asList(base + "/setting/java/initHeapSize")));
+
+        File out = tmp.newFile("deploy-named.xml");
+        new DeploymentConfigGenerator().generateDeployXml(out, "MyApp", "1.0.0", "", "",
+            new ArrayList<>(), oneService(), r);
+        String xml = new String(Files.readAllBytes(out.toPath()), StandardCharsets.UTF_8);
+
+        assertTrue("XML must render the resolved binding name",
+            xml.contains("<binding name=\"MyApp-LB-esb06\">"));
+        assertFalse("XML must not render an empty-named binding",
+            xml.contains("<binding name=\"\">"));
+        assertTrue("wildcard-resolved machine must appear in the XML",
+            xml.contains("<machine>host06.example.com</machine>"));
+        assertTrue("override heap size must appear in the XML",
+            xml.contains("<initHeapSize>256</initHeapSize>"));
+    }
+
+    @Test
+    public void literalVariableNameEndingInStarIsNotTreatedAsWildcard() {
+        // 'Trace.Task.*' is a real BW Adapter-SDK engine property whose name ends in '.*'.
+        // It must survive resolution as a concrete variable, not be mistaken for a glob and dropped.
+        Map<String, String> merged = template();
+        String v = "bw[MyApp-LB.par]/variables[Adapter SDK Properties]/variable[Trace.Task.*]";
+        merged.put(v, "false");
+
+        Map<String, String> r = new DeploymentConfigGenerator().resolveServiceBindings(
+            merged, new java.util.HashSet<>(Arrays.asList(v)));
+
+        assertEquals("literal variable name ending in '*' must be preserved", "false", r.get(v));
+    }
+
+    @Test
+    public void bwWildcardExpandsOntoLiteralStarVariableName() {
+        // A genuine bw[*] wildcard whose leaf is the literal 'Trace.Task.*' name must resolve onto
+        // the concrete PAR, matching the variable name exactly (not as a nested glob).
+        Map<String, String> merged = template();
+        String concrete = "bw[MyApp-LB.par]/variables[Adapter SDK Properties]/variable[Trace.Task.*]";
+        merged.put(concrete, "false");
+        merged.put("bw[*]/variables[Adapter SDK Properties]/variable[Trace.Task.*]", "true");
+
+        Map<String, String> r = new DeploymentConfigGenerator().resolveServiceBindings(
+            merged, java.util.Collections.<String>emptySet());
+
+        assertEquals("bw[*] wildcard resolves onto the concrete PAR's literal-star variable",
+            "true", r.get(concrete));
+        for (String k : r.keySet()) {
+            assertFalse("no bw[*] wildcard key must remain: " + k, k.startsWith("bw[*]"));
+        }
+    }
+
+    @Test
+    public void noNamedBindingOrWildcardLeavesMapUnchanged() {
+        Map<String, String> merged = template();
+        int before = merged.size();
+        Map<String, String> r = new DeploymentConfigGenerator().resolveServiceBindings(
+            merged, java.util.Collections.<String>emptySet());
+        // Backward compatible: without overrides the empty-named template binding survives untouched.
+        assertEquals(before, r.size());
+        assertEquals("true", r.get("bw[MyApp-LB.par]/enabled"));
+        assertTrue("empty-named template binding preserved when nothing named it",
+            r.containsKey("bw[MyApp-LB.par]/bindings/binding[]/machine"));
+    }
 }

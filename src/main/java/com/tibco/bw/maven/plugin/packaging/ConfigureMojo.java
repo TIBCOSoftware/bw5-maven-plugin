@@ -321,9 +321,13 @@ public class ConfigureMojo extends AbstractBw5Mojo {
         }
         PropertyMerger merger = new PropertyMerger();
         Map<String, String> base = merger.loadProperties(out);
+        Map<String, String> mavenProps = getAllMavenProperties();
         Map<String, String> merged = merger.mergeServiceProperties(
                 base, globalServicePropertiesFile, servicePropertiesFile,
-                getAllMavenProperties(), projectPropertiesPrecedence);
+                mavenProps, projectPropertiesPrecedence);
+        java.util.Set<String> explicit = merger.collectServiceOverrideKeys(
+                globalServicePropertiesFile, servicePropertiesFile, mavenProps);
+        merged = gen.resolveServiceBindings(merged, explicit);
         gen.generateServicesProperties(out, appName, appVersion, merged);
         getLog().info("Re-merged service props : " + out.getName());
     }
