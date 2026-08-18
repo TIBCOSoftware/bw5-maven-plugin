@@ -144,6 +144,51 @@ public class DeploymentConfigGeneratorTest {
     }
 
     @Test
+    public void duplicateProcessEntriesRenderOnceInServices() throws Exception {
+        // A serviceagent that is both reachable by BFS and promoted from the .archive descriptor's
+        // processProperty ends up twice in the in-memory discovery list. The PAR zip collapses it,
+        // so the <services> block must emit a single <bwprocess> per name — not a duplicate.
+        List<DeploymentConfigGenerator.ServiceModel.ProcessEntry> procs = new ArrayList<>();
+        procs.add(new DeploymentConfigGenerator.ServiceModel.ProcessEntry(
+            "CommonCore/SharedResources/GlobalInstance/EMSRuntimeGlobalInstance.serviceagent",
+            "EMSRuntimeGlobalInstance"));
+        procs.add(new DeploymentConfigGenerator.ServiceModel.ProcessEntry(
+            "CommonCore/SharedResources/GlobalInstance/EMSRuntimeGlobalInstance.serviceagent",
+            "EMSRuntimeGlobalInstance"));
+        procs.add(new DeploymentConfigGenerator.ServiceModel.ProcessEntry(
+            "MyApp/Mediation/Receive.process", "Receive_HTTPRequest"));
+        List<DeploymentConfigGenerator.ServiceModel> services =
+            Arrays.asList(new DeploymentConfigGenerator.ServiceModel("MyApp-LB.par", procs));
+
+        File out = tmp.newFile("deploy-dup.xml");
+        new DeploymentConfigGenerator().generateDeployXml(out, "MyApp", "1.0.0", "", "",
+            new ArrayList<>(), services, null);
+        String xml = new String(Files.readAllBytes(out.toPath()), StandardCharsets.UTF_8);
+
+        int occurrences = xml.split(java.util.regex.Pattern.quote(
+            "<bwprocess name=\"CommonCore/SharedResources/GlobalInstance/"
+            + "EMSRuntimeGlobalInstance.serviceagent\">"), -1).length - 1;
+        assertEquals("duplicate serviceagent must render exactly once", 1, occurrences);
+        assertTrue("the distinct process must still render",
+            xml.contains("<bwprocess name=\"MyApp/Mediation/Receive.process\">"));
+    }
+
+    @Test
+    public void sortedProcessesDeduplicatesByName() {
+        List<DeploymentConfigGenerator.ServiceModel.ProcessEntry> procs = new ArrayList<>();
+        procs.add(new DeploymentConfigGenerator.ServiceModel.ProcessEntry("A/Dup.serviceagent", "s1"));
+        procs.add(new DeploymentConfigGenerator.ServiceModel.ProcessEntry("A/Dup.serviceagent", "s1"));
+        procs.add(new DeploymentConfigGenerator.ServiceModel.ProcessEntry("B/Other.process", "s2"));
+        DeploymentConfigGenerator.ServiceModel svc =
+            new DeploymentConfigGenerator.ServiceModel("MyApp-LB.par", procs);
+
+        List<DeploymentConfigGenerator.ServiceModel.ProcessEntry> sorted = svc.sortedProcesses();
+        assertEquals("duplicate name collapses to one entry", 2, sorted.size());
+        assertEquals("A/Dup.serviceagent", sorted.get(0).name);
+        assertEquals("B/Other.process", sorted.get(1).name);
+    }
+
+    @Test
     public void deployXmlWithoutServicesOmitsServicesBlock() throws Exception {
         String xml = readDeployXml(Arrays.asList(gv("A", "1", "String", false)), null);
         assertFalse(xml.contains("<services>"));

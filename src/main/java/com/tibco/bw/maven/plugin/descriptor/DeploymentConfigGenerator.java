@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -58,11 +59,27 @@ public class DeploymentConfigGenerator {
             this.processes = processes != null ? processes : new ArrayList<>();
         }
 
-        /** Processes sorted by BW path for deterministic output. */
+        /**
+         * Processes sorted by BW path for deterministic output, de-duplicated by name.
+         *
+         * <p>A PAR cannot contain the same process/serviceagent path twice (the archive is a zip,
+         * which collapses duplicate entries on write). The in-memory discovery list, however, may
+         * carry a serviceagent twice when it is both reachable by BFS and promoted from the
+         * {@code .archive} descriptor's {@code processProperty} — which would otherwise emit a
+         * duplicate {@code <bwprocess>} in the {@code <services>} block. De-duplicating here keeps
+         * the first occurrence per name so the rendered XML matches the PAR contents.</p>
+         */
         public List<ProcessEntry> sortedProcesses() {
             List<ProcessEntry> copy = new ArrayList<>(processes);
             copy.sort(Comparator.comparing(p -> p.name != null ? p.name : ""));
-            return copy;
+            List<ProcessEntry> deduped = new ArrayList<>(copy.size());
+            Set<String> seenNames = new LinkedHashSet<>();
+            for (ProcessEntry p : copy) {
+                if (seenNames.add(p.name != null ? p.name : "")) {
+                    deduped.add(p);
+                }
+            }
+            return deduped;
         }
 
         /** One entry-point process: its BW path (no leading slash) and starter name. */
