@@ -401,6 +401,51 @@ public class DeploymentConfigGeneratorTest {
         }
     }
 
+    // -----------------------------------------------------------------------
+    //  #13: runtime variables in deploy.xml — block name + override-only vars
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void bindingLevelRuntimeVarsUseRuntimeVariablesBlockName() throws Exception {
+        // Regression: the per-binding NVPairs block was mislabelled "INSTANCE_RUNTIME_VARIABLES".
+        // AppManage expects it to be named "Runtime Variables", identical to the service-level block.
+        List<SubstVarParser.GlobalVariable> vars = Arrays.asList(
+            gv("CommonCore/Cache/cacheManagerConfig", "cfg", "String", true));
+        String xml = readDeployXml(vars, oneService());
+
+        assertFalse("legacy INSTANCE_RUNTIME_VARIABLES block name must be gone",
+            xml.contains("INSTANCE_RUNTIME_VARIABLES"));
+        int blocks = xml.split(java.util.regex.Pattern.quote(
+            "<NVPairs name=\"Runtime Variables\">"), -1).length - 1;
+        assertEquals("binding-level and service-level runtime-var blocks are both 'Runtime Variables'",
+            2, blocks);
+    }
+
+    @Test
+    public void overrideOnlyBindingRuntimeVarRendersInDeployXml() throws Exception {
+        // Regression: a runtime variable supplied ONLY through the service overrides (no matching GV),
+        // e.g. an endpoint-specific OAuth 'scope', was dropped from deploy.xml because rendering only
+        // iterated service-settable GVs. It must now appear in the binding's "Runtime Variables" block.
+        Map<String, String> merged = template();
+        String base = "bw[MyApp-LB.par]/bindings/binding[MyApp-LB-esb06]";
+        merged.put(base + "/setting/java/initHeapSize", "256");   // explicit override -> names the binding
+        String scopeKey = base + "/variables/variable[CommonHTTPClient/TokenOAuth/TokenParams/scope]";
+        merged.put(scopeKey, "appl_value");
+        Map<String, String> r = new DeploymentConfigGenerator().resolveServiceBindings(
+            merged, new java.util.HashSet<>(Arrays.asList(
+                base + "/setting/java/initHeapSize", scopeKey)));
+
+        File out = tmp.newFile("deploy-scope.xml");
+        new DeploymentConfigGenerator().generateDeployXml(out, "MyApp", "1.0.0", "", "",
+            new ArrayList<>(), oneService(), r);
+        String xml = new String(Files.readAllBytes(out.toPath()), StandardCharsets.UTF_8);
+
+        assertTrue("override-only runtime var name must appear in deploy.xml",
+            xml.contains("<name>CommonHTTPClient/TokenOAuth/TokenParams/scope</name>"));
+        assertTrue("override-only runtime var value must appear in deploy.xml",
+            xml.contains("<value>appl_value</value>"));
+    }
+
     @Test
     public void noNamedBindingOrWildcardLeavesMapUnchanged() {
         Map<String, String> merged = template();

@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 /**
@@ -284,7 +285,7 @@ public class DeploymentConfigGenerator {
         sb.append("                        <checkpoint>").append(esc(flat, b + "/shutdown/checkpoint", "false")).append("</checkpoint>\n");
         sb.append("                        <timeout>").append(esc(flat, b + "/shutdown/timeout", "0")).append("</timeout>\n");
         sb.append("                    </shutdown>\n");
-        appendServiceVars(sb, "                    ", "INSTANCE_RUNTIME_VARIABLES", runtimeVars,
+        appendServiceVars(sb, "                    ", "Runtime Variables", runtimeVars,
                 flat, b + "/variables/variable[");
         sb.append("                </binding>\n");
         sb.append("            </bindings>\n");
@@ -315,14 +316,33 @@ public class DeploymentConfigGenerator {
         sb.append("        </bw>\n");
     }
 
-    /** Runtime/instance variables block: one entry per service-settable GV, value read from {@code flat}. */
+    /**
+     * Runtime variables block. Emits one {@code <NameValuePair>} per service-settable GV, plus any
+     * override-only runtime variable present in {@code flat} under {@code keyPrefix} that has no
+     * matching GV (e.g. an endpoint-specific {@code scope} supplied purely through the service
+     * overrides). Entries are alphabetised so the output is stable and diff-friendly. Values always
+     * come from {@code flat} when present, falling back to the GV's normalised default.
+     */
     private void appendServiceVars(StringBuilder sb, String indent, String blockName,
             List<SubstVarParser.GlobalVariable> runtimeVars, Map<String, String> flat, String keyPrefix) {
-        sb.append(indent).append("<NVPairs name=\"").append(xmlAttr(blockName)).append("\">\n");
+        Map<String, String> vars = new TreeMap<>();
         for (SubstVarParser.GlobalVariable v : runtimeVars) {
+            vars.put(v.name, normalizedValue(v));
+        }
+        if (flat != null) {
+            for (Map.Entry<String, String> fe : flat.entrySet()) {
+                String key = fe.getKey();
+                if (key.startsWith(keyPrefix) && key.endsWith("]")) {
+                    String name = key.substring(keyPrefix.length(), key.length() - 1);
+                    vars.putIfAbsent(name, fe.getValue());
+                }
+            }
+        }
+        sb.append(indent).append("<NVPairs name=\"").append(xmlAttr(blockName)).append("\">\n");
+        for (Map.Entry<String, String> e : vars.entrySet()) {
             sb.append(indent).append("    <NameValuePair>\n");
-            sb.append(indent).append("        <name>").append(xmlEscape(v.name)).append("</name>\n");
-            sb.append(indent).append("        <value>").append(esc(flat, keyPrefix + v.name + "]", normalizedValue(v))).append("</value>\n");
+            sb.append(indent).append("        <name>").append(xmlEscape(e.getKey())).append("</name>\n");
+            sb.append(indent).append("        <value>").append(esc(flat, keyPrefix + e.getKey() + "]", e.getValue())).append("</value>\n");
             sb.append(indent).append("    </NameValuePair>\n");
         }
         sb.append(indent).append("</NVPairs>\n");
