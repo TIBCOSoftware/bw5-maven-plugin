@@ -327,7 +327,7 @@ public class DeploymentConfigGenerator {
             List<SubstVarParser.GlobalVariable> runtimeVars, Map<String, String> flat, String keyPrefix) {
         Map<String, String> vars = new TreeMap<>();
         for (SubstVarParser.GlobalVariable v : runtimeVars) {
-            vars.put(v.name, normalizedValue(v));
+            vars.put(v.name, normalizedDefault(v));
         }
         if (flat != null) {
             for (Map.Entry<String, String> fe : flat.entrySet()) {
@@ -897,11 +897,16 @@ public class DeploymentConfigGenerator {
         return result;
     }
 
-    /** Runtime-variable name/value pairs for the service blocks. */
+    /**
+     * Runtime-variable name/value pairs for the per-service blocks. Values are the design-time
+     * defaults ({@link #normalizedDefault}), not the deployment override: AppManage renders the
+     * override only in the top-level Global Variables block, leaving the per-service Runtime
+     * Variables at the EAR default (overridable solely through the service-property channel).
+     */
     private List<String[]> runtimeVarPairs(List<SubstVarParser.GlobalVariable> serviceVars) {
         List<String[]> pairs = new ArrayList<>();
         for (SubstVarParser.GlobalVariable v : serviceVars) {
-            pairs.add(new String[]{v.name, normalizedValue(v)});
+            pairs.add(new String[]{v.name, normalizedDefault(v)});
         }
         return pairs;
     }
@@ -923,11 +928,25 @@ public class DeploymentConfigGenerator {
 
     /** Value with boolean {@code 1}/{@code true} normalised to {@code true}/{@code false}. */
     private static String normalizedValue(SubstVarParser.GlobalVariable var) {
-        String value = var.value != null ? var.value : "";
-        if ("boolean".equalsIgnoreCase(var.type)) {
-            return ("1".equals(value) || "true".equalsIgnoreCase(value)) ? "true" : "false";
+        return normalize(var.type, var.value);
+    }
+
+    /**
+     * The variable's design-time default, normalised. Used for the per-service {@code Runtime
+     * Variables} blocks, which — like AppManage — show the EAR default and ignore the deployment
+     * (gv.properties) override that only the top-level {@code Global Variables} block carries.
+     * Falls back to the current value when no default was captured (programmatically-built GVs).
+     */
+    private static String normalizedDefault(SubstVarParser.GlobalVariable var) {
+        return normalize(var.type, var.defaultValue != null ? var.defaultValue : var.value);
+    }
+
+    private static String normalize(String type, String value) {
+        String v = value != null ? value : "";
+        if ("boolean".equalsIgnoreCase(type)) {
+            return ("1".equals(v) || "true".equalsIgnoreCase(v)) ? "true" : "false";
         }
-        return value;
+        return v;
     }
 
     // XML escaping

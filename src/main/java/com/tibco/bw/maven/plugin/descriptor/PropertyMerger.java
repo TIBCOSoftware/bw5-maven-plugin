@@ -271,6 +271,7 @@ public class PropertyMerger {
         SubstVarParser.GlobalVariable dst = new SubstVarParser.GlobalVariable();
         dst.name                  = src.name;
         dst.value                 = src.value;
+        dst.defaultValue          = src.defaultValue;
         dst.description           = src.description;
         dst.type                  = src.type;
         dst.requiresConfiguration = src.requiresConfiguration;

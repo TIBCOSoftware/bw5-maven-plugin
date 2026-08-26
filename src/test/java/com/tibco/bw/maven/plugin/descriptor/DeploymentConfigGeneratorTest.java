@@ -143,6 +143,51 @@ public class DeploymentConfigGeneratorTest {
         assertTrue("Adapter SDK Properties present", xml.contains("<NVPairs name=\"Adapter SDK Properties\">"));
     }
 
+    // #14 — a deployment (gv.properties) override replaces a GV's value but must NOT leak into the
+    // per-service Runtime Variables. AppManage renders the override only in the top-level Global
+    // Variables block; the per-service blocks keep the EAR design-time default.
+    @Test
+    public void deploymentOverrideAppliesToGlobalVariablesButNotPerServiceRuntimeVars()
+            throws Exception {
+        // cacheManagerConfig: default from the EAR = "CommonCore/Cache/DefaultCache/",
+        // overridden at deploy time (gv.properties) to "ehcache.xml".
+        SubstVarParser.GlobalVariable cache =
+            gv("CommonCore/Cache/cacheManagerConfig", "ehcache.xml", "String", true);
+        cache.defaultValue = "CommonCore/Cache/DefaultCache/";
+        String xml = readDeployXml(Arrays.asList(cache), oneService());
+
+        // Top-level Global Variables shows the deployment override.
+        int globalEnd = xml.indexOf("</NVPairs>");
+        String globalBlock = xml.substring(0, globalEnd);
+        assertTrue("Global Variables block must show the deployment override",
+            globalBlock.contains("<value>ehcache.xml</value>"));
+
+        // Per-service Runtime Variables (binding-level and service-level) show the EAR default.
+        String services = xml.substring(xml.indexOf("<services>"));
+        assertTrue("per-service Runtime Variables must show the EAR default value",
+            services.contains("<value>CommonCore/Cache/DefaultCache/</value>"));
+        assertFalse("deployment override must not leak into per-service Runtime Variables",
+            services.contains("<value>ehcache.xml</value>"));
+    }
+
+    @Test
+    public void servicePropertyMapSeedsRuntimeVarsWithDefaultNotOverride() {
+        SubstVarParser.GlobalVariable cache =
+            gv("CommonCore/Cache/cacheManagerConfig", "ehcache.xml", "String", true);
+        cache.defaultValue = "CommonCore/Cache/DefaultCache/";
+        Map<String, String> flat = new DeploymentConfigGenerator()
+            .servicePropertyMap(Arrays.asList(cache), oneService());
+
+        assertEquals("binding-level runtime var seeded from the EAR default",
+            "CommonCore/Cache/DefaultCache/",
+            flat.get("bw[MyApp-LB.par]/bindings/binding[]/variables/variable["
+                + "CommonCore/Cache/cacheManagerConfig]"));
+        assertEquals("service-level runtime var seeded from the EAR default",
+            "CommonCore/Cache/DefaultCache/",
+            flat.get("bw[MyApp-LB.par]/variables[Runtime Variables]/variable["
+                + "CommonCore/Cache/cacheManagerConfig]"));
+    }
+
     @Test
     public void duplicateProcessEntriesRenderOnceInServices() throws Exception {
         // A serviceagent that is both reachable by BFS and promoted from the .archive descriptor's

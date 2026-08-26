@@ -50,6 +50,9 @@ public class SubstVarParser {
             GlobalVariable var = new GlobalVariable();
             var.name = getText(varEl, "name");
             var.value = getText(varEl, "value");
+            // Capture the design-time default separately: deployment overrides (gv.properties)
+            // replace value, but the per-service Runtime Variables blocks must keep this default.
+            var.defaultValue = var.value;
             var.description = getText(varEl, "description");
             var.type = getText(varEl, "type");
 
@@ -81,6 +84,14 @@ public class SubstVarParser {
     public static class GlobalVariable {
         public String name;
         public String value;
+        /**
+         * The design-time (EAR/.substvar) value, preserved even after a deployment override
+         * replaces {@link #value}. The per-service {@code Runtime Variables} blocks of the
+         * generated {@code -deploy.xml}/{@code -services.properties} render this default, whereas
+         * the top-level {@code Global Variables} block renders the (possibly overridden) value —
+         * matching AppManage. Falls back to {@code value} when not captured by the parser.
+         */
+        public String defaultValue;
         public String description;
         public String type;
         /** If true, the variable should be set at deployment time (requiresConfiguration=true in TIBCO.xml) */
