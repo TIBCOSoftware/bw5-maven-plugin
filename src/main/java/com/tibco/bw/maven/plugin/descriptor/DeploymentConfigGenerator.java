@@ -348,13 +348,32 @@ public class DeploymentConfigGenerator {
         sb.append(indent).append("</NVPairs>\n");
     }
 
-    /** Adapter SDK Properties block: fixed key set, values read from {@code flat}. */
+    /**
+     * Adapter SDK Properties block: the fixed AppManage key set first (in its canonical order,
+     * values read from {@code flat}), followed by any extra property the user supplied through the
+     * service-property channel under {@code keyPrefix} — e.g. {@code java.extended.properties},
+     * which AppManage itself appends after {@code bw.log4j.configuration}. Extras keep the
+     * insertion order of {@code flat}, i.e. the order of the override file.
+     */
     private void appendSdkVars(StringBuilder sb, String indent, Map<String, String> flat, String keyPrefix) {
-        sb.append(indent).append("<NVPairs name=\"Adapter SDK Properties\">\n");
+        Map<String, String> vars = new LinkedHashMap<>();
         for (String[] kv : ADAPTER_SDK_PROPERTIES) {
+            vars.put(kv[0], kv[1]);
+        }
+        if (flat != null) {
+            for (Map.Entry<String, String> fe : flat.entrySet()) {
+                String key = fe.getKey();
+                if (key.startsWith(keyPrefix) && key.endsWith("]")) {
+                    String name = key.substring(keyPrefix.length(), key.length() - 1);
+                    vars.putIfAbsent(name, fe.getValue());
+                }
+            }
+        }
+        sb.append(indent).append("<NVPairs name=\"Adapter SDK Properties\">\n");
+        for (Map.Entry<String, String> e : vars.entrySet()) {
             sb.append(indent).append("    <NameValuePair>\n");
-            sb.append(indent).append("        <name>").append(xmlEscape(kv[0])).append("</name>\n");
-            sb.append(indent).append("        <value>").append(esc(flat, keyPrefix + kv[0] + "]", kv[1])).append("</value>\n");
+            sb.append(indent).append("        <name>").append(xmlEscape(e.getKey())).append("</name>\n");
+            sb.append(indent).append("        <value>").append(esc(flat, keyPrefix + e.getKey() + "]", e.getValue())).append("</value>\n");
             sb.append(indent).append("    </NameValuePair>\n");
         }
         sb.append(indent).append("</NVPairs>\n");

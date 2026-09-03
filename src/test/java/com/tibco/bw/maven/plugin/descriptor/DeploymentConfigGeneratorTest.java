@@ -261,6 +261,49 @@ public class DeploymentConfigGeneratorTest {
         assertTrue("overridden isFt must appear", xml.contains("<isFt>true</isFt>"));
     }
 
+    // #15 — an Adapter SDK Property supplied purely through the service-property channel (one that
+    // is not part of the fixed AppManage key set, e.g. java.extended.properties) must be rendered
+    // in the <NVPairs name="Adapter SDK Properties"> block, appended after the fixed keys — the
+    // same place AppManage puts it.
+    @Test
+    public void adapterSdkPropertiesRenderUserSuppliedExtraKeys() throws Exception {
+        DeploymentConfigGenerator gen = new DeploymentConfigGenerator();
+        List<DeploymentConfigGenerator.ServiceModel> services = oneService();
+        Map<String, String> flat = gen.servicePropertyMap(new ArrayList<>(), services);
+        String jvmOpts = "-Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError";
+        flat.put("bw[MyApp-LB.par]/variables[Adapter SDK Properties]/variable[java.extended.properties]",
+                jvmOpts);
+
+        File out = tmp.newFile("deploy-sdk.xml");
+        gen.generateDeployXml(out, "MyApp", "1.0.0", "", "", new ArrayList<>(), services, flat);
+        String xml = new String(Files.readAllBytes(out.toPath()), StandardCharsets.UTF_8);
+
+        assertTrue("user-supplied Adapter SDK Property must appear in the deploy XML",
+            xml.contains("<name>java.extended.properties</name>"));
+        assertTrue("its value must be rendered", xml.contains("<value>" + jvmOpts + "</value>"));
+
+        // AppManage appends extras after the fixed key set, last of which is bw.log4j.configuration.
+        int sdk = xml.indexOf("<NVPairs name=\"Adapter SDK Properties\">");
+        assertTrue("Adapter SDK Properties block must exist", sdk > 0);
+        int log4j = xml.indexOf("<name>bw.log4j.configuration</name>", sdk);
+        int extra = xml.indexOf("<name>java.extended.properties</name>", sdk);
+        assertTrue("extra key must come after the fixed AppManage keys", extra > log4j);
+    }
+
+    @Test
+    public void adapterSdkPropertiesKeepFixedKeysWhenNoExtrasSupplied() throws Exception {
+        String xml = readDeployXml(new ArrayList<>(), oneService());
+        int sdk = xml.indexOf("<NVPairs name=\"Adapter SDK Properties\">");
+        String block = xml.substring(sdk, xml.indexOf("</NVPairs>", sdk));
+
+        assertTrue(block.contains("<name>Trace.Task.*</name>"));
+        assertTrue(block.contains("<name>bw.container.service.rmi.port</name>"));
+        assertTrue(block.contains("<value>9995</value>"));
+        assertTrue(block.contains("<name>bw.log4j.configuration</name>"));
+        assertFalse("no extra key when the user supplied none",
+            block.contains("<name>java.extended.properties</name>"));
+    }
+
     // -----------------------------------------------------------------------
     //  services.properties — flat bw[<par>]/... map
     // -----------------------------------------------------------------------
