@@ -295,7 +295,21 @@ section and a `<services>` section (one `<bw>` per PAR — bindings, runtime var
 properties and processes) generated as a single-binding export template. The `-services.properties`
 file is that same `<services>` section in flat `key=value` form.
 
-Both are rendered from the **same** `bw[<par>]/...` map, so any [service override](#property-override-model)
+Which global variables appear where follows the two Designer checkboxes stored in the `.substvar`
+files, exactly as AppManage does it:
+
+| Block | Contents |
+|---|---|
+| top-level `<NVPairs name="Global Variables">` | GVs with `deploymentSettable=true`, minus the predefined `Deployment`/`Domain` (BW assigns those from the deployment and domain names) |
+| per-service `<NVPairs name="Runtime Variables">` | GVs with `serviceSettable=true` |
+
+The two flags are independent: a GV that is deployment-fixed but service-settable appears only in
+the per-service block. Design-time constants (`deploymentSettable=false`) are shipped inside the EAR
+and are not part of the deployment config. The flat `-deploy.properties` file is a different
+artifact — it lists **all** global variables for container-style injection.
+
+Both the XML `<services>` block and `-services.properties` are rendered from the **same**
+`bw[<par>]/...` map, so any [service override](#property-override-model)
 (`globalServicePropertiesFile` / `servicePropertiesFile` / `bw5.service.*`) is applied to the
 `<services>` block of the `-deploy.xml` and the `-services.properties` identically — just like an
 `appmanage` deploy-config merge.

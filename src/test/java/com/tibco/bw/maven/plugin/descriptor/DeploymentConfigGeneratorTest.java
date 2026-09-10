@@ -261,6 +261,47 @@ public class DeploymentConfigGeneratorTest {
         assertTrue("overridden isFt must appear", xml.contains("<isFt>true</isFt>"));
     }
 
+    // #16 — the top-level Global Variables block is the deployment-settable subset. A GV with
+    // deploymentSettable=false is a design-time constant the administrator cannot change, and
+    // AppManage leaves it out of the exported config. The flag is independent of serviceSettable:
+    // a deployment-fixed but service-settable GV still belongs in the per-service Runtime Variables.
+    @Test
+    public void globalVariablesBlockOnlyListsDeploymentSettableVars() throws Exception {
+        SubstVarParser.GlobalVariable settable = gv("App/Destinations/Queue", "q", "String", false);
+        SubstVarParser.GlobalVariable constant = gv("CommonCore/LogCode/Event", "EVT", "String", false);
+        constant.requiresConfiguration = false;
+        SubstVarParser.GlobalVariable serviceOnly =
+            gv("CommonCore/Cache/DefaultDiskStorePath", "/local/tibco/data/", "String", true);
+        serviceOnly.requiresConfiguration = false;
+
+        String xml = readDeployXml(Arrays.asList(settable, constant, serviceOnly), oneService());
+        String global = xml.substring(0, xml.indexOf("</NVPairs>"));
+        String services = xml.substring(xml.indexOf("<services>"));
+
+        assertTrue("deployment-settable GV must be exported",
+            global.contains("<name>App/Destinations/Queue</name>"));
+        assertFalse("deploymentSettable=false GV must not reach the Global Variables block",
+            global.contains("<name>CommonCore/LogCode/Event</name>"));
+        assertFalse("a deployment-fixed GV stays out even when it is service-settable",
+            global.contains("<name>CommonCore/Cache/DefaultDiskStorePath</name>"));
+        assertTrue("...but it is still a per-service Runtime Variable",
+            services.contains("<name>CommonCore/Cache/DefaultDiskStorePath</name>"));
+    }
+
+    // The predefined Deployment/Domain variables are assigned by BW from the deployment and domain
+    // names; AppManage never exports them even though Designer marks them deployment-settable.
+    @Test
+    public void globalVariablesBlockOmitsRuntimeAssignedPredefinedVars() throws Exception {
+        String xml = readDeployXml(Arrays.asList(
+            gv("Deployment", "", "String", false),
+            gv("Domain", "", "String", false),
+            gv("DirTrace", "/local/tibco/logs", "String", false)), null);
+
+        assertFalse("Deployment is assigned at deployment time", xml.contains("<name>Deployment</name>"));
+        assertFalse("Domain is assigned at deployment time", xml.contains("<name>Domain</name>"));
+        assertTrue("other predefined GVs are exported normally", xml.contains("<name>DirTrace</name>"));
+    }
+
     // #15 — an Adapter SDK Property supplied purely through the service-property channel (one that
     // is not part of the fixed AppManage key set, e.g. java.extended.properties) must be rendered
     // in the <NVPairs name="Adapter SDK Properties"> block, appended after the fixed keys — the

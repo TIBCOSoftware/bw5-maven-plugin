@@ -96,6 +96,14 @@ public class DeploymentConfigGenerator {
     }
 
     /**
+     * Predefined global variables BW assigns at deployment time from the deployment and domain
+     * names. Designer marks them deployment-settable, but AppManage never writes them to a
+     * deployment config, so they are filtered out of the {@code Global Variables} block.
+     */
+    private static final Set<String> RUNTIME_ASSIGNED_GLOBALS =
+        new LinkedHashSet<>(Arrays.asList("Deployment", "Domain"));
+
+    /**
      * Standard BW engine (Adapter SDK) properties AppManage emits in the {@code <services>}
      * {@code Adapter SDK Properties} block of a fresh export. Deliberately the deployment-level
      * subset (not the full {@code bwengine.xml} SDK list emitted into the PAR TIBCO.xml).
@@ -184,7 +192,9 @@ public class DeploymentConfigGenerator {
             List<ServiceModel> services,
             Map<String, String> serviceProps) throws IOException {
 
-        List<SubstVarParser.GlobalVariable> sorted = sorted(globalVars);
+        // AppManage exports only the deployment-settable GVs at the top level and only the
+        // service-settable ones per service; both flags are read from the .substvar files.
+        List<SubstVarParser.GlobalVariable> sorted = deploymentSettable(globalVars);
         List<SubstVarParser.GlobalVariable> runtimeVars = serviceSettable(globalVars);
         // The <services> block renders from the same (possibly overridden) flat map as the
         // services.properties file. Fall back to freshly generated defaults when none is supplied.
@@ -891,6 +901,35 @@ public class DeploymentConfigGenerator {
     // -----------------------------------------------------------------------
     //  Shared helpers
     // -----------------------------------------------------------------------
+
+    /**
+     * The deployment-settable global variables, i.e. the ones AppManage lists in the top-level
+     * {@code Global Variables} block of an {@code -exportConfig} document.
+     *
+     * <p>A GV with {@code <deploymentSettable>false</deploymentSettable>} is a design-time constant
+     * (log codes, cache tuning, content types…): the administrator cannot change it at deployment
+     * time, so AppManage leaves it out of the deployment config even though it lives in the EAR.
+     * The flag is independent of {@code serviceSettable} — {@code DefaultDiskStorePath} is
+     * deployment-fixed yet service-settable, so it is absent here but present in the per-service
+     * {@code Runtime Variables} block (see {@link #serviceSettable(List)}).</p>
+     *
+     * <p>The predefined {@code Deployment} and {@code Domain} variables are excluded as well: BW
+     * fills them in at deployment time from the deployment/domain names, and AppManage never
+     * exports them, even though Designer marks them deployment-settable.</p>
+     */
+    private List<SubstVarParser.GlobalVariable> deploymentSettable(
+            List<SubstVarParser.GlobalVariable> vars) {
+        List<SubstVarParser.GlobalVariable> result = new ArrayList<>();
+        if (vars != null) {
+            for (SubstVarParser.GlobalVariable v : vars) {
+                if (v.requiresConfiguration && !RUNTIME_ASSIGNED_GLOBALS.contains(v.name)) {
+                    result.add(v);
+                }
+            }
+        }
+        result.sort(Comparator.comparing(v -> v.name != null ? v.name : ""));
+        return result;
+    }
 
     /** Returns a copy of the list sorted alphabetically by variable name. */
     private List<SubstVarParser.GlobalVariable> sorted(List<SubstVarParser.GlobalVariable> vars) {
