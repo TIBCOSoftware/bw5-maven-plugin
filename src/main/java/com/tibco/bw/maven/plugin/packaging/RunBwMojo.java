@@ -1,5 +1,6 @@
 package com.tibco.bw.maven.plugin.packaging;
 
+import com.tibco.bw.maven.plugin.tra.TraFile;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -140,8 +141,10 @@ public class RunBwMojo extends AbstractBw5Mojo {
 
         File engine      = resolveEngineExecutable();
         File engineProps = generateEngineProperties();
+        File engineTra   = prepareEngineTra(new File(engine.getParentFile(), "bwengine.tra"),
+                                            engineTraFile());
 
-        List<String> cmd = buildCommand(engine, engineProps);
+        List<String> cmd = buildCommand(engine, engineProps, engineTra);
 
         getLog().info("BW Engine  : " + engine.getAbsolutePath());
         getLog().info("App name   : " + project.getArtifactId());
@@ -284,18 +287,64 @@ public class RunBwMojo extends AbstractBw5Mojo {
         return outFile;
     }
 
-    private List<String> buildCommand(File engine, File engineProps) {
+    /** Location of the project-local bwengine.tra copy: {@code target/.TIBCO/bwengine.tra}. */
+    private File engineTraFile() {
+        return new File(project.getBuild().getDirectory(), ".TIBCO/bwengine.tra");
+    }
+
+    /**
+     * Generates {@code target/.TIBCO/bwengine.tra}: a copy of the {@code bwengine.tra} that sits next
+     * to the engine binary. The engine is then started with {@code --propFile <this copy>}, so the
+     * project can adjust launcher settings without ever writing to the TIBCO installation — which is
+     * typically shared, and often read-only, on a developer machine. This mirrors what
+     * {@code bw5:designer-setup} already does with {@code designer.tra}.
+     *
+     * <p>The copy is rewritten on every run so a patched or hot-fixed installation is always picked
+     * up; it must never be committed or cached.</p>
+     *
+     * @param baseTra the installed {@code bwengine.tra} to copy from
+     * @param traCopy where to write the project-local copy
+     * @return the generated copy, or {@code null} when {@code baseTra} does not exist — in which case
+     *         the engine is started with the installation defaults, exactly as before this goal
+     *         generated a TRA file at all
+     */
+    File prepareEngineTra(File baseTra, File traCopy) throws MojoExecutionException {
+        if (!baseTra.isFile()) {
+            getLog().warn("bwengine.tra not found at " + baseTra.getAbsolutePath()
+                + " — starting the engine with the installation defaults (no --propFile).");
+            return null;
+        }
+
+        List<String> lines;
+        try {
+            lines = TraFile.read(baseTra);
+        } catch (IOException e) {
+            throw new MojoExecutionException("Failed to read " + baseTra + ": " + e.getMessage(), e);
+        }
+
+        File parent = traCopy.getParentFile();
+        if (!parent.mkdirs() && !parent.isDirectory()) {
+            throw new MojoExecutionException("Failed to create directory: " + parent.getAbsolutePath());
+        }
+        try {
+            TraFile.write(traCopy, lines);
+        } catch (IOException e) {
+            throw new MojoExecutionException("Failed to write " + traCopy + ": " + e.getMessage(), e);
+        }
+        getLog().info("Generated: " + traCopy.getAbsolutePath()
+            + " (copied from " + baseTra.getAbsolutePath() + ")");
+        return traCopy;
+    }
+
+    private List<String> buildCommand(File engine, File engineProps, File engineTra) {
         List<String> cmd = new ArrayList<>();
         cmd.add(engine.getAbsolutePath());
 
-        // bwengine.tra in the same directory as the engine binary
-        File traFile = new File(engine.getParentFile(), "bwengine.tra");
-        if (traFile.isFile()) {
+        // Project-local bwengine.tra copy; null when the installed one could not be found.
+        if (engineTra != null) {
             cmd.add("--propFile");
-            cmd.add(traFile.getAbsolutePath());
-            getLog().info("TRA file   : " + traFile.getAbsolutePath());
-        } else {
-            getLog().warn("bwengine.tra not found at " + traFile.getAbsolutePath() + " — skipping --propFile");
+            cmd.add(engineTra.getAbsolutePath());
+            getLog().info("TRA file   : " + engineTra.getAbsolutePath());
         }
 
         // Application name
