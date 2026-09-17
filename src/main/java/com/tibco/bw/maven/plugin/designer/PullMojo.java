@@ -54,6 +54,12 @@ public class PullMojo extends AbstractBw5Mojo {
      */
     private static final String DESIGNER_CLASSPATH_KEY = "tibco.env.CUSTOM_CP_EXT";
 
+    /** TRA entry that becomes {@code -Duser.home} on the Designer JVM. */
+    private static final String USER_HOME_KEY = "java.property.user.home";
+
+    /** TRA entry that becomes {@code -Duser.dir} on the Designer JVM. */
+    private static final String USER_DIR_KEY = "java.property.user.dir";
+
     /**
      * Directory where dependencies will be staged for Designer use.
      * Defaults to {@code ${project.build.directory}/designer-libs} — under {@code target/}, so the
@@ -89,6 +95,20 @@ public class PullMojo extends AbstractBw5Mojo {
      */
     @Parameter(defaultValue = "false", property = "bw5.designerSetup.launchDesigner")
     private boolean shouldLaunchDesigner;
+
+    /**
+     * When {@code true}, the generated {@code designer.tra} also sets {@code java.property.user.dir}
+     * to the build directory, on top of {@code java.property.user.home}.
+     *
+     * <p>Off by default, and deliberately separate from the {@code user.home} redirection: the
+     * installed {@code designer.tra} sets {@code user.dir} to {@code %DESIGNER_HOME%}, which TIBCO
+     * documents as the application's default user directory, and overwriting it changes where
+     * Designer resolves every relative path — not just the preferences file. Only
+     * {@code user.home} is needed to make Designer pick up the generated
+     * {@code target/.TIBCO/Designer5.prefs}.</p>
+     */
+    @Parameter(defaultValue = "false", property = "bw5.designerSetup.projectUserDir")
+    private boolean projectUserDir;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -187,8 +207,8 @@ public class PullMojo extends AbstractBw5Mojo {
      *
      * <p>To make Designer read this file instead of {@code ~/.TIBCO/Designer5.prefs}, the
      * {@code designer.tra} must contain {@code java.property.user.home=<project>/target},
-     * which translates to {@code -Duser.home=<project>/target} on the JVM. See
-     * {@link #prepareDesignerTra(File)}.</p>
+     * which translates to {@code -Duser.home=<project>/target} on the JVM. That entry is written
+     * into the generated copy by {@link #buildDesignerTra(List, List, String, boolean, String)}.</p>
      */
     /**
      * Escapes a file-system path for inclusion in the value of a Java properties-format entry
@@ -457,11 +477,11 @@ public class PullMojo extends AbstractBw5Mojo {
         // lives above the sources (e.g. src/main/tibco/<name>), not the Maven module root.
         File projectToOpen = resolveBwSourceDir();
 
-        // JAVA_TOOL_OPTIONS is injected into the JVM before any TRA properties are applied.
-        // Since designer.tra has no java.property.user.home entry, this sets user.home cleanly,
-        // causing Designer to read target/.TIBCO/Designer5.prefs instead of ~/.TIBCO/Designer5.prefs.
-        // This works with TIBCO's native embedded JVM launcher (JNI_CreateJavaVM honours it).
-        // No TIBCO installation files are modified.
+        // JAVA_TOOL_OPTIONS is injected into the JVM before any TRA properties are applied, so
+        // Designer reads target/.TIBCO/Designer5.prefs instead of ~/.TIBCO/Designer5.prefs. This
+        // works with TIBCO's native embedded JVM launcher (JNI_CreateJavaVM honours it). Belt and
+        // braces: the generated designer.tra carries the same java.property.user.home entry, which
+        // also covers starting Designer by hand. No TIBCO installation files are modified.
         String javaToolOptions = "-Duser.home=" + targetDir;
 
         // Use the project-local designer.tra copy (with the staged JARs on CUSTOM_CP_EXT) if present,
@@ -547,13 +567,17 @@ public class PullMojo extends AbstractBw5Mojo {
      * {@code BW-JAVA-100017 ClassNotFoundException} validation errors. Designer is launched with
      * {@code --propFile <this copy>}, leaving the generic installation tra untouched.
      *
-     * <p>No-op (with a warning) when the installed designer.tra cannot be located (e.g. no TIBCO_HOME
-     * on a build machine) or when there are no JARs to add.</p>
+     * <p>The copy also sets {@code java.property.user.home} to the build directory, so Designer reads
+     * the generated {@code target/.TIBCO/Designer5.prefs} with its File Aliases instead of the real
+     * {@code ~/.TIBCO/Designer5.prefs}. {@link #launchDesigner()} passes the same value through
+     * {@code JAVA_TOOL_OPTIONS}; having it in the tra as well means the redirection also holds when
+     * Designer is started by hand with {@code --propFile}, which is how most people run it.</p>
+     *
+     * <p>Generated even when there are no JARs to stage: a projlib-only project still needs the
+     * preferences redirection. No-op (with a warning) when the installed designer.tra cannot be
+     * located, e.g. on a build machine with no TIBCO_HOME.</p>
      */
     private void prepareDesignerTra(List<StagedDep> stagedJars) throws MojoExecutionException {
-        if (stagedJars.isEmpty()) {
-            return;
-        }
         File executable = findDesignerExecutable();
         if (executable == null) {
             getLog().info("designer.tra not generated: Designer executable not found "
@@ -579,7 +603,9 @@ public class PullMojo extends AbstractBw5Mojo {
             throw new MojoExecutionException("Failed to read " + baseTra + ": " + e.getMessage(), e);
         }
 
-        List<String> injected = injectClasspath(lines, jarPaths, File.pathSeparator);
+        String targetDir = project.getBuild().getDirectory();
+        List<String> injected = buildDesignerTra(lines, jarPaths, targetDir, projectUserDir,
+            File.pathSeparator);
 
         File traCopy = designerTraFile();
         File parent = traCopy.getParentFile();
@@ -592,7 +618,35 @@ public class PullMojo extends AbstractBw5Mojo {
             throw new MojoExecutionException("Failed to write " + traCopy + ": " + e.getMessage(), e);
         }
         getLog().info("Generated: " + traCopy.getAbsolutePath()
-            + " (" + jarPaths.size() + " JAR(s) added to CUSTOM_CP_EXT for design-time classpath)");
+            + " (" + jarPaths.size() + " JAR(s) added to CUSTOM_CP_EXT for design-time classpath, "
+            + "user.home=" + targetDir + ")");
+    }
+
+    /**
+     * Applies the project-local changes to the lines of an installed {@code designer.tra}: the staged
+     * JARs on {@code CUSTOM_CP_EXT}, and {@code user.home} pointed at the build directory so Designer
+     * reads {@code target/.TIBCO/Designer5.prefs}. Free of Maven state so it can be tested directly.
+     *
+     * @param baseLines      lines of the installed designer.tra (not modified)
+     * @param jarPaths       staged JAR paths to prepend to the classpath; may be empty
+     * @param targetDir      build directory, used for {@code user.home} (and {@code user.dir})
+     * @param includeUserDir also set {@code user.dir}; see {@code bw5.designerSetup.projectUserDir}
+     * @param pathSep        classpath separator of the target platform
+     * @return a new list of lines
+     */
+    static List<String> buildDesignerTra(List<String> baseLines, List<String> jarPaths,
+            String targetDir, boolean includeUserDir, String pathSep) {
+
+        List<String> out = jarPaths.isEmpty()
+            ? new ArrayList<>(baseLines)
+            : injectClasspath(baseLines, jarPaths, pathSep);
+
+        String escaped = TraFile.escapePath(targetDir);
+        out = TraFile.setProperty(out, USER_HOME_KEY, escaped);
+        if (includeUserDir) {
+            out = TraFile.setProperty(out, USER_DIR_KEY, escaped);
+        }
+        return out;
     }
 
     /**

@@ -511,7 +511,7 @@ mvn bw5:designer-setup -Dbw5.designerSetup.force=true
 2. Copies them to `${project.build.directory}/designer-libs/`
 3. Updates `.designtimelibs` in the BW project (projlib entries, TIBCO Designer format), dropping any stale version-duplicate entries
 4. Generates `target/.TIBCO/Designer5.prefs` with `filealias` entries for every staged dependency (so projlib/resource references resolve)
-5. Generates `target/.TIBCO/designer.tra` — a copy of the installed `designer.tra` with the staged JARs prepended to `tibco.env.CUSTOM_CP_EXT`, so the Java classes used by Java activities (e.g. `*InterfacesJLib`) are on the design-time classpath. This is what clears `BW-JAVA-100017 ... ClassNotFoundException` validation errors. The generic installation `designer.tra` is never modified.
+5. Generates `target/.TIBCO/designer.tra` — a copy of the installed `designer.tra` with two changes. The staged JARs are prepended to `tibco.env.CUSTOM_CP_EXT`, so the Java classes used by Java activities (e.g. `*InterfacesJLib`) are on the design-time classpath; this is what clears `BW-JAVA-100017 ... ClassNotFoundException` validation errors. And `java.property.user.home` is pointed at `target/`, so Designer reads the generated `Designer5.prefs` from step 4 rather than `~/.TIBCO/Designer5.prefs` — including when you start Designer yourself with `--propFile`. The generic installation `designer.tra` is never modified.
 6. Optionally launches TIBCO Designer on the project directory with `--propFile target/.TIBCO/designer.tra` and `-Duser.home` pointed at `target/`, so it uses the generated prefs and classpath
 
 > **Note:** generating `designer.tra` (step 5) and launching (step 6) require a local TIBCO installation (`tibcoHome`/`TIBCO_HOME`) so the base `designer.tra` can be located. Staging and the `.designtimelibs`/`Designer5.prefs` files (steps 1–4) work without it.
@@ -523,7 +523,10 @@ mvn bw5:designer-setup -Dbw5.designerSetup.force=true
 | `designerLibsDir` | `bw5.designerLibsDir` | `${basedir}/.designer-libs` | Staging directory |
 | `force` | `bw5.designerSetup.force` | `false` | Force re-copy of all deps |
 | `launchDesigner` | `bw5.designerSetup.launchDesigner` | `false` | Open Designer after staging |
+| `projectUserDir` | `bw5.designerSetup.projectUserDir` | `false` | Also set `user.dir` to `target/` in the generated `designer.tra` |
 | `tibcoHome` | `bw5.tibcoHome` | `$TIBCO_HOME` | TIBCO installation root |
+
+> `projectUserDir` is off by default on purpose: the installed `designer.tra` sets `user.dir` to `%DESIGNER_HOME%`, which TIBCO documents as the application's default user directory, and overriding it changes how Designer resolves *every* relative path. Only `user.home` is needed for the preferences redirection.
 
 **Add to `.gitignore`:**
 

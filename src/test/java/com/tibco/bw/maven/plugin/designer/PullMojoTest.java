@@ -132,4 +132,87 @@ public class PullMojoTest {
         p.load(new StringReader("cp=" + value));
         assertEquals("C:\\Users\\dev\\target\\designer-libs\\x.jar", p.getProperty("cp"));
     }
+
+    // -----------------------------------------------------------------------
+    //  Generated designer.tra: classpath + user.home redirection
+    // -----------------------------------------------------------------------
+
+    private static final List<String> DESIGNER_TRA = Arrays.asList(
+        "# designer.tra",
+        "tibco.env.DESIGNER_HOME /opt/tibco/designer/5.13",
+        "tibco.env.CUSTOM_CP_EXT /opt/tibco/designer/5.13/lib",
+        "java.property.user.dir %DESIGNER_HOME%");
+
+    /**
+     * Without {@code -Duser.home=<target>} Designer reads {@code ~/.TIBCO/Designer5.prefs} and none
+     * of the generated File Aliases apply. The mojo passes it through JAVA_TOOL_OPTIONS when it
+     * launches Designer itself, but the tra has to carry it too for hand-started Designers.
+     */
+    @Test
+    public void designerTraPointsUserHomeAtTheBuildDirectory() {
+        List<String> out = PullMojo.buildDesignerTra(
+            DESIGNER_TRA, Collections.<String>emptyList(), "/proj/target", false, ":");
+
+        assertTrue("user.home must be added",
+            out.contains("java.property.user.home /proj/target"));
+        assertEquals("the entry must blend in with the java.property. style of the file",
+            4, out.indexOf("java.property.user.home /proj/target"));
+    }
+
+    /** user.dir is opt-in: the installed value (%DESIGNER_HOME%) drives every relative path. */
+    @Test
+    public void designerTraLeavesUserDirAloneByDefault() {
+        List<String> out = PullMojo.buildDesignerTra(
+            DESIGNER_TRA, Collections.<String>emptyList(), "/proj/target", false, ":");
+        assertTrue("user.dir must keep the installed value",
+            out.contains("java.property.user.dir %DESIGNER_HOME%"));
+    }
+
+    @Test
+    public void designerTraOverridesUserDirWhenOptedIn() {
+        List<String> out = PullMojo.buildDesignerTra(
+            DESIGNER_TRA, Collections.<String>emptyList(), "/proj/target", true, ":");
+        assertTrue(out.contains("java.property.user.dir /proj/target"));
+        assertFalse("the entry must be replaced, not duplicated",
+            out.contains("java.property.user.dir %DESIGNER_HOME%"));
+    }
+
+    /** A projlib-only project stages no JARs but still needs the preferences redirection. */
+    @Test
+    public void designerTraIsStillUsefulWithoutStagedJars() {
+        List<String> out = PullMojo.buildDesignerTra(
+            DESIGNER_TRA, Collections.<String>emptyList(), "/proj/target", false, ":");
+
+        assertEquals("only the user.home line may be added", DESIGNER_TRA.size() + 1, out.size());
+        assertEquals("the classpath must be left untouched when there is nothing to add",
+            "tibco.env.CUSTOM_CP_EXT /opt/tibco/designer/5.13/lib", out.get(2));
+    }
+
+    @Test
+    public void designerTraCombinesClasspathAndUserHome() {
+        List<String> out = PullMojo.buildDesignerTra(
+            DESIGNER_TRA, Arrays.asList("/proj/target/designer-libs/x.jar"), "/proj/target",
+            false, ":");
+
+        assertEquals("tibco.env.CUSTOM_CP_EXT /proj/target/designer-libs/x.jar"
+            + ":/opt/tibco/designer/5.13/lib", out.get(2));
+        assertTrue(out.contains("java.property.user.home /proj/target"));
+    }
+
+    /** The build directory is a path, so it needs the same escaping as the classpath entries. */
+    @Test
+    public void designerTraEscapesAWindowsBuildDirectory() {
+        List<String> out = PullMojo.buildDesignerTra(
+            DESIGNER_TRA, Collections.<String>emptyList(), "C:\\Users\\dev\\proj\\target",
+            false, ";");
+        assertTrue(out.toString(),
+            out.contains("java.property.user.home C:\\\\Users\\\\dev\\\\proj\\\\target"));
+    }
+
+    @Test
+    public void designerTraDoesNotMutateTheInstalledLines() {
+        List<String> base = new java.util.ArrayList<>(DESIGNER_TRA);
+        PullMojo.buildDesignerTra(base, Arrays.asList("/x.jar"), "/proj/target", true, ":");
+        assertEquals(DESIGNER_TRA, base);
+    }
 }
