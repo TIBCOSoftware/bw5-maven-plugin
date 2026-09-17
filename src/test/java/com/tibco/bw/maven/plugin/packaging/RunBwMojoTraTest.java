@@ -53,7 +53,7 @@ public class RunBwMojoTraTest {
         TraFile.write(baseTra, BWENGINE_TRA);
         File out = new File(tmp.newFolder("target"), ".TIBCO/bwengine.tra");
 
-        File generated = new RunBwMojo().prepareEngineTra(baseTra, out, ENGINE_CP, NO_CP);
+        File generated = new RunBwMojo().prepareEngineTra(baseTra, out, ENGINE_CP, NO_CP, null);
 
         assertNotNull("a copy must be generated when the installed tra exists", generated);
         assertEquals(out, generated);
@@ -69,7 +69,7 @@ public class RunBwMojoTraTest {
         File out = new File(tmp.getRoot(), "target/.TIBCO/bwengine.tra");
         assertFalse(out.getParentFile().exists());
 
-        assertNotNull(new RunBwMojo().prepareEngineTra(baseTra, out, ENGINE_CP, NO_CP));
+        assertNotNull(new RunBwMojo().prepareEngineTra(baseTra, out, ENGINE_CP, NO_CP, null));
         assertTrue(out.isFile());
     }
 
@@ -82,7 +82,7 @@ public class RunBwMojoTraTest {
         File baseTra = new File(tmp.getRoot(), "no-such-bwengine.tra");
         File out = new File(tmp.getRoot(), "target/.TIBCO/bwengine.tra");
 
-        assertNull(new RunBwMojo().prepareEngineTra(baseTra, out, ENGINE_CP, NO_CP));
+        assertNull(new RunBwMojo().prepareEngineTra(baseTra, out, ENGINE_CP, NO_CP, null));
         assertFalse("nothing may be written when there is no source tra", out.exists());
     }
 
@@ -95,7 +95,7 @@ public class RunBwMojoTraTest {
         assertTrue(out.getParentFile().mkdirs());
         TraFile.write(out, Arrays.asList("tibco.env.TIB_HOME=/opt/old-install"));
 
-        new RunBwMojo().prepareEngineTra(baseTra, out, ENGINE_CP, NO_CP);
+        new RunBwMojo().prepareEngineTra(baseTra, out, ENGINE_CP, NO_CP, null);
 
         assertEquals(BWENGINE_TRA, TraFile.read(out));
     }
@@ -111,7 +111,7 @@ public class RunBwMojoTraTest {
         File out = new File(tmp.newFolder("t3"), ".TIBCO/bwengine.tra");
 
         new RunBwMojo().prepareEngineTra(baseTra, out, ENGINE_CP,
-            Arrays.asList("/proj/target/bw-lib"));
+            Arrays.asList("/proj/target/bw-lib"), null);
 
         List<String> written = TraFile.read(out);
         assertEquals("no line may be added or dropped", BWENGINE_TRA.size(), written.size());
@@ -128,12 +128,70 @@ public class RunBwMojoTraTest {
         File out = new File(tmp.newFolder("t4"), ".TIBCO/bwengine.tra");
 
         new RunBwMojo().prepareEngineTra(baseTra, out, "tibco.env.CUSTOM_EXT_APPEND_CP",
-            Arrays.asList("/m2/a.jar"));
+            Arrays.asList("/m2/a.jar"), null);
 
         List<String> written = TraFile.read(out);
         assertEquals("the prepend entry must stay untouched",
             "tibco.env.CUSTOM_EXT_PREPEND_CP=/opt/tibco/bw/5.16/hotfix/lib", written.get(2));
         assertEquals("tibco.env.CUSTOM_EXT_APPEND_CP=/m2/a.jar", written.get(4));
+    }
+
+    // -----------------------------------------------------------------------
+    //  user.home redirection (bw5.run.projectUserHome)
+    // -----------------------------------------------------------------------
+
+    /** Off by default: the engine must keep seeing the developer's real home directory. */
+    @Test
+    public void userHomeIsLeftAloneWhenNotRequested() throws Exception {
+        File baseTra = tmp.newFile("bwengine.tra");
+        TraFile.write(baseTra, BWENGINE_TRA);
+        File out = new File(tmp.newFolder("t5"), ".TIBCO/bwengine.tra");
+
+        new RunBwMojo().prepareEngineTra(baseTra, out, ENGINE_CP, NO_CP, null);
+
+        assertEquals("no user.home entry may be added", BWENGINE_TRA, TraFile.read(out));
+    }
+
+    @Test
+    public void userHomeIsWrittenIntoTheGeneratedCopyWhenRequested() throws Exception {
+        File baseTra = tmp.newFile("bwengine.tra");
+        TraFile.write(baseTra, BWENGINE_TRA);
+        File out = new File(tmp.newFolder("t6"), ".TIBCO/bwengine.tra");
+
+        new RunBwMojo().prepareEngineTra(baseTra, out, ENGINE_CP, NO_CP, "/proj/target");
+
+        List<String> written = TraFile.read(out);
+        assertEquals(BWENGINE_TRA.size() + 1, written.size());
+        assertTrue(written.toString(), written.contains("java.property.user.home /proj/target"));
+    }
+
+    /** An existing entry must be replaced, not duplicated — the launcher would read the first. */
+    @Test
+    public void userHomeReplacesAnExistingEntry() throws Exception {
+        File baseTra = tmp.newFile("bwengine.tra");
+        TraFile.write(baseTra, Arrays.asList(
+            "tibco.env.TIB_HOME=/opt/tibco",
+            "java.property.user.home=/home/dev"));
+        File out = new File(tmp.newFolder("t7"), ".TIBCO/bwengine.tra");
+
+        new RunBwMojo().prepareEngineTra(baseTra, out, ENGINE_CP, NO_CP, "/proj/target");
+
+        assertEquals(Arrays.asList(
+            "tibco.env.TIB_HOME=/opt/tibco",
+            "java.property.user.home=/proj/target"), TraFile.read(out));
+    }
+
+    /** A Windows build directory must survive the launcher's properties-style un-escaping. */
+    @Test
+    public void userHomeEscapesAWindowsBuildDirectory() throws Exception {
+        File baseTra = tmp.newFile("bwengine.tra");
+        TraFile.write(baseTra, BWENGINE_TRA);
+        File out = new File(tmp.newFolder("t8"), ".TIBCO/bwengine.tra");
+
+        new RunBwMojo().prepareEngineTra(baseTra, out, ENGINE_CP, NO_CP, "C:\\dev\\proj\\target");
+
+        assertTrue(TraFile.read(out).toString(),
+            TraFile.read(out).contains("java.property.user.home C:\\\\dev\\\\proj\\\\target"));
     }
 
     // -----------------------------------------------------------------------

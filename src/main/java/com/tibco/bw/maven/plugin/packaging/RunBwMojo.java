@@ -124,6 +124,25 @@ public class RunBwMojo extends AbstractBw5Mojo {
     private String classpathPosition;
 
     /**
+     * When {@code true}, the generated {@code bwengine.tra} sets {@code java.property.user.home} to
+     * the build directory, so the engine JVM sees {@code target/} as the home directory.
+     *
+     * <p>Anything the engine or a Java activity resolves against {@code ~} then lands inside
+     * {@code target/} — {@code ~/.TIBCO}, cache and temp files, and whatever a JDBC driver or
+     * logging framework decides to write. That makes a run self-contained and disposable with
+     * {@code mvn clean}, at the cost of hiding configuration the developer keeps in their real home
+     * directory, which is why it is off by default.</p>
+     *
+     * <p>The process working directory is a separate concern, already covered by
+     * {@code bw5.run.workingDir}.</p>
+     */
+    @Parameter(defaultValue = "false", property = "bw5.run.projectUserHome")
+    private boolean projectUserHome;
+
+    /** TRA entry that becomes {@code -Duser.home} on the engine JVM. */
+    private static final String USER_HOME_KEY = "java.property.user.home";
+
+    /**
      * When {@code true}, the BW engine is started as a background process and
      * Maven returns immediately after the engine has started.
      * When {@code false} (default), Maven blocks until the engine process exits.
@@ -198,7 +217,9 @@ public class RunBwMojo extends AbstractBw5Mojo {
         File engineTra   = prepareEngineTra(new File(engine.getParentFile(), "bwengine.tra"),
                                             engineTraFile(),
                                             engineClasspathKey(classpathPosition),
-                                            engineClasspathEntries());
+                                            engineClasspathEntries(),
+                                            projectUserHome
+                                                ? project.getBuild().getDirectory() : null);
 
         List<String> cmd = buildCommand(engine, engineProps, engineTra);
 
@@ -432,12 +453,14 @@ public class RunBwMojo extends AbstractBw5Mojo {
      * @param traCopy          where to write the project-local copy
      * @param classpathKey     TRA variable to inject {@code classpathEntries} into
      * @param classpathEntries entries to add to the engine classpath; empty leaves the copy verbatim
+     * @param userHome         value for {@code java.property.user.home}, or {@code null} to keep the
+     *                         installed one; see {@code bw5.run.projectUserHome}
      * @return the generated copy, or {@code null} when {@code baseTra} does not exist — in which case
      *         the engine is started with the installation defaults, exactly as before this goal
      *         generated a TRA file at all
      */
     File prepareEngineTra(File baseTra, File traCopy, String classpathKey,
-            List<String> classpathEntries) throws MojoExecutionException {
+            List<String> classpathEntries, String userHome) throws MojoExecutionException {
 
         if (!baseTra.isFile()) {
             if (!classpathEntries.isEmpty()) {
@@ -460,6 +483,11 @@ public class RunBwMojo extends AbstractBw5Mojo {
             lines = TraFile.injectClasspath(lines, classpathKey, classpathEntries, File.pathSeparator);
             getLog().info("Engine CP  : " + classpathKey + " += "
                 + String.join(File.pathSeparator, classpathEntries));
+        }
+
+        if (userHome != null) {
+            lines = TraFile.setProperty(lines, USER_HOME_KEY, TraFile.escapePath(userHome));
+            getLog().info("User home  : " + userHome + " (engine JVM -Duser.home)");
         }
 
         File parent = traCopy.getParentFile();

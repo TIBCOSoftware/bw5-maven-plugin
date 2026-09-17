@@ -583,6 +583,7 @@ mvn package bw5:run -Dbw5.tibcoHome=/opt/tibco -Dbw5.run.classpathMode=libDir
 | `propertiesFile` | `bw5.run.propertiesFile` | — | Additional `.properties` file that overrides auto-generated `bwengine.properties` |
 | `classpathMode` | `bw5.run.classpathMode` | `none` | What to add to the engine's Java classpath: `none`, `libDir`, `dependencies` |
 | `classpathPosition` | `bw5.run.classpathPosition` | `prepend` | Where those entries go: `prepend` or `append` |
+| `projectUserHome` | `bw5.run.projectUserHome` | `false` | Set `user.home` to `target/` on the engine JVM |
 
 **Generated files** (rewritten on every run, never commit them):
 
@@ -600,6 +601,8 @@ mvn package bw5:run -Dbw5.tibcoHome=/opt/tibco -Dbw5.run.classpathMode=libDir
 `classpathPosition=prepend` (the default) gives the project's own versions precedence. It also puts them ahead of the TIBCO hotfix, bouncycastle and Rendezvous entries that ship in `CUSTOM_EXT_PREPEND_CP`, so a transitive `xerces`, `log4j` or `commons-*` can shadow a library the engine itself depends on. Switch to `append` if the engine starts behaving oddly once dependencies are on the classpath.
 
 This is the runtime counterpart of the design-time classpath that [`bw5:designer-setup`](#bw5designer-setup) injects into `designer.tra`.
+
+**Self-contained runs.** With `bw5.run.projectUserHome=true` the generated TRA also sets `user.home` to `target/`, so anything the engine or a Java activity resolves against `~` — `~/.TIBCO`, caches, temp files, whatever a JDBC driver or logging framework writes — stays inside the build directory and disappears with `mvn clean`. Off by default, because it also hides configuration the developer keeps in their real home directory. The process working directory is separate and controlled by `bw5.run.workingDir`.
 
 ---
 
