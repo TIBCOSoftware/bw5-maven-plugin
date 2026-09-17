@@ -1,6 +1,7 @@
 package com.tibco.bw.maven.plugin.designer;
 
 import com.tibco.bw.maven.plugin.packaging.AbstractBw5Mojo;
+import com.tibco.bw.maven.plugin.tra.TraFile;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -46,6 +47,12 @@ import java.util.regex.Pattern;
     threadSafe = false
 )
 public class PullMojo extends AbstractBw5Mojo {
+
+    /**
+     * TRA variable holding the Designer design-time classpath. The launcher builds
+     * {@code -Djava.class.path} from it (via {@code tibco.class.path.extended}).
+     */
+    private static final String DESIGNER_CLASSPATH_KEY = "tibco.env.CUSTOM_CP_EXT";
 
     /**
      * Directory where dependencies will be staged for Designer use.
@@ -187,9 +194,12 @@ public class PullMojo extends AbstractBw5Mojo {
      * Escapes a file-system path for inclusion in the value of a Java properties-format entry
      * (Designer5.prefs). Only backslashes need doubling so Windows paths survive the un-escaping
      * Designer performs on read. No-op for POSIX paths (forward slashes). Package-private for tests.
+     *
+     * <p>The {@code .prefs} and {@code .tra} formats share this escaping rule, so both delegate to
+     * {@link TraFile#escapePath(String)}.</p>
      */
     static String escapePrefsPath(String path) {
-        return path == null ? "" : path.replace("\\", "\\\\");
+        return TraFile.escapePath(path);
     }
 
     private void writeDesigner5Prefs(List<StagedDep> stagedProjlibs, List<StagedDep> stagedJars)
@@ -562,13 +572,9 @@ public class PullMojo extends AbstractBw5Mojo {
             jarPaths.add(dep.stagedFile.getAbsolutePath());
         }
 
-        List<String> lines = new ArrayList<>();
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(
-                java.nio.file.Files.newInputStream(baseTra.toPath()), StandardCharsets.ISO_8859_1))) {
-            String line;
-            while ((line = r.readLine()) != null) {
-                lines.add(line);
-            }
+        List<String> lines;
+        try {
+            lines = TraFile.read(baseTra);
         } catch (IOException e) {
             throw new MojoExecutionException("Failed to read " + baseTra + ": " + e.getMessage(), e);
         }
@@ -580,12 +586,8 @@ public class PullMojo extends AbstractBw5Mojo {
         if (!parent.mkdirs() && !parent.isDirectory()) {
             throw new MojoExecutionException("Failed to create directory: " + parent.getAbsolutePath());
         }
-        try (Writer w = new OutputStreamWriter(
-                java.nio.file.Files.newOutputStream(traCopy.toPath()), StandardCharsets.ISO_8859_1)) {
-            for (String line : injected) {
-                w.write(line);
-                w.write("\n");
-            }
+        try {
+            TraFile.write(traCopy, injected);
         } catch (IOException e) {
             throw new MojoExecutionException("Failed to write " + traCopy + ": " + e.getMessage(), e);
         }
@@ -595,37 +597,15 @@ public class PullMojo extends AbstractBw5Mojo {
 
     /**
      * Prepends {@code jarPaths} to the {@code tibco.env.CUSTOM_CP_EXT} entry of a designer.tra, joined
-     * with {@code pathSep}. The entry is space-separated ({@code key<space>value}); the JARs are
-     * inserted at the front of the value so they take precedence, and the original value is preserved.
-     * If no {@code CUSTOM_CP_EXT} line exists, one is appended. Package-private for tests.
+     * with {@code pathSep}. The JARs are inserted at the front of the value so they take precedence,
+     * and the original value is preserved. If no {@code CUSTOM_CP_EXT} line exists, one is appended.
+     * Package-private for tests.
      *
-     * <p>The TRA launcher un-escapes backslashes when reading the file (like a Java properties file:
-     * {@code \t} becomes a TAB, other {@code \x} drop the backslash), so Windows paths in the injected
-     * JARs must have their backslashes doubled or every path breaks. Only the injected paths are
-     * escaped; the pre-existing value is preserved verbatim (TIBCO already stores it escaped).</p>
+     * <p>Thin wrapper that names the Designer classpath variable; the parsing, escaping and
+     * separator handling live in {@link TraFile#injectClasspath(List, String, List, String)}.</p>
      */
     static List<String> injectClasspath(List<String> traLines, List<String> jarPaths, String pathSep) {
-        final String key = "tibco.env.CUSTOM_CP_EXT";
-        List<String> escaped = new ArrayList<>(jarPaths.size());
-        for (String p : jarPaths) {
-            escaped.add(escapePrefsPath(p)); // double backslashes for the TRA parser (no-op on POSIX)
-        }
-        String prefix = String.join(pathSep, escaped);
-        List<String> out = new ArrayList<>(traLines.size() + 1);
-        boolean found = false;
-        for (String line : traLines) {
-            if (!found && line.startsWith(key + " ")) {
-                found = true;
-                String existing = line.substring((key + " ").length());
-                out.add(key + " " + prefix + (existing.isEmpty() ? "" : pathSep + existing));
-            } else {
-                out.add(line);
-            }
-        }
-        if (!found) {
-            out.add(key + " " + prefix);
-        }
-        return out;
+        return TraFile.injectClasspath(traLines, DESIGNER_CLASSPATH_KEY, jarPaths, pathSep);
     }
 
     private static class StagedDep {
