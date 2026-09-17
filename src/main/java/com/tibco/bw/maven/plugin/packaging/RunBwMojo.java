@@ -69,6 +69,60 @@ public class RunBwMojo extends AbstractBw5Mojo {
     @Parameter(defaultValue = "5.13.0", property = "bw5.bwVersion")
     private String bwVersion;
 
+    /** {@code classpathMode} value: add nothing to the engine classpath (default). */
+    static final String CP_MODE_NONE = "none";
+
+    /** {@code classpathMode} value: add the {@code target/bw-lib} staging directory. */
+    static final String CP_MODE_LIB_DIR = "libDir";
+
+    /** {@code classpathMode} value: add each resolved JAR from the local repository. */
+    static final String CP_MODE_DEPENDENCIES = "dependencies";
+
+    /** {@code classpathPosition} value: inject into {@code CUSTOM_EXT_PREPEND_CP} (default). */
+    static final String CP_POSITION_PREPEND = "prepend";
+
+    /** {@code classpathPosition} value: inject into {@code CUSTOM_EXT_APPEND_CP}. */
+    static final String CP_POSITION_APPEND = "append";
+
+    /**
+     * What to put on the BW engine's Java classpath, on top of the TIBCO defaults.
+     *
+     * <p>{@code tibco.alias.*} entries in {@code bwengine.properties} only resolve projlib and
+     * resource references; the Java classes behind Java activities and custom functions have to be
+     * on the real JVM classpath, which the TRA launcher builds from the {@code CUSTOM_EXT_*_CP}
+     * variables. This is the runtime counterpart of the design-time classpath that
+     * {@code bw5:designer-setup} injects into {@code designer.tra}.</p>
+     *
+     * <ul>
+     *   <li>{@code none} (default) — add nothing; the engine runs with the installation classpath,
+     *       as it did before this parameter existed.</li>
+     *   <li>{@code libDir} — add {@code target/bw-lib}, where {@code bw5:initialize} stages the
+     *       resolved projlibs and JARs. The TRA launcher expands a directory into the JARs it
+     *       contains, so one entry covers every dependency. Requires the staging step to have run
+     *       (e.g. {@code mvn package bw5:run}).</li>
+     *   <li>{@code dependencies} — add each resolved JAR individually, straight from the local
+     *       Maven repository. Works without staging.</li>
+     * </ul>
+     */
+    @Parameter(defaultValue = CP_MODE_NONE, property = "bw5.run.classpathMode")
+    private String classpathMode;
+
+    /**
+     * Where the entries selected by {@code classpathMode} go relative to the TIBCO classpath:
+     * {@code prepend} (default) writes them to {@code tibco.env.CUSTOM_EXT_PREPEND_CP}, in front of
+     * the standard entries; {@code append} writes them to {@code tibco.env.CUSTOM_EXT_APPEND_CP},
+     * behind them.
+     *
+     * <p>Prepending gives the project's own versions precedence, which is usually what you want
+     * while developing. It also puts them ahead of the TIBCO hotfix, bouncycastle and Rendezvous
+     * entries that ship in {@code CUSTOM_EXT_PREPEND_CP}, so a transitive {@code xerces},
+     * {@code log4j} or {@code commons-*} can shadow a library the engine itself depends on. Switch
+     * to {@code append} if the engine starts behaving oddly once dependencies are on the
+     * classpath.</p>
+     */
+    @Parameter(defaultValue = CP_POSITION_PREPEND, property = "bw5.run.classpathPosition")
+    private String classpathPosition;
+
     /**
      * When {@code true}, the BW engine is started as a background process and
      * Maven returns immediately after the engine has started.
@@ -142,7 +196,9 @@ public class RunBwMojo extends AbstractBw5Mojo {
         File engine      = resolveEngineExecutable();
         File engineProps = generateEngineProperties();
         File engineTra   = prepareEngineTra(new File(engine.getParentFile(), "bwengine.tra"),
-                                            engineTraFile());
+                                            engineTraFile(),
+                                            engineClasspathKey(classpathPosition),
+                                            engineClasspathEntries());
 
         List<String> cmd = buildCommand(engine, engineProps, engineTra);
 
@@ -293,6 +349,76 @@ public class RunBwMojo extends AbstractBw5Mojo {
     }
 
     /**
+     * The TRA classpath variable selected by {@code classpathPosition}. Both are combined by
+     * {@code tibco.class.path.extended %CUSTOM_EXT_PREPEND_CP%:%STD_EXT_CP%:%CUSTOM_EXT_APPEND_CP%},
+     * so the choice only decides whether the project's entries win or lose against the standard
+     * ones. Package-private for testing.
+     *
+     * @throws MojoExecutionException if the value is not {@code prepend} or {@code append}
+     */
+    static String engineClasspathKey(String position) throws MojoExecutionException {
+        if (CP_POSITION_PREPEND.equalsIgnoreCase(position)) {
+            return "tibco.env.CUSTOM_EXT_PREPEND_CP";
+        }
+        if (CP_POSITION_APPEND.equalsIgnoreCase(position)) {
+            return "tibco.env.CUSTOM_EXT_APPEND_CP";
+        }
+        throw new MojoExecutionException("Invalid bw5.run.classpathPosition: '" + position
+            + "'. Expected '" + CP_POSITION_PREPEND + "' or '" + CP_POSITION_APPEND + "'.");
+    }
+
+    /**
+     * The classpath entries selected by {@code mode}. Kept free of Maven state so the mode dispatch
+     * can be tested on its own. Package-private for testing.
+     *
+     * @param mode       one of {@code none}, {@code libDir}, {@code dependencies}
+     * @param libDirPath absolute path of the staging directory, or {@code null} when it does not
+     *                   exist — an absent directory yields no entries rather than a broken one
+     * @param jarPaths   absolute paths of the resolved JAR dependencies
+     * @throws MojoExecutionException if {@code mode} is not one of the three accepted values
+     */
+    static List<String> classpathEntries(String mode, String libDirPath, List<String> jarPaths)
+            throws MojoExecutionException {
+
+        if (CP_MODE_NONE.equalsIgnoreCase(mode)) {
+            return new ArrayList<>();
+        }
+        if (CP_MODE_LIB_DIR.equalsIgnoreCase(mode)) {
+            return libDirPath == null
+                ? new ArrayList<String>()
+                : new ArrayList<>(Arrays.asList(libDirPath));
+        }
+        if (CP_MODE_DEPENDENCIES.equalsIgnoreCase(mode)) {
+            return new ArrayList<>(jarPaths);
+        }
+        throw new MojoExecutionException("Invalid bw5.run.classpathMode: '" + mode + "'. Expected '"
+            + CP_MODE_NONE + "', '" + CP_MODE_LIB_DIR + "' or '" + CP_MODE_DEPENDENCIES + "'.");
+    }
+
+    /** Resolves {@code classpathMode} against the project, warning about a missing staging dir. */
+    private List<String> engineClasspathEntries() throws MojoExecutionException {
+        if (CP_MODE_NONE.equalsIgnoreCase(classpathMode)) {
+            return new ArrayList<>();
+        }
+
+        String libDirPath = null;
+        if (bwLibDirectory != null && bwLibDirectory.isDirectory()) {
+            libDirPath = bwLibDirectory.getAbsolutePath();
+        } else if (CP_MODE_LIB_DIR.equalsIgnoreCase(classpathMode)) {
+            getLog().warn("bw5.run.classpathMode=" + CP_MODE_LIB_DIR + " but " + bwLibDirectory
+                + " does not exist — nothing added to the engine classpath. Run bw5:initialize first"
+                + " (e.g. 'mvn package bw5:run'), or use bw5.run.classpathMode="
+                + CP_MODE_DEPENDENCIES + ".");
+        }
+
+        List<String> jarPaths = new ArrayList<>();
+        for (Artifact jar : getJarDependencies()) {
+            jarPaths.add(jar.getFile().getAbsolutePath());
+        }
+        return classpathEntries(classpathMode, libDirPath, jarPaths);
+    }
+
+    /**
      * Generates {@code target/.TIBCO/bwengine.tra}: a copy of the {@code bwengine.tra} that sits next
      * to the engine binary. The engine is then started with {@code --propFile <this copy>}, so the
      * project can adjust launcher settings without ever writing to the TIBCO installation — which is
@@ -302,14 +428,22 @@ public class RunBwMojo extends AbstractBw5Mojo {
      * <p>The copy is rewritten on every run so a patched or hot-fixed installation is always picked
      * up; it must never be committed or cached.</p>
      *
-     * @param baseTra the installed {@code bwengine.tra} to copy from
-     * @param traCopy where to write the project-local copy
+     * @param baseTra          the installed {@code bwengine.tra} to copy from
+     * @param traCopy          where to write the project-local copy
+     * @param classpathKey     TRA variable to inject {@code classpathEntries} into
+     * @param classpathEntries entries to add to the engine classpath; empty leaves the copy verbatim
      * @return the generated copy, or {@code null} when {@code baseTra} does not exist — in which case
      *         the engine is started with the installation defaults, exactly as before this goal
      *         generated a TRA file at all
      */
-    File prepareEngineTra(File baseTra, File traCopy) throws MojoExecutionException {
+    File prepareEngineTra(File baseTra, File traCopy, String classpathKey,
+            List<String> classpathEntries) throws MojoExecutionException {
+
         if (!baseTra.isFile()) {
+            if (!classpathEntries.isEmpty()) {
+                getLog().warn("bw5.run.classpathMode is set but bwengine.tra was not found at "
+                    + baseTra.getAbsolutePath() + " — the engine classpath cannot be extended.");
+            }
             getLog().warn("bwengine.tra not found at " + baseTra.getAbsolutePath()
                 + " — starting the engine with the installation defaults (no --propFile).");
             return null;
@@ -320,6 +454,12 @@ public class RunBwMojo extends AbstractBw5Mojo {
             lines = TraFile.read(baseTra);
         } catch (IOException e) {
             throw new MojoExecutionException("Failed to read " + baseTra + ": " + e.getMessage(), e);
+        }
+
+        if (!classpathEntries.isEmpty()) {
+            lines = TraFile.injectClasspath(lines, classpathKey, classpathEntries, File.pathSeparator);
+            getLog().info("Engine CP  : " + classpathKey + " += "
+                + String.join(File.pathSeparator, classpathEntries));
         }
 
         File parent = traCopy.getParentFile();

@@ -562,6 +562,9 @@ mvn package bw5:run -Dbw5.tibcoHome=/opt/tibco -Dbw5.run.background=true
 
 # Run with additional local property overrides
 mvn bw5:run -Dbw5.tibcoHome=/opt/tibco -Dbw5.run.propertiesFile=local.properties
+
+# Put the project's Maven dependencies on the engine classpath
+mvn package bw5:run -Dbw5.tibcoHome=/opt/tibco -Dbw5.run.classpathMode=libDir
 ```
 
 **Key parameters:**
@@ -575,6 +578,25 @@ mvn bw5:run -Dbw5.tibcoHome=/opt/tibco -Dbw5.run.propertiesFile=local.properties
 | `domainHome` | `bw5.run.domainHome` | — | BW domain home directory; passed via `-d` flag |
 | `workingDir` | `bw5.run.workingDir` | `${project.build.directory}` | Working directory for the engine process |
 | `propertiesFile` | `bw5.run.propertiesFile` | — | Additional `.properties` file that overrides auto-generated `bwengine.properties` |
+| `classpathMode` | `bw5.run.classpathMode` | `none` | What to add to the engine's Java classpath: `none`, `libDir`, `dependencies` |
+| `classpathPosition` | `bw5.run.classpathPosition` | `prepend` | Where those entries go: `prepend` or `append` |
+
+**Generated files** (rewritten on every run, never commit them):
+
+- `target/bwengine.properties` — `tibco.alias.*` entries for every projlib and JAR dependency, plus whatever `propertiesFile` adds. Passed to the engine with `-p`.
+- `target/.TIBCO/bwengine.tra` — a copy of the `bwengine.tra` next to the engine binary, passed with `--propFile`. The copy exists so the project can adjust launcher settings without writing to the TIBCO installation, which is usually shared and often read-only.
+
+**Engine classpath.** The `tibco.alias.*` entries only resolve projlib and resource references; the Java classes behind Java activities and custom functions must be on the real JVM classpath, which the TRA launcher builds from `tibco.env.CUSTOM_EXT_PREPEND_CP` and `tibco.env.CUSTOM_EXT_APPEND_CP`. `classpathMode` decides what gets added to the generated TRA copy:
+
+| Mode | Effect |
+|------|--------|
+| `none` *(default)* | Nothing is added; the engine runs with the installation classpath |
+| `libDir` | Adds `target/bw-lib`, where `bw5:initialize` stages the resolved dependencies. The launcher expands a directory into the JARs it contains, so one entry covers all of them. Needs the staging step — use `mvn package bw5:run` |
+| `dependencies` | Adds each resolved JAR individually from the local Maven repository. Works without staging |
+
+`classpathPosition=prepend` (the default) gives the project's own versions precedence. It also puts them ahead of the TIBCO hotfix, bouncycastle and Rendezvous entries that ship in `CUSTOM_EXT_PREPEND_CP`, so a transitive `xerces`, `log4j` or `commons-*` can shadow a library the engine itself depends on. Switch to `append` if the engine starts behaving oddly once dependencies are on the classpath.
+
+This is the runtime counterpart of the design-time classpath that [`bw5:designer-setup`](#bw5designer-setup) injects into `designer.tra`.
 
 ---
 
