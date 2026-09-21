@@ -331,7 +331,21 @@ Runs the BW5 application locally using the BW engine installed on the machine. A
 | `workingDir` | `bw5.run.workingDir` | `${project.build.directory}` | — | Working directory for the engine process |
 | `propertiesFile` | `bw5.run.propertiesFile` | — | — | Additional `.properties` file whose entries override the auto-generated `bwengine.properties` |
 | `extraArgs` | — | — | — | Additional arguments appended verbatim to the `bwengine` command line |
+| `classpathMode` | `bw5.run.classpathMode` | `none` | — | What to add to the engine Java classpath: `none`, `libDir` (the `target/bw-lib` staging directory) or `dependencies` (each resolved JAR) |
+| `classpathPosition` | `bw5.run.classpathPosition` | `prepend` | — | Which TRA variable receives them: `prepend` (`CUSTOM_EXT_PREPEND_CP`, ahead of the TIBCO entries) or `append` (`CUSTOM_EXT_APPEND_CP`, behind them) |
+| `projectUserHome` | `bw5.run.projectUserHome` | `false` | — | If `true`, sets `user.home` to the build directory on the engine JVM, so anything resolved against `~` stays inside `target/` |
 | `skip` | `bw5.skip` | `false` | — | If `true`, skips the goal entirely |
+
+### Generated files
+
+Both are rewritten on every run and must not be committed:
+
+| File | Purpose |
+|---|---|
+| `target/bwengine.properties` | `tibco.alias.*` entries for every projlib and JAR dependency, keyed by library filename, plus anything `propertiesFile` adds. Passed with `-p` |
+| `target/.TIBCO/bwengine.tra` | Copy of the installed `bwengine.tra`, carrying the classpath and `user.home` settings above. Passed with `--propFile`, so the TIBCO installation is never modified |
+
+> The `tibco.alias.*` entries only resolve projlib and resource references. Java classes used by Java activities and custom functions need the real JVM classpath, which is what `classpathMode` extends.
 
 ### Examples
 
@@ -340,6 +354,11 @@ Runs the BW5 application locally using the BW engine installed on the machine. A
 mvn com.tibco.bw:bw5-maven-plugin:run \
   -Dbw5.tibcoHome=/opt/tibco \
   -Dbw5.bwVersion=5.13.0
+
+# Run with the project's Maven dependencies on the engine classpath
+mvn package com.tibco.bw:bw5-maven-plugin:run \
+  -Dbw5.tibcoHome=/opt/tibco \
+  -Dbw5.run.classpathMode=libDir
 
 # Run in the background (Windows path)
 mvn com.tibco.bw:bw5-maven-plugin:run \
@@ -375,8 +394,21 @@ Downloads and stages projlib and JAR dependencies into a local folder so TIBCO D
 | `designtimeLibsDir` | `bw5.designtimeLibsDir` | _(auto-detected)_ | Path to the BW source directory where the `.designtimelibs` file is updated |
 | `force` | `bw5.designerSetup.force` | `false` | If `true`, always overwrites staged files even if they appear up to date |
 | `launchDesigner` | `bw5.designerSetup.launchDesigner` | `false` | If `true`, launches TIBCO Designer after staging |
+| `projectUserDir` | `bw5.designerSetup.projectUserDir` | `false` | If `true`, the generated `designer.tra` also sets `user.dir` to the build directory. Off by default: the installed file sets it to `%DESIGNER_HOME%`, which Designer uses to resolve relative paths |
 | `tibcoHome` | `bw5.tibcoHome` | — | TIBCO installation root directory. Required only when `launchDesigner=true` |
 | `skip` | `bw5.skip` | `false` | If `true`, skips the goal entirely |
+
+### Generated files
+
+| File | Purpose |
+|---|---|
+| `.designtimelibs` *(in the BW sources)* | projlib entries in Maven coordinate form (`groupId:artifactId:version:type`), which is what Designer reads |
+| `target/.TIBCO/Designer5.prefs` | `filealias` entries for every staged dependency, so projlib and resource references resolve |
+| `target/.TIBCO/designer.tra` | Copy of the installed `designer.tra` with the staged JARs on `tibco.env.CUSTOM_CP_EXT` (the design-time Java classpath, which clears `BW-JAVA-100017` errors) and `user.home` pointed at `target/` so the prefs file above is the one Designer reads. Passed with `--propFile`; the installation is never modified |
+
+> Generating `designer.tra` requires a local TIBCO installation so the base file can be found. Staging, `.designtimelibs` and `Designer5.prefs` work without one.
+>
+> The alias format here is the Maven coordinate form because the consumer is Designer. `bw5:run` writes filename-keyed aliases for the engine — the two are intentionally different.
 
 ### Examples
 

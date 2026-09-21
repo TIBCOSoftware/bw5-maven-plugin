@@ -244,6 +244,11 @@ public class PullMojo extends AbstractBw5Mojo {
         }
 
         // Append filealias entries: projlibs first, then JARs.
+        // Keyed by Maven coordinate (groupId:artifactId:version:type) because Designer reads this
+        // file. RunBwMojo keys its bwengine.properties aliases by library filename instead, because
+        // the engine matches those — coordinate keys there produced BWENGINE-100088 "Library alias
+        // undefined". Different consumers, different formats: the asymmetry is intentional and
+        // documented on RunBwMojo.projlibAliasKey(String).
         // The .prefs is a Java properties-format file, so backslashes in the value are un-escaped
         // when Designer reads it. Windows paths (C:\Users\...\target\...) must therefore have their
         // backslashes doubled, otherwise sequences like "\t"/"\U" are mangled (e.g. "\target" -> TAB)

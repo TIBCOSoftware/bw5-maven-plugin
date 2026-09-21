@@ -277,6 +277,18 @@ public class RunBwMojo extends AbstractBw5Mojo {
      * Returns the bwengine.properties alias key for a projlib dependency.
      * The BW5 engine looks up libraries by filename ({@code artifactId + ".projlib"}),
      * not by Maven GAV coordinates. Package-private for testing.
+     *
+     * <h3>Do not switch this to Maven coordinates</h3>
+     * <p>An earlier revision generated {@code tibco.alias.<groupId>:<artifactId>:<version>:projlib}.
+     * The engine never matched those keys, and every {@code bw5:run} with a projlib dependency
+     * failed with {@code BWENGINE-100088 "Library alias undefined"}. The filename form is the fix
+     * (see the regression tests in {@code RunBwMojoStartupTest}).</p>
+     *
+     * <p>This deliberately differs from what {@code bw5:designer-setup} writes into
+     * {@code .designtimelibs} and {@code Designer5.prefs}, which <em>is</em> the coordinate form.
+     * The two goals feed different consumers — the engine here, TIBCO Designer there — so the
+     * formats are expected to disagree. The mismatch looks like a bug and is not one; unifying them
+     * needs evidence that the engine accepts coordinate keys, not just that the two files differ.</p>
      */
     static String projlibAliasKey(String artifactId) {
         return "tibco.alias." + artifactId + ".projlib";

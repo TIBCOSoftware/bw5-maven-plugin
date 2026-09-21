@@ -587,7 +587,7 @@ mvn package bw5:run -Dbw5.tibcoHome=/opt/tibco -Dbw5.run.classpathMode=libDir
 
 **Generated files** (rewritten on every run, never commit them):
 
-- `target/bwengine.properties` — `tibco.alias.*` entries for every projlib and JAR dependency, plus whatever `propertiesFile` adds. Passed to the engine with `-p`.
+- `target/bwengine.properties` — `tibco.alias.*` entries for every projlib and JAR dependency, plus whatever `propertiesFile` adds. Passed to the engine with `-p`. Keys are **library filenames** (`tibco.alias.MyLib.projlib`), which is what the engine matches; Maven coordinate keys produced `BWENGINE-100088 "Library alias undefined"` and were removed. `bw5:designer-setup` writes coordinate keys instead, because its consumer is Designer — the two formats are intentionally different.
 - `target/.TIBCO/bwengine.tra` — a copy of the `bwengine.tra` next to the engine binary, passed with `--propFile`. The copy exists so the project can adjust launcher settings without writing to the TIBCO installation, which is usually shared and often read-only.
 
 **Engine classpath.** The `tibco.alias.*` entries only resolve projlib and resource references; the Java classes behind Java activities and custom functions must be on the real JVM classpath, which the TRA launcher builds from `tibco.env.CUSTOM_EXT_PREPEND_CP` and `tibco.env.CUSTOM_EXT_APPEND_CP`. `classpathMode` decides what gets added to the generated TRA copy:
