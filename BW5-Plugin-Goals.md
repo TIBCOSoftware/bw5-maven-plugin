@@ -342,8 +342,10 @@ Both are rewritten on every run and must not be committed:
 
 | File | Purpose |
 |---|---|
-| `target/bwengine.properties` | `tibco.alias.*` entries for every projlib and JAR dependency, keyed by library filename, plus anything `propertiesFile` adds. Passed with `-p` |
+| `target/bwengine.properties` | `tibco.alias.*` entries for every projlib and JAR dependency, plus anything `propertiesFile` adds. Passed with `-p` |
 | `target/.TIBCO/bwengine.tra` | Copy of the installed `bwengine.tra`, carrying the classpath and `user.home` settings above. Passed with `--propFile`, so the TIBCO installation is never modified |
+
+> The alias names come from the project, not from the plugin. `bw5:run` launches the engine against the project source directory, so `RepoLoader` reads its `.designtimelibs` and looks up `tibco.alias.<File Alias name>` for each entry. Those names differ per project — `bw5:designer-setup` records `com.example:MyLib:1.0.0:projlib`, an entry added by hand in Designer is a file path — so the generator reads them out of the file and defines an alias for each one it can resolve, plus a filename alias as a baseline. Guessing a single format is what produced `BWENGINE-100088 "Library alias undefined"`.
 
 > The `tibco.alias.*` entries only resolve projlib and resource references. Java classes used by Java activities and custom functions need the real JVM classpath, which is what `classpathMode` extends.
 
@@ -408,7 +410,7 @@ Downloads and stages projlib and JAR dependencies into a local folder so TIBCO D
 
 > Generating `designer.tra` requires a local TIBCO installation so the base file can be found. Staging, `.designtimelibs` and `Designer5.prefs` work without one.
 >
-> The alias format here is the Maven coordinate form because the consumer is Designer. `bw5:run` writes filename-keyed aliases for the engine — the two are intentionally different.
+> The alias format here is the Maven coordinate form. That name is not only a lookup key for Designer — it is also what the engine asks for at runtime, because `bw5:run` reads the same `.designtimelibs` to build its aliases. Changing the format here changes what `bw5:run` must define, and breaks every project already set up with the old one until it is re-run.
 
 ### Examples
 

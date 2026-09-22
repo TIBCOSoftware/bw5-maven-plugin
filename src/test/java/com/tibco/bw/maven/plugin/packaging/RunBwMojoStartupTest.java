@@ -1,6 +1,14 @@
 package com.tibco.bw.maven.plugin.packaging;
 
+import org.apache.maven.artifact.Artifact;
+import org.apache.maven.artifact.DefaultArtifact;
+import org.apache.maven.artifact.handler.DefaultArtifactHandler;
 import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 
@@ -92,10 +100,18 @@ public class RunBwMojoStartupTest {
     }
 
     // -----------------------------------------------------------------------
-    //  Projlib alias key format
-    //  Root cause: key was "tibco.alias.groupId:artifactId:version:projlib" (Maven GAV)
-    //  but the BW5 engine looks up libraries as "tibco.alias.artifactId.projlib" (filename).
+    //  Alias key formats
+    //  bw5:run points the engine at the project source directory, so RepoLoader reads the
+    //  project's .designtimelibs and asks bwengine.properties for each File Alias name declared
+    //  there. The plugin cannot guess that name — designer-setup writes a Maven coordinate, an
+    //  entry added by hand in Designer is a file path — so it reads them from the file. Guessing
+    //  one form failed in both directions with BWENGINE-100088 "Library alias undefined".
     // -----------------------------------------------------------------------
+
+    private static Artifact artifact(String groupId, String artifactId, String version, String type) {
+        return new DefaultArtifact(groupId, artifactId, version, "compile", type, null,
+            new DefaultArtifactHandler(type));
+    }
 
     @Test
     public void projlibAliasKeyUsesFilenameFormat() {
@@ -113,5 +129,74 @@ public class RunBwMojoStartupTest {
     public void projlibAliasKeyEndsWithDotProjlib() {
         String key = RunBwMojo.projlibAliasKey("FooBar");
         assertTrue("Alias key must end with .projlib", key.endsWith(".projlib"));
+    }
+
+    @Test
+    public void jarAliasKeyUsesFilenameFormat() {
+        assertEquals("tibco.alias.util-1.0.0.jar",
+            RunBwMojo.jarAliasKey(artifact("com.example", "util", "1.0.0", "jar")));
+    }
+
+    @Test
+    public void aliasNameFromDesigntimeEntryUnescapesCoordinate() {
+        assertEquals("com.example.plugins:CommonFramework:4.3.0:projlib",
+            RunBwMojo.aliasNameFromDesigntimeEntry(
+                "com.example.plugins\\:CommonFramework\\:4.3.0\\:projlib\\="));
+    }
+
+    @Test
+    public void aliasNameFromDesigntimeEntryLeavesPlainPathAlone() {
+        assertEquals("/opt/tibco/libs/CommonFramework.projlib",
+            RunBwMojo.aliasNameFromDesigntimeEntry("/opt/tibco/libs/CommonFramework.projlib"));
+    }
+
+    /**
+     * The exact failure Niels Lous reported: designer-setup had recorded the coordinate form in
+     * .designtimelibs, the engine asked for that name, and only the filename alias was generated.
+     */
+    @Test
+    public void designtimeAliasEntriesDefinesTheCoordinateNameTheEngineAsksFor() {
+        Map<String, String> paths = new LinkedHashMap<>();
+        paths.put("CommonFramework", "/m2/CommonFramework-4.3.0.projlib");
+
+        Map<String, String> aliases = RunBwMojo.designtimeAliasEntries(
+            Collections.singletonList("com.example.plugins\\:CommonFramework\\:4.3.0\\:projlib\\="),
+            paths);
+
+        assertEquals(Collections.singletonMap(
+            "tibco.alias.com.example.plugins:CommonFramework:4.3.0:projlib",
+            "/m2/CommonFramework-4.3.0.projlib"), aliases);
+    }
+
+    @Test
+    public void designtimeAliasEntriesHandlesPathStyleEntries() {
+        Map<String, String> paths = new LinkedHashMap<>();
+        paths.put("CommonFramework", "/m2/CommonFramework-4.3.0.projlib");
+
+        Map<String, String> aliases = RunBwMojo.designtimeAliasEntries(
+            Collections.singletonList("/home/dev/libs/CommonFramework.projlib"), paths);
+
+        assertEquals("/m2/CommonFramework-4.3.0.projlib",
+            aliases.get("tibco.alias./home/dev/libs/CommonFramework.projlib"));
+    }
+
+    @Test
+    public void designtimeAliasEntriesSkipsLibrariesThatAreNotMavenDependencies() {
+        Map<String, String> paths = new LinkedHashMap<>();
+        paths.put("CommonFramework", "/m2/CommonFramework-4.3.0.projlib");
+
+        Map<String, String> aliases = RunBwMojo.designtimeAliasEntries(
+            Arrays.asList("com.example\\:CommonFramework\\:4.3.0\\:projlib\\=",
+                          "com.example\\:SomeOtherLib\\:1.0.0\\:projlib\\="),
+            paths);
+
+        assertEquals("No path is known for SomeOtherLib, so no alias can be defined for it",
+            1, aliases.size());
+    }
+
+    @Test
+    public void designtimeAliasEntriesReturnsEmptyWhenNothingIsDeclared() {
+        assertTrue(RunBwMojo.designtimeAliasEntries(
+            Collections.<String>emptyList(), Collections.<String, String>emptyMap()).isEmpty());
     }
 }

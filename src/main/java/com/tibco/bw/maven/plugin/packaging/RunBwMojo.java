@@ -1,5 +1,6 @@
 package com.tibco.bw.maven.plugin.packaging;
 
+import com.tibco.bw.maven.plugin.descriptor.DesignTimeLibsParser;
 import com.tibco.bw.maven.plugin.tra.TraFile;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -13,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -274,24 +276,74 @@ public class RunBwMojo extends AbstractBw5Mojo {
     // -----------------------------------------------------------------------
 
     /**
-     * Returns the bwengine.properties alias key for a projlib dependency.
-     * The BW5 engine looks up libraries by filename ({@code artifactId + ".projlib"}),
-     * not by Maven GAV coordinates. Package-private for testing.
+     * Returns the filename-form alias key for a projlib dependency
+     * ({@code tibco.alias.<artifactId>.projlib}). Package-private for testing.
      *
-     * <h3>Do not switch this to Maven coordinates</h3>
-     * <p>An earlier revision generated {@code tibco.alias.<groupId>:<artifactId>:<version>:projlib}.
-     * The engine never matched those keys, and every {@code bw5:run} with a projlib dependency
-     * failed with {@code BWENGINE-100088 "Library alias undefined"}. The filename form is the fix
-     * (see the regression tests in {@code RunBwMojoStartupTest}).</p>
+     * <h3>The plugin does not choose the alias name</h3>
+     * <p>{@code bw5:run} points the engine at the project source directory, not at a built EAR, so
+     * {@code RepoLoader.handleImports} reads the project's own {@code .designtimelibs} and then
+     * looks up {@code tibco.alias.<name>} in the {@code -p} properties file for each File Alias
+     * name declared there. If that name is not defined, it fails with
+     * {@code BWENGINE-100088 "Library alias undefined"} and prints the name it wanted.</p>
      *
-     * <p>This deliberately differs from what {@code bw5:designer-setup} writes into
-     * {@code .designtimelibs} and {@code Designer5.prefs}, which <em>is</em> the coordinate form.
-     * The two goals feed different consumers — the engine here, TIBCO Designer there — so the
-     * formats are expected to disagree. The mismatch looks like a bug and is not one; unifying them
-     * needs evidence that the engine accepts coordinate keys, not just that the two files differ.</p>
+     * <p>Which name that is depends on who wrote the entry: {@code bw5:designer-setup} writes
+     * {@code groupId:artifactId:version:projlib}, while an entry added in Designer by hand is a
+     * file path. Guessing one form breaks the other, which has now happened in both directions —
+     * coordinate-only failed on a path project (98735cd), filename-only then failed on a
+     * designer-setup project. So the names are read from {@code .designtimelibs} rather than
+     * guessed; see {@link #designtimeAliasEntries(List, Map)}.</p>
+     *
+     * <p>This filename key is still emitted for every projlib dependency as a baseline, for
+     * projects that have no {@code .designtimelibs} at all. An alias nothing asks for is never
+     * looked up, so it costs nothing.</p>
      */
     static String projlibAliasKey(String artifactId) {
         return "tibco.alias." + artifactId + ".projlib";
+    }
+
+    /**
+     * Returns the filename-form alias key for a JAR dependency
+     * ({@code tibco.alias.<artifactId>-<version>.jar}), which is the name a project's
+     * {@code .aliaslib} records for a JAR. Package-private for testing.
+     */
+    static String jarAliasKey(Artifact artifact) {
+        return "tibco.alias." + artifact.getArtifactId() + "-" + artifact.getVersion() + ".jar";
+    }
+
+    /**
+     * Unescapes a raw {@code .designtimelibs} entry into the File Alias name the engine asks for:
+     * drops the trailing {@code \=} description separator and unescapes {@code \:}.
+     * Package-private for testing.
+     */
+    static String aliasNameFromDesigntimeEntry(String rawEntry) {
+        String name = rawEntry.trim();
+        if (name.endsWith("\\=")) {
+            name = name.substring(0, name.length() - 2);
+        }
+        return name.replace("\\:", ":");
+    }
+
+    /**
+     * Maps every File Alias name declared in {@code .designtimelibs} to the resolved projlib file
+     * it refers to, so the engine finds each import under the exact name the project recorded.
+     *
+     * <p>Entries whose library is not a Maven dependency of this project are skipped: they are
+     * resolved some other way and there is no path to offer for them. Package-private for
+     * testing.</p>
+     *
+     * @param rawEntries        raw entries as returned by {@link DesignTimeLibsParser#parse(File)}
+     * @param projlibPathsByLib resolved projlib paths, keyed by library name (the artifactId)
+     */
+    static Map<String, String> designtimeAliasEntries(List<String> rawEntries,
+            Map<String, String> projlibPathsByLib) {
+        Map<String, String> aliases = new LinkedHashMap<>();
+        for (String raw : rawEntries) {
+            String path = projlibPathsByLib.get(DesignTimeLibsParser.extractLibName(raw));
+            if (path != null) {
+                aliases.put("tibco.alias." + aliasNameFromDesigntimeEntry(raw), path);
+            }
+        }
+        return aliases;
     }
 
     private File resolveEngineExecutable() throws MojoExecutionException {
@@ -320,20 +372,49 @@ public class RunBwMojo extends AbstractBw5Mojo {
             + "Check that bw5.tibcoHome=" + home + " and bw5.bwVersion=" + bwVersion + " are correct.");
     }
 
+    /**
+     * Reads the project's {@code .designtimelibs}, if it has one, and returns the aliases it
+     * declares for libraries this project resolves through Maven. A missing or unreadable file is
+     * not an error: the filename aliases alone are enough for a project that has no design-time
+     * library list.
+     */
+    private Map<String, String> readDesigntimeAliases(Map<String, String> projlibPathsByLib) {
+        File designtimeLibs = new File(getEffectiveSourceDir(), ".designtimelibs");
+        if (!designtimeLibs.isFile()) {
+            return Collections.emptyMap();
+        }
+        List<String> rawEntries;
+        try {
+            rawEntries = new DesignTimeLibsParser().parse(designtimeLibs);
+        } catch (IOException e) {
+            getLog().warn("Could not read " + designtimeLibs + ": " + e.getMessage()
+                + " — only filename aliases will be generated.");
+            return Collections.emptyMap();
+        }
+        Map<String, String> aliases = designtimeAliasEntries(rawEntries, projlibPathsByLib);
+        if (!aliases.isEmpty()) {
+            getLog().info("Alias names read from .designtimelibs: " + aliases.keySet());
+        }
+        return aliases;
+    }
+
     private File generateEngineProperties() throws MojoExecutionException {
         // LinkedHashMap preserves insertion order: aliases first, then user overrides
         Map<String, String> entries = new LinkedHashMap<>();
 
-        // 1. Auto-generate tibco.alias entries from Maven dependencies.
-        //    Both projlibs and JARs are resolved by filename, matching what the BW5 engine
-        //    and .aliaslib files use as lookup keys (e.g. "MyLib.projlib", "util-1.0.0.jar").
+        // 1. Auto-generate tibco.alias entries from Maven dependencies. The filename form is the
+        //    baseline; the names the engine actually asks for are then read from the project's
+        //    .designtimelibs, because that is where the imports are declared and the plugin has no
+        //    way to guess them. See projlibAliasKey(String).
+        Map<String, String> projlibPaths = new LinkedHashMap<>();
         for (Artifact projlib : getProjectlibDependencies()) {
-            entries.put(projlibAliasKey(projlib.getArtifactId()),
-                projlib.getFile().getAbsolutePath());
+            String path = projlib.getFile().getAbsolutePath();
+            projlibPaths.put(projlib.getArtifactId(), path);
+            entries.put(projlibAliasKey(projlib.getArtifactId()), path);
         }
+        entries.putAll(readDesigntimeAliases(projlibPaths));
         for (Artifact jar : getJarDependencies()) {
-            String key = "tibco.alias." + jar.getArtifactId() + "-" + jar.getVersion() + ".jar";
-            entries.put(key, jar.getFile().getAbsolutePath());
+            entries.put(jarAliasKey(jar), jar.getFile().getAbsolutePath());
         }
         getLog().info("Generated " + entries.size() + " alias entrie(s) from Maven dependencies.");
 
