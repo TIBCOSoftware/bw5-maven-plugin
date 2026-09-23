@@ -6,9 +6,14 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -223,7 +228,7 @@ public class RunBwMojoTraTest {
 
     private static final List<String> JARS = Arrays.asList("/m2/a-1.0.jar", "/m2/b-2.0.jar");
 
-    /** The default must add nothing, so bw5:run behaves exactly as it did before this parameter. */
+    /** The opt-out: bw5:run then behaves exactly as it did before this parameter existed. */
     @Test
     public void classpathModeNoneAddsNothing() throws Exception {
         assertTrue(RunBwMojo.classpathEntries("none", "/proj/target/bw-lib", JARS).isEmpty());
@@ -256,5 +261,43 @@ public class RunBwMojoTraTest {
         } catch (Exception e) {
             assertTrue(e.getMessage(), e.getMessage().contains("bw5.run.classpathMode"));
         }
+    }
+
+    /**
+     * The defaults are asserted against the generated plugin descriptor rather than the
+     * {@code @Parameter} annotation, which is compiled with {@code RetentionPolicy.CLASS} and is
+     * therefore invisible to reflection. The descriptor is what Maven actually reads, so this is
+     * also the more faithful check.
+     */
+    private static String descriptorDefault(String parameterName) throws IOException {
+        InputStream in = RunBwMojoTraTest.class.getResourceAsStream("/META-INF/maven/plugin.xml");
+        assertNotNull("plugin.xml is generated at process-classes — run this through Maven", in);
+        String xml;
+        try {
+            xml = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } finally {
+            in.close();
+        }
+        Matcher m = Pattern.compile("<" + parameterName + " [^>]*default-value=\"([^\"]*)\"")
+            .matcher(xml);
+        assertTrue(parameterName + " must keep a default-value in the plugin descriptor", m.find());
+        return m.group(1);
+    }
+
+    /**
+     * The default must be {@code libDir}. With {@code none}, a project whose Java activities or
+     * custom functions come from Maven dependencies dies with a {@code ClassNotFoundException} as
+     * soon as a process reaches one — reproduced on a real project, where the engine could not get
+     * past its first global instance until {@code target/bw-lib} was on the classpath.
+     */
+    @Test
+    public void classpathModeDefaultsToLibDir() throws Exception {
+        assertEquals(RunBwMojo.CP_MODE_LIB_DIR, descriptorDefault("classpathMode"));
+    }
+
+    /** Prepending keeps the project's own versions ahead of the ones the installation ships. */
+    @Test
+    public void classpathPositionDefaultsToPrepend() throws Exception {
+        assertEquals(RunBwMojo.CP_POSITION_PREPEND, descriptorDefault("classpathPosition"));
     }
 }

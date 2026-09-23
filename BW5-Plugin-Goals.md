@@ -331,7 +331,7 @@ Runs the BW5 application locally using the BW engine installed on the machine. A
 | `workingDir` | `bw5.run.workingDir` | `${project.build.directory}` | — | Working directory for the engine process |
 | `propertiesFile` | `bw5.run.propertiesFile` | — | — | Additional `.properties` file whose entries override the auto-generated `bwengine.properties` |
 | `extraArgs` | — | — | — | Additional arguments appended verbatim to the `bwengine` command line |
-| `classpathMode` | `bw5.run.classpathMode` | `none` | — | What to add to the engine Java classpath: `none`, `libDir` (the `target/bw-lib` staging directory) or `dependencies` (each resolved JAR) |
+| `classpathMode` | `bw5.run.classpathMode` | `libDir` | — | What to add to the engine Java classpath: `libDir` (the `target/bw-lib` staging directory), `dependencies` (each resolved JAR) or `none` |
 | `classpathPosition` | `bw5.run.classpathPosition` | `prepend` | — | Which TRA variable receives them: `prepend` (`CUSTOM_EXT_PREPEND_CP`, ahead of the TIBCO entries) or `append` (`CUSTOM_EXT_APPEND_CP`, behind them) |
 | `projectUserHome` | `bw5.run.projectUserHome` | `false` | — | If `true`, sets `user.home` to the build directory on the engine JVM, so anything resolved against `~` stays inside `target/` |
 | `skip` | `bw5.skip` | `false` | — | If `true`, skips the goal entirely |
@@ -347,7 +347,7 @@ Both are rewritten on every run and must not be committed:
 
 > The alias names come from the project, not from the plugin. `bw5:run` launches the engine against the project source directory, so `RepoLoader` reads its `.designtimelibs` and looks up `tibco.alias.<File Alias name>` for each entry. Those names differ per project — `bw5:designer-setup` records `com.example:MyLib:1.0.0:projlib`, an entry added by hand in Designer is a file path — so the generator reads them out of the file and defines an alias for each one it can resolve, plus a filename alias as a baseline. Guessing a single format is what produced `BWENGINE-100088 "Library alias undefined"`.
 
-> The `tibco.alias.*` entries only resolve projlib and resource references. Java classes used by Java activities and custom functions need the real JVM classpath, which is what `classpathMode` extends.
+> The `tibco.alias.*` entries only resolve projlib and resource references. Java classes used by Java activities and custom functions need the real JVM classpath, which is what `classpathMode` extends. It defaults to `libDir` because such a project cannot start without them — the engine throws `ClassNotFoundException` the moment a process reaches one. Set `none` to leave the installation classpath untouched.
 
 ### Examples
 
@@ -357,10 +357,10 @@ mvn com.tibco.bw:bw5-maven-plugin:run \
   -Dbw5.tibcoHome=/opt/tibco \
   -Dbw5.bwVersion=5.13.0
 
-# Run with the project's Maven dependencies on the engine classpath
+# Run with the installation classpath only, ignoring the project's dependencies
 mvn package com.tibco.bw:bw5-maven-plugin:run \
   -Dbw5.tibcoHome=/opt/tibco \
-  -Dbw5.run.classpathMode=libDir
+  -Dbw5.run.classpathMode=none
 
 # Run in the background (Windows path)
 mvn com.tibco.bw:bw5-maven-plugin:run \

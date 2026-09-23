@@ -566,8 +566,8 @@ mvn package bw5:run -Dbw5.tibcoHome=/opt/tibco -Dbw5.run.background=true
 # Run with additional local property overrides
 mvn bw5:run -Dbw5.tibcoHome=/opt/tibco -Dbw5.run.propertiesFile=local.properties
 
-# Put the project's Maven dependencies on the engine classpath
-mvn package bw5:run -Dbw5.tibcoHome=/opt/tibco -Dbw5.run.classpathMode=libDir
+# Run with the installation classpath only, ignoring the project's dependencies
+mvn package bw5:run -Dbw5.tibcoHome=/opt/tibco -Dbw5.run.classpathMode=none
 ```
 
 **Key parameters:**
@@ -581,7 +581,7 @@ mvn package bw5:run -Dbw5.tibcoHome=/opt/tibco -Dbw5.run.classpathMode=libDir
 | `domainHome` | `bw5.run.domainHome` | — | BW domain home directory; passed via `-d` flag |
 | `workingDir` | `bw5.run.workingDir` | `${project.build.directory}` | Working directory for the engine process |
 | `propertiesFile` | `bw5.run.propertiesFile` | — | Additional `.properties` file that overrides auto-generated `bwengine.properties` |
-| `classpathMode` | `bw5.run.classpathMode` | `none` | What to add to the engine's Java classpath: `none`, `libDir`, `dependencies` |
+| `classpathMode` | `bw5.run.classpathMode` | `libDir` | What to add to the engine's Java classpath: `libDir`, `dependencies`, `none` |
 | `classpathPosition` | `bw5.run.classpathPosition` | `prepend` | Where those entries go: `prepend` or `append` |
 | `projectUserHome` | `bw5.run.projectUserHome` | `false` | Set `user.home` to `target/` on the engine JVM |
 
@@ -594,9 +594,11 @@ mvn package bw5:run -Dbw5.tibcoHome=/opt/tibco -Dbw5.run.classpathMode=libDir
 
 | Mode | Effect |
 |------|--------|
-| `none` *(default)* | Nothing is added; the engine runs with the installation classpath |
-| `libDir` | Adds `target/bw-lib`, where `bw5:initialize` stages the resolved dependencies. The launcher expands a directory into the JARs it contains, so one entry covers all of them. Needs the staging step — use `mvn package bw5:run` |
+| `libDir` *(default)* | Adds `target/bw-lib`, where `bw5:initialize` stages the resolved dependencies. The launcher expands a directory into the JARs it contains, so one entry covers all of them. Needs the staging step — use `mvn package bw5:run`; without it nothing is added and the build warns |
 | `dependencies` | Adds each resolved JAR individually from the local Maven repository. Works without staging |
+| `none` | Nothing is added; the engine runs with the installation classpath |
+
+The default is `libDir` because a project whose Java activities or custom functions come from Maven dependencies cannot start without them — the engine throws `ClassNotFoundException` as soon as a process reaches one. Declaring the dependency is the developer saying the engine needs it. Use `none` to get the old behaviour back.
 
 `classpathPosition=prepend` (the default) gives the project's own versions precedence. It also puts them ahead of the TIBCO hotfix, bouncycastle and Rendezvous entries that ship in `CUSTOM_EXT_PREPEND_CP`, so a transitive `xerces`, `log4j` or `commons-*` can shadow a library the engine itself depends on. Switch to `append` if the engine starts behaving oddly once dependencies are on the classpath.
 

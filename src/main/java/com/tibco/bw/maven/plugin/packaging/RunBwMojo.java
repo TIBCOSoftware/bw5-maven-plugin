@@ -71,10 +71,12 @@ public class RunBwMojo extends AbstractBw5Mojo {
     @Parameter(defaultValue = "5.13.0", property = "bw5.bwVersion")
     private String bwVersion;
 
-    /** {@code classpathMode} value: add nothing to the engine classpath (default). */
+    /** {@code classpathMode} value: add nothing to the engine classpath. */
     static final String CP_MODE_NONE = "none";
 
-    /** {@code classpathMode} value: add the {@code target/bw-lib} staging directory. */
+    /**
+     * {@code classpathMode} value: add the {@code target/bw-lib} staging directory (default).
+     */
     static final String CP_MODE_LIB_DIR = "libDir";
 
     /** {@code classpathMode} value: add each resolved JAR from the local repository. */
@@ -96,17 +98,24 @@ public class RunBwMojo extends AbstractBw5Mojo {
      * {@code bw5:designer-setup} injects into {@code designer.tra}.</p>
      *
      * <ul>
-     *   <li>{@code none} (default) — add nothing; the engine runs with the installation classpath,
-     *       as it did before this parameter existed.</li>
-     *   <li>{@code libDir} — add {@code target/bw-lib}, where {@code bw5:initialize} stages the
-     *       resolved projlibs and JARs. The TRA launcher expands a directory into the JARs it
-     *       contains, so one entry covers every dependency. Requires the staging step to have run
-     *       (e.g. {@code mvn package bw5:run}).</li>
+     *   <li>{@code libDir} (default) — add {@code target/bw-lib}, where {@code bw5:initialize}
+     *       stages the resolved projlibs and JARs. The TRA launcher expands a directory into the
+     *       JARs it contains, so one entry covers every dependency. Requires the staging step to
+     *       have run (e.g. {@code mvn package bw5:run}); if the directory is not there, nothing is
+     *       added and a warning says so.</li>
      *   <li>{@code dependencies} — add each resolved JAR individually, straight from the local
      *       Maven repository. Works without staging.</li>
+     *   <li>{@code none} — add nothing; the engine runs with the installation classpath, as it did
+     *       before this parameter existed.</li>
      * </ul>
+     *
+     * <p>The default is {@code libDir} because a project whose Java activities or custom functions
+     * come from Maven dependencies cannot start without them: the engine fails with a
+     * {@code ClassNotFoundException} the moment a process reaches one. Declaring the dependency is
+     * the developer saying the engine needs it, so it goes on the classpath. Set {@code none} to
+     * get the pre-{@code 1.0.0} behaviour back.</p>
      */
-    @Parameter(defaultValue = CP_MODE_NONE, property = "bw5.run.classpathMode")
+    @Parameter(defaultValue = CP_MODE_LIB_DIR, property = "bw5.run.classpathMode")
     private String classpathMode;
 
     /**
@@ -557,8 +566,9 @@ public class RunBwMojo extends AbstractBw5Mojo {
 
         if (!baseTra.isFile()) {
             if (!classpathEntries.isEmpty()) {
-                getLog().warn("bw5.run.classpathMode is set but bwengine.tra was not found at "
-                    + baseTra.getAbsolutePath() + " — the engine classpath cannot be extended.");
+                getLog().warn("bwengine.tra was not found at " + baseTra.getAbsolutePath()
+                    + " — the engine classpath cannot be extended, so the entries selected by"
+                    + " bw5.run.classpathMode are dropped.");
             }
             getLog().warn("bwengine.tra not found at " + baseTra.getAbsolutePath()
                 + " — starting the engine with the installation defaults (no --propFile).");
