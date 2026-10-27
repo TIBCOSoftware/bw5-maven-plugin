@@ -116,7 +116,7 @@ public class ValidateMojo extends AbstractBw5Mojo {
             + substVarFiles.size() + " substvar(s), " + archiveFiles.size() + " archive(s).");
 
         validateXmlWellFormedness(processFiles, substVarFiles, aliasLibFiles, archiveFiles, issues);
-        validateArchive(archiveFiles, issues);
+        validateArchive(archiveFiles, srcDir, issues);
         validateProcessNames(processFiles, issues);
         validateGlobalVariables(processFiles, substVarFiles, issues);
         validateDependencies(issues);
@@ -154,23 +154,34 @@ public class ValidateMojo extends AbstractBw5Mojo {
 
     // ── 2. Archive descriptor ────────────────────────────────────────────────
 
-    private void validateArchive(List<File> archiveFiles, List<Issue> issues) {
+    /**
+     * Declared process paths are BW project paths, so they are resolved against the BW source
+     * root ({@code srcDir}: the staged {@code target/bw-src}, or the detected Designer project) —
+     * not against {@code bwProjectPath}, which is the Maven module root when the pom sits above
+     * the BW sources.
+     */
+    private void validateArchive(List<File> archiveFiles, File srcDir, List<Issue> issues) {
         if (archiveFiles.isEmpty()) {
             issues.add(new Issue(Severity.ERROR, "ARCHIVE",
-                "No .archive descriptor found under " + bwProjectPath));
+                "No .archive descriptor found under " + srcDir));
             return;
         }
         ArchiveDescriptorParser parser = new ArchiveDescriptorParser();
+        Set<String> projlibPaths = projlibEntryPaths(bwLibDirectory);
         for (File f : archiveFiles) {
             try {
                 ArchiveDescriptorParser.ArchiveDescriptor desc = parser.parse(f);
-                // Validate every processArchive entry (multi-PAR aware)
+                // Validate every processArchive entry (multi-PAR aware). A declared process may
+                // come from a project library: bwear packages those too, so it is only missing
+                // when neither the project nor a projlib contains it.
                 for (ArchiveDescriptorParser.ProcessArchiveEntry pa : desc.processArchives) {
                     for (String path : pa.processPaths) {
                         String relative = path.startsWith("/") ? path.substring(1) : path;
-                        if (!new File(bwProjectPath, relative).isFile()) {
+                        if (!new File(srcDir, relative).isFile()
+                                && !projlibPaths.contains(relative.toLowerCase(Locale.ROOT))) {
                             issues.add(new Issue(Severity.ERROR, "ARCHIVE",
-                                rel(f) + " [" + pa.name + "]: declared process not found on disk: " + path));
+                                rel(f) + " [" + pa.name + "]: declared process not found in the"
+                                + " project or its project libraries: " + path));
                         }
                     }
                 }
@@ -178,6 +189,31 @@ public class ValidateMojo extends AbstractBw5Mojo {
                 // already caught by XML well-formedness check
             }
         }
+    }
+
+    /**
+     * Lower-cased paths of every file inside the {@code .projlib} files staged in {@code libDir},
+     * in the form an {@code .archive} uses them ({@code MyLib/Processes/Foo.process}, no leading
+     * slash). Lower-cased because BW5 paths are case-insensitive. An unreadable projlib is
+     * skipped: it simply contributes nothing, and the packaging step reports it properly.
+     */
+    static Set<String> projlibEntryPaths(File libDir) {
+        Set<String> paths = new HashSet<>();
+        File[] projlibs = libDir == null ? null
+            : libDir.listFiles((dir, name) -> name.endsWith(".projlib"));
+        if (projlibs == null) return paths;
+        for (File projlib : projlibs) {
+            try (java.util.zip.ZipFile zip = new java.util.zip.ZipFile(projlib)) {
+                zip.stream()
+                   .filter(e -> !e.isDirectory())
+                   .map(e -> e.getName().replace('\\', '/'))
+                   .map(n -> n.startsWith("/") ? n.substring(1) : n)
+                   .forEach(n -> paths.add(n.toLowerCase(Locale.ROOT)));
+            } catch (IOException ignored) {
+                // unreadable projlib: contributes no paths
+            }
+        }
+        return paths;
     }
 
     // ── 3. Process names and duplicates ─────────────────────────────────────
@@ -473,12 +509,19 @@ public class ValidateMojo extends AbstractBw5Mojo {
 
     // ── Utilities ────────────────────────────────────────────────────────────
 
-    private List<File> findFiles(File root, String ext) {
+    /**
+     * Files under {@code root} with the given extension, skipping any {@code target} directory
+     * <em>inside</em> it. The check is made on the path relative to {@code root}: the root itself
+     * is normally the staged copy in {@code target/bw-src}, and testing the absolute path threw
+     * away every file in it.
+     */
+    List<File> findFiles(File root, String ext) {
         if (!root.isDirectory()) return Collections.emptyList();
-        try (Stream<Path> walk = Files.walk(root.toPath())) {
+        Path rootPath = root.toPath();
+        try (Stream<Path> walk = Files.walk(rootPath)) {
             return walk
                 .filter(p -> p.toString().endsWith(ext))
-                .filter(p -> !p.toString().contains(File.separator + "target" + File.separator))
+                .filter(p -> !isUnderTargetDirectory(rootPath.relativize(p)))
                 .map(Path::toFile)
                 .sorted()
                 .collect(Collectors.toList());
@@ -486,6 +529,13 @@ public class ValidateMojo extends AbstractBw5Mojo {
             getLog().warn("Error scanning " + ext + " files: " + e.getMessage());
             return Collections.emptyList();
         }
+    }
+
+    private static boolean isUnderTargetDirectory(Path relative) {
+        for (int i = 0; i < relative.getNameCount() - 1; i++) {
+            if ("target".equals(relative.getName(i).toString())) return true;
+        }
+        return false;
     }
 
     private String rel(File f) {
