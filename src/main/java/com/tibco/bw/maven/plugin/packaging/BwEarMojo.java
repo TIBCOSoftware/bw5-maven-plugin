@@ -627,17 +627,14 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     String aarFileName = (aa.name != null && !aa.name.isEmpty())
                         ? aa.name + ".aar" : "Adapter Archive.aar";
                     File aarFile = new File(workDir, aarFileName);
-                    buildAar(aarFile, srcDir, aa, globalVars);
+                    buildAar(aarFile, srcDir, aa, globalVars, allSarFiles);
                     moduleFiles.add(aarFile);
                     getLog().info("AAR assembled: " + aarFile.getName() + " (" + aarFile.length() + " bytes)");
 
                     String adapterFilePath = aa.getAdapterFilePath();
                     if (adapterFilePath != null) {
-                        File adapterFile = new File(srcDir, adapterFilePath.replace('/', File.separatorChar));
-                        if (!adapterFile.isFile()) {
-                            adapterFile = new File(bwProjectPath, adapterFilePath.replace('/', File.separatorChar));
-                        }
-                        if (adapterFile.isFile()) {
+                        File adapterFile = locateAdapterFile(adapterFilePath, srcDir, bwProjectPath, allSarFiles);
+                        if (adapterFile != null) {
                             if (adapterFilePath.toLowerCase(Locale.ROOT).endsWith(".adapter")) {
                                 // TIBCO Designer duplicates each .adapter file in the SAR in addition
                                 // to placing it inside its dedicated AAR. Replicate that behaviour.
@@ -2866,26 +2863,54 @@ public class BwEarMojo extends AbstractBw5Mojo {
      *   <li>The {@code .adapter} file at its BW project path (relative to {@code srcDir})</li>
      * </ol>
      */
+    /**
+     * Resolves the adapter definition file named by an {@code <adapterReference>}.
+     *
+     * <p>The adapter does not have to live in the project: a shared {@code .adb}, {@code .adr3},
+     * etc. is commonly kept in a project library, and Designer builds the AAR from it all the
+     * same — the file is stored under its library path ({@code /MyLib/Adapters/X.adb}). The
+     * project directories are checked first, so a project file still wins over a library file
+     * with the same path; after that the collected resource pool is searched, which holds the
+     * contents of every extracted projlib. The pool lookup is case-insensitive, like
+     * {@link #buildBwIndex}, because BW5 paths are.</p>
+     *
+     * @return the file, or {@code null} when neither the project nor a projlib contains it
+     */
+    static File locateAdapterFile(String adapterFilePath, File srcDir, File projectDir,
+                                  List<BwFile> resourcePool) {
+        String osPath = adapterFilePath.replace('/', File.separatorChar);
+        for (File root : new File[] { srcDir, projectDir }) {
+            if (root == null) continue;
+            File candidate = new File(root, osPath);
+            if (candidate.isFile()) return candidate;
+        }
+        String wanted = normalizeBwPath(adapterFilePath);
+        for (BwFile f : resourcePool) {
+            if (normalizeBwPath(f.relativePath).equalsIgnoreCase(wanted) && f.file.isFile()) {
+                return f.file;
+            }
+        }
+        return null;
+    }
+
     private void buildAar(File aarFile, File srcDir,
                           ArchiveDescriptorParser.AdapterArchiveEntry aa,
-                          List<SubstVarParser.GlobalVariable> globalVars) throws Exception {
+                          List<SubstVarParser.GlobalVariable> globalVars,
+                          List<BwFile> resourcePool) throws Exception {
         String aarFileName = aarFile.getName();
 
-        // Locate the .adapter file on disk
+        // Locate the adapter file: in the project, or in one of its projlibs
         String adapterFilePath = aa.getAdapterFilePath();
         if (adapterFilePath == null || adapterFilePath.isEmpty()) {
             throw new MojoExecutionException(
                 "adapterArchive '" + aa.name + "' has no <adapterReference> — cannot assemble AAR");
         }
-        File adapterFile = new File(srcDir, adapterFilePath.replace('/', File.separatorChar));
-        if (!adapterFile.isFile()) {
-            // Try bwSourcesDirectory as root if different from srcDir
-            adapterFile = new File(bwProjectPath, adapterFilePath.replace('/', File.separatorChar));
-        }
-        if (!adapterFile.isFile()) {
+        File adapterFile = locateAdapterFile(adapterFilePath, srcDir, bwProjectPath, resourcePool);
+        if (adapterFile == null) {
             throw new MojoExecutionException(
                 "Adapter file not found for AAR '" + aa.name + "': " + adapterFilePath
-                + "\nSearched under: " + srcDir.getAbsolutePath());
+                + "\nSearched under: " + srcDir.getAbsolutePath()
+                + " and the project libraries in " + bwLibDirectory.getAbsolutePath());
         }
 
         // Determine the adapter component software name (e.g. adb, adr3): prefer the
@@ -3225,7 +3250,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
     /**
      * Simple tuple of a file and its relative path within the BW project.
      */
-    private static class BwFile {
+    static class BwFile {
         final File file;
         final String relativePath;
 
