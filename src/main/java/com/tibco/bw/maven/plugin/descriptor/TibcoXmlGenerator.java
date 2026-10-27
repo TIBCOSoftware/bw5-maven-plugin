@@ -340,6 +340,29 @@ public class TibcoXmlGenerator {
             List<SubstVarParser.GlobalVariable> globalVars,
             String archiveVersion,
             String owner) throws IOException {
+        generateAarDescriptor(outputFile, aarFileName, adapterReference, componentSoftwareName,
+            sdkVersionFour, sdkProperties, globalVars, archiveVersion, owner, null);
+    }
+
+    /**
+     * As above, with the {@code EXTERNAL_RESOURCE_DEPENDENCY} entries supplied by the caller.
+     *
+     * @param externalDeps the entries in the order to emit them (buildear's order — see
+     *                     {@code BwEarMojo.externalDepsInBuildearOrder}), adapter fragment
+     *                     included; {@code null} falls back to the generic placeholder
+     *                     {@code ae.aeschema,<adapterReference>,ae/BW/AESchema.aeschema}
+     */
+    public void generateAarDescriptor(
+            File outputFile,
+            String aarFileName,
+            String adapterReference,
+            String componentSoftwareName,
+            String sdkVersionFour,
+            List<SdkProperty> sdkProperties,
+            List<SubstVarParser.GlobalVariable> globalVars,
+            String archiveVersion,
+            String owner,
+            List<String> externalDeps) throws IOException {
 
         String effectiveCsn = (componentSoftwareName == null || componentSoftwareName.isEmpty())
             ? "adapter" : componentSoftwareName;
@@ -365,10 +388,12 @@ public class TibcoXmlGenerator {
         int lastSlash = instanceID.lastIndexOf('/');
         if (lastSlash >= 0) instanceID = instanceID.substring(lastSlash + 1);
 
-        // EXTERNAL_RESOURCE_DEPENDENCY: AE schemas + the adapter reference
-        String extDep = "/AESchemas/ae.aeschema,"
-            + (adapterReference != null ? adapterReference : "")
-            + ",/AESchemas/ae/BW/AESchema.aeschema";
+        // EXTERNAL_RESOURCE_DEPENDENCY: the SAR resources the adapter needs + the adapter reference
+        String extDep = externalDeps != null
+            ? String.join(",", externalDeps)
+            : "/AESchemas/ae.aeschema,"
+                + (adapterReference != null ? adapterReference : "")
+                + ",/AESchemas/ae/BW/AESchema.aeschema";
 
         StringBuilder sb = new StringBuilder();
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");

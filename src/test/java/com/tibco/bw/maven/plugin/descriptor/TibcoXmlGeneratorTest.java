@@ -742,6 +742,31 @@ public class TibcoXmlGeneratorTest {
         return new SAXBuilder().build(tmp);
     }
 
+    /**
+     * Regression (Bug #8): an AAR built from an explicit {@code <adapterArchive>} must declare
+     * the SAR resources its adapter needs, in the order supplied, instead of the generic
+     * {@code ae/BW/AESchema.aeschema} placeholder — which does not exist in the SAR.
+     */
+    @Test
+    public void aarDescriptorEmitsTheSuppliedExternalDependencies() throws Exception {
+        List<String> deps = java.util.Arrays.asList("/AESchemas/ae.aeschema",
+            "/MyLib/X.adb#adapter.X", "/AESchemas/ae/ADB/X.aeschema");
+        File tmp = File.createTempFile("aar-tibco", ".xml");
+        tmp.deleteOnExit();
+        new TibcoXmlGenerator().generateAarDescriptor(tmp, "X.aar", "/MyLib/X.adb#adapter.X",
+            "adb", "7.3.2.0", null, Collections.emptyList(), "1", "o", deps);
+
+        assertEquals(String.join(",", deps), getExternalDepsValue(new SAXBuilder().build(tmp)));
+    }
+
+    /** Without a computed list (generic .adapter archives) the placeholder is kept unchanged. */
+    @Test
+    public void aarDescriptorKeepsThePlaceholderWithoutExternalDependencies() throws Exception {
+        assertEquals("/AESchemas/ae.aeschema,/X.adapter#adapter.X,/AESchemas/ae/BW/AESchema.aeschema",
+            getExternalDepsValue(generateAar("X.aar", "/X.adapter#adapter.X",
+                Collections.emptyList())));
+    }
+
     private Document generateAar(String aarFileName, String adapterRef,
             List<SubstVarParser.GlobalVariable> globalVars) throws Exception {
         File tmp = File.createTempFile("aar-tibco", ".xml");

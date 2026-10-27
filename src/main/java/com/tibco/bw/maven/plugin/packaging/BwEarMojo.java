@@ -621,94 +621,45 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 }
 
                 // ---- AAR: one AAR per <adapterArchive> element ----
-                // Maps adapter definition file → sdkVersion string (to decide schema expansion mode).
-                Map<File, String> adapterDefFiles = new LinkedHashMap<>();
+                Map<String, BwFile> resourceIndex = buildBwIndex(allSarFiles);
                 for (ArchiveDescriptorParser.AdapterArchiveEntry aa : archiveDescriptor.adapterArchives) {
                     String aarFileName = (aa.name != null && !aa.name.isEmpty())
                         ? aa.name + ".aar" : "Adapter Archive.aar";
                     File aarFile = new File(workDir, aarFileName);
-                    buildAar(aarFile, srcDir, aa, globalVars, allSarFiles);
+
+                    String adapterFilePath = aa.getAdapterFilePath();
+                    File adapterFile = adapterFilePath == null ? null
+                        : locateAdapterFile(adapterFilePath, srcDir, bwProjectPath, allSarFiles);
+                    boolean genericAdapter = adapterFilePath != null
+                        && adapterFilePath.toLowerCase(Locale.ROOT).endsWith(".adapter");
+
+                    // Non-.adapter definition files (.adb, .adldap, etc.): the SAR resources they
+                    // need are both added to the SAR and declared as the AAR's
+                    // EXTERNAL_RESOURCE_DEPENDENCY — buildear lists exactly that set.
+                    List<String> adapterSarPaths = (adapterFile != null && !genericAdapter)
+                        ? adapterSarResources(adapterFile, resourceIndex)
+                        : Collections.emptyList();
+                    List<String> externalDeps = null;
+                    if (adapterFile != null && !genericAdapter) {
+                        List<String> withSlash = new ArrayList<>();
+                        for (String path : adapterSarPaths) withSlash.add("/" + path);
+                        externalDeps = externalDepsInBuildearOrder(withSlash, aa.adapterReference);
+                    }
+
+                    buildAar(aarFile, srcDir, aa, globalVars, allSarFiles, externalDeps);
                     moduleFiles.add(aarFile);
                     getLog().info("AAR assembled: " + aarFile.getName() + " (" + aarFile.length() + " bytes)");
 
-                    String adapterFilePath = aa.getAdapterFilePath();
-                    if (adapterFilePath != null) {
-                        File adapterFile = locateAdapterFile(adapterFilePath, srcDir, bwProjectPath, allSarFiles);
-                        if (adapterFile != null) {
-                            if (adapterFilePath.toLowerCase(Locale.ROOT).endsWith(".adapter")) {
-                                // TIBCO Designer duplicates each .adapter file in the SAR in addition
-                                // to placing it inside its dedicated AAR. Replicate that behaviour.
-                                accumulateSarFiles(
-                                    Collections.singletonList(new BwFile(adapterFile, adapterFilePath)),
-                                    combinedSarFiles, seenSarPaths);
-                            } else {
-                                // Non-.adapter definition files (.adb, .adldap, etc.): placed in the
-                                // AAR here; they additionally reach the SAR via the transitive BFS
-                                // when a process references them through adapterService.
-                                // Collect them to scan their aeschema references for the SAR.
-                                adapterDefFiles.put(adapterFile, aa.sdkVersion);
-                            }
-                        } else {
-                            getLog().warn("Could not locate adapter file for AAR '" + aa.name + "': " + adapterFilePath);
-                        }
+                    if (genericAdapter && adapterFile != null) {
+                        // TIBCO Designer duplicates each .adapter file in the SAR in addition
+                        // to placing it inside its dedicated AAR. Replicate that behaviour.
+                        accumulateSarFiles(
+                            Collections.singletonList(new BwFile(adapterFile, adapterFilePath)),
+                            combinedSarFiles, seenSarPaths);
                     }
-                }
-
-                // Collect all aeschemas (and other SAR resources) referenced by adapter definition
-                // files (.adb, .adsap, etc.) and add them to the SAR.
-                // When a .adb file's <loadUrl> entries use fragment references (e.g.
-                // ADB_LOGS.aeschema#class), TIBCO Designer cannot resolve them to individual
-                // files and instead includes the entire /AESchemas/ae/<type>/ directory.
-                // Adapters whose loadUrls have no fragment (ADB_PUBS, ADB_SM, ADB_EVENTS, etc.)
-                // use transitive-only resolution regardless of sdkVersion.
-                if (!adapterDefFiles.isEmpty()) {
-                    Map<String, BwFile> resourceIndex = buildBwIndex(allSarFiles);
-                    Set<String> referencedResourcePaths = new LinkedHashSet<>();
-                    Set<String> wholeDirectoryPrefixes = new LinkedHashSet<>();
-
-                    for (Map.Entry<File, String> defEntry : adapterDefFiles.entrySet()) {
-                        File defFile = defEntry.getKey();
-                        boolean hasFragmentLoadUrls = adapterHasFragmentLoadUrls(defFile);
-                        for (String ref : extractBwResourceRefs(defFile)) {
-                            String norm = normalizeBwPath(ref);
-                            // Adapter definition files (.adb, .adldap, .adsap, …) must only
-                            // enter the SAR when a process references them via adapterService.
-                            // Within a .ad* config, internal references like /Foo.adb#svc.Bar
-                            // are stripped to /Foo.adb by extractBwResourceRefs — skip any
-                            // .ad* path here to avoid inadvertent self-inclusion in the SAR.
-                            String normExt = getExtension(norm);
-                            if (normExt.startsWith(".ad")) continue;
-                            if (norm.endsWith(".aeschema") && hasFragmentLoadUrls) {
-                                // Fragment loadUrls: remember the directory so we can add all aeschemas in it.
-                                int slash = norm.lastIndexOf('/');
-                                if (slash > 0) wholeDirectoryPrefixes.add(norm.substring(0, slash + 1));
-                            }
-                            if (referencedResourcePaths.add(norm)) {
-                                if (isSarExtension(getExtension(norm))) {
-                                    followSharedResourceRefs(norm, resourceIndex, referencedResourcePaths);
-                                }
-                                if (norm.endsWith(".aeschema")) {
-                                    followAeschemaImports(norm, resourceIndex, referencedResourcePaths);
-                                }
-                            }
-                        }
-                    }
-
-                    // Directory expansion for adapters with fragment-based loadUrls.
-                    for (String dirPrefix : wholeDirectoryPrefixes) {
-                        getLog().info("Fragment loadUrls: expanding all aeschemas under " + dirPrefix);
-                        for (Map.Entry<String, BwFile> e : resourceIndex.entrySet()) {
-                            if (e.getKey().startsWith(dirPrefix) && e.getKey().endsWith(".aeschema")) {
-                                referencedResourcePaths.add(e.getKey());
-                            }
-                        }
-                    }
-
-                    for (String path : referencedResourcePaths) {
-                        BwFile f = resourceIndex.get(path);
-                        if (f != null) {
-                            accumulateSarFiles(Collections.singletonList(f), combinedSarFiles, seenSarPaths);
-                        }
+                    for (String path : adapterSarPaths) {
+                        accumulateSarFiles(Collections.singletonList(resourceIndex.get(path)),
+                            combinedSarFiles, seenSarPaths);
                     }
                 }
 
@@ -2557,6 +2508,66 @@ public class BwEarMojo extends AbstractBw5Mojo {
     }
 
     /**
+     * The SAR resources an adapter definition file ({@code .adb}, {@code .adldap}, …) declared
+     * as an {@code <adapterArchive>} needs: the aeschemas and shared resources it references,
+     * followed transitively. Returned as normalized BW paths (no leading slash) that exist in
+     * {@code resourceIndex}, in discovery order.
+     *
+     * <p>When the file's {@code <loadUrl>} entries use fragment references (e.g.
+     * {@code ADB_LOGS.aeschema#class}), TIBCO Designer cannot resolve them to individual files
+     * and includes every aeschema in the referenced {@code /AESchemas/ae/<type>/} directory
+     * instead. Adapters whose loadUrls have no fragment use transitive-only resolution.</p>
+     *
+     * <p>The same set goes into the SAR and, as buildear does, into the AAR's
+     * {@code EXTERNAL_RESOURCE_DEPENDENCY}.</p>
+     */
+    List<String> adapterSarResources(File adapterFile, Map<String, BwFile> resourceIndex) {
+        Set<String> referenced = new LinkedHashSet<>();
+        Set<String> wholeDirectoryPrefixes = new LinkedHashSet<>();
+        boolean hasFragmentLoadUrls = adapterHasFragmentLoadUrls(adapterFile);
+        for (String ref : extractBwResourceRefs(adapterFile)) {
+            String norm = normalizeBwPath(ref);
+            // Adapter definition files (.adb, .adldap, .adsap, …) must only enter the SAR when a
+            // process references them via adapterService. Within a .ad* config, internal
+            // references like /Foo.adb#svc.Bar are stripped to /Foo.adb by extractBwResourceRefs
+            // — skip any .ad* path here to avoid inadvertent self-inclusion in the SAR.
+            if (getExtension(norm).startsWith(".ad")) continue;
+            if (norm.endsWith(".aeschema") && hasFragmentLoadUrls) {
+                int slash = norm.lastIndexOf('/');
+                if (slash > 0) wholeDirectoryPrefixes.add(norm.substring(0, slash + 1));
+            }
+            if (referenced.add(norm)) {
+                if (isSarExtension(getExtension(norm))) {
+                    followSharedResourceRefs(norm, resourceIndex, referenced);
+                }
+                if (norm.endsWith(".aeschema")) {
+                    followAeschemaImports(norm, resourceIndex, referenced);
+                }
+            }
+        }
+        for (String dirPrefix : wholeDirectoryPrefixes) {
+            getLog().info("Fragment loadUrls: expanding all aeschemas under " + dirPrefix);
+            for (String path : resourceIndex.keySet()) {
+                if (path.startsWith(dirPrefix) && path.endsWith(".aeschema")) {
+                    referenced.add(path);
+                }
+            }
+        }
+        // Keep only what can actually be packaged, under the index's own key (the key carries
+        // the on-disk case; references may differ in case).
+        List<String> result = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (String path : referenced) {
+            BwFile f = resourceIndex.get(path);
+            if (f != null) {
+                String key = normalizeBwPath(f.relativePath);
+                if (seen.add(key.toLowerCase(Locale.ROOT))) result.add(key);
+            }
+        }
+        return result;
+    }
+
+    /**
      * Computes the EXTERNAL_RESOURCE_DEPENDENCY value for an adapter AAR by scanning
      * the adapter instance file for AESchema references and following them transitively.
      * Returns the AESchema paths plus the adapter fragment in {@link java.util.HashSet}
@@ -2896,7 +2907,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
     private void buildAar(File aarFile, File srcDir,
                           ArchiveDescriptorParser.AdapterArchiveEntry aa,
                           List<SubstVarParser.GlobalVariable> globalVars,
-                          List<BwFile> resourcePool) throws Exception {
+                          List<BwFile> resourcePool,
+                          List<String> externalDeps) throws Exception {
         String aarFileName = aarFile.getName();
 
         // Locate the adapter file: in the project, or in one of its projlibs
@@ -2927,7 +2939,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
         new TibcoXmlGenerator().generateAarDescriptor(
             aarTibcoXml, aarFileName, aa.adapterReference, componentSoftwareName,
             resolveAdapterVersion(componentSoftwareName, aa.getSdkVersionFourPart()),
-            sdkProps, globalVars, archiveVersion, null);
+            sdkProps, globalVars, archiveVersion, null, externalDeps);
 
         try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(aarFile.toPath()))) {
             zos.setLevel(Deflater.DEFAULT_COMPRESSION);
