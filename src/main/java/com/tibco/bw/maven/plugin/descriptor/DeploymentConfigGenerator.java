@@ -530,6 +530,8 @@ public class DeploymentConfigGenerator {
                 }
             }
         }
+        // AppManage omits the block when there is nothing to list.
+        if (vars.isEmpty()) return;
         sb.append(indent).append("<NVPairs name=\"").append(xmlAttr(blockName)).append("\">\n");
         for (Map.Entry<String, String> e : vars.entrySet()) {
             sb.append(indent).append("    <NameValuePair>\n");

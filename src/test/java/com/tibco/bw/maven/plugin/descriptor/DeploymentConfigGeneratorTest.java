@@ -718,4 +718,15 @@ public class DeploymentConfigGeneratorTest {
         assertTrue(xml.contains("<maxHeapSize>512</maxHeapSize>"));
         assertTrue(xml.contains("<name>java.extended.properties</name>\n                    <value>-Xss512k</value>"));
     }
+
+    /**
+     * Regression: a BW service with no service-settable variables used to carry two empty
+     * Runtime Variables blocks; AppManage omits them.
+     */
+    @Test
+    public void bwServiceOmitsRuntimeVariablesWhenThereAreNone() throws Exception {
+        String xml = readDeployXml(Arrays.asList(gv("A", "1", "String", false)), oneService());
+        assertTrue(xml.contains("<bw name=\"MyApp-LB.par\">"));
+        assertFalse(xml, xml.contains("<NVPairs name=\"Runtime Variables\">"));
+    }
 }
