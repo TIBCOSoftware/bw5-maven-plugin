@@ -631,16 +631,33 @@ public class DeploymentConfigGeneratorTest {
         assertTrue("monitor block", xml.contains("<monitor>"));
     }
 
-    /** An adapter binding has no threadCount/shutdown, and an adapter no BW-only elements. */
+    /** An adapter binding has no threadCount, and an adapter none of the BW-only elements. */
     @Test
     public void adapterServiceHasNoBwOnlyElements() throws Exception {
         String xml = readDeployXml(new ArrayList<>(), null, oneAdapter(), null);
         String adapter = xml.substring(xml.indexOf("<adapter "), xml.indexOf("</adapter>"));
 
-        for (String bwOnly : new String[] {"<threadCount>", "<shutdown>", "<bwprocesses>",
+        for (String bwOnly : new String[] {"<threadCount>", "<bwprocesses>",
                 "<isFt>", "<faultTolerant>"}) {
             assertFalse(bwOnly + " must not appear in an adapter service", adapter.contains(bwOnly));
         }
+    }
+
+    /**
+     * Regression: the adapter binding carries <shutdown> after ftWeight, like the BW binding and
+     * a deployed-application export.
+     */
+    @Test
+    public void adapterBindingHasShutdownAfterFtWeight() throws Exception {
+        String xml = readDeployXml(new ArrayList<>(), null, oneAdapter(), null);
+        String adapter = xml.substring(xml.indexOf("<adapter "), xml.indexOf("</adapter>"));
+
+        assertTrue(adapter, adapter.contains("<ftWeight>500</ftWeight>\n"
+            + "                    <shutdown>\n"
+            + "                        <checkpoint>false</checkpoint>\n"
+            + "                        <timeout>0</timeout>\n"
+            + "                    </shutdown>\n"));
+        assertTrue("inside the binding", adapter.indexOf("<shutdown>") < adapter.indexOf("</binding>"));
     }
 
     /**
@@ -672,7 +689,7 @@ public class DeploymentConfigGeneratorTest {
     }
 
     @Test
-    public void adapterServicePropertyKeysMatchAppManage() {
+    public void adapterServicePropertyKeysFollowTheDeployedApplicationFormat() {
         Map<String, String> flat = new DeploymentConfigGenerator().servicePropertyMap(
             Arrays.asList(gv("HTTP_PORT", "8080", "Integer", true)), null, oneAdapter());
         String a = "adapter[" + AAR + "]";
@@ -687,7 +704,8 @@ public class DeploymentConfigGeneratorTest {
         assertEquals("8080", flat.get(b + "/variables/variable[HTTP_PORT]"));
         assertEquals("8080", flat.get(a + "/variables[Runtime Variables]/variable[HTTP_PORT]"));
         assertFalse(flat.containsKey(b + "/setting/threadCount"));
-        assertFalse(flat.containsKey(b + "/shutdown/checkpoint"));
+        assertEquals("false", flat.get(b + "/shutdown/checkpoint"));
+        assertEquals("0", flat.get(b + "/shutdown/timeout"));
     }
 
     /**

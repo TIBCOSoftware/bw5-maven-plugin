@@ -381,10 +381,11 @@ public class DeploymentConfigGenerator {
     }
 
     /**
-     * Appends one {@code <adapter name="...aar">} service block, in the structure
-     * {@code AppManage -export -max} produces for an adapter archive: a single binding (no
-     * {@code threadCount}, no {@code <shutdown>}), the adapter's SDK properties, failure settings
-     * and the monitor — no processes, runtime variables or fault-tolerance block, which only BW
+     * Appends one {@code <adapter name="...aar">} service block, in the deployed-application form
+     * the {@code <bw>} services use: a single binding (no {@code threadCount}; {@code <shutdown>}
+     * included, as in a deployed-application export, although {@code AppManage -export} of an EAR
+     * leaves it out of adapter bindings), the runtime variables, the adapter's SDK properties,
+     * failure settings and the monitor — no processes or fault-tolerance block, which only BW
      * services have. Every scalar is read from the flat {@code adapter[<aar>]/...} map, like
      * {@link #appendServiceBw}, so overrides show up here exactly as in the
      * {@code -services.properties}.
@@ -427,6 +428,10 @@ public class DeploymentConfigGenerator {
         sb.append("                        </java>\n");
         sb.append("                    </setting>\n");
         sb.append("                    <ftWeight>").append(esc(flat, b + "/ftWeight", "500")).append("</ftWeight>\n");
+        sb.append("                    <shutdown>\n");
+        sb.append("                        <checkpoint>").append(esc(flat, b + "/shutdown/checkpoint", "false")).append("</checkpoint>\n");
+        sb.append("                        <timeout>").append(esc(flat, b + "/shutdown/timeout", "0")).append("</timeout>\n");
+        sb.append("                    </shutdown>\n");
         appendAdapterRuntimeVars(sb, "                    ", "INSTANCE_RUNTIME_VARIABLES", runtimeVars,
                 flat, b + "/variables/variable[");
         sb.append("                </binding>\n");
@@ -680,9 +685,9 @@ public class DeploymentConfigGenerator {
     }
 
     /**
-     * As above, plus the {@code adapter[<aar>]/...} keys of every adapter service — the key set
-     * {@code AppManage} exports for an adapter: one binding (no {@code threadCount}, no
-     * {@code shutdown}), {@code enabled}, the failure settings and the adapter's SDK properties.
+     * As above, plus the {@code adapter[<aar>]/...} keys of every adapter service: one binding
+     * (no {@code threadCount}, with {@code shutdown} like the BW binding), {@code enabled}, the
+     * failure settings, the runtime variables and the adapter's SDK properties.
      */
     public Map<String, String> servicePropertyMap(
             List<SubstVarParser.GlobalVariable> globalVars,
@@ -785,6 +790,8 @@ public class DeploymentConfigGenerator {
         flat.put(b + "/setting/java/initHeapSize", "32");
         flat.put(b + "/setting/java/maxHeapSize", "256");
         flat.put(b + "/setting/java/threadStackSize", "256");
+        flat.put(b + "/shutdown/checkpoint", "false");
+        flat.put(b + "/shutdown/timeout", "0");
         // INSTANCE_RUNTIME_VARIABLES: binding-level, keyed without the block name like the BW
         // binding's runtime variables.
         for (String[] kv : runtimeVars) {
