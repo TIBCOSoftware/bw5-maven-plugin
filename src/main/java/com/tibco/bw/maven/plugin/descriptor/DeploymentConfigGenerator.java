@@ -96,6 +96,28 @@ public class DeploymentConfigGenerator {
     }
 
     /**
+     * Deployment model of one AAR (adapter service): its filename, the adapter product type
+     * AppManage writes to {@code <product><type>} (the component software name, e.g. {@code adb},
+     * {@code adr3}) and the adapter's SDK properties — the same list, defaults and password flags
+     * the AAR's own {@code TIBCO.xml} carries.
+     */
+    public static class AdapterServiceModel {
+        /** AAR filename inside the EAR, e.g. {@code "MyApp-LB.aar"}. */
+        public final String aarFileName;
+        /** Adapter product type, e.g. {@code "adb"}. */
+        public final String productType;
+        /** Adapter SDK properties in AppManage order. */
+        public final List<TibcoXmlGenerator.SdkProperty> sdkProperties;
+
+        public AdapterServiceModel(String aarFileName, String productType,
+                List<TibcoXmlGenerator.SdkProperty> sdkProperties) {
+            this.aarFileName = aarFileName;
+            this.productType = productType != null ? productType : "";
+            this.sdkProperties = sdkProperties != null ? sdkProperties : new ArrayList<>();
+        }
+    }
+
+    /**
      * Predefined global variables BW assigns at deployment time from the deployment and domain
      * names. Designer marks them deployment-settable, but AppManage never writes them to a
      * deployment config, so they are filtered out of the {@code Global Variables} block.
@@ -191,6 +213,27 @@ public class DeploymentConfigGenerator {
             List<SubstVarParser.GlobalVariable> globalVars,
             List<ServiceModel> services,
             Map<String, String> serviceProps) throws IOException {
+        generateDeployXml(outputFile, appName, appVersion, description, contact, globalVars,
+            services, Collections.emptyList(), serviceProps);
+    }
+
+    /**
+     * As above, including one {@code <adapter>} service per AAR. AppManage lists the services in
+     * the order of the EAR's modules, and bwear writes the PARs before the AARs — so the
+     * {@code <bw>} services come first, matching what AppManage exports from the built EAR.
+     *
+     * @param adapters per-AAR service models; may be empty
+     */
+    public void generateDeployXml(
+            File outputFile,
+            String appName,
+            String appVersion,
+            String description,
+            String contact,
+            List<SubstVarParser.GlobalVariable> globalVars,
+            List<ServiceModel> services,
+            List<AdapterServiceModel> adapters,
+            Map<String, String> serviceProps) throws IOException {
 
         // AppManage exports only the deployment-settable GVs at the top level and only the
         // service-settable ones per service; both flags are read from the .substvar files.
@@ -199,7 +242,7 @@ public class DeploymentConfigGenerator {
         // The <services> block renders from the same (possibly overridden) flat map as the
         // services.properties file. Fall back to freshly generated defaults when none is supplied.
         Map<String, String> flat = serviceProps != null
-                ? serviceProps : servicePropertyMap(globalVars, services);
+                ? serviceProps : servicePropertyMap(globalVars, services, adapters);
         String date = timestamp();
 
         StringBuilder sb = new StringBuilder();
@@ -230,10 +273,21 @@ public class DeploymentConfigGenerator {
 
         sb.append(REPO_INSTANCES_BLOCK);
 
-        if (services != null && !services.isEmpty()) {
+        boolean hasBw = services != null && !services.isEmpty();
+        boolean hasAdapters = adapters != null && !adapters.isEmpty();
+        if (hasBw || hasAdapters) {
             sb.append("    <services>\n");
-            for (ServiceModel svc : services) {
-                appendServiceBw(sb, svc, runtimeVars, flat);
+            if (hasBw) {
+                for (ServiceModel svc : services) {
+                    appendServiceBw(sb, svc, runtimeVars, flat);
+                }
+            }
+            if (hasAdapters) {
+                List<SubstVarParser.GlobalVariable> adapterRuntimeVars =
+                    serviceSettableInDeclarationOrder(globalVars);
+                for (AdapterServiceModel adapter : adapters) {
+                    appendServiceAdapter(sb, adapter, adapterRuntimeVars, flat);
+                }
             }
             sb.append("    </services>\n");
         }
@@ -324,6 +378,134 @@ public class DeploymentConfigGenerator {
         sb.append("                <preparationDelay>").append(esc(flat, p + "/faultTolerant/preparationDelay", "0")).append("</preparationDelay>\n");
         sb.append("            </faultTolerant>\n");
         sb.append("        </bw>\n");
+    }
+
+    /**
+     * Appends one {@code <adapter name="...aar">} service block, in the structure
+     * {@code AppManage -export -max} produces for an adapter archive: a single binding (no
+     * {@code threadCount}, no {@code <shutdown>}), the adapter's SDK properties, failure settings
+     * and the monitor — no processes, runtime variables or fault-tolerance block, which only BW
+     * services have. Every scalar is read from the flat {@code adapter[<aar>]/...} map, like
+     * {@link #appendServiceBw}, so overrides show up here exactly as in the
+     * {@code -services.properties}.
+     */
+    private void appendServiceAdapter(StringBuilder sb, AdapterServiceModel adapter,
+            List<SubstVarParser.GlobalVariable> runtimeVars, Map<String, String> flat) {
+        String aar = adapter.aarFileName;
+        String p = "adapter[" + aar + "]";
+        String bindingName = resolveBindingNameForPar(flat, p);
+        String b = p + "/bindings/binding[" + bindingName + "]";
+        sb.append("        <adapter name=\"").append(xmlAttr(aar)).append("\">\n");
+        sb.append("            <enabled>").append(esc(flat, p + "/enabled", "true")).append("</enabled>\n");
+        sb.append("            <bindings>\n");
+        sb.append("                <binding name=\"").append(xmlAttr(bindingName)).append("\">\n");
+        sb.append("                    <machine>").append(esc(flat, b + "/machine", "%%" + aar + "-machine%%")).append("</machine>\n");
+        sb.append("                    <product>\n");
+        sb.append("                        <type>").append(esc(flat, b + "/product/type", adapter.productType)).append("</type>\n");
+        sb.append("                        <version>").append(esc(flat, b + "/product/version", "")).append("</version>\n");
+        sb.append("                        <location>").append(esc(flat, b + "/product/location", "")).append("</location>\n");
+        sb.append("                    </product>\n");
+        sb.append("                    <description>").append(esc(flat, b + "/description", "")).append("</description>\n");
+        sb.append("                    <contact>").append(esc(flat, b + "/contact", "")).append("</contact>\n");
+        sb.append("                    <setting>\n");
+        sb.append("                        <startOnBoot>").append(esc(flat, b + "/setting/startOnBoot", "false")).append("</startOnBoot>\n");
+        sb.append("                        <enableVerbose>").append(esc(flat, b + "/setting/enableVerbose", "false")).append("</enableVerbose>\n");
+        sb.append("                        <maxLogFileSize>").append(esc(flat, b + "/setting/maxLogFileSize", "20000")).append("</maxLogFileSize>\n");
+        sb.append("                        <maxLogFileCount>").append(esc(flat, b + "/setting/maxLogFileCount", "5")).append("</maxLogFileCount>\n");
+        sb.append("                        <NTService>\n");
+        sb.append("                            <runAsNT>").append(esc(flat, b + "/setting/NTService/runAsNT", "false")).append("</runAsNT>\n");
+        sb.append("                            <startupType>").append(esc(flat, b + "/setting/NTService/startupType", "automatic")).append("</startupType>\n");
+        sb.append("                            <loginAs>").append(esc(flat, b + "/setting/NTService/loginAs", "%%" + aar + "loginAs%%")).append("</loginAs>\n");
+        sb.append("                            <password>").append(esc(flat, b + "/setting/NTService/password", "%%" + aar + "password%%")).append("</password>\n");
+        sb.append("                        </NTService>\n");
+        sb.append("                        <java>\n");
+        sb.append("                            <prepandClassPath>").append(esc(flat, b + "/setting/java/prepandClassPath", "")).append("</prepandClassPath>\n");
+        sb.append("                            <appendClassPath>").append(esc(flat, b + "/setting/java/appendClassPath", "")).append("</appendClassPath>\n");
+        sb.append("                            <initHeapSize>").append(esc(flat, b + "/setting/java/initHeapSize", "32")).append("</initHeapSize>\n");
+        sb.append("                            <maxHeapSize>").append(esc(flat, b + "/setting/java/maxHeapSize", "256")).append("</maxHeapSize>\n");
+        sb.append("                            <threadStackSize>").append(esc(flat, b + "/setting/java/threadStackSize", "256")).append("</threadStackSize>\n");
+        sb.append("                        </java>\n");
+        sb.append("                    </setting>\n");
+        sb.append("                    <ftWeight>").append(esc(flat, b + "/ftWeight", "500")).append("</ftWeight>\n");
+        appendAdapterRuntimeVars(sb, "                    ", "INSTANCE_RUNTIME_VARIABLES", runtimeVars,
+                flat, b + "/variables/variable[");
+        sb.append("                </binding>\n");
+        sb.append("            </bindings>\n");
+        appendAdapterRuntimeVars(sb, "            ", "Runtime Variables", runtimeVars,
+                flat, p + "/variables[Runtime Variables]/variable[");
+        appendAdapterSdkVars(sb, "            ", adapter.sdkProperties, flat,
+                p + "/variables[Adapter SDK Properties]/variable[");
+        sb.append("            <failureCount>").append(esc(flat, p + "/failureCount", "0")).append("</failureCount>\n");
+        sb.append("            <failureInterval>").append(esc(flat, p + "/failureInterval", "0")).append("</failureInterval>\n");
+        sb.append(MONITOR_BLOCK);
+        sb.append("        </adapter>\n");
+    }
+
+    /**
+     * Runtime-variable block of an adapter service. AppManage exports the service-settable global
+     * variables twice for an adapter: as {@code INSTANCE_RUNTIME_VARIABLES} inside the binding and
+     * as {@code Runtime Variables} on the service. Both keep the order of the AAR's
+     * {@code Runtime Variables} (not sorted) and always use plain {@code NameValuePair}; any
+     * override-only variable under {@code keyPrefix} is appended. Omitted when there is none, as
+     * AppManage does.
+     */
+    private void appendAdapterRuntimeVars(StringBuilder sb, String indent, String blockName,
+            List<SubstVarParser.GlobalVariable> runtimeVars, Map<String, String> flat, String keyPrefix) {
+        Map<String, String> vars = new LinkedHashMap<>();
+        for (SubstVarParser.GlobalVariable v : runtimeVars) {
+            vars.put(v.name, normalizedDefault(v));
+        }
+        if (flat != null) {
+            for (Map.Entry<String, String> fe : flat.entrySet()) {
+                String key = fe.getKey();
+                if (key.startsWith(keyPrefix) && key.endsWith("]")) {
+                    vars.putIfAbsent(key.substring(keyPrefix.length(), key.length() - 1), fe.getValue());
+                }
+            }
+        }
+        if (vars.isEmpty()) return;
+        sb.append(indent).append("<NVPairs name=\"").append(xmlAttr(blockName)).append("\">\n");
+        for (Map.Entry<String, String> e : vars.entrySet()) {
+            sb.append(indent).append("    <NameValuePair>\n");
+            sb.append(indent).append("        <name>").append(xmlEscape(e.getKey())).append("</name>\n");
+            sb.append(indent).append("        <value>").append(esc(flat, keyPrefix + e.getKey() + "]", e.getValue())).append("</value>\n");
+            sb.append(indent).append("    </NameValuePair>\n");
+        }
+        sb.append(indent).append("</NVPairs>\n");
+    }
+
+    /**
+     * Adapter SDK Properties block of an {@code <adapter>} service: the adapter's own properties
+     * in their AppManage order ({@code NameValuePairPassword} for obfuscated ones), followed by
+     * any extra property supplied through the overrides under {@code keyPrefix} (e.g.
+     * {@code java.extended.properties}). Omitted when there is nothing to list.
+     */
+    private void appendAdapterSdkVars(StringBuilder sb, String indent,
+            List<TibcoXmlGenerator.SdkProperty> props, Map<String, String> flat, String keyPrefix) {
+        Map<String, String> vars = new LinkedHashMap<>();
+        Set<String> passwords = new LinkedHashSet<>();
+        for (TibcoXmlGenerator.SdkProperty prop : props) {
+            vars.put(prop.option, prop.defaultValue);
+            if (prop.isPassword) passwords.add(prop.option);
+        }
+        if (flat != null) {
+            for (Map.Entry<String, String> fe : flat.entrySet()) {
+                String key = fe.getKey();
+                if (key.startsWith(keyPrefix) && key.endsWith("]")) {
+                    vars.putIfAbsent(key.substring(keyPrefix.length(), key.length() - 1), fe.getValue());
+                }
+            }
+        }
+        if (vars.isEmpty()) return;
+        sb.append(indent).append("<NVPairs name=\"Adapter SDK Properties\">\n");
+        for (Map.Entry<String, String> e : vars.entrySet()) {
+            String tag = passwords.contains(e.getKey()) ? "NameValuePairPassword" : "NameValuePair";
+            sb.append(indent).append("    <").append(tag).append(">\n");
+            sb.append(indent).append("        <name>").append(xmlEscape(e.getKey())).append("</name>\n");
+            sb.append(indent).append("        <value>").append(esc(flat, keyPrefix + e.getKey() + "]", e.getValue())).append("</value>\n");
+            sb.append(indent).append("    </").append(tag).append(">\n");
+        }
+        sb.append(indent).append("</NVPairs>\n");
     }
 
     /**
@@ -492,10 +674,27 @@ public class DeploymentConfigGenerator {
     public Map<String, String> servicePropertyMap(
             List<SubstVarParser.GlobalVariable> globalVars,
             List<ServiceModel> services) {
+        return servicePropertyMap(globalVars, services, Collections.emptyList());
+    }
+
+    /**
+     * As above, plus the {@code adapter[<aar>]/...} keys of every adapter service — the key set
+     * {@code AppManage} exports for an adapter: one binding (no {@code threadCount}, no
+     * {@code shutdown}), {@code enabled}, the failure settings and the adapter's SDK properties.
+     */
+    public Map<String, String> servicePropertyMap(
+            List<SubstVarParser.GlobalVariable> globalVars,
+            List<ServiceModel> services,
+            List<AdapterServiceModel> adapters) {
 
         Map<String, String> flat = new LinkedHashMap<>();
-        if (services == null) return flat;
         List<String[]> runtimeVars = runtimeVarPairs(serviceSettable(globalVars));
+        if (adapters != null) {
+            for (AdapterServiceModel adapter : adapters) {
+                putAdapterServiceDefaults(flat, adapter, runtimeVars);
+            }
+        }
+        if (services == null) return flat;
 
         for (ServiceModel svc : services) {
             String p = "bw[" + svc.parFileName + "]";
@@ -552,6 +751,51 @@ public class DeploymentConfigGenerator {
             }
         }
         return flat;
+    }
+
+    private static void putAdapterServiceDefaults(Map<String, String> flat, AdapterServiceModel adapter,
+            List<String[]> runtimeVars) {
+        String aar = adapter.aarFileName;
+        String p = "adapter[" + aar + "]";
+        flat.put(p + "/enabled", "true");
+        flat.put(p + "/failureCount", "0");
+        flat.put(p + "/failureInterval", "0");
+
+        // Single default binding
+        String b = p + "/bindings/binding[]";
+        flat.put(b + "/machine", "%%" + aar + "-machine%%");
+        flat.put(b + "/description", "");
+        flat.put(b + "/contact", "");
+        flat.put(b + "/product/type", adapter.productType);
+        flat.put(b + "/product/version", "");
+        flat.put(b + "/product/location", "");
+        flat.put(b + "/ftWeight", "500");
+        flat.put(b + "/setting/startOnBoot", "false");
+        flat.put(b + "/setting/enableVerbose", "false");
+        flat.put(b + "/setting/maxLogFileSize", "20000");
+        flat.put(b + "/setting/maxLogFileCount", "5");
+        flat.put(b + "/setting/NTService/runAsNT", "false");
+        flat.put(b + "/setting/NTService/startupType", "automatic");
+        flat.put(b + "/setting/NTService/loginAs", "%%" + aar + "loginAs%%");
+        flat.put(b + "/setting/NTService/password", "%%" + aar + "password%%");
+        flat.put(b + "/setting/java/prepandClassPath", "");
+        flat.put(b + "/setting/java/appendClassPath", "");
+        flat.put(b + "/setting/java/initHeapSize", "32");
+        flat.put(b + "/setting/java/maxHeapSize", "256");
+        flat.put(b + "/setting/java/threadStackSize", "256");
+        // INSTANCE_RUNTIME_VARIABLES: binding-level, keyed without the block name like the BW
+        // binding's runtime variables.
+        for (String[] kv : runtimeVars) {
+            flat.put(b + "/variables/variable[" + kv[0] + "]", kv[1]);
+        }
+        for (String[] kv : runtimeVars) {
+            flat.put(p + "/variables[Runtime Variables]/variable[" + kv[0] + "]", kv[1]);
+        }
+
+        for (TibcoXmlGenerator.SdkProperty prop : adapter.sdkProperties) {
+            flat.put(p + "/variables[Adapter SDK Properties]/variable[" + prop.option + "]",
+                prop.defaultValue);
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -686,10 +930,14 @@ public class DeploymentConfigGenerator {
         return best;
     }
 
-    /** True when {@code c} is a {@code bw[..]/bindings/binding[..]/...} key (component form). */
+    /**
+     * True when {@code c} is a {@code bw[..]/bindings/binding[..]/...} or
+     * {@code adapter[..]/bindings/binding[..]/...} key (component form).
+     */
     private static boolean isBindingKey(List<String> c) {
         return c.size() >= 4
-                && c.get(0).startsWith("bw[") && c.get(0).endsWith("]")
+                && (c.get(0).startsWith("bw[") || c.get(0).startsWith("adapter["))
+                && c.get(0).endsWith("]")
                 && "bindings".equals(c.get(1))
                 && c.get(2).startsWith("binding[") && c.get(2).endsWith("]");
     }
@@ -945,13 +1193,24 @@ public class DeploymentConfigGenerator {
     /** The service-settable global variables (those AppManage lists as Runtime Variables). */
     private List<SubstVarParser.GlobalVariable> serviceSettable(
             List<SubstVarParser.GlobalVariable> vars) {
+        List<SubstVarParser.GlobalVariable> result = serviceSettableInDeclarationOrder(vars);
+        result.sort(Comparator.comparing(v -> v.name != null ? v.name : ""));
+        return result;
+    }
+
+    /**
+     * Service-settable variables in declaration order — the order of the {@code Runtime Variables}
+     * block of the AAR's {@code TIBCO.xml}, which AppManage keeps for adapter services (unlike BW
+     * services, whose runtime variables it sorts).
+     */
+    private static List<SubstVarParser.GlobalVariable> serviceSettableInDeclarationOrder(
+            List<SubstVarParser.GlobalVariable> vars) {
         List<SubstVarParser.GlobalVariable> result = new ArrayList<>();
         if (vars != null) {
             for (SubstVarParser.GlobalVariable v : vars) {
                 if (v.serviceSettable) result.add(v);
             }
         }
-        result.sort(Comparator.comparing(v -> v.name != null ? v.name : ""));
         return result;
     }
 

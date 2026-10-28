@@ -1439,7 +1439,8 @@ public class BwEarMojoAdapterSarTest {
             BUILD_SAP_AARS = BwEarMojo.class.getDeclaredMethod(
                 "buildAdapterAarsIfNeeded",
                 List.class, List.class, List.class, File.class, List.class,
-                com.tibco.bw.maven.plugin.descriptor.ArchiveDescriptorParser.ArchiveDescriptor.class);
+                com.tibco.bw.maven.plugin.descriptor.ArchiveDescriptorParser.ArchiveDescriptor.class,
+                Map.class);
             BUILD_SAP_AARS.setAccessible(true);
         } catch (ReflectiveOperationException e) {
             throw new ExceptionInInitializerError(e);
@@ -1450,7 +1451,8 @@ public class BwEarMojoAdapterSarTest {
     private void buildSapAars(List allSarFiles, List<File> moduleFiles, File workDir,
                                List<SubstVarParser.GlobalVariable> gvars) throws Exception {
         try {
-            BUILD_SAP_AARS.invoke(new BwEarMojo(), allSarFiles, allSarFiles, moduleFiles, workDir, gvars, null);
+            BUILD_SAP_AARS.invoke(new BwEarMojo(), allSarFiles, allSarFiles, moduleFiles, workDir, gvars,
+                null, new java.util.LinkedHashMap<>());
         } catch (java.lang.reflect.InvocationTargetException ite) {
             Throwable cause = ite.getCause();
             if (cause instanceof RuntimeException) throw (RuntimeException) cause;

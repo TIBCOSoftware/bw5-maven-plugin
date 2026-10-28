@@ -568,6 +568,10 @@ public class BwEarMojo extends AbstractBw5Mojo {
             // One service model per PAR — drives the <services> block of the -deploy.xml and the
             // services.properties file (bindings/processes deployment template).
             List<DeploymentConfigGenerator.ServiceModel> serviceModels = new ArrayList<>();
+            // One adapter service per AAR, keyed by AAR filename: an auto-discovered AAR that
+            // overwrites an explicit one replaces its model as well.
+            Map<String, DeploymentConfigGenerator.AdapterServiceModel> adapterModels =
+                new LinkedHashMap<>();
             // SAR resources accumulated across all archives (union, deduped by path)
             List<BwFile> combinedSarFiles = new ArrayList<>();
             Set<String> seenSarPaths = new LinkedHashSet<>();
@@ -649,6 +653,12 @@ public class BwEarMojo extends AbstractBw5Mojo {
                     buildAar(aarFile, srcDir, aa, globalVars, allSarFiles, externalDeps);
                     moduleFiles.add(aarFile);
                     getLog().info("AAR assembled: " + aarFile.getName() + " (" + aarFile.length() + " bytes)");
+                    // buildAar has resolved the adapter file (it fails otherwise); same component
+                    // name and SDK properties as the AAR's own TIBCO.xml.
+                    String softwareType = (aa.softwareType != null && !aa.softwareType.isEmpty())
+                        ? aa.softwareType : getExtNoDot(adapterFile);
+                    adapterModels.put(aarFileName, new DeploymentConfigGenerator.AdapterServiceModel(
+                        aarFileName, softwareType, readSdkProperties(softwareType)));
 
                     if (genericAdapter && adapterFile != null) {
                         // TIBCO Designer duplicates each .adapter file in the SAR in addition
@@ -778,7 +788,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
             // combinedSarFiles (post-BFS) so only reachable instances get an AAR.
             List<BwFile> aarSourceFiles = (archiveDescriptor == null) ? allSarFiles : combinedSarFiles;
             buildAdapterAarsIfNeeded(aarSourceFiles, combinedSarFiles, moduleFiles, workDir,
-                    globalVars, archiveDescriptor);
+                    globalVars, archiveDescriptor, adapterModels);
 
             // 6. Build the SAR (shared across all PARs/AARs)
             File sarFile = null;
@@ -846,7 +856,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
             // 10. Apply property overrides and generate deployment configuration files
             if (!earOnly) {
                 List<SubstVarParser.GlobalVariable> configuredVars = applyPropertyOverrides(globalVars);
-                generateDeploymentConfigs(configuredVars, serviceModels);
+                generateDeploymentConfigs(configuredVars, serviceModels,
+                    new ArrayList<>(adapterModels.values()));
             }
 
         } catch (MojoExecutionException e) {
@@ -887,7 +898,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
     // -----------------------------------------------------------------------
 
     private void generateDeploymentConfigs(List<SubstVarParser.GlobalVariable> globalVars,
-            List<DeploymentConfigGenerator.ServiceModel> serviceModels)
+            List<DeploymentConfigGenerator.ServiceModel> serviceModels,
+            List<DeploymentConfigGenerator.AdapterServiceModel> adapterModels)
             throws MojoExecutionException {
 
         if (earOnly || (!generateDeployXml && !generateProperties
@@ -907,7 +919,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
         Map<String, String> serviceFlat = null;
         if (generateDeployXml || generateServicesProperties) {
             serviceFlat = applyServicePropertyOverrides(
-                    gen.servicePropertyMap(globalVars, serviceModels));
+                    gen.servicePropertyMap(globalVars, serviceModels, adapterModels));
         }
 
         try {
@@ -916,7 +928,7 @@ public class BwEarMojo extends AbstractBw5Mojo {
                 gen.generateDeployXml(out, appName, appVersion,
                         resolveWithFallback(deployDescription, "deploy.description"),
                         resolveWithFallback(deployContact, "deploy.contact"),
-                        globalVars, serviceModels, serviceFlat);
+                        globalVars, serviceModels, adapterModels, serviceFlat);
                 getLog().info("Generated deploy XML : " + out.getName());
             }
             if (generateProperties) {
@@ -2437,7 +2449,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
             List<File> moduleFiles,
             File workDir,
             List<SubstVarParser.GlobalVariable> globalVars,
-            ArchiveDescriptorParser.ArchiveDescriptor descriptor) throws Exception {
+            ArchiveDescriptorParser.ArchiveDescriptor descriptor,
+            Map<String, DeploymentConfigGenerator.AdapterServiceModel> adapterModels) throws Exception {
 
         Set<String> explicitPaths = new HashSet<>();
         // Map an adapter instance file (normalized, lower-cased BW path) to the <sdkVersion>
@@ -2502,6 +2515,8 @@ public class BwEarMojo extends AbstractBw5Mojo {
             if (!moduleFiles.contains(aarFile)) {
                 moduleFiles.add(aarFile);
             }
+            adapterModels.put(aarFileName, new DeploymentConfigGenerator.AdapterServiceModel(
+                aarFileName, componentSoftwareName, sdkProps));
             getLog().info("Adapter AAR assembled: " + aarFileName
                           + " (" + aarFile.length() + " bytes) [" + componentSoftwareName + "]");
         }

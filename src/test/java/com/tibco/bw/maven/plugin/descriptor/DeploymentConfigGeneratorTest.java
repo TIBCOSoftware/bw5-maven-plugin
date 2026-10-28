@@ -587,4 +587,135 @@ public class DeploymentConfigGeneratorTest {
         assertTrue("empty-named template binding preserved when nothing named it",
             r.containsKey("bw[MyApp-LB.par]/bindings/binding[]/machine"));
     }
+
+    // -----------------------------------------------------------------------
+    //  Adapter (AAR) services. An EAR with only an AAR used to get no <services> block at all,
+    //  and its services.properties carried only whatever the override file supplied. The
+    //  expected structure is what AppManage -export -max produces for an adapter archive.
+    // -----------------------------------------------------------------------
+
+    private static final String AAR = "MyApp-LB.aar";
+
+    private List<DeploymentConfigGenerator.AdapterServiceModel> oneAdapter() {
+        return Arrays.asList(new DeploymentConfigGenerator.AdapterServiceModel(AAR, "adb",
+            Arrays.asList(
+                new TibcoXmlGenerator.SdkProperty("adb.url", "", "Url", "", false),
+                new TibcoXmlGenerator.SdkProperty("adb.password", "", "Password", "", true),
+                new TibcoXmlGenerator.SdkProperty("adb.debug", "2", "Debug", "", false))));
+    }
+
+    private String readDeployXml(List<SubstVarParser.GlobalVariable> vars,
+            List<DeploymentConfigGenerator.ServiceModel> services,
+            List<DeploymentConfigGenerator.AdapterServiceModel> adapters,
+            Map<String, String> flat) throws Exception {
+        File out = tmp.newFile("deploy-" + System.nanoTime() + ".xml");
+        new DeploymentConfigGenerator().generateDeployXml(out, "MyApp", "1.0.0", "", "", vars,
+            services, adapters, flat);
+        return new String(Files.readAllBytes(out.toPath()), StandardCharsets.UTF_8);
+    }
+
+    @Test
+    public void adapterOnlyEarGetsAnAdapterService() throws Exception {
+        String xml = readDeployXml(new ArrayList<>(), null, oneAdapter(), null);
+
+        assertTrue(xml, xml.contains("<services>"));
+        assertTrue(xml.contains("<adapter name=\"" + AAR + "\">"));
+        assertTrue(xml.contains("<machine>%%" + AAR + "-machine%%</machine>"));
+        assertTrue("product type is the adapter component", xml.contains("<type>adb</type>"));
+        assertTrue("AppManage's adapter ftWeight", xml.contains("<ftWeight>500</ftWeight>"));
+        assertTrue(xml.contains("<loginAs>%%" + AAR + "loginAs%%</loginAs>"));
+        assertTrue(xml.contains("<NVPairs name=\"Adapter SDK Properties\">"));
+        assertTrue("obfuscated SDK properties are password pairs",
+            xml.contains("<NameValuePairPassword>\n                    <name>adb.password</name>"));
+        assertTrue(xml.contains("<name>adb.debug</name>\n                    <value>2</value>"));
+        assertTrue("monitor block", xml.contains("<monitor>"));
+    }
+
+    /** An adapter binding has no threadCount/shutdown, and an adapter no BW-only elements. */
+    @Test
+    public void adapterServiceHasNoBwOnlyElements() throws Exception {
+        String xml = readDeployXml(new ArrayList<>(), null, oneAdapter(), null);
+        String adapter = xml.substring(xml.indexOf("<adapter "), xml.indexOf("</adapter>"));
+
+        for (String bwOnly : new String[] {"<threadCount>", "<shutdown>", "<bwprocesses>",
+                "<isFt>", "<faultTolerant>"}) {
+            assertFalse(bwOnly + " must not appear in an adapter service", adapter.contains(bwOnly));
+        }
+    }
+
+    /**
+     * Service-settable GVs appear twice — INSTANCE_RUNTIME_VARIABLES in the binding and Runtime
+     * Variables on the service — in declaration order (the AAR's order), not sorted.
+     */
+    @Test
+    public void adapterRuntimeVariablesKeepDeclarationOrder() throws Exception {
+        List<SubstVarParser.GlobalVariable> vars = Arrays.asList(
+            gv("Zeta", "z", "String", true), gv("Alpha", "a", "String", true),
+            gv("NotService", "x", "String", false));
+        String xml = readDeployXml(vars, null, oneAdapter(), null);
+
+        int instance = xml.indexOf("<NVPairs name=\"INSTANCE_RUNTIME_VARIABLES\">");
+        int service = xml.indexOf("<NVPairs name=\"Runtime Variables\">");
+        assertTrue("instance block inside the binding", instance > 0 && instance < xml.indexOf("</binding>"));
+        assertTrue("service block after the bindings", service > xml.indexOf("</bindings>"));
+        assertTrue("declaration order", xml.indexOf("Zeta", instance) < xml.indexOf("Alpha", instance));
+        assertTrue("declaration order", xml.indexOf("Zeta", service) < xml.indexOf("Alpha", service));
+        String adapter = xml.substring(xml.indexOf("<adapter "), xml.indexOf("</adapter>"));
+        assertFalse("only service-settable variables", adapter.contains("NotService"));
+    }
+
+    /** AppManage lists services in EAR module order, and bwear writes the PARs first. */
+    @Test
+    public void bwServicesComeBeforeAdapterServices() throws Exception {
+        String xml = readDeployXml(new ArrayList<>(), oneService(), oneAdapter(), null);
+        assertTrue(xml.indexOf("<bw name=\"MyApp-LB.par\">") < xml.indexOf("<adapter name=\"" + AAR + "\">"));
+    }
+
+    @Test
+    public void adapterServicePropertyKeysMatchAppManage() {
+        Map<String, String> flat = new DeploymentConfigGenerator().servicePropertyMap(
+            Arrays.asList(gv("HTTP_PORT", "8080", "Integer", true)), null, oneAdapter());
+        String a = "adapter[" + AAR + "]";
+        String b = a + "/bindings/binding[]";
+
+        assertEquals("true", flat.get(a + "/enabled"));
+        assertEquals("0", flat.get(a + "/failureCount"));
+        assertEquals("adb", flat.get(b + "/product/type"));
+        assertEquals("500", flat.get(b + "/ftWeight"));
+        assertEquals("256", flat.get(b + "/setting/java/maxHeapSize"));
+        assertEquals("2", flat.get(a + "/variables[Adapter SDK Properties]/variable[adb.debug]"));
+        assertEquals("8080", flat.get(b + "/variables/variable[HTTP_PORT]"));
+        assertEquals("8080", flat.get(a + "/variables[Runtime Variables]/variable[HTTP_PORT]"));
+        assertFalse(flat.containsKey(b + "/setting/threadCount"));
+        assertFalse(flat.containsKey(b + "/shutdown/checkpoint"));
+    }
+
+    /**
+     * The reported case: an AAR-only project whose service override names the binding and sets
+     * the heap — the deploy XML must render that named binding with the override values, plus
+     * extra SDK properties supplied only by the override (java.extended.properties).
+     */
+    @Test
+    public void adapterOverridesRenderInTheDeployXml() throws Exception {
+        DeploymentConfigGenerator gen = new DeploymentConfigGenerator();
+        Map<String, String> merged = gen.servicePropertyMap(new ArrayList<>(), null, oneAdapter());
+        String named = "adapter[" + AAR + "]/bindings/binding[MyApp-LB-esb01]";
+        merged.put(named + "/setting/java/initHeapSize", "256");
+        merged.put(named + "/setting/java/maxHeapSize", "512");
+        String extra = "adapter[" + AAR + "]/variables[Adapter SDK Properties]/variable[java.extended.properties]";
+        merged.put(extra, "-Xss512k");
+        java.util.Set<String> explicit = new java.util.HashSet<>(Arrays.asList(
+            named + "/setting/java/initHeapSize", named + "/setting/java/maxHeapSize", extra));
+
+        Map<String, String> resolved = gen.resolveServiceBindings(merged, explicit);
+        assertFalse("template binding renamed",
+            resolved.containsKey("adapter[" + AAR + "]/bindings/binding[]/machine"));
+        assertEquals("%%" + AAR + "-machine%%", resolved.get(named + "/machine"));
+
+        String xml = readDeployXml(new ArrayList<>(), null, oneAdapter(), resolved);
+        assertTrue(xml.contains("<binding name=\"MyApp-LB-esb01\">"));
+        assertTrue(xml.contains("<initHeapSize>256</initHeapSize>"));
+        assertTrue(xml.contains("<maxHeapSize>512</maxHeapSize>"));
+        assertTrue(xml.contains("<name>java.extended.properties</name>\n                    <value>-Xss512k</value>"));
+    }
 }
