@@ -153,6 +153,13 @@ public class TibcoXmlGenerator {
      * Each property maps to one {@code <NameValuePair>} (or {@code <NameValuePairPassword>}
      * for obfuscated properties) in the AAR TIBCO.xml Adapter SDK Properties block.
      */
+    /**
+     * The empty string in TIBCO's obfuscated password form ({@code #!...}). The obfuscation key is
+     * the same on every installation: this value was written by Designer on one machine and is
+     * decrypted to {@code ""} by AppManage on another. Taken from a Designer-built EAR.
+     */
+    static final String OBFUSCATED_EMPTY_PASSWORD = "#!^fgxqjoRzRCeDSzsEjLdIDA==";
+
     public static class SdkProperty {
         public final String option;
         public final String defaultValue;
@@ -284,6 +291,12 @@ public class TibcoXmlGenerator {
             sb.append("            <name>").append(escape(p.option)).append("</name>\n");
             String val = (p.defaultValue == null || p.defaultValue.isEmpty())
                     ? null : p.defaultValue;
+            if (val == null && p.isPassword) {
+                // AppManage decrypts every NameValuePairPassword of an AAR and rejects the whole
+                // EAR ("Failed. Please check log file", no log) when one is empty: an empty
+                // password has to be written in its obfuscated form, as buildear does.
+                val = OBFUSCATED_EMPTY_PASSWORD;
+            }
             if (val == null) {
                 sb.append("            <value/>\n");
             } else {

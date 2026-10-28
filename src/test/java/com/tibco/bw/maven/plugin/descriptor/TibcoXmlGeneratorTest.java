@@ -759,6 +759,27 @@ public class TibcoXmlGeneratorTest {
         assertEquals(String.join(",", deps), getExternalDepsValue(new SAXBuilder().build(tmp)));
     }
 
+    /**
+     * Regression: AppManage decrypts every password in an AAR's SDK properties and refuses the
+     * whole EAR (export and deploy) when one is empty. An empty password must be written in its
+     * obfuscated form; ordinary empty properties stay empty.
+     */
+    @Test
+    public void aarDescriptorObfuscatesEmptyPasswords() throws Exception {
+        List<TibcoXmlGenerator.SdkProperty> sdk = java.util.Arrays.asList(
+            new TibcoXmlGenerator.SdkProperty("adb.password", "", "Password", "", true),
+            new TibcoXmlGenerator.SdkProperty("adb.url", "", "Url", "", false));
+        File tmp = File.createTempFile("aar-tibco", ".xml");
+        tmp.deleteOnExit();
+        new TibcoXmlGenerator().generateAarDescriptor(tmp, "X.aar", "/X.adb#adapter.X",
+            "adb", "7.3.2.0", sdk, Collections.emptyList(), "1", "o");
+        Element block = findNamedBlock(new SAXBuilder().build(tmp), "Adapter SDK Properties");
+
+        assertEquals(TibcoXmlGenerator.OBFUSCATED_EMPTY_PASSWORD,
+            child(firstNamedNvp(block, "adb.password"), "value").getText());
+        assertEquals("", child(firstNamedNvp(block, "adb.url"), "value").getText());
+    }
+
     /** Without a computed list (generic .adapter archives) the placeholder is kept unchanged. */
     @Test
     public void aarDescriptorKeepsThePlaceholderWithoutExternalDependencies() throws Exception {
