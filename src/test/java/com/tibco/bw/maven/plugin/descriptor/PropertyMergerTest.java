@@ -355,4 +355,56 @@ public class PropertyMergerTest {
         assertEquals("bw5.global.* is top of the global bundle, which wins when flipped",
             "global-cli", result.get(0).value);
     }
+
+    // -----------------------------------------------------------------------
+    //  Placeholder values do not count as explicit service overrides
+    // -----------------------------------------------------------------------
+
+    private static final String AAR = "adapter[MyApp-LB.aar]";
+    private static final String MACHINE = AAR + "/bindings/binding[MyApp-LB-esb01]/machine";
+
+    /** Runs the same merge → explicit keys → resolve sequence bwear applies. */
+    private Map<String, String> resolve(File global, File project) throws IOException {
+        DeploymentConfigGenerator gen = new DeploymentConfigGenerator();
+        Map<String, String> base = gen.servicePropertyMap(Collections.emptyList(), null,
+            java.util.Arrays.asList(new DeploymentConfigGenerator.AdapterServiceModel(
+                "MyApp-LB.aar", "adb", Collections.emptyList())));
+        PropertyMerger merger = new PropertyMerger();
+        Map<String, String> merged = merger.mergeServiceProperties(
+            base, global, project, Collections.emptyMap(), true);
+        return gen.resolveServiceBindings(merged,
+            merger.collectServiceOverrideKeys(global, project, Collections.emptyMap()));
+    }
+
+    /**
+     * The reported case: the AppManage-exported project file sets the binding machine to its
+     * placeholder, and the common file supplies the real host through a wildcard.
+     */
+    @Test
+    public void wildcardFillsAKeyWhoseExplicitValueIsOnlyAPlaceholder() throws IOException {
+        File project = propsFile(MACHINE, "%%MyApp-LB.aar-machine%%");
+        File global = propsFile("adapter[*]/bindings/binding[*esb01]/machine", "host-esb01.example.com");
+
+        assertEquals("host-esb01.example.com", resolve(global, project).get(MACHINE));
+    }
+
+    /** A real explicit value still wins over the wildcard. */
+    @Test
+    public void wildcardDoesNotOverwriteARealExplicitValue() throws IOException {
+        File project = propsFile(MACHINE, "dedicated-host.example.com");
+        File global = propsFile("adapter[*]/bindings/binding[*esb01]/machine", "host-esb01.example.com");
+
+        assertEquals("dedicated-host.example.com", resolve(global, project).get(MACHINE));
+    }
+
+    @Test
+    public void placeholderDetection() {
+        assertTrue(PropertyMerger.isPlaceholder("%%MyApp-LB.aar-machine%%"));
+        assertTrue(PropertyMerger.isPlaceholder(" %%MyApp-LB.aarloginAs%% "));
+        assertFalse("a real value", PropertyMerger.isPlaceholder("host.example.com"));
+        assertFalse("a value that merely contains one", PropertyMerger.isPlaceholder("%%HOST%%:8080"));
+        assertFalse("two placeholders", PropertyMerger.isPlaceholder("%%A%%%%B%%"));
+        assertFalse(PropertyMerger.isPlaceholder(""));
+        assertFalse(PropertyMerger.isPlaceholder(null));
+    }
 }

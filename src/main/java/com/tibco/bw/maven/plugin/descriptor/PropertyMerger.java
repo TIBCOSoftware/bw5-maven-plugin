@@ -123,7 +123,10 @@ public class PropertyMerger {
      * protected from wildcard expansion in
      * {@link DeploymentConfigGenerator#resolveServiceBindings(Map, java.util.Set)} — an explicit
      * value always wins over a glob. Keys that themselves contain a {@code *} (wildcard patterns)
-     * are excluded.
+     * are excluded, and so are keys whose value is nothing but an AppManage placeholder
+     * ({@code %%MyApp-LB.aar-machine%%}): a placeholder means "not set yet", so it must not stop a
+     * wildcard from supplying the real value. AppManage-exported project files carry such lines
+     * (typically the binding {@code machine}).
      *
      * @param globalServicePropsFile  optional common/global override file (may be null)
      * @param projectServicePropsFile optional per-project override file (may be null)
@@ -137,19 +140,29 @@ public class PropertyMerger {
 
         java.util.Set<String> keys = new java.util.LinkedHashSet<>();
         for (File f : Arrays.asList(globalServicePropsFile, projectServicePropsFile)) {
-            for (String k : loadServiceFile(f).keySet()) {
-                if (k.indexOf('*') < 0) keys.add(k);
+            for (Map.Entry<String, String> e : loadServiceFile(f).entrySet()) {
+                if (isExplicitServiceOverride(e.getKey(), e.getValue())) keys.add(e.getKey());
             }
         }
         if (mavenProperties != null) {
-            for (String k : mavenProperties.keySet()) {
-                if (k.startsWith(SERVICE_PREFIX)) {
-                    String real = k.substring(SERVICE_PREFIX.length());
-                    if (real.indexOf('*') < 0) keys.add(real);
+            for (Map.Entry<String, String> e : mavenProperties.entrySet()) {
+                if (e.getKey().startsWith(SERVICE_PREFIX)) {
+                    String real = e.getKey().substring(SERVICE_PREFIX.length());
+                    if (isExplicitServiceOverride(real, e.getValue())) keys.add(real);
                 }
             }
         }
         return keys;
+    }
+
+    /** A concrete key with a real value — not a wildcard pattern, not a bare placeholder. */
+    static boolean isExplicitServiceOverride(String key, String value) {
+        return key.indexOf('*') < 0 && !isPlaceholder(value);
+    }
+
+    /** True when {@code value} is a single AppManage placeholder such as {@code %%Name%%}. */
+    static boolean isPlaceholder(String value) {
+        return value != null && value.trim().matches("%%[^%]+%%");
     }
 
     private Map<String, String> loadServiceFile(File file) throws IOException {
