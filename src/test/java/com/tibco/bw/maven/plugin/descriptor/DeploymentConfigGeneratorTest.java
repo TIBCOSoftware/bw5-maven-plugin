@@ -661,8 +661,9 @@ public class DeploymentConfigGeneratorTest {
     }
 
     /**
-     * Service-settable GVs appear twice — INSTANCE_RUNTIME_VARIABLES in the binding and Runtime
-     * Variables on the service — in declaration order (the AAR's order), not sorted.
+     * Service-settable GVs appear twice — in the binding and on the service, both blocks named
+     * Runtime Variables — in declaration order (the AAR's order), not sorted. Regression: the
+     * binding block was named INSTANCE_RUNTIME_VARIABLES, which is not matched on import.
      */
     @Test
     public void adapterRuntimeVariablesKeepDeclarationOrder() throws Exception {
@@ -671,9 +672,10 @@ public class DeploymentConfigGeneratorTest {
             gv("NotService", "x", "String", false));
         String xml = readDeployXml(vars, null, oneAdapter(), null);
 
-        int instance = xml.indexOf("<NVPairs name=\"INSTANCE_RUNTIME_VARIABLES\">");
-        int service = xml.indexOf("<NVPairs name=\"Runtime Variables\">");
-        assertTrue("instance block inside the binding", instance > 0 && instance < xml.indexOf("</binding>"));
+        assertFalse(xml.contains("INSTANCE_RUNTIME_VARIABLES"));
+        int instance = xml.indexOf("<NVPairs name=\"Runtime Variables\">");
+        int service = xml.indexOf("<NVPairs name=\"Runtime Variables\">", instance + 1);
+        assertTrue("first block inside the binding", instance > 0 && instance < xml.indexOf("</binding>"));
         assertTrue("service block after the bindings", service > xml.indexOf("</bindings>"));
         assertTrue("declaration order", xml.indexOf("Zeta", instance) < xml.indexOf("Alpha", instance));
         assertTrue("declaration order", xml.indexOf("Zeta", service) < xml.indexOf("Alpha", service));

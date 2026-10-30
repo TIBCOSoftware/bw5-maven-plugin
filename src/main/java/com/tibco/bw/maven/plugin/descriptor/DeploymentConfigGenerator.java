@@ -432,7 +432,7 @@ public class DeploymentConfigGenerator {
         sb.append("                        <checkpoint>").append(esc(flat, b + "/shutdown/checkpoint", "false")).append("</checkpoint>\n");
         sb.append("                        <timeout>").append(esc(flat, b + "/shutdown/timeout", "0")).append("</timeout>\n");
         sb.append("                    </shutdown>\n");
-        appendAdapterRuntimeVars(sb, "                    ", "INSTANCE_RUNTIME_VARIABLES", runtimeVars,
+        appendAdapterRuntimeVars(sb, "                    ", "Runtime Variables", runtimeVars,
                 flat, b + "/variables/variable[");
         sb.append("                </binding>\n");
         sb.append("            </bindings>\n");
@@ -447,9 +447,11 @@ public class DeploymentConfigGenerator {
     }
 
     /**
-     * Runtime-variable block of an adapter service. AppManage exports the service-settable global
-     * variables twice for an adapter: as {@code INSTANCE_RUNTIME_VARIABLES} inside the binding and
-     * as {@code Runtime Variables} on the service. Both keep the order of the AAR's
+     * Runtime-variable block of an adapter service. The service-settable global variables appear
+     * twice: inside the binding and on the service, both named {@code Runtime Variables} as in the
+     * deployed-application form the BW services use. ({@code AppManage -export} of an EAR names the
+     * binding block {@code INSTANCE_RUNTIME_VARIABLES}, a label that is not matched on import — see
+     * the BW binding.) Both keep the order of the AAR's
      * {@code Runtime Variables} (not sorted) and always use plain {@code NameValuePair}; any
      * override-only variable under {@code keyPrefix} is appended. Omitted when there is none, as
      * AppManage does.
@@ -792,7 +794,7 @@ public class DeploymentConfigGenerator {
         flat.put(b + "/setting/java/threadStackSize", "256");
         flat.put(b + "/shutdown/checkpoint", "false");
         flat.put(b + "/shutdown/timeout", "0");
-        // INSTANCE_RUNTIME_VARIABLES: binding-level, keyed without the block name like the BW
+        // Binding-level runtime variables, keyed without the block name like the BW
         // binding's runtime variables.
         for (String[] kv : runtimeVars) {
             flat.put(b + "/variables/variable[" + kv[0] + "]", kv[1]);
